@@ -47,17 +47,23 @@ async function getContaPrincipal(unidadeId?: string | null): Promise<string | nu
 }
 
 /**
- * Busca operadora ativa da unidade e calcula taxa/prazo
+ * Busca operadora ativa da unidade e calcula taxa/prazo.
+ * Se operadoraId for fornecido (escolha do atendente/entregador), usa essa.
+ * Caso contrário, cai na primeira ativa da unidade.
  */
-async function getOperadoraConfig(unidadeId: string | null, tipo: string) {
-  if (!unidadeId) return null;
-  const { data } = await supabase
+async function getOperadoraConfig(unidadeId: string | null, tipo: string, operadoraId?: string | null) {
+  let query = supabase
     .from("operadoras_cartao")
-    .select("id, nome, taxa_debito, taxa_credito_vista, taxa_credito_parcelado, prazo_debito, prazo_credito, taxa_pix, prazo_pix")
-    .or(`unidade_id.eq.${unidadeId},unidade_id.is.null`)
-    .eq("ativo", true)
-    .limit(1)
-    .maybeSingle();
+    .select("id, nome, taxa_debito, taxa_credito_vista, taxa_credito_parcelado, prazo_debito, prazo_credito, taxa_pix, prazo_pix, conta_bancaria_id");
+
+  if (operadoraId) {
+    query = query.eq("id", operadoraId);
+  } else {
+    if (!unidadeId) return null;
+    query = query.or(`unidade_id.eq.${unidadeId},unidade_id.is.null`).eq("ativo", true);
+  }
+
+  const { data } = await query.limit(1).maybeSingle();
   if (!data) return null;
 
   let taxa = 0;
@@ -73,7 +79,24 @@ async function getOperadoraConfig(unidadeId: string | null, tipo: string) {
     prazo = Number(data.prazo_credito) || 30;
   }
 
-  return { id: data.id, nome: data.nome, taxa, prazo };
+  return { id: data.id, nome: data.nome, taxa, prazo, conta_bancaria_id: (data as any).conta_bancaria_id as string | null };
+}
+
+/**
+ * Resolve a conta bancária de destino para um pagamento de cartão/PIX maq.
+ * Precedência: pag.conta_bancaria_id > terminal.conta_bancaria_id > operadora.conta_bancaria_id.
+ */
+async function resolveContaDestinoCartao(pag: PagamentoRoteamento, opContaId: string | null): Promise<string | null> {
+  if (pag.conta_bancaria_id) return pag.conta_bancaria_id;
+  if (pag.terminal_id) {
+    const { data } = await supabase
+      .from("terminais_cartao")
+      .select("conta_bancaria_id")
+      .eq("id", pag.terminal_id)
+      .maybeSingle();
+    if ((data as any)?.conta_bancaria_id) return (data as any).conta_bancaria_id as string;
+  }
+  return opContaId || null;
 }
 
 /**
