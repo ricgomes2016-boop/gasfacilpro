@@ -24,17 +24,6 @@ UPDATE public.pedidos SET origem_pedido = CASE
 END
 WHERE origem_pedido IS NULL;
 
--- When canal_venda mapped to an origem (not a real sales channel), clear canal_venda
-UPDATE public.pedidos
-SET canal_venda = NULL
-WHERE canal_venda IS NOT NULL AND (
-  canal_venda ILIKE ANY (ARRAY[
-    'telefone_ia','telefone','whatsapp','site_ia','site','aplicativo','app_cliente',
-    'entregador','app_entregador','portaria','assistente','assistente_bia','bia',
-    'autoatendimento','pdv','balcao','balcao_pdv','ponto de venda'
-  ])
-);
-
 -- Default for new rows
 ALTER TABLE public.pedidos
   ALTER COLUMN origem_pedido SET DEFAULT 'erp'::public.origem_pedido_enum;

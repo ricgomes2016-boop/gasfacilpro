@@ -1,2 +1,1 @@
 ALTER TABLE public.unidades ADD COLUMN IF NOT EXISTS whatsapp_notificacao_pedido text;
-UPDATE public.unidades SET whatsapp_notificacao_pedido = '5543999692765' WHERE whatsapp_notificacao_pedido IS NULL;
