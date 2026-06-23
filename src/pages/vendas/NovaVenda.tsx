@@ -1054,6 +1054,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             cheque_banco: p.cheque_banco,
             cheque_foto_url: p.cheque_foto_url,
             data_vencimento_fiado: p.data_vencimento_fiado,
+            operadora_id: (p as any).operadora_id,
+            conta_bancaria_id: (p as any).conta_bancaria_id,
           })),
           unidadeId: unidadeAtual?.id,
           entregadorId: null,

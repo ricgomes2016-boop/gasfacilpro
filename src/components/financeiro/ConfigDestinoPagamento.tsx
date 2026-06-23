@@ -31,6 +31,8 @@ interface Props {
 
 type Disponibilidade = "ambos" | "recebimento" | "pagamento";
 
+const FORMA_POR_MAQUININHA = new Set(["cartao_debito", "cartao_credito", "pix_maquininha"]);
+
 const FORMAS_PAGAMENTO: Array<{
   value: string;
   label: string;
@@ -40,9 +42,9 @@ const FORMAS_PAGAMENTO: Array<{
 }> = [
   { value: "dinheiro", label: "💵 Dinheiro", desc: "Entra no Caixa da Loja. Depósito bancário é manual.", disponivel: "ambos" },
   { value: "pix", label: "📱 PIX", desc: "Entrada DIRETA na conta bancária (não passa pelo caixa).", disponivel: "ambos" },
-  { value: "pix_maquininha", label: "📱 PIX Maquininha", desc: "Contas a Receber (prazo da operadora). Entra no banco quando liquidado.", disponivel: "recebimento" },
-  { value: "cartao_debito", label: "💳 Cartão Débito", desc: "Contas a Receber (D+1). Entra no banco quando liquidado.", disponivel: "ambos" },
-  { value: "cartao_credito", label: "💳 Cartão Crédito", desc: "Contas a Receber (D+30). Entra no banco quando liquidado.", disponivel: "ambos" },
+  { value: "pix_maquininha", label: "📱 PIX Maquininha", desc: "Conta definida pela maquininha/operadora usada na venda.", disponivel: "recebimento" },
+  { value: "cartao_debito", label: "💳 Cartão Débito", desc: "Conta definida pela maquininha/operadora usada na venda.", disponivel: "ambos" },
+  { value: "cartao_credito", label: "💳 Cartão Crédito", desc: "Conta definida pela maquininha/operadora usada na venda.", disponivel: "ambos" },
   { value: "cheque", label: "📝 Cheque", desc: "Entra no caixa + tabela cheques. Banco quando depositado.", disponivel: "ambos" },
   { value: "vale_gas", label: "🔥 Vale Gás", desc: "Entra no Caixa da Loja (depende da forma de pagamento).", disponivel: "recebimento" },
   { value: "fiado", label: "📋 Fiado", desc: "Vai para Contas a Receber (sem caixa nem banco).", disponivel: "recebimento", semBanco: true },
@@ -128,7 +130,7 @@ export default function ConfigDestinoPagamento({ contas }: Props) {
     }
   };
 
-  const formasComBanco = FORMAS_PAGAMENTO.filter(f => !f.semBanco);
+  const formasComBanco = FORMAS_PAGAMENTO.filter(f => !f.semBanco && !FORMA_POR_MAQUININHA.has(f.value));
   const configuredCount = formasComBanco.filter(f => configs[f.value] && configs[f.value] !== "nenhuma").length;
 
   const renderContaOption = (c: ContaBancaria) => {
@@ -207,6 +209,14 @@ export default function ConfigDestinoPagamento({ contas }: Props) {
                           <TableCell>
                             {forma.semBanco ? (
                               <span className="text-xs text-muted-foreground italic">Contas a Receber (automático)</span>
+                            ) : FORMA_POR_MAQUININHA.has(forma.value) ? (
+                              <a
+                                href="/financeiro/cartoes"
+                                className="text-xs inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/15"
+                              >
+                                <Plug className="h-3 w-3" />
+                                Definida por maquininha — gerenciar
+                              </a>
                             ) : (
                               <Select
                                 value={configs[forma.value] || "nenhuma"}

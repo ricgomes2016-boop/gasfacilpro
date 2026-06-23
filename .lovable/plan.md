@@ -1,51 +1,75 @@
-## Decisão
 
-Manter a lista fixa de 9 formas (necessária para DRE, Conciliação Cartão, Vale Gás funcionarem) e melhorar a tela existente `ConfigDestinoPagamento` que já mapeia forma → conta bancária por unidade.
+# Múltiplas contas de recebimento por maquininha
 
-## Mudanças
+## Como funciona hoje
 
-### 1. Renomear e dar destaque
+- **Formas de Pagamento** (`config_destino_pagamento`) tem **1 conta bancária por forma**. Ex.: "Crédito" → 1 conta.
+- **Maquininhas** (`terminais_cartao`) já existem e são vinculadas a uma **Operadora** (`operadoras_cartao`), que carrega taxas e prazos.
+- No `paymentRoutingService.ts`, quando a venda é cartão/PIX maquininha, ele:
+  1. Pega a **primeira operadora ativa** da unidade (não respeita qual maquininha foi usada!).
+  2. Cria um `contas_receber` com a operadora, mas **sem conta bancária de destino**.
+- Resultado: hoje, se você tem PagBank e Itaú, o sistema não diferencia. A baixa cai sempre no mesmo lugar.
 
-- Renomear título da aba/card de "Destino de Pagamento" para **"Formas de Pagamento"**.
-- Subtítulo: "Defina qual conta bancária recebe cada forma de pagamento das suas vendas."
-- Garantir que esteja acessível como aba dedicada dentro do menu Financeiro (manter onde já está hoje, só revisar label do item no menu/breadcrumb).
+## O problema do caso Forte Gás
 
-### 2. Coluna "Disponível em" (estilo GestãoClick)
+Atendente/entregador escolhe a maquininha na hora da venda (já existe esse fluxo em `CardOperatorSelectorModal` e `CardPaymentModal`). Mas essa escolha **não influencia** qual conta bancária recebe o dinheiro.
 
-Adicionar coluna visual com 2 badges fixos por forma:
+## Proposta — vincular conta bancária à Maquininha/Operadora
 
-- **Recebimento** (verde) — todas as formas
-- **Pagamento** (vermelho) — formas que também valem para Contas a Pagar: Dinheiro, PIX, Transferência, Boleto, Cheque, Cartão Crédito/Débito
+O vínculo conta bancária ↔ recebimento sobe um nível: deixa de ser na **Forma de Pagamento** e passa a ser na **Operadora/Maquininha**. Cada maquininha (PagBank, Itaú, Cielo…) aponta para a sua própria conta.
 
-Visual apenas (informativo), sem alterar lógica de Contas a Pagar agora — fica documentado para futura expansão.
+### 1. Banco de dados
+- Adicionar coluna `conta_bancaria_id` em `operadoras_cartao` (FK → `contas_bancarias`).
+  - Padrão: 1 conta por operadora (cobre 95% dos casos).
+- Manter a possibilidade de **override por terminal** (`terminais_cartao.conta_bancaria_id`, opcional). Se preenchido, vence sobre a operadora. Útil se a mesma operadora tiver maquininhas em contas diferentes.
 
-### 3. Status Ativo/Inativo
+### 2. Tela Operadoras / Maquininhas
+- Em **Gestão de Cartões → Operadora**: novo campo "Conta de recebimento" (Select com logo do banco e badge 🔌 quando integrada).
+- Em **Maquininhas da operadora** (`MaquininhasOperadoraTab`): campo opcional "Conta de recebimento (sobrescrever)".
+- Indicador visual quando a operadora ainda não tem conta vinculada (alerta amarelo "Recebíveis sem destino").
 
-- Adicionar coluna **Ativo** com Switch por linha.
-- Quando inativo, a forma não aparece nos selects de Nova Venda / Caixa.
-- Persiste em `config_destino_pagamento.ativo` (coluna já existe).
-- Forma sem registro = ativa por padrão (compatibilidade).
+### 3. Roteamento da venda (`paymentRoutingService.ts`)
+- Receber o `terminal_id` (ou `operadora_id`) escolhido na venda como parte do payload de cada pagamento de cartão/PIX maquininha.
+- `getOperadoraConfig` passa a buscar a **operadora do terminal selecionado**, não a "primeira ativa".
+- O `contas_receber` gerado recebe `conta_bancaria_destino_id` = terminal.conta ?? operadora.conta.
+- Quando o título é baixado (recebimento da operadora), a entrada bancária vai automaticamente para a conta certa.
 
-### 4. Visual da conta vinculada
+### 4. Tela Formas de Pagamento (ajuste fino)
+- Para Crédito/Débito/PIX Maquininha: a coluna "Conta vinculada" passa a mostrar **"Definida por maquininha"** (com link para a tela de Operadoras), em vez de um Select fixo.
+- Para Dinheiro / PIX direto / Boleto / Fiado / Cheque: continua como está (1 forma = 1 destino).
 
-- Mostrar logo/cor do banco ao lado do nome da conta no select (usar `bankThemes.ts` que já existe).
-- Indicador 🔌 ao lado quando a conta tem provedor integrado (Asaas/PagBank) — reaproveitar `getBankProvider()`.
+### 5. Tela Conta Bancária — `FormasVinculadasCard`
+- Passa a listar também as **maquininhas que depositam nesta conta** (ex.: "Maquininha PagBank Loja 1 — Crédito/Débito/PIX Maq.").
 
-### 5. Link rápido bidirecional
+## Fluxo final (exemplo Forte Gás)
 
-- Na tela de detalhe da conta bancária (`ContaBancariaDetalhe`), adicionar card "Formas de Pagamento vinculadas" listando quais formas roteiam para aquela conta, com link para editar.
+```text
+Venda R$ 100 no Crédito
+   |
+   v
+Atendente escolhe maquininha
+   |-- "PagBank Loja"  -> Operadora PagBank -> Conta "PagBank"  -> CR liquidado em D+30 cai na conta PagBank
+   |-- "Itaú PinPad"   -> Operadora Itaú    -> Conta "Itaú PJ"  -> CR liquidado em D+30 cai na conta Itaú
+```
 
-## Fora do escopo
+## Detalhes técnicos
 
-- CRUD aberto de formas (quebraria DRE/Conciliação/Vale Gás).
-- Roteamento de Contas a Pagar por forma (só sinalização visual agora).
-- Múltiplas contas por forma na mesma unidade.
+**Migration:**
+```sql
+ALTER TABLE operadoras_cartao ADD COLUMN conta_bancaria_id uuid REFERENCES contas_bancarias(id);
+ALTER TABLE terminais_cartao  ADD COLUMN conta_bancaria_id uuid REFERENCES contas_bancarias(id);
+ALTER TABLE contas_receber    ADD COLUMN conta_bancaria_destino_id uuid REFERENCES contas_bancarias(id);
+```
+(sem alteração de RLS — herdam regras existentes)
 
-## Técnico
+**Arquivos a editar:**
+- `src/services/paymentRoutingService.ts` — aceitar `terminal_id`/`operadora_id` no payload e resolver a conta de destino.
+- `src/components/vendas/PaymentSection.tsx` / `CardPaymentModal.tsx` / `CardOperatorSelectorModal.tsx` — passar o terminal escolhido adiante.
+- `src/pages/financeiro/OperadoraCartaoDetalhe.tsx` — campo "Conta de recebimento".
+- `src/components/financeiro/operadora-detalhe/MaquininhasOperadoraTab.tsx` — campo override por terminal.
+- `src/components/financeiro/ConfigDestinoPagamento.tsx` — exibir "Definida por maquininha" para formas de cartão.
+- `src/components/financeiro/conta-detalhe/FormasVinculadasCard.tsx` — listar maquininhas também.
 
-- Editar: `src/components/financeiro/ConfigDestinoPagamento.tsx` (renomear, badges, switch ativo, visual banco).
-- Editar: `src/pages/financeiro/ContaBancariaDetalhe.tsx` (card de formas vinculadas).
-- Adicionar metadado `disponivelEm: ['recebimento'] | ['recebimento','pagamento']` no array `FORMAS_PAGAMENTO` local.
-- Usar `getBankProvider()` de `src/lib/bancos/bankProviders.ts` e `bankThemes` de `src/lib/bancos/bankThemes.ts`.
-- Nenhuma migração de schema necessária (`ativo` já existe em `config_destino_pagamento`).
-- Filtrar formas inativas no hook que alimenta os selects de venda (verificar uso de `config_destino_pagamento` em Nova Venda / Caixa antes de aplicar o filtro — se não existir consumo direto, criar hook `useFormasPagamentoAtivas`).
+**Fora de escopo:**
+- Divisão proporcional de uma venda entre duas contas.
+- Roteamento de Contas a Pagar (continua 1 conta por categoria, separado).
