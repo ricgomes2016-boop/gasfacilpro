@@ -1131,7 +1131,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           cliente_id: customer.id, entregador_id: entregador.id, vendedor_id: vendedor.id,
           endereco_entrega: enderecoCompleto, valor_total: totalVenda,
           forma_pagamento: pagamentos.map((p) => p.forma).join(", "),
-          canal_venda: canalVenda, observacoes: customer.observacao,
+          canal_venda: canalVenda, origem_pedido: "erp", observacoes: customer.observacao,
           status: "pendente", unidade_id: unidadeAtual?.id,
           data_entrega: dataAgendamento,
           agendado: true, data_agendamento: agendamentoDate.toISOString(),
