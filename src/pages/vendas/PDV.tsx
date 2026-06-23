@@ -250,7 +250,8 @@ export default function PDV() {
         .insert({
           valor_total: total,
           forma_pagamento: formaPagamentoLabel,
-          canal_venda: "portaria",
+          canal_venda: null,
+          origem_pedido: "balcao_pdv",
           responsavel_acerto: "portaria",
           status: "finalizado", // PDV: venda imediata, sem acerto com entregador
           endereco_entrega: "Retirada no local",
