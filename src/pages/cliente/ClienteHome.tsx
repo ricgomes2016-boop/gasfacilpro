@@ -285,6 +285,16 @@ export default function ClienteHome() {
   return (
     <ClienteLayout cartItemsCount={cartItemsCount}>
       <div className="space-y-4 pb-24">
+        {/* Greeting */}
+        {userFirstName && (
+          <div className="flex items-center justify-between pt-1 animate-fade-in">
+            <div>
+              <p className="text-sm text-muted-foreground leading-tight">{greeting},</p>
+              <h2 className="text-xl font-bold tracking-tight truncate">{userFirstName} 👋</h2>
+            </div>
+          </div>
+        )}
+
         {/* Hero Banner */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-primary-foreground p-5">
           <div className="relative z-10">
