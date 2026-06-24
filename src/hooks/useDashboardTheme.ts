@@ -31,7 +31,7 @@ export function useDashboardTheme() {
 
   const setTheme = useCallback((t: DashboardTheme) => {
     localStorage.setItem(STORAGE_KEY, t);
-    localStorage.setItem(LEGACY_STORAGE_KEY, t === "gasfacil" ? "default" : t);
+    localStorage.setItem(LEGACY_STORAGE_KEY, t === "premium" ? "default" : t);
     setThemeState(t);
     window.dispatchEvent(new Event("dashboard-theme-change"));
   }, []);
