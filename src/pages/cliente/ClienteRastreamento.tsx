@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ClienteLayout } from "@/components/cliente/ClienteLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,20 +6,41 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  ArrowLeft, 
-  Phone, 
-  MessageCircle, 
-  MapPin, 
-  Clock, 
+import {
+  ArrowLeft,
+  Phone,
+  MessageCircle,
+  MapPin,
+  Clock,
   Package,
   Truck,
-  CheckCircle2
+  CheckCircle2,
+  Wifi,
+  WifiOff,
+  Loader2,
 } from "lucide-react";
 import { DeliveryMap } from "@/components/cliente/DeliveryMap";
 import { NotificationPermissionBanner, NotificationStatus } from "@/components/cliente/NotificationPermissionBanner";
 import { useDeliveryNotifications } from "@/hooks/useDeliveryNotifications";
 import { supabase } from "@/integrations/supabase/client";
+
+type RealtimeStatus = "connecting" | "live" | "reconnecting" | "offline";
+
+function RealtimeBadge({ status }: { status: RealtimeStatus }) {
+  const map = {
+    connecting: { icon: Loader2, label: "Conectando…", cls: "bg-muted text-muted-foreground", spin: true },
+    live: { icon: Wifi, label: "Ao vivo", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", spin: false },
+    reconnecting: { icon: Loader2, label: "Reconectando…", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400", spin: true },
+    offline: { icon: WifiOff, label: "Sem conexão", cls: "bg-destructive/15 text-destructive", spin: false },
+  }[status];
+  const Icon = map.icon;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${map.cls}`}>
+      <Icon className={`h-3 w-3 ${map.spin ? "animate-spin" : ""}`} />
+      {map.label}
+    </span>
+  );
+}
 
 const statusSteps = [
   { key: "pendente", label: "Confirmado", desc: "Loja recebeu seu pedido", icon: CheckCircle2 },
