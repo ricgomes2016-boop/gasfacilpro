@@ -44,6 +44,15 @@ export const THEME_PRESETS = [
     gradient: "linear-gradient(135deg, #0b2440 0%, #145184 48%, #f59e0b 100%)",
   },
   {
+    id: "operacional-clean",
+    label: "Operacional Clean",
+    description: "ERP administrativo: topo escuro, menu claro, cards objetivos e tabelas em grade",
+    cor: "151 39% 48%",
+    hex: "#55a460",
+    dark: false,
+    gradient: "linear-gradient(135deg, #101820 0%, #273746 52%, #55a460 100%)",
+  },
+  {
     id: "eco-verde",
     label: "Eco Verde",
     description: "Verde sustentável, cards branco com acento esmeralda",
@@ -210,6 +219,48 @@ export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
     "--kpi-accent": "43 85% 62%",
     "--gradient-primary": "linear-gradient(135deg, hsl(222 50% 8%) 0%, hsl(238 60% 28%) 100%)",
     "--shadow-glow": "0 0 30px hsl(238 90% 70% / 0.4)",
+  },
+  "operacional-clean": {
+    "--background": "0 0% 96%",
+    "--foreground": "210 22% 12%",
+    "--card": "0 0% 100%",
+    "--card-foreground": "210 22% 12%",
+    "--popover": "0 0% 100%",
+    "--popover-foreground": "210 22% 12%",
+    "--primary": "151 39% 48%",
+    "--primary-foreground": "0 0% 100%",
+    "--secondary": "210 18% 15%",
+    "--secondary-foreground": "0 0% 100%",
+    "--muted": "210 10% 92%",
+    "--muted-foreground": "210 8% 38%",
+    "--accent": "213 43% 49%",
+    "--accent-foreground": "0 0% 100%",
+    "--border": "210 10% 82%",
+    "--input": "210 10% 82%",
+    "--ring": "151 39% 48%",
+    "--success": "126 32% 49%",
+    "--success-foreground": "0 0% 100%",
+    "--warning": "36 70% 53%",
+    "--warning-foreground": "0 0% 100%",
+    "--info": "213 43% 49%",
+    "--info-foreground": "0 0% 100%",
+    "--destructive": "7 62% 60%",
+    "--destructive-foreground": "0 0% 100%",
+    "--sidebar-background": "0 0% 94%",
+    "--sidebar-gradient-from": "0 0% 96%",
+    "--sidebar-gradient-to": "0 0% 92%",
+    "--sidebar-foreground": "210 10% 26%",
+    "--sidebar-primary": "210 22% 12%",
+    "--sidebar-primary-foreground": "0 0% 100%",
+    "--sidebar-accent": "0 0% 100%",
+    "--sidebar-accent-foreground": "210 22% 12%",
+    "--sidebar-border": "210 9% 82%",
+    "--sidebar-ring": "151 39% 48%",
+    "--kpi-accent": "151 39% 48%",
+    "--gradient-primary": "linear-gradient(135deg, hsl(210 22% 12%) 0%, hsl(151 39% 48%) 100%)",
+    "--gradient-dark": "linear-gradient(135deg, hsl(210 22% 12%) 0%, hsl(210 18% 18%) 100%)",
+    "--gradient-card": "linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 100%)",
+    "--shadow-glow": "0 10px 26px -18px hsl(210 22% 12% / 0.28)",
   },
   "gas-classico": {
     "--background": "210 32% 97%",
@@ -599,6 +650,223 @@ const PREMIUM_BASE_CSS = (presetId: string, accent: string, surfaceBorder: strin
 `;
 
 export const PRESET_EXTRA_CSS: Record<string, string> = {
+  "operacional-clean": `
+    html[data-theme-preset="operacional-clean"] body,
+    html[data-theme-preset="operacional-clean"] .system-surface {
+      background: hsl(0 0% 96%) !important;
+      color: hsl(210 22% 12%);
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-header-premium {
+      background: hsl(210 22% 12% / 0.98) !important;
+      border-color: hsl(210 18% 18%) !important;
+      color: hsl(0 0% 98%) !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-header-premium h1,
+    html[data-theme-preset="operacional-clean"] .app-header-premium .text-primary {
+      color: hsl(0 0% 98%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-header-premium .text-foreground\\/65,
+    html[data-theme-preset="operacional-clean"] .app-header-premium .text-foreground\\/70,
+    html[data-theme-preset="operacional-clean"] .app-header-premium .text-foreground\\/80 {
+      color: hsl(0 0% 88% / 0.86) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .header-unit-selector {
+      background: hsl(210 12% 32%) !important;
+      border-color: hsl(210 10% 42%) !important;
+      color: hsl(0 0% 100%) !important;
+      border-radius: 4px !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .header-actions button:not(.header-unit-selector) {
+      color: hsl(0 0% 92%) !important;
+      border-radius: 4px !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .header-actions button:not(.header-unit-selector):hover {
+      background: hsl(210 12% 22%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-header-premium .bg-primary {
+      background: hsl(0 0% 98%) !important;
+      color: hsl(210 22% 12%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern {
+      background: linear-gradient(180deg, hsl(0 0% 96%) 0%, hsl(0 0% 92%) 100%) !important;
+      color: hsl(210 10% 26%) !important;
+      border-color: hsl(210 9% 82%) !important;
+      box-shadow: 10px 0 26px -22px hsl(210 22% 12% / 0.34) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium::before,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern::before {
+      display: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium [class*="rounded-3xl"],
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern [class*="rounded-3xl"] {
+      border-radius: 6px !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium a,
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium button,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern a,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern button {
+      color: hsl(210 10% 26%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium .bg-sidebar-accent,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern .bg-sidebar-accent,
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium .gradient-primary,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern .gradient-primary {
+      background: hsl(0 0% 100%) !important;
+      color: hsl(210 22% 12%) !important;
+      box-shadow: inset 3px 0 0 hsl(151 39% 48%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-card,
+    html[data-theme-preset="operacional-clean"] .modern-panel,
+    html[data-theme-preset="operacional-clean"] .modern-status-card,
+    html[data-theme-preset="operacional-clean"] .table-card-shell,
+    html[data-theme-preset="operacional-clean"] .mobile-record-card {
+      background: hsl(0 0% 100%) !important;
+      border: 1px solid hsl(210 10% 80% / 0.95) !important;
+      border-radius: 4px !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-card::before,
+    html[data-theme-preset="operacional-clean"] .modern-panel::before,
+    html[data-theme-preset="operacional-clean"] .modern-status-card::before,
+    html[data-theme-preset="operacional-clean"] .table-card-shell::before,
+    html[data-theme-preset="operacional-clean"] .mobile-record-card::before {
+      display: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-card-header,
+    html[data-theme-preset="operacional-clean"] .modern-panel-header {
+      background: hsl(0 0% 100%) !important;
+      border-bottom: 1px solid hsl(210 10% 84%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .kpi-card,
+    html[data-theme-preset="operacional-clean"] .highlight-card-primary,
+    html[data-theme-preset="operacional-clean"] .highlight-card-success,
+    html[data-theme-preset="operacional-clean"] .highlight-card-warning,
+    html[data-theme-preset="operacional-clean"] .highlight-card-danger {
+      border-radius: 4px !important;
+      border-color: transparent !important;
+      color: hsl(0 0% 100%) !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .kpi-card-primary,
+    html[data-theme-preset="operacional-clean"] .highlight-card-primary {
+      background: hsl(213 43% 49%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .kpi-card-success,
+    html[data-theme-preset="operacional-clean"] .highlight-card-success {
+      background: hsl(126 32% 49%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .kpi-card-warning,
+    html[data-theme-preset="operacional-clean"] .highlight-card-warning {
+      background: hsl(36 70% 53%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .kpi-card-destructive,
+    html[data-theme-preset="operacional-clean"] .highlight-card-danger {
+      background: hsl(7 62% 60%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .kpi-card *,
+    html[data-theme-preset="operacional-clean"] .highlight-card-primary *,
+    html[data-theme-preset="operacional-clean"] .highlight-card-success *,
+    html[data-theme-preset="operacional-clean"] .highlight-card-warning *,
+    html[data-theme-preset="operacional-clean"] .highlight-card-danger * {
+      color: currentColor !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .saas-table {
+      border-collapse: separate !important;
+      border-spacing: 0 !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .saas-table thead tr,
+    html[data-theme-preset="operacional-clean"] .system-surface table thead tr {
+      background: hsl(0 0% 98%) !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .saas-table th,
+    html[data-theme-preset="operacional-clean"] .system-surface table th {
+      background: hsl(0 0% 98%) !important;
+      color: hsl(210 22% 12%) !important;
+      border-top: 1px solid hsl(210 10% 82%) !important;
+      border-bottom: 1px solid hsl(210 10% 82%) !important;
+      border-right: 1px solid hsl(210 10% 84%) !important;
+      border-radius: 0 !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      letter-spacing: 0 !important;
+      text-transform: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .saas-table th:first-child,
+    html[data-theme-preset="operacional-clean"] .system-surface table th:first-child {
+      border-left: 1px solid hsl(210 10% 82%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .saas-table td,
+    html[data-theme-preset="operacional-clean"] .system-surface table td {
+      background: hsl(210 8% 97%) !important;
+      border-bottom: 1px solid hsl(210 10% 82%) !important;
+      border-right: 1px solid hsl(210 10% 84%) !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      color: hsl(210 22% 12%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .saas-table td:first-child,
+    html[data-theme-preset="operacional-clean"] .system-surface table td:first-child {
+      border-left: 1px solid hsl(210 10% 82%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .saas-table tbody tr:hover td,
+    html[data-theme-preset="operacional-clean"] .system-surface table tbody tr:hover td {
+      background: hsl(210 10% 93%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .btn-primary,
+    html[data-theme-preset="operacional-clean"] button.bg-primary {
+      border-radius: 4px !important;
+      box-shadow: none !important;
+    }
+
+    @media (max-width: 768px) {
+      html[data-theme-preset="operacional-clean"] .app-header-premium {
+        min-height: 72px;
+      }
+
+      html[data-theme-preset="operacional-clean"] .mobile-record-card {
+        border-radius: 6px !important;
+      }
+
+      html[data-theme-preset="operacional-clean"] .kpi-card,
+      html[data-theme-preset="operacional-clean"] .modern-status-card {
+        min-height: 104px;
+      }
+    }
+  `,
   "premium-light": PREMIUM_BASE_CSS("premium-light", "238 75% 58%", "220 18% 90%"),
   "premium-night": PREMIUM_BASE_CSS("premium-night", "43 85% 62%", "222 25% 18%") + `
     html[data-theme-preset="premium-night"] body {
