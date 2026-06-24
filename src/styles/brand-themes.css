@@ -134,13 +134,95 @@
   --brand-font: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
+/* =====================================================================
+   PREMIUM — tema padrão (Midnight Indigo + dourado).
+   Tokens completos para light + dark, cobrindo menu, cards, KPIs, tabelas.
+   ===================================================================== */
+.brand-theme-premium {
+  --brand-font: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --background: 220 25% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 238 75% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 22% 94%;
+  --secondary-foreground: 222 47% 14%;
+  --muted: 220 20% 95%;
+  --muted-foreground: 222 16% 38%;
+  --accent: 43 78% 52%;
+  --accent-foreground: 222 47% 11%;
+  --success: 152 65% 40%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 222 47% 11%;
+  --info: 217 91% 58%;
+  --info-foreground: 0 0% 100%;
+  --destructive: 0 78% 56%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 18% 88%;
+  --input: 220 18% 88%;
+  --ring: 238 75% 58%;
+  --radius: 0.75rem;
+  --sidebar-background: 222 47% 11%;
+  --sidebar-gradient-from: 222 47% 11%;
+  --sidebar-gradient-to: 235 50% 16%;
+  --sidebar-foreground: 220 18% 92%;
+  --sidebar-primary: 238 80% 64%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 238 75% 58%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 222 30% 20%;
+  --sidebar-ring: 238 80% 64%;
+  --kpi-accent: 238 75% 58%;
+  --shadow-elevated: 0 1px 2px hsl(222 47% 11% / 0.05), 0 8px 24px -12px hsl(222 47% 11% / 0.14);
+  --gradient-primary: linear-gradient(135deg, hsl(238 75% 58%) 0%, hsl(222 47% 22%) 100%);
+  --shadow-glow: 0 0 28px hsl(238 75% 58% / 0.28);
+}
+
+.dark .brand-theme-premium,
+.brand-theme-premium.dark {
+  --background: 222 47% 6%;
+  --foreground: 220 18% 96%;
+  --card: 222 40% 10%;
+  --card-foreground: 220 18% 96%;
+  --popover: 222 40% 10%;
+  --popover-foreground: 220 18% 96%;
+  --primary: 238 90% 70%;
+  --primary-foreground: 222 47% 6%;
+  --secondary: 222 30% 16%;
+  --secondary-foreground: 220 18% 96%;
+  --muted: 222 28% 14%;
+  --muted-foreground: 220 14% 70%;
+  --accent: 43 85% 62%;
+  --accent-foreground: 222 47% 6%;
+  --border: 222 25% 18%;
+  --input: 222 25% 18%;
+  --ring: 238 90% 70%;
+  --sidebar-background: 222 50% 4%;
+  --sidebar-gradient-from: 222 50% 4%;
+  --sidebar-gradient-to: 235 55% 10%;
+  --sidebar-foreground: 220 18% 92%;
+  --sidebar-primary: 238 90% 70%;
+  --sidebar-primary-foreground: 222 47% 6%;
+  --sidebar-accent: 238 60% 22%;
+  --sidebar-accent-foreground: 220 18% 96%;
+  --sidebar-border: 222 25% 14%;
+  --sidebar-ring: 238 90% 70%;
+  --kpi-accent: 43 85% 62%;
+  --shadow-elevated: 0 1px 2px hsl(0 0% 0% / 0.4), 0 12px 32px -12px hsl(0 0% 0% / 0.55);
+}
+
 .brand-theme-gasfacil,
 .brand-theme-saas,
 .brand-theme-pastel-dashboard,
 .brand-theme-signature,
 .brand-theme-gasmais,
 .brand-theme-executive,
-.brand-theme-classic {
+.brand-theme-classic,
+.brand-theme-premium {
   font-family: var(--brand-font);
 }
 
