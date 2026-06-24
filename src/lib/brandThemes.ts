@@ -20,6 +20,16 @@ export const BRAND_THEME_STORAGE_KEY = "brandTheme";
 
 export const brandThemes: BrandThemePreset[] = [
   {
+    id: "premium",
+    name: "Premium (padrão)",
+    description: "Midnight Indigo — menu, cards, KPIs e tabelas com cara de ERP premium.",
+    className: "brand-theme-premium",
+    logoVariant: "markText",
+    logoMark,
+    logoFull,
+    fontLabel: "Plus Jakarta Sans",
+  },
+  {
     id: "classic",
     name: "Clássico (preset)",
     description: "Modo neutro — deixa o preset visual aplicar 100% das cores.",
