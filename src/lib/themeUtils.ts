@@ -741,6 +741,7 @@ const BRAND_THEME_SELECTORS = [
   ".brand-theme-gasmais",
   ".brand-theme-executive",
   ".brand-theme-classic",
+  ".brand-theme-premium",
 ];
 
 function buildPresetVarsCss(presetId: string, overrides: Record<string, string>): string {
