@@ -24,7 +24,7 @@ export const THEME_PRESETS = [
     recommended: true,
   },
   {
-    id: "premium-dark",
+    id: "premium-night",
     label: "Premium · Escuro",
     description: "Midnight Indigo dark · acento dourado, cards grafite, premium SaaS",
     cor: "238 90% 70%",
@@ -53,7 +53,7 @@ export const THEME_PRESETS = [
     gradient: "linear-gradient(135deg, #1f9e5c 0%, #0f6b3f 100%)",
   },
   {
-    id: "premium-dark",
+    id: "premium-night",
     label: "Premium Dark",
     description: "Escuro sofisticado com destaque roxo e cards grafite",
     cor: "260 60% 50%",
@@ -179,7 +179,7 @@ export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
     "--gradient-primary": "linear-gradient(135deg, hsl(238 75% 58%) 0%, hsl(222 47% 22%) 100%)",
     "--shadow-glow": "0 0 28px hsl(238 75% 58% / 0.28)",
   },
-  "premium-dark": {
+  "premium-night": {
     "--background": "222 47% 6%",
     "--foreground": "220 18% 96%",
     "--card": "222 40% 10%",
@@ -273,7 +273,7 @@ export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
     "--gradient-primary": "linear-gradient(135deg, hsl(152 69% 40%) 0%, hsl(160 60% 26%) 100%)",
     "--shadow-glow": "0 0 24px hsl(152 69% 40% / 0.3)",
   },
-  "premium-dark": {
+  "premium-night": {
     "--background": "240 12% 6%",
     "--foreground": "260 15% 96%",
     "--card": "240 12% 11%",
