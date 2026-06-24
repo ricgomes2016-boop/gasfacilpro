@@ -35,7 +35,9 @@ export function ThemeSync() {
           );
           
           const currentBrandThemeId = localStorage.getItem(BRAND_THEME_STORAGE_KEY);
-          const targetBrandThemeId = presetWithBrandThemeId ? (presetWithBrandThemeId as any).brandThemeId : "gasfacil";
+          const targetBrandThemeId = presetWithBrandThemeId
+            ? (presetWithBrandThemeId as any).brandThemeId
+            : (matchedPreset ? "classic" : "gasfacil");
 
           if (currentBrandThemeId !== targetBrandThemeId) {
              localStorage.setItem(BRAND_THEME_STORAGE_KEY, targetBrandThemeId);

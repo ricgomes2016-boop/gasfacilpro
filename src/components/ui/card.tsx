@@ -13,6 +13,7 @@ const cardVariants = cva(
         sunken: "border border-transparent bg-muted/50",
         interactive:
           "border border-border/60 bg-card shadow-[0_1px_2px_hsl(220_25%_10%/0.04),0_2px_8px_-4px_hsl(220_25%_10%/0.06)] cursor-pointer hover:border-primary/35 hover:shadow-[0_2px_4px_hsl(220_25%_10%/0.06),0_8px_20px_-8px_hsl(220_25%_10%/0.12)]",
+        kpi: "kpi border border-border/60 bg-gradient-to-br from-card to-muted/40 shadow-[0_1px_2px_hsl(220_25%_10%/0.04),0_4px_12px_-6px_hsl(220_25%_10%/0.08)]",
       },
     },
     defaultVariants: { variant: "default" },

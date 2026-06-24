@@ -1,7 +1,7 @@
 import logoMark from "@/assets/gasfacil-logo-mark.png";
 import logoFull from "@/assets/logo.png";
 
-export type BrandThemeId = "gasfacil" | "gasmais" | "signature" | "executive" | "saas" | "pastel-dashboard";
+export type BrandThemeId = "gasfacil" | "gasmais" | "signature" | "executive" | "saas" | "pastel-dashboard" | "classic";
 
 export type BrandLogoVariant = "markText" | "full" | "compact";
 
@@ -19,6 +19,16 @@ export interface BrandThemePreset {
 export const BRAND_THEME_STORAGE_KEY = "brandTheme";
 
 export const brandThemes: BrandThemePreset[] = [
+  {
+    id: "classic",
+    name: "Clássico (preset)",
+    description: "Modo neutro — deixa o preset visual aplicar 100% das cores.",
+    className: "brand-theme-classic",
+    logoVariant: "markText",
+    logoMark,
+    logoFull,
+    fontLabel: "Plus Jakarta Sans",
+  },
   {
     id: "gasfacil",
     name: "Gás Fácil Pro",
@@ -81,7 +91,7 @@ export const brandThemes: BrandThemePreset[] = [
   },
 ];
 
-export const defaultBrandTheme = brandThemes[0];
+export const defaultBrandTheme = brandThemes.find((t) => t.id === "gasfacil") || brandThemes[0];
 
 export function getBrandTheme(id?: string | null) {
   return brandThemes.find((theme) => theme.id === id) || defaultBrandTheme;

@@ -1,83 +1,84 @@
+## Objetivo
 
-# Padronização Visual Global — ERP Premium
+Em `Configurações → Personalização Visual`:
+1. Garantir que **todos os temas prontos** carreguem corretamente (cores, menu, cards).
+2. No tema **Clássico** (Gás Clássico), fazer ajuste fino em cards, tabelas e KPIs.
+3. Ao trocar de tema, **menu lateral** acompanha sempre.
+4. Sem mexer em `App.tsx`, providers, rotas, ou lógica de negócio.
 
-Objetivo: deixar todo o sistema com aparência consistente de ERP premium — cards mais limpos, tabelas profissionais, tipografia nítida, e eliminar o efeito "card dentro de card".
+## Diagnóstico
 
-## 1. Tokens e tipografia (nitidez)
+### Bug raiz dos temas que não carregam
+Em `PersonalizacaoVisual.tsx`, ao clicar num preset **sem `brandThemeId`** (Gás Clássico, Eco Verde, Premium Dark, Energia, Forte Gás, Aurora Glass, Onyx Prestige, Forte Gás Light), **`setBrandTheme` não é chamado**. Resultado: a classe `.brand-theme-*` anterior (`gasmais`, `executive`, `signature`…) continua no `<body>` injetando `--primary`, `--sidebar-*` e `--brand-font` antigos e poluindo o preset escolhido. O menu/sidebar e a fonte ficam misturados.
 
-Em `src/index.css`:
-- Adicionar suavização de fonte global: `-webkit-font-smoothing: antialiased`, `-moz-osx-font-smoothing: grayscale`, `text-rendering: optimizeLegibility`, `font-feature-settings: "cv11","ss01","ss03"`.
-- Fixar Plus Jakarta Sans como `--font-sans` (já é regra do projeto) e subir o peso base de corpo para `font-weight: 450` em `body` para ganhar nitidez sem ficar bold.
-- Escurecer `--foreground` no light (de `222 22% 13%` → `222 30% 11%`) e clarear `--muted-foreground` o suficiente para AA (`225 14% 38%`) — mais contraste = letras mais nítidas.
-- Adicionar tokens novos:
-  - `--surface` (fundo de página), `--surface-elevated` (card), `--surface-sunken` (interior de card, sem borda dupla).
-  - `--border-subtle` (linhas de tabela) e `--border-strong` (separadores estruturais).
-  - `--shadow-card` único e discreto (1px hairline + sombra suave), substituindo `shadow-md/lg` empilhados.
+`ThemeSync.tsx` tem o mesmo gap — ao carregar, força `brandTheme = "gasfacil"` sempre que o preset não tem `brandThemeId`, mas `.brand-theme-gasfacil` sobrescreve `--primary` para teal, brigando com o preset. Funciona só porque `applyTheme` injeta inline no `<body>` (frágil) e quebra em qualquer componente que use a variável herdada de uma sub-árvore.
 
-## 2. Card padrão (eliminar card-dentro-de-card)
+### Falta de ajuste fino
+- KPIs (`StatCard`/dashboards) usam `bg-card` puro — sem hierarquia visual no tema Clássico (tudo cinza claro chapado).
+- Tabelas dentro de `<Card>` ainda existem em várias telas (efeito card-dentro-de-card já parcialmente resolvido).
+- Linhas de tabela com `text-foreground/70` viram quase ilegíveis em alguns presets escuros.
 
-Em `src/components/ui/card.tsx`:
-- Remover `shadow-md ... hover:shadow-lg` do `Card` base. Premium ERP usa **borda hairline + 1 sombra muito suave**, sem hover lift.
-- Reduzir `rounded-2xl` → `rounded-xl` (12px) — visual mais corporativo.
-- `CardHeader`: remover `bg-card` e `border-b` por padrão; criar variante `bordered` opcional. Padding padrão `px-5 py-4`.
-- `CardContent`: padding consistente `p-5` (remover escala `p-3 sm:p-4 md:p-5`).
-- Adicionar variantes via `cva`:
-  - `variant: "default" | "flat" | "sunken" | "interactive"`
-    - `flat`: sem sombra, só borda — para usar **dentro** de outro card.
-    - `sunken`: `bg-surface-sunken`, sem borda — para blocos internos sem virar "card aninhado".
-- Criar utilitário `.app-card-nested` global no `index.css` que neutraliza sombra/borda quando um `Card` está dentro de outro `Card` (`.app-card .app-card { @apply shadow-none border-transparent bg-transparent p-0; }`) — corrige o problema sem reescrever cada tela.
+## Mudanças
 
-## 3. Tabela padrão
+### 1. `src/lib/brandThemes.ts`
+Adicionar preset neutro `"classic"` (sem overrides de cor — apenas fonte) que serve de "limpa-trastes" quando o preset escolhido define seus próprios tokens via `PRESET_THEME_OVERRIDES`.
 
-Em `src/components/ui/table.tsx` (ler e ajustar):
-- `Table`: `text-sm`, `font-medium` no `thead`, `text-foreground` nas células (não muted).
-- `TableHeader`: fundo `bg-muted/40`, `uppercase tracking-wide text-xs font-semibold text-muted-foreground`, borda inferior `border-strong`.
-- `TableRow`: altura mínima 44px, hover `bg-muted/30`, separador `border-subtle`, **zebra removida** (premium é uniforme com hairlines).
-- `TableCell`: `py-3 px-4`, números tabulares `tabular-nums` automático em colunas numéricas via classe utilitária `.num`.
-- Adicionar wrapper `DataTableShell` (novo, em `src/components/ui/data-table-shell.tsx`) que envolve a tabela com:
-  - Toolbar (busca + filtros + ações) padronizada
-  - Estados vazio/loading/erro consistentes
-  - Paginação e footer com contagem
-  - Borda externa única, sem `Card` envolvendo — para não duplicar moldura.
-- Guideline: **tabela nunca vai dentro de `Card`** — usa o `DataTableShell` direto.
+```ts
+{ id: "classic", className: "brand-theme-classic", fontLabel: "Plus Jakarta Sans", ... }
+```
 
-## 4. Cores modernas
+### 2. `src/styles/brand-themes.css`
+- Criar `.brand-theme-classic { --brand-font: 'Plus Jakarta Sans', ...; }` **sem nenhuma variável de cor** — deixa o preset reinar.
+- Incluir `.brand-theme-classic` no seletor de `font-family` no final.
 
-Manter teal `174 61% 47%` como primary (identidade), mas:
-- Trocar `--background` para tom mais neutro/frio: `220 20% 98%` (light) — sai do bege e fica mais "fintech".
-- `--secondary` atual `243 100% 69%` (roxo vibrante) → mover para uso só de accent. Secondary vira neutro escuro `222 25% 18%` (botões secundários ERP).
-- Paleta de status mais sóbria: success `158 64% 40%`, warning `38 92% 50%`, info `217 91% 55%`, destructive `0 72% 51%`.
-- Dark mode: subir `--card` para `220 18% 9%` (separa melhor de `--background 220 25% 5%`), `--border` `220 18% 18%`.
+### 3. `src/lib/themeUtils.ts`
+- Mapear **todos os presets sem `brandThemeId`** para `brandThemeId: "classic"` implicitamente (em vez do default `gasfacil`).
+- Adicionar `.brand-theme-classic` em `BRAND_THEME_SELECTORS` (na verdade não precisa — sem vars não há conflito).
+- Ampliar `OVERRIDABLE_VARS` para garantir limpeza de `--brand-font` quando trocar.
 
-## 5. Migração / aplicação
+### 4. `src/pages/config/PersonalizacaoVisual.tsx`
+No `onClick` do preset:
+```ts
+const nextBrandThemeId = ("brandThemeId" in preset)
+  ? preset.brandThemeId
+  : "classic";
+setBrandTheme(nextBrandThemeId as BrandThemeId);
+```
+Remove o comentário "NÃO forçar gasfacil" pois agora forçamos `classic`.
 
-A maioria das telas usa os componentes `Card` e `Table` shadcn — então **as mudanças em `card.tsx`, `table.tsx` e tokens propagam automaticamente** sem tocar cada página.
+### 5. `src/components/layout/ThemeSync.tsx`
+Mesma lógica — quando o preset carregado do banco não tem `brandThemeId`, aplicar `classic` em vez de `gasfacil`.
 
-Ajustes manuais pontuais (apenas onde há aninhamento explícito ou estilos hardcoded):
-- Dashboards (`AdminDashboard`, `Dashboard`, dashboards de vendedor/entregador/contador): remover `Card` interno onde só serve de divisor — trocar por `<div className="rounded-lg bg-sunken p-4">` ou variante `flat`.
-- Páginas com tabelas dentro de Card (CRM, Clientes, Pedidos, Financeiro, Estoque, Frota, RH): trocar por `DataTableShell`.
+### 6. Ajuste fino — KPIs, cards e tabelas
+Pequenos refinos puramente visuais usando tokens semânticos (sem hardcode):
 
-A regra `.app-card .app-card { ... }` em CSS cobre o resto automaticamente como rede de segurança.
+- `src/components/ui/card.tsx`: adicionar variante `kpi` (gradiente sutil `from-card to-muted/40`, borda mais marcada à esquerda em `--primary`, número `tabular-nums font-semibold tracking-tight`).
+- `src/components/ui/table.tsx`: subir contraste das linhas — `TableCell` de `text-foreground/90` → `text-foreground`; cabeçalho com `text-foreground/70` (era muted-foreground muito apagado em presets escuros).
+- `src/index.css`: adicionar regra `.app-card.kpi` (sombra suave + hover lift discreto). E no preset `gas-classico` (via `PRESET_EXTRA_CSS`), adicionar:
+  - sombra de card mais nítida (`0 1px 2px rgba(15,23,42,.04), 0 8px 24px -12px rgba(26,111,204,.18)`)
+  - cabeçalho de tabela com `bg-primary/5`
+  - KPI com borda esquerda `border-l-2 border-primary/60`
 
-## 6. Não-mexer
+### 7. Menu lateral acompanhando o tema
+Já há `--sidebar-*` em todos os presets. Garantir que `Sidebar` use `bg-[hsl(var(--sidebar-background))]` e o gradiente quando `--sidebar-gradient-from/to` existirem (já implementado). Apenas confirmar visualmente após o fix do brand-theme leftover.
 
-- `App.tsx`, providers, rotas — intocados (regra de estabilidade).
-- App do cliente (`src/pages/cliente/*`) — já foi redesenhado premium recentemente; manter como está.
-- Themes `theme-gasmais.css`, `theme-contador.css`, `brand-themes.css` — só ajustar se quebrarem contraste.
+## Arquivos afetados
 
-## Detalhes técnicos
+- `src/lib/brandThemes.ts` (+ preset `classic`)
+- `src/styles/brand-themes.css` (+ classe `classic`)
+- `src/lib/themeUtils.ts` (limpeza de fonte; OVERRIDABLE_VARS)
+- `src/pages/config/PersonalizacaoVisual.tsx` (forçar `classic` quando preset não tem brandThemeId)
+- `src/components/layout/ThemeSync.tsx` (mesma lógica)
+- `src/components/ui/card.tsx` (variante `kpi`)
+- `src/components/ui/table.tsx` (contraste)
+- `src/index.css` (regras `.app-card.kpi` + extras do preset clássico via `PRESET_EXTRA_CSS`)
 
-Arquivos editados:
-- `src/index.css` — tokens, font smoothing, regra `.app-card .app-card`.
-- `tailwind.config.ts` — adicionar `surface`, `surface-elevated`, `surface-sunken`, `border-subtle`, `border-strong`.
-- `src/components/ui/card.tsx` — `cva` com variantes, padding/radius/sombra revistos.
-- `src/components/ui/table.tsx` — header uppercase, hairlines, tabular-nums, sem zebra.
-- `src/components/ui/data-table-shell.tsx` — novo wrapper.
-- 6-10 dashboards/listagens de alto tráfego: trocar Card-em-Card por variante `flat`/`sunken` e adotar `DataTableShell` nas tabelas principais.
+## Fora de escopo
 
-## Entregável visual
+- App.tsx, providers, rotas.
+- Componentes públicos (ForteGas, JapaGas, App Cliente, Entregador, Parceiro, Contador, Auth) — mantêm branding próprio.
+- Não converto KPIs existentes para a variante `kpi` em massa; deixo opt-in. Posso aplicar nos 2-3 dashboards principais (`Dashboard`, `AdminDashboard`, `VendedorDashboard`) se confirmar.
 
-- Cards: 1 nível de elevação, hairline border, sombra única e suave, sem hover lift dramático.
-- Tabelas: cabeçalho uppercase tracking-wide, linhas com hairline, hover sutil, números alinhados.
-- Texto: foreground mais escuro, antialiased, Plus Jakarta 450 — sensação de "mais nítido" imediata.
-- Paleta: fundo neutro frio, primary teal preservado, status sóbrios, sem roxo vibrante competindo por atenção.
+## Verificação
+
+Após implementar, abro `/config/personalizacao` em Playwright, clico em cada preset, capturo screenshot da home + uma tela com tabela e confirmo: menu mudou, cards e KPIs respeitam o tema, fonte do preset anterior não persiste.

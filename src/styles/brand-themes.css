@@ -130,12 +130,17 @@
   --sidebar-border: 210 24% 24%;
 }
 
+.brand-theme-classic {
+  --brand-font: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
 .brand-theme-gasfacil,
 .brand-theme-saas,
 .brand-theme-pastel-dashboard,
 .brand-theme-signature,
 .brand-theme-gasmais,
-.brand-theme-executive {
+.brand-theme-executive,
+.brand-theme-classic {
   font-family: var(--brand-font);
 }
 
