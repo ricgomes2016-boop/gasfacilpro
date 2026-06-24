@@ -346,6 +346,11 @@ export default function PersonalizacaoVisual() {
                             style={{ background: (preset as any).gradient ?? preset.hex }}
                           />
                           <span className="text-sm font-semibold">{preset.label}</span>
+                          {(preset as any).recommended && (
+                            <span className="ml-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary">
+                              Padrão
+                            </span>
+                          )}
                           {isActive && <Check className="h-3.5 w-3.5 text-primary ml-auto" />}
                         </div>
                         <p className="text-[11px] text-muted-foreground leading-tight">{preset.description}</p>
