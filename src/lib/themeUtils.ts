@@ -527,7 +527,77 @@ export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
   },
 };
 
+/* =====================================================================
+   PREMIUM — efeitos finos: KPIs com faixa indigo/dourado, tabelas com
+   header limpo, sidebar com item ativo destacado, sem "card dentro de card".
+   ===================================================================== */
+const PREMIUM_BASE_CSS = (presetId: string, accent: string, surfaceBorder: string) => `
+  html[data-theme-preset="${presetId}"] .app-card {
+    border-radius: 0.875rem;
+    box-shadow:
+      0 1px 2px hsl(222 47% 11% / 0.05),
+      0 8px 24px -14px hsl(222 47% 11% / 0.14);
+  }
+  html[data-theme-preset="${presetId}"] .app-card.kpi {
+    background-image: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted) / 0.55) 100%);
+    border-left: 2px solid hsl(${accent});
+  }
+  html[data-theme-preset="${presetId}"] .app-card .app-card {
+    border-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+  html[data-theme-preset="${presetId}"] .saas-table thead {
+    background-color: hsl(var(--muted) / 0.6);
+  }
+  html[data-theme-preset="${presetId}"] .saas-table thead th {
+    color: hsl(var(--muted-foreground));
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  html[data-theme-preset="${presetId}"] .saas-table tbody tr {
+    border-bottom: 1px solid hsl(${surfaceBorder});
+  }
+  html[data-theme-preset="${presetId}"] .saas-table tbody tr:hover {
+    background-color: hsl(var(--muted) / 0.45);
+  }
+  html[data-theme-preset="${presetId}"] [data-sidebar="menu-button"][data-active="true"] {
+    background-color: hsl(${accent} / 0.18) !important;
+    color: hsl(var(--sidebar-foreground)) !important;
+    box-shadow: inset 2px 0 0 hsl(${accent});
+    font-weight: 600;
+  }
+  html[data-theme-preset="${presetId}"] [data-sidebar="menu-button"]:hover {
+    background-color: hsl(${accent} / 0.10);
+  }
+  html[data-theme-preset="${presetId}"] [data-sidebar="group-label"] {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 10.5px;
+    opacity: 0.7;
+  }
+  @media (max-width: 640px) {
+    html[data-theme-preset="${presetId}"] .app-card { border-radius: 0.75rem; }
+    html[data-theme-preset="${presetId}"] .app-card-content { padding: 1rem; }
+    html[data-theme-preset="${presetId}"] .app-card-header { padding: 1rem 1rem 0.5rem; }
+    html[data-theme-preset="${presetId}"] [data-sidebar="menu-button"] { min-height: 44px; }
+  }
+`;
+
 export const PRESET_EXTRA_CSS: Record<string, string> = {
+  "premium-light": PREMIUM_BASE_CSS("premium-light", "238 75% 58%", "220 18% 90%"),
+  "premium-night": PREMIUM_BASE_CSS("premium-night", "43 85% 62%", "222 25% 18%") + `
+    html[data-theme-preset="premium-night"] body {
+      background-image:
+        radial-gradient(ellipse 80% 40% at 50% -10%, hsl(238 80% 30% / 0.25), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, hsl(43 80% 40% / 0.10), transparent);
+      background-attachment: fixed;
+    }
+  `,
   "gas-classico": `
     html[data-theme-preset="gas-classico"] .app-card {
       box-shadow:
