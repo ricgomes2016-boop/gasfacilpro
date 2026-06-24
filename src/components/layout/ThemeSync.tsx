@@ -37,15 +37,20 @@ export function ThemeSync() {
           const currentBrandThemeId = localStorage.getItem(BRAND_THEME_STORAGE_KEY);
           const targetBrandThemeId = presetWithBrandThemeId
             ? (presetWithBrandThemeId as any).brandThemeId
-            : (matchedPreset ? "classic" : "gasfacil");
+            : (matchedPreset ? "classic" : "premium");
 
           if (currentBrandThemeId !== targetBrandThemeId) {
              localStorage.setItem(BRAND_THEME_STORAGE_KEY, targetBrandThemeId);
              window.dispatchEvent(new Event("dashboard-theme-change"));
           }
         } else {
-           // Fallback to default
-           applyTheme(false, "187 65% 38%");
+           // Fallback to premium default
+           applyTheme(false, "238 75% 58%", "premium-light");
+           const current = localStorage.getItem(BRAND_THEME_STORAGE_KEY);
+           if (current !== "premium") {
+             localStorage.setItem(BRAND_THEME_STORAGE_KEY, "premium");
+             window.dispatchEvent(new Event("dashboard-theme-change"));
+           }
         }
       });
   }, [unidadeAtual?.id]);
