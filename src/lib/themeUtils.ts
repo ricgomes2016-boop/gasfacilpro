@@ -13,6 +13,28 @@ export const COLOR_OPTIONS = [
 
 export const THEME_PRESETS = [
   {
+    id: "premium-light",
+    label: "Premium · Padrão",
+    description: "Midnight Indigo · menu escuro, cards limpos, KPI com filete indigo",
+    cor: "238 75% 58%",
+    hex: "#4f46e5",
+    dark: false,
+    gradient: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #4f46e5 100%)",
+    brandThemeId: "premium",
+    recommended: true,
+  },
+  {
+    id: "premium-dark",
+    label: "Premium · Escuro",
+    description: "Midnight Indigo dark · acento dourado, cards grafite, premium SaaS",
+    cor: "238 90% 70%",
+    hex: "#818cf8",
+    dark: true,
+    gradient: "linear-gradient(135deg, #050816 0%, #1e1b4b 55%, #c9a84c 100%)",
+    brandThemeId: "premium",
+    recommended: true,
+  },
+  {
     id: "gas-classico",
     label: "Gás Clássico",
     description: "Azul confiança com cards limpos e sidebar gradiente",
