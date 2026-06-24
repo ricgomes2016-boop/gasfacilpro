@@ -20,6 +20,16 @@ export const BRAND_THEME_STORAGE_KEY = "brandTheme";
 
 export const brandThemes: BrandThemePreset[] = [
   {
+    id: "classic",
+    name: "Clássico (preset)",
+    description: "Modo neutro — deixa o preset visual aplicar 100% das cores.",
+    className: "brand-theme-classic",
+    logoVariant: "markText",
+    logoMark,
+    logoFull,
+    fontLabel: "Plus Jakarta Sans",
+  },
+  {
     id: "gasfacil",
     name: "Gás Fácil Pro",
     description: "Paleta oficial azul e laranja com navegação vibrante.",
