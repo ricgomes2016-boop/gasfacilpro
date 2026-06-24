@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ClienteLayout } from "@/components/cliente/ClienteLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,20 +6,41 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  ArrowLeft, 
-  Phone, 
-  MessageCircle, 
-  MapPin, 
-  Clock, 
+import {
+  ArrowLeft,
+  Phone,
+  MessageCircle,
+  MapPin,
+  Clock,
   Package,
   Truck,
-  CheckCircle2
+  CheckCircle2,
+  Wifi,
+  WifiOff,
+  Loader2,
 } from "lucide-react";
 import { DeliveryMap } from "@/components/cliente/DeliveryMap";
 import { NotificationPermissionBanner, NotificationStatus } from "@/components/cliente/NotificationPermissionBanner";
 import { useDeliveryNotifications } from "@/hooks/useDeliveryNotifications";
 import { supabase } from "@/integrations/supabase/client";
+
+type RealtimeStatus = "connecting" | "live" | "reconnecting" | "offline";
+
+function RealtimeBadge({ status }: { status: RealtimeStatus }) {
+  const map = {
+    connecting: { icon: Loader2, label: "Conectando…", cls: "bg-muted text-muted-foreground", spin: true },
+    live: { icon: Wifi, label: "Ao vivo", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", spin: false },
+    reconnecting: { icon: Loader2, label: "Reconectando…", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400", spin: true },
+    offline: { icon: WifiOff, label: "Sem conexão", cls: "bg-destructive/15 text-destructive", spin: false },
+  }[status];
+  const Icon = map.icon;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${map.cls}`}>
+      <Icon className={`h-3 w-3 ${map.spin ? "animate-spin" : ""}`} />
+      {map.label}
+    </span>
+  );
+}
 
 const statusSteps = [
   { key: "pendente", label: "Confirmado", desc: "Loja recebeu seu pedido", icon: CheckCircle2 },
@@ -61,43 +82,50 @@ export default function ClienteRastreamento() {
   const [pedido, setPedido] = useState<PedidoData | null>(null);
   const [entregador, setEntregador] = useState<EntregadorData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pedidoRtStatus, setPedidoRtStatus] = useState<RealtimeStatus>("connecting");
+  const [entregadorRtStatus, setEntregadorRtStatus] = useState<RealtimeStatus>("connecting");
 
-  // Fetch pedido and entregador data
+  const fetchEntregador = useCallback(async (entregadorId: string) => {
+    const { data } = await supabase
+      .from("entregadores")
+      .select("nome, telefone, latitude, longitude")
+      .eq("id", entregadorId)
+      .maybeSingle();
+    if (data) setEntregador(data);
+  }, []);
+
+  const fetchPedido = useCallback(async () => {
+    if (!orderId) return;
+    const { data: pedidoData } = await supabase
+      .from("pedidos")
+      .select(`
+        id, status, endereco_entrega, entregador_id, created_at,
+        pedido_itens (quantidade, produtos:produto_id (nome))
+      `)
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (pedidoData) {
+      const typed = pedidoData as unknown as PedidoData;
+      setPedido(prev => {
+        if (prev && previousStatusRef.current && previousStatusRef.current !== typed.status) {
+          notifyStatusChange(typed.status, typed.id);
+        }
+        previousStatusRef.current = typed.status;
+        return typed;
+      });
+      if (previousStatusRef.current === null) previousStatusRef.current = typed.status;
+      if (typed.entregador_id) fetchEntregador(typed.entregador_id);
+    }
+  }, [orderId, fetchEntregador, notifyStatusChange]);
+
+  // Initial fetch
   useEffect(() => {
-    const fetchData = async () => {
-      if (!orderId) return;
-
-      const { data: pedidoData } = await supabase
-        .from("pedidos")
-        .select(`
-          id, status, endereco_entrega, entregador_id, created_at,
-          pedido_itens (quantidade, produtos:produto_id (nome))
-        `)
-        .eq("id", orderId)
-        .maybeSingle();
-
-      if (pedidoData) {
-        setPedido(pedidoData as unknown as PedidoData);
-        // Inicializa imediatamente para evitar toast falso na 1ª carga
-        if (previousStatusRef.current === null) {
-          previousStatusRef.current = pedidoData.status;
-        }
-
-        if (pedidoData.entregador_id) {
-          const { data: entregadorData } = await supabase
-            .from("entregadores")
-            .select("nome, telefone, latitude, longitude")
-            .eq("id", pedidoData.entregador_id)
-            .maybeSingle();
-          
-          if (entregadorData) setEntregador(entregadorData);
-        }
-      }
+    (async () => {
+      await fetchPedido();
       setIsLoading(false);
-    };
-
-    fetchData();
-  }, [orderId]);
+    })();
+  }, [fetchPedido]);
 
   // Realtime subscription for pedido status changes
   useEffect(() => {
@@ -111,37 +139,38 @@ export default function ClienteRastreamento() {
         (payload) => {
           const newStatus = payload.new.status;
           setPedido(prev => prev ? { ...prev, status: newStatus, entregador_id: payload.new.entregador_id } : prev);
-          
+
           if (previousStatusRef.current && previousStatusRef.current !== newStatus) {
             notifyStatusChange(newStatus, orderId);
           }
           previousStatusRef.current = newStatus;
 
-          // Refresh entregador if assigned
           if (payload.new.entregador_id && payload.new.entregador_id !== payload.old?.entregador_id) {
-            supabase
-              .from("entregadores")
-              .select("nome, telefone, latitude, longitude")
-              .eq("id", payload.new.entregador_id)
-              .maybeSingle()
-              .then(({ data }) => { if (data) setEntregador(data); });
+            fetchEntregador(payload.new.entregador_id);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") setPedidoRtStatus("live");
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          setPedidoRtStatus("reconnecting");
+          fetchPedido(); // refresca via REST enquanto reconecta
+        } else if (status === "CLOSED") setPedidoRtStatus("offline");
+      });
 
     return () => { supabase.removeChannel(channel); };
-  }, [orderId, notifyStatusChange]);
+  }, [orderId, notifyStatusChange, fetchEntregador, fetchPedido]);
 
   // Realtime entregador position updates
   useEffect(() => {
     if (!pedido?.entregador_id) return;
+    const entregadorId = pedido.entregador_id;
 
     const channel = supabase
-      .channel(`entregador-pos-${pedido.entregador_id}`)
+      .channel(`entregador-pos-${entregadorId}`)
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "entregadores", filter: `id=eq.${pedido.entregador_id}` },
+        { event: "UPDATE", schema: "public", table: "entregadores", filter: `id=eq.${entregadorId}` },
         (payload) => {
           setEntregador(prev => prev ? {
             ...prev,
@@ -150,10 +179,37 @@ export default function ClienteRastreamento() {
           } : prev);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") setEntregadorRtStatus("live");
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          setEntregadorRtStatus("reconnecting");
+          fetchEntregador(entregadorId);
+        } else if (status === "CLOSED") setEntregadorRtStatus("offline");
+      });
 
     return () => { supabase.removeChannel(channel); };
-  }, [pedido?.entregador_id]);
+  }, [pedido?.entregador_id, fetchEntregador]);
+
+  // Fallback polling: ativa quando o realtime não está "live" (rede instável)
+  useEffect(() => {
+    if (pedidoRtStatus === "live") return;
+    const id = setInterval(() => { fetchPedido(); }, 15000);
+    return () => clearInterval(id);
+  }, [pedidoRtStatus, fetchPedido]);
+
+  // Reconnect ao voltar para a aba / recuperar conexão
+  useEffect(() => {
+    const onFocus = () => { fetchPedido(); };
+    const onOnline = () => { fetchPedido(); };
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("online", onOnline);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [fetchPedido]);
 
   useEffect(() => { requestPermission(); }, [requestPermission]);
 
@@ -207,9 +263,22 @@ export default function ClienteRastreamento() {
             </Button>
             <div>
               <h1 className="text-xl font-bold">Rastrear Pedido</h1>
-              <p className="text-sm text-muted-foreground">
-                Pedido #{pedido.id.slice(-6).toUpperCase()}
-              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm text-muted-foreground">
+                  Pedido #{pedido.id.slice(-6).toUpperCase()}
+                </p>
+                <RealtimeBadge
+                  status={
+                    pedidoRtStatus === "live" && (!pedido.entregador_id || entregadorRtStatus === "live")
+                      ? "live"
+                      : pedidoRtStatus === "offline" || entregadorRtStatus === "offline"
+                      ? "offline"
+                      : pedidoRtStatus === "reconnecting" || entregadorRtStatus === "reconnecting"
+                      ? "reconnecting"
+                      : "connecting"
+                  }
+                />
+              </div>
             </div>
           </div>
           <NotificationStatus />
