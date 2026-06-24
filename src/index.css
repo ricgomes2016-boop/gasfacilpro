@@ -1344,3 +1344,19 @@
   max-width: none !important;
   max-height: none !important;
 }
+
+/* Premium ERP: neutralize visual weight of nested cards to eliminate card-in-card effect */
+@layer components {
+  .app-card .app-card {
+    @apply border-transparent bg-transparent shadow-none;
+  }
+  .app-card .app-card > .app-card-header,
+  .app-card .app-card > .app-card-content,
+  .app-card .app-card > .app-card-footer {
+    @apply px-0 py-0;
+  }
+  .app-card .app-card > .app-card-header + .app-card-content,
+  .app-card .app-card > .app-card-content + .app-card-footer {
+    @apply pt-3;
+  }
+}
