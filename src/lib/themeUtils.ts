@@ -442,6 +442,23 @@ export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
 };
 
 export const PRESET_EXTRA_CSS: Record<string, string> = {
+  "gas-classico": `
+    html[data-theme-preset="gas-classico"] .app-card {
+      box-shadow:
+        0 1px 2px 0 hsl(220 40% 20% / 0.04),
+        0 8px 24px -12px hsl(210 80% 50% / 0.18);
+    }
+    html[data-theme-preset="gas-classico"] .app-card.kpi {
+      border-left: 3px solid hsl(210 80% 50% / 0.7);
+    }
+    html[data-theme-preset="gas-classico"] thead.bg-muted\\/50,
+    html[data-theme-preset="gas-classico"] .saas-table thead {
+      background-color: hsl(210 80% 50% / 0.06);
+    }
+    html[data-theme-preset="gas-classico"] .saas-table thead th {
+      color: hsl(218 60% 28%);
+    }
+  `,
   "forte-gas-light": `
     html[data-theme-preset="forte-gas-light"] .bg-card {
       background-image: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(210 50% 99.5%) 100%);
