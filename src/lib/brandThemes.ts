@@ -91,7 +91,7 @@ export const brandThemes: BrandThemePreset[] = [
   },
 ];
 
-export const defaultBrandTheme = brandThemes[0];
+export const defaultBrandTheme = brandThemes.find((t) => t.id === "gasfacil") || brandThemes[0];
 
 export function getBrandTheme(id?: string | null) {
   return brandThemes.find((theme) => theme.id === id) || defaultBrandTheme;
