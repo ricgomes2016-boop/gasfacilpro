@@ -36,12 +36,12 @@ export const THEME_PRESETS = [
   },
   {
     id: "gas-classico",
-    label: "Gás Clássico",
-    description: "Azul confiança com cards limpos e sidebar gradiente",
+    label: "Gás Clássico Pro",
+    description: "Tema profissional para revenda: azul petróleo, chama âmbar e superfícies nítidas",
     cor: "210 80% 50%",
-    hex: "#1a6fcc",
+    hex: "#145184",
     dark: false,
-    gradient: "linear-gradient(135deg, #1a6fcc 0%, #143d80 100%)",
+    gradient: "linear-gradient(135deg, #0b2440 0%, #145184 48%, #f59e0b 100%)",
   },
   {
     id: "eco-verde",
@@ -212,35 +212,45 @@ export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
     "--shadow-glow": "0 0 30px hsl(238 90% 70% / 0.4)",
   },
   "gas-classico": {
-    "--background": "210 40% 98%",
-    "--foreground": "222 47% 11%",
+    "--background": "210 32% 97%",
+    "--foreground": "216 42% 12%",
     "--card": "0 0% 100%",
-    "--card-foreground": "222 47% 11%",
+    "--card-foreground": "216 42% 12%",
     "--popover": "0 0% 100%",
-    "--popover-foreground": "222 47% 11%",
-    "--primary": "210 80% 50%",
+    "--popover-foreground": "216 42% 12%",
+    "--primary": "207 76% 32%",
     "--primary-foreground": "0 0% 100%",
-    "--secondary": "210 40% 94%",
-    "--secondary-foreground": "222 47% 11%",
-    "--muted": "210 40% 96%",
-    "--muted-foreground": "215 16% 47%",
-    "--accent": "210 80% 50%",
-    "--accent-foreground": "0 0% 100%",
-    "--border": "214 32% 91%",
-    "--input": "214 32% 91%",
-    "--ring": "210 80% 50%",
-    "--sidebar-background": "210 80% 50%",
-    "--sidebar-gradient-from": "210 80% 50%",
-    "--sidebar-gradient-to": "218 80% 32%",
-    "--sidebar-foreground": "0 0% 100%",
-    "--sidebar-primary": "0 0% 100%",
-    "--sidebar-primary-foreground": "210 80% 20%",
-    "--sidebar-accent": "0 0% 100%",
-    "--sidebar-accent-foreground": "210 80% 24%",
-    "--sidebar-border": "210 50% 70%",
-    "--sidebar-ring": "0 0% 100%",
-    "--gradient-primary": "linear-gradient(135deg, hsl(210 80% 50%) 0%, hsl(218 80% 32%) 100%)",
-    "--shadow-glow": "0 0 24px hsl(210 80% 50% / 0.3)",
+    "--secondary": "36 92% 54%",
+    "--secondary-foreground": "24 68% 12%",
+    "--muted": "210 30% 94%",
+    "--muted-foreground": "215 16% 39%",
+    "--accent": "36 92% 54%",
+    "--accent-foreground": "24 68% 12%",
+    "--border": "212 28% 86%",
+    "--input": "212 28% 86%",
+    "--ring": "207 76% 32%",
+    "--success": "151 56% 38%",
+    "--success-foreground": "0 0% 100%",
+    "--warning": "36 92% 54%",
+    "--warning-foreground": "24 68% 12%",
+    "--info": "199 88% 38%",
+    "--info-foreground": "0 0% 100%",
+    "--destructive": "0 72% 51%",
+    "--destructive-foreground": "0 0% 100%",
+    "--sidebar-background": "211 69% 13%",
+    "--sidebar-gradient-from": "212 72% 10%",
+    "--sidebar-gradient-to": "207 76% 22%",
+    "--sidebar-foreground": "210 36% 94%",
+    "--sidebar-primary": "36 92% 54%",
+    "--sidebar-primary-foreground": "24 68% 12%",
+    "--sidebar-accent": "207 70% 24%",
+    "--sidebar-accent-foreground": "0 0% 100%",
+    "--sidebar-border": "207 52% 28%",
+    "--sidebar-ring": "36 92% 54%",
+    "--gradient-primary": "linear-gradient(135deg, hsl(211 69% 13%) 0%, hsl(207 76% 32%) 58%, hsl(36 92% 54%) 100%)",
+    "--gradient-dark": "linear-gradient(135deg, hsl(212 72% 10%) 0%, hsl(207 76% 22%) 100%)",
+    "--gradient-card": "linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(210 38% 98%) 100%)",
+    "--shadow-glow": "0 14px 34px -18px hsl(207 76% 32% / 0.35)",
   },
   "eco-verde": {
     "--background": "150 25% 97%",
@@ -599,20 +609,121 @@ export const PRESET_EXTRA_CSS: Record<string, string> = {
     }
   `,
   "gas-classico": `
-    html[data-theme-preset="gas-classico"] .app-card {
+    html[data-theme-preset="gas-classico"] body {
+      background:
+        radial-gradient(circle at 12% 4%, hsl(207 76% 32% / 0.10), transparent 24rem),
+        radial-gradient(circle at 92% 0%, hsl(36 92% 54% / 0.10), transparent 22rem),
+        linear-gradient(180deg, hsl(210 32% 97%) 0%, hsl(204 32% 96%) 100%);
+      background-attachment: fixed;
+    }
+
+    html[data-theme-preset="gas-classico"] .system-surface {
+      background:
+        radial-gradient(circle at 16% 8%, hsl(207 76% 32% / 0.08), transparent 28rem),
+        radial-gradient(circle at 90% 12%, hsl(36 92% 54% / 0.08), transparent 24rem),
+        linear-gradient(180deg, hsl(var(--background)) 0%, hsl(210 32% 95%) 100%);
+    }
+
+    html[data-theme-preset="gas-classico"] .app-sidebar-premium {
+      background:
+        linear-gradient(180deg, hsl(212 72% 10%) 0%, hsl(211 69% 13%) 46%, hsl(207 76% 20%) 100%) !important;
+      box-shadow: 18px 0 42px -30px hsl(211 69% 13% / 0.85);
+    }
+
+    html[data-theme-preset="gas-classico"] .app-sidebar-premium::before {
+      background:
+        radial-gradient(circle at 50% 0%, hsl(36 92% 54% / 0.22), transparent 13rem),
+        linear-gradient(180deg, hsl(36 92% 54% / 0.16), transparent 32%);
+      opacity: 1;
+    }
+
+    html[data-theme-preset="gas-classico"] .app-mobile-sidebar-modern {
+      background:
+        linear-gradient(180deg, hsl(212 72% 10%) 0%, hsl(207 76% 20%) 100%) !important;
+    }
+
+    html[data-theme-preset="gas-classico"] .app-card,
+    html[data-theme-preset="gas-classico"] .modern-panel,
+    html[data-theme-preset="gas-classico"] .modern-status-card,
+    html[data-theme-preset="gas-classico"] .table-card-shell,
+    html[data-theme-preset="gas-classico"] .mobile-record-card {
+      background-image: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(210 38% 98.5%) 100%);
+      border-color: hsl(212 28% 84% / 0.85);
       box-shadow:
-        0 1px 2px 0 hsl(220 40% 20% / 0.04),
-        0 8px 24px -12px hsl(210 80% 50% / 0.18);
+        0 1px 2px hsl(216 42% 12% / 0.04),
+        0 14px 34px -24px hsl(207 76% 32% / 0.34);
     }
-    html[data-theme-preset="gas-classico"] .app-card.kpi {
-      border-left: 3px solid hsl(210 80% 50% / 0.7);
+
+    html[data-theme-preset="gas-classico"] .app-card::before,
+    html[data-theme-preset="gas-classico"] .modern-panel::before,
+    html[data-theme-preset="gas-classico"] .modern-status-card::before {
+      height: 3px;
+      background: linear-gradient(90deg, hsl(207 76% 32%) 0%, hsl(199 88% 38%) 45%, hsl(36 92% 54%) 100%);
+      opacity: 0.9;
     }
-    html[data-theme-preset="gas-classico"] thead.bg-muted\\/50,
-    html[data-theme-preset="gas-classico"] .saas-table thead {
-      background-color: hsl(210 80% 50% / 0.06);
+
+    html[data-theme-preset="gas-classico"] .app-card-header {
+      background: linear-gradient(90deg, hsl(207 76% 32% / 0.08), hsl(0 0% 100%) 58%, hsl(36 92% 54% / 0.08));
+      border-color: hsl(212 28% 86%);
     }
-    html[data-theme-preset="gas-classico"] .saas-table thead th {
-      color: hsl(218 60% 28%);
+
+    html[data-theme-preset="gas-classico"] .kpi-card {
+      border-left-width: 4px;
+      border-left-color: hsl(var(--primary));
+    }
+
+    html[data-theme-preset="gas-classico"] .kpi-card:nth-of-type(4n + 2) {
+      border-left-color: hsl(var(--success));
+    }
+
+    html[data-theme-preset="gas-classico"] .kpi-card:nth-of-type(4n + 3) {
+      border-left-color: hsl(var(--warning));
+    }
+
+    html[data-theme-preset="gas-classico"] .kpi-card:nth-of-type(4n + 4) {
+      border-left-color: hsl(var(--info));
+    }
+
+    html[data-theme-preset="gas-classico"] .saas-table thead tr {
+      background: linear-gradient(90deg, hsl(211 34% 91%) 0%, hsl(210 32% 94%) 100%) !important;
+      color: hsl(216 42% 12%) !important;
+    }
+
+    html[data-theme-preset="gas-classico"] .saas-table th {
+      color: hsl(216 42% 12%) !important;
+      letter-spacing: 0.02em;
+    }
+
+    html[data-theme-preset="gas-classico"] .saas-table tbody td {
+      border-color: hsl(212 28% 86% / 0.9);
+      background: hsl(0 0% 100%);
+    }
+
+    html[data-theme-preset="gas-classico"] .saas-table tbody tr:hover td {
+      background: hsl(207 76% 32% / 0.055);
+    }
+
+    html[data-theme-preset="gas-classico"] .mobile-record-card {
+      border-radius: 18px;
+      padding: 0.875rem;
+    }
+
+    html[data-theme-preset="gas-classico"] .mobile-record-card-footer {
+      border-color: hsl(212 28% 86%);
+    }
+
+    @media (max-width: 768px) {
+      html[data-theme-preset="gas-classico"] .app-card,
+      html[data-theme-preset="gas-classico"] .modern-panel,
+      html[data-theme-preset="gas-classico"] .mobile-record-card {
+        box-shadow:
+          0 1px 2px hsl(216 42% 12% / 0.04),
+          0 10px 26px -22px hsl(207 76% 32% / 0.38);
+      }
+
+      html[data-theme-preset="gas-classico"] .saas-table {
+        min-width: 680px;
+      }
     }
   `,
   "forte-gas-light": `
