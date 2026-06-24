@@ -263,9 +263,22 @@ export default function ClienteRastreamento() {
             </Button>
             <div>
               <h1 className="text-xl font-bold">Rastrear Pedido</h1>
-              <p className="text-sm text-muted-foreground">
-                Pedido #{pedido.id.slice(-6).toUpperCase()}
-              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm text-muted-foreground">
+                  Pedido #{pedido.id.slice(-6).toUpperCase()}
+                </p>
+                <RealtimeBadge
+                  status={
+                    pedidoRtStatus === "live" && (!pedido.entregador_id || entregadorRtStatus === "live")
+                      ? "live"
+                      : pedidoRtStatus === "offline" || entregadorRtStatus === "offline"
+                      ? "offline"
+                      : pedidoRtStatus === "reconnecting" || entregadorRtStatus === "reconnecting"
+                      ? "reconnecting"
+                      : "connecting"
+                  }
+                />
+              </div>
             </div>
           </div>
           <NotificationStatus />
