@@ -6,9 +6,10 @@ const STORAGE_KEY = BRAND_THEME_STORAGE_KEY;
 const LEGACY_STORAGE_KEY = "dashboardTheme";
 
 function read(): DashboardTheme {
-  if (typeof window === "undefined") return "gasfacil";
+  if (typeof window === "undefined") return "premium";
   const stored = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
-  if (stored === "default") return "gasfacil";
+  if (stored === "default") return "premium";
+  if (!stored) return "premium";
   return getBrandTheme(stored).id;
 }
 
@@ -30,7 +31,7 @@ export function useDashboardTheme() {
 
   const setTheme = useCallback((t: DashboardTheme) => {
     localStorage.setItem(STORAGE_KEY, t);
-    localStorage.setItem(LEGACY_STORAGE_KEY, t === "gasfacil" ? "default" : t);
+    localStorage.setItem(LEGACY_STORAGE_KEY, t === "premium" ? "default" : t);
     setThemeState(t);
     window.dispatchEvent(new Event("dashboard-theme-change"));
   }, []);

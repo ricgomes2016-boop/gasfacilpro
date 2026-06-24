@@ -13,6 +13,28 @@ export const COLOR_OPTIONS = [
 
 export const THEME_PRESETS = [
   {
+    id: "premium-light",
+    label: "Premium · Padrão",
+    description: "Midnight Indigo · menu escuro, cards limpos, KPI com filete indigo",
+    cor: "238 75% 58%",
+    hex: "#4f46e5",
+    dark: false,
+    gradient: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #4f46e5 100%)",
+    brandThemeId: "premium",
+    recommended: true,
+  },
+  {
+    id: "premium-night",
+    label: "Premium · Escuro",
+    description: "Midnight Indigo dark · acento dourado, cards grafite, premium SaaS",
+    cor: "238 90% 70%",
+    hex: "#818cf8",
+    dark: true,
+    gradient: "linear-gradient(135deg, #050816 0%, #1e1b4b 55%, #c9a84c 100%)",
+    brandThemeId: "premium",
+    recommended: true,
+  },
+  {
     id: "gas-classico",
     label: "Gás Clássico",
     description: "Azul confiança com cards limpos e sidebar gradiente",
@@ -31,7 +53,7 @@ export const THEME_PRESETS = [
     gradient: "linear-gradient(135deg, #1f9e5c 0%, #0f6b3f 100%)",
   },
   {
-    id: "premium-dark",
+    id: "premium-dark-legacy",
     label: "Premium Dark",
     description: "Escuro sofisticado com destaque roxo e cards grafite",
     cor: "260 60% 50%",
@@ -125,6 +147,70 @@ export const THEME_PRESETS = [
  * (.system-surface) — preservam branding próprio mesmo após troca de tema.
  */
 export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
+  "premium-light": {
+    "--background": "220 25% 98%",
+    "--foreground": "222 47% 11%",
+    "--card": "0 0% 100%",
+    "--card-foreground": "222 47% 11%",
+    "--popover": "0 0% 100%",
+    "--popover-foreground": "222 47% 11%",
+    "--primary": "238 75% 58%",
+    "--primary-foreground": "0 0% 100%",
+    "--secondary": "220 22% 94%",
+    "--secondary-foreground": "222 47% 14%",
+    "--muted": "220 20% 95%",
+    "--muted-foreground": "222 16% 38%",
+    "--accent": "43 78% 52%",
+    "--accent-foreground": "222 47% 11%",
+    "--border": "220 18% 88%",
+    "--input": "220 18% 88%",
+    "--ring": "238 75% 58%",
+    "--sidebar-background": "222 47% 11%",
+    "--sidebar-gradient-from": "222 47% 11%",
+    "--sidebar-gradient-to": "235 50% 16%",
+    "--sidebar-foreground": "220 18% 92%",
+    "--sidebar-primary": "238 80% 64%",
+    "--sidebar-primary-foreground": "0 0% 100%",
+    "--sidebar-accent": "238 75% 58%",
+    "--sidebar-accent-foreground": "0 0% 100%",
+    "--sidebar-border": "222 30% 20%",
+    "--sidebar-ring": "238 80% 64%",
+    "--kpi-accent": "238 75% 58%",
+    "--gradient-primary": "linear-gradient(135deg, hsl(238 75% 58%) 0%, hsl(222 47% 22%) 100%)",
+    "--shadow-glow": "0 0 28px hsl(238 75% 58% / 0.28)",
+  },
+  "premium-night": {
+    "--background": "222 47% 6%",
+    "--foreground": "220 18% 96%",
+    "--card": "222 40% 10%",
+    "--card-foreground": "220 18% 96%",
+    "--popover": "222 40% 10%",
+    "--popover-foreground": "220 18% 96%",
+    "--primary": "238 90% 70%",
+    "--primary-foreground": "222 47% 6%",
+    "--secondary": "222 30% 16%",
+    "--secondary-foreground": "220 18% 96%",
+    "--muted": "222 28% 14%",
+    "--muted-foreground": "220 14% 70%",
+    "--accent": "43 85% 62%",
+    "--accent-foreground": "222 47% 6%",
+    "--border": "222 25% 18%",
+    "--input": "222 25% 18%",
+    "--ring": "238 90% 70%",
+    "--sidebar-background": "222 50% 4%",
+    "--sidebar-gradient-from": "222 50% 4%",
+    "--sidebar-gradient-to": "235 55% 10%",
+    "--sidebar-foreground": "220 18% 92%",
+    "--sidebar-primary": "238 90% 70%",
+    "--sidebar-primary-foreground": "222 47% 6%",
+    "--sidebar-accent": "238 60% 22%",
+    "--sidebar-accent-foreground": "220 18% 96%",
+    "--sidebar-border": "222 25% 14%",
+    "--sidebar-ring": "238 90% 70%",
+    "--kpi-accent": "43 85% 62%",
+    "--gradient-primary": "linear-gradient(135deg, hsl(222 50% 8%) 0%, hsl(238 60% 28%) 100%)",
+    "--shadow-glow": "0 0 30px hsl(238 90% 70% / 0.4)",
+  },
   "gas-classico": {
     "--background": "210 40% 98%",
     "--foreground": "222 47% 11%",
@@ -187,7 +273,7 @@ export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
     "--gradient-primary": "linear-gradient(135deg, hsl(152 69% 40%) 0%, hsl(160 60% 26%) 100%)",
     "--shadow-glow": "0 0 24px hsl(152 69% 40% / 0.3)",
   },
-  "premium-dark": {
+  "premium-dark-legacy": {
     "--background": "240 12% 6%",
     "--foreground": "260 15% 96%",
     "--card": "240 12% 11%",
@@ -441,7 +527,77 @@ export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
   },
 };
 
+/* =====================================================================
+   PREMIUM — efeitos finos: KPIs com faixa indigo/dourado, tabelas com
+   header limpo, sidebar com item ativo destacado, sem "card dentro de card".
+   ===================================================================== */
+const PREMIUM_BASE_CSS = (presetId: string, accent: string, surfaceBorder: string) => `
+  html[data-theme-preset="${presetId}"] .app-card {
+    border-radius: 0.875rem;
+    box-shadow:
+      0 1px 2px hsl(222 47% 11% / 0.05),
+      0 8px 24px -14px hsl(222 47% 11% / 0.14);
+  }
+  html[data-theme-preset="${presetId}"] .app-card.kpi {
+    background-image: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted) / 0.55) 100%);
+    border-left: 2px solid hsl(${accent});
+  }
+  html[data-theme-preset="${presetId}"] .app-card .app-card {
+    border-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+  html[data-theme-preset="${presetId}"] .saas-table thead {
+    background-color: hsl(var(--muted) / 0.6);
+  }
+  html[data-theme-preset="${presetId}"] .saas-table thead th {
+    color: hsl(var(--muted-foreground));
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  html[data-theme-preset="${presetId}"] .saas-table tbody tr {
+    border-bottom: 1px solid hsl(${surfaceBorder});
+  }
+  html[data-theme-preset="${presetId}"] .saas-table tbody tr:hover {
+    background-color: hsl(var(--muted) / 0.45);
+  }
+  html[data-theme-preset="${presetId}"] [data-sidebar="menu-button"][data-active="true"] {
+    background-color: hsl(${accent} / 0.18) !important;
+    color: hsl(var(--sidebar-foreground)) !important;
+    box-shadow: inset 2px 0 0 hsl(${accent});
+    font-weight: 600;
+  }
+  html[data-theme-preset="${presetId}"] [data-sidebar="menu-button"]:hover {
+    background-color: hsl(${accent} / 0.10);
+  }
+  html[data-theme-preset="${presetId}"] [data-sidebar="group-label"] {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 10.5px;
+    opacity: 0.7;
+  }
+  @media (max-width: 640px) {
+    html[data-theme-preset="${presetId}"] .app-card { border-radius: 0.75rem; }
+    html[data-theme-preset="${presetId}"] .app-card-content { padding: 1rem; }
+    html[data-theme-preset="${presetId}"] .app-card-header { padding: 1rem 1rem 0.5rem; }
+    html[data-theme-preset="${presetId}"] [data-sidebar="menu-button"] { min-height: 44px; }
+  }
+`;
+
 export const PRESET_EXTRA_CSS: Record<string, string> = {
+  "premium-light": PREMIUM_BASE_CSS("premium-light", "238 75% 58%", "220 18% 90%"),
+  "premium-night": PREMIUM_BASE_CSS("premium-night", "43 85% 62%", "222 25% 18%") + `
+    html[data-theme-preset="premium-night"] body {
+      background-image:
+        radial-gradient(ellipse 80% 40% at 50% -10%, hsl(238 80% 30% / 0.25), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, hsl(43 80% 40% / 0.10), transparent);
+      background-attachment: fixed;
+    }
+  `,
   "gas-classico": `
     html[data-theme-preset="gas-classico"] .app-card {
       box-shadow:
@@ -585,6 +741,7 @@ const BRAND_THEME_SELECTORS = [
   ".brand-theme-gasmais",
   ".brand-theme-executive",
   ".brand-theme-classic",
+  ".brand-theme-premium",
 ];
 
 function buildPresetVarsCss(presetId: string, overrides: Record<string, string>): string {
