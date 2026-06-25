@@ -734,8 +734,9 @@ export const PRESET_EXTRA_CSS: Record<string, string> = {
     }
 
     html[data-theme-preset="operacional-clean"] .clean-sidebar {
-      z-index: 35 !important;
+      z-index: 60 !important;
       border-radius: 0 !important;
+      pointer-events: auto;
     }
 
     html[data-theme-preset="operacional-clean"] .sidebar-unit-selector {
