@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import { Card } from "@/components/ui/card";
 
-const variantToTone: Record<string, "violet" | "green" | "amber" | "blue" | "sky" | "red"> = {
-  default: "sky",
+const variantToTone: Record<string, "violet" | "green" | "amber" | "blue" | "sky" | "red" | "auto"> = {
+  default: "auto",
   primary: "violet",
   success: "green",
   warning: "amber",
