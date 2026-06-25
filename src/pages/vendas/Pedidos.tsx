@@ -121,51 +121,6 @@ function formatarItensComQtd(pedido: PedidoFormatado): string {
   return pedido.produtos || "";
 }
 
-// ===== Helpers visuais (tema clean) =====
-function iniciaisDoNome(nome?: string | null): string {
-  if (!nome) return "—";
-  const parts = nome.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "—";
-  return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "?";
-}
-const AVATAR_TONES = [
-  "bg-blue-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-violet-500",
-  "bg-rose-500",
-  "bg-sky-500",
-];
-function corDoEntregador(nome?: string | null): string {
-  if (!nome) return "bg-muted";
-  let h = 0;
-  for (let i = 0; i < nome.length; i++) h = (h * 31 + nome.charCodeAt(i)) >>> 0;
-  return AVATAR_TONES[h % AVATAR_TONES.length];
-}
-function pagamentoMeta(forma?: string | null): { icon: string; label: string } {
-  const f = (forma || "").toLowerCase();
-  if (!f) return { icon: "—", label: "—" };
-  if (f.includes("pix")) return { icon: "💳", label: "Pix" };
-  if (f.includes("dinhe")) return { icon: "💵", label: "Dinheiro" };
-  if (f.includes("boleto")) return { icon: "🧾", label: "Boleto" };
-  if (f.includes("crédito") || f.includes("credito")) return { icon: "💳", label: "Crédito" };
-  if (f.includes("débito") || f.includes("debito")) return { icon: "💳", label: "Débito" };
-  if (f.includes("cartão") || f.includes("cartao")) return { icon: "💳", label: "Cartão" };
-  if (f.includes("fiado")) return { icon: "📒", label: "Fiado" };
-  return { icon: "•", label: forma || "—" };
-}
-function statusDot(status?: string | null): { color: string; label: string } {
-  switch (status) {
-    case "pendente": return { color: "bg-warning", label: "Pendente" };
-    case "em_rota": return { color: "bg-info", label: "Em rota" };
-    case "entregue": return { color: "bg-success", label: "Entregue" };
-    case "finalizado": return { color: "bg-success", label: "Finalizado" };
-    case "cancelado": return { color: "bg-destructive", label: "Cancelado" };
-    default: return { color: "bg-muted-foreground", label: status || "—" };
-  }
-}
-
-
 export default function Pedidos() {
   const navigate = useNavigate();
   const hoje = (() => {const d = getBrasiliaDate();return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;})();
@@ -182,21 +137,6 @@ export default function Pedidos() {
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [busca, setBusca] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
-  const [periodo, setPeriodo] = useState<"hoje" | "semana" | "mes" | "personalizado">("hoje");
-  const aplicarPeriodo = (p: "hoje" | "semana" | "mes" | "personalizado") => {
-    setPeriodo(p);
-    if (p === "personalizado") { setFiltrosAbertos(true); return; }
-    const d = getBrasiliaDate();
-    const ymd = (x: Date) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
-    if (p === "hoje") { setDataInicio(ymd(d)); setDataFim(ymd(d)); }
-    else if (p === "semana") {
-      const start = new Date(d); start.setDate(d.getDate() - 6);
-      setDataInicio(ymd(start)); setDataFim(ymd(d));
-    } else if (p === "mes") {
-      const start = new Date(d.getFullYear(), d.getMonth(), 1);
-      setDataInicio(ymd(start)); setDataFim(ymd(d));
-    }
-  };
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasAnyRole } = useAuth();
@@ -773,63 +713,52 @@ export default function Pedidos() {
       <Header title="Pedidos" subtitle="Gerenciar pedidos de venda" />
       <div className="p-3 md:p-6 space-y-4 md:space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
 
-        {/* === KPIs (4 cards, faixa colorida no topo) === */}
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-          {[
-            { label: "Pendentes", value: contadores.pendente, tone: "warning", bar: "bg-warning", num: "text-warning" },
-            { label: "Em Rota", value: contadores.em_rota, tone: "info", bar: "bg-info", num: "text-info" },
-            { label: "Entregues", value: contadores.entregue, tone: "success", bar: "bg-success", num: "text-success" },
-            { label: "Cancelados", value: contadores.cancelado, tone: "destructive", bar: "bg-destructive", num: "text-destructive" },
-          ].map((k) => (
-            <Card key={k.label} className="relative overflow-hidden p-0 border border-border/60 shadow-none bg-card">
-              <span className={`absolute inset-x-0 top-0 h-[3px] ${k.bar}`} aria-hidden />
-              <div className="px-4 pt-4 pb-3">
-                <p className="text-[11px] font-medium tracking-[0.12em] uppercase text-muted-foreground">{k.label}</p>
-                <p className={`mt-1 text-3xl font-bold leading-none tabular-nums ${k.num}`}>{k.value}</p>
-              </div>
-            </Card>
-          ))}
+        {/* Top action */}
+        <div className="gap-2 flex flex-wrap items-center justify-center sm:justify-start w-full min-w-0">
+          <Button className="h-10 min-w-0 bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30" onClick={() => navigate("/vendas/nova")}>
+            <span className="truncate">+ Novo Pedido</span>
+          </Button>
+          <SmartImportButtons
+            edgeFunctionName="parse-orders-history"
+            onDataExtracted={handleImportData}
+            mode="menu"
+            menuLabel="Mais ações"
+            extraMenuContent={
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    exportarPedidosCSV(pedidosFiltrados);
+                    sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar CSV
+                </DropdownMenuItem>
+              </>
+            }
+          />
+          <Button variant="outline" className="h-10 min-w-0" onClick={() => navigate("/operacional/centro")}>
+            <MapIcon className="h-4 w-4 mr-2 shrink-0" />
+            <span className="truncate">Mapa Operacional</span>
+          </Button>
+          {(() => {
+            const filtrosAtivos =
+              (busca ? 1 : 0) +
+              (filtroStatus !== "todos" ? 1 : 0) +
+              (filtroEntregador !== "todos" ? 1 : 0) +
+              (dataInicio !== hoje || dataFim !== hoje ? 1 : 0);
+            return (
+              <Button variant="outline" className="h-10 min-w-0 relative" onClick={() => setFiltrosAbertos(true)}>
+                <SlidersHorizontal className="h-4 w-4 mr-2 shrink-0" />
+                <span className="truncate">Mais Filtros</span>
+                {filtrosAtivos > 0 && (
+                  <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">{filtrosAtivos}</Badge>
+                )}
+              </Button>
+            );
+          })()}
         </div>
-
-        {/* === Toolbar única: busca + status + período + Novo Pedido === */}
-        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center w-full min-w-0">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar pedido, cliente ou endereço..."
-              className="h-10 pl-9"
-            />
-          </div>
-          <div className="flex gap-2 items-center">
-            <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-              <SelectTrigger className="h-10 w-[150px] text-sm"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os status</SelectItem>
-                <SelectItem value="agendado">📅 Agendados</SelectItem>
-                <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="em_rota">Em rota</SelectItem>
-                <SelectItem value="entregue">Entregue</SelectItem>
-                <SelectItem value="finalizado">Finalizado</SelectItem>
-                <SelectItem value="cancelado">Cancelado</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={periodo} onValueChange={(v) => aplicarPeriodo(v as any)}>
-              <SelectTrigger className="h-10 w-[140px] text-sm"><SelectValue placeholder="Período" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="hoje">Hoje</SelectItem>
-                <SelectItem value="semana">Últimos 7 dias</SelectItem>
-                <SelectItem value="mes">Este mês</SelectItem>
-                <SelectItem value="personalizado">Personalizado…</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button className="h-10" onClick={() => navigate("/vendas/nova")}>
-              + Novo Pedido
-            </Button>
-          </div>
-        </div>
-
 
         {/* Filters Dialog */}
         <ResponsiveDialog open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
@@ -1014,8 +943,42 @@ export default function Pedidos() {
         }
 
 
-        {/* KPIs movidos para o topo da página */}
-
+        {/* Stats - compact KPIs, 5 across on md+ */}
+        <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+          <Card className="kpi-card kpi-card-warning">
+            <CardContent className="flex items-center gap-2 p-2.5">
+              <div className="status-card-icon status-card-icon-warning h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><Clock /></div>
+              <div className="min-w-0"><p className="text-lg font-bold leading-none text-warning">{contadores.pendente}</p><p className="text-[11px] text-muted-foreground mt-0.5">Pendentes</p></div>
+            </CardContent>
+          </Card>
+          <Card className="kpi-card kpi-card-info">
+            <CardContent className="flex items-center gap-2 p-2.5">
+              <div className="status-card-icon status-card-icon-info h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><Truck /></div>
+              <div className="min-w-0"><p className="text-lg font-bold leading-none text-info">{contadores.em_rota}</p><p className="text-[11px] text-muted-foreground mt-0.5">Em Rota</p></div>
+            </CardContent>
+          </Card>
+          <Card className="kpi-card kpi-card-success">
+            <CardContent className="flex items-center gap-2 p-2.5">
+              <div className="status-card-icon status-card-icon-success h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><CheckCircle /></div>
+              <div className="min-w-0"><p className="text-lg font-bold leading-none text-success">{contadores.entregue}</p><p className="text-[11px] text-muted-foreground mt-0.5">Entregues</p></div>
+            </CardContent>
+          </Card>
+          <Card className="kpi-card kpi-card-destructive">
+            <CardContent className="flex items-center gap-2 p-2.5">
+              <div className="status-card-icon status-card-icon-destructive h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><XCircle /></div>
+              <div className="min-w-0"><p className="text-lg font-bold leading-none text-destructive">{contadores.cancelado}</p><p className="text-[11px] text-muted-foreground mt-0.5">Cancelados</p></div>
+            </CardContent>
+          </Card>
+          <Card className="kpi-card kpi-card-success col-span-2 sm:col-span-3 md:col-span-1">
+            <CardContent className="flex items-center gap-2 p-2.5">
+              <div className="status-card-icon status-card-icon-success h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><DollarSign /></div>
+              <div className="min-w-0">
+                <p className="text-base md:text-sm lg:text-base font-bold leading-none text-success truncate">R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Total Vendas</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
 
 
@@ -1041,53 +1004,18 @@ export default function Pedidos() {
           </Card>
         }
 
-        {/* === Tabela de Pedidos (cartão único, limpo) === */}
-        <Card className="overflow-hidden p-0 border border-border/60 shadow-none">
-          <div className="flex items-center justify-between gap-2 px-4 md:px-6 py-3 border-b border-border/50">
-            <div className="flex items-baseline gap-2 min-w-0">
-              <h2 className="text-sm md:text-base font-semibold text-foreground">
-                {periodo === "hoje" ? "Pedidos de Hoje" : periodo === "semana" ? "Pedidos da Semana" : periodo === "mes" ? "Pedidos do Mês" : "Pedidos"}
-              </h2>
-              <span className="text-xs text-muted-foreground tabular-nums">({pedidosFiltrados.length})</span>
+        {/* Table - #3 responsive with hidden columns on mobile */}
+        <Card className="modern-panel overflow-hidden">
+          <CardHeader className="section-header-catalog pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="section-header-title">Pedidos ({pedidosFiltrados.length})</CardTitle>
+              {/* #4 - Pagination info */}
+              <span className="text-xs font-medium text-info-foreground/80">
+                Pág. {paginaAtual}/{totalPages}
+              </span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 text-xs"
-                onClick={() => {
-                  exportarPedidosCSV(pedidosFiltrados);
-                  sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);
-                }}
-              >
-                <Download className="h-3.5 w-3.5" /> Exportar
-              </Button>
-              <SmartImportButtons
-                edgeFunctionName="parse-orders-history"
-                onDataExtracted={handleImportData}
-                mode="menu"
-                menuLabel="Importar"
-              />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-8 w-8" aria-label="Mais ações">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={() => navigate("/operacional/centro")}>
-                    <MapIcon className="h-4 w-4 mr-2" /> Mapa Operacional
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setFiltrosAbertos(true)}>
-                    <SlidersHorizontal className="h-4 w-4 mr-2" /> Filtros avançados
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-            </div>
-          </div>
-          <CardContent className="saas-table-scope overflow-x-auto max-w-full p-0 md:p-0">
-
+          </CardHeader>
+          <CardContent className="saas-table-scope overflow-x-auto max-w-full p-0 md:p-6">
             {isLoading ?
             <div className="space-y-3">
                 {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
@@ -1187,159 +1115,147 @@ export default function Pedidos() {
                 ))}
               </div>
 
-              {/* Desktop table - clean */}
+              {/* Desktop table */}
               <div className="overflow-x-auto min-w-0 hidden md:block">
-                <Table className="min-w-[760px]">
+                <Table className="min-w-[600px]">
                   <TableHeader>
-                    <TableRow className="border-b border-border/50 hover:bg-transparent">
-                      <TableHead className="h-10 text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80 w-[80px]">#</TableHead>
-                      <TableHead className="h-10 text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80">Cliente</TableHead>
-                      <TableHead className="h-10 text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80">Produto</TableHead>
-                      <TableHead className="h-10 text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80">Pagamento</TableHead>
-                      <TableHead className="h-10 text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80">Entregador</TableHead>
-                      <TableHead className="h-10 text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80 text-right">Valor</TableHead>
-                      <TableHead className="h-10 text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80">Status</TableHead>
-                      <TableHead className="h-10 w-[120px] text-right text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80">Ações</TableHead>
+                    <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={selecionados.size === pedidosPaginados.length && pedidosPaginados.length > 0}
+                          onCheckedChange={toggleSelecionarTodos} />
+                      </TableHead>
+                      <TableHead>Origem</TableHead>
+                      <TableHead>Nº Pedido</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead className="min-w-[200px]">Cliente</TableHead>
+                      <TableHead>Endereço</TableHead>
+                      <TableHead>Produtos</TableHead>
+                      <TableHead>Entregador</TableHead>
+                      <TableHead>Canal de Venda</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-12">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pedidosPaginados.map((pedido) => {
-                      const pag = pagamentoMeta(pedido.forma_pagamento);
-                      const sd = statusDot(pedido.status);
-                      const cancelado = pedido.status === "cancelado";
-                      const entregue = pedido.status === "entregue" || pedido.status === "finalizado";
-                      const emRota = pedido.status === "em_rota";
-                      const pendente = pedido.status === "pendente";
-                      return (
-                        <TableRow
-                          key={pedido.id}
-                          className={`border-b border-border/40 hover:bg-muted/40 transition-colors ${cancelado ? "opacity-60" : ""}`}
-                        >
-                          <TableCell className="py-3">
-                            <button
-                              onClick={() => editarPedido(pedido.id)}
-                              className="font-semibold text-sm text-foreground hover:text-primary tabular-nums"
-                            >
-                              #{getNumExib(pedido)}
-                            </button>
-                          </TableCell>
-                          <TableCell className="py-3 text-sm font-medium text-foreground max-w-[220px] truncate" title={pedido.cliente}>
-                            {pedido.cliente}
-                          </TableCell>
-                          <TableCell className="py-3 text-sm text-muted-foreground max-w-[180px] truncate" title={formatarItensComQtd(pedido)}>
-                            {formatarItensComQtd(pedido)}
-                          </TableCell>
-                          <TableCell className="py-3 text-sm text-muted-foreground">
-                            <span className="inline-flex items-center gap-1.5">
-                              <span aria-hidden>{pag.icon}</span>
-                              <span>{pag.label}</span>
-                            </span>
-                          </TableCell>
-                          <TableCell className="py-3">
-                            {pedido.entregador ? (
-                              <button
-                                onClick={() => abrirTransferencia(pedido)}
-                                className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold text-white ${corDoEntregador(pedido.entregador)} hover:ring-2 hover:ring-offset-1 hover:ring-primary/30 transition`}
-                                title={pedido.entregador}
+                    {pedidosPaginados.map((pedido) =>
+                    <TableRow key={pedido.id} className={pedido.status === "cancelado" ? "opacity-60" : ""}>
+                        <TableCell>
+                          <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} />
+                        </TableCell>
+                        <TableCell>
+                          <OrigemBadge origem={pedido.origem_pedido} />
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs" onClick={() => editarPedido(pedido.id)}>
+                            #{getNumExib(pedido)}
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {podeAlterarDataEntrega ?
+                        <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 w-[140px] text-xs" /> :
+                        pedido.data}
+                        </TableCell>
+                        <TableCell className="font-medium text-sm min-w-[200px] max-w-[260px] truncate" title={pedido.cliente}>{pedido.cliente}</TableCell>
+                        <TableCell className="max-w-[180px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
+                        <TableCell className="max-w-[180px] truncate text-xs" title={formatarItensComQtd(pedido)}>{formatarItensComQtd(pedido)}</TableCell>
+                        <TableCell>
+                          {pedido.entregador ?
+                        <Badge variant="outline" className="cursor-pointer hover:bg-accent text-xs" onClick={() => abrirTransferencia(pedido)}>
+                              <Truck className="h-3 w-3 mr-1" />{pedido.entregador}
+                            </Badge> :
+                        pedido.status !== "cancelado" && pedido.status !== "entregue" ?
+                        <div className="flex gap-1">
+                              <Button size="sm" variant="ghost" className="text-primary h-6 px-2 text-xs" onClick={() => abrirTransferencia(pedido)}>
+                                <Sparkles className="h-3 w-3 mr-1" /> Atribuir
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => marcarPortariaHandler(pedido.id)} title="Retirada na portaria">
+                                <Building2 className="h-3 w-3" />
+                              </Button>
+                            </div> :
+                        <span className="text-muted-foreground text-xs">-</span>}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {podeEditarCanalPedido(pedido) ?
+                          <Popover open={editandoCanalId === `d-${pedido.id}`} onOpenChange={(open) => setEditandoCanalId(open ? `d-${pedido.id}` : null)}>
+                            <PopoverTrigger asChild>
+                              <span
+                                role="button"
+                                tabIndex={0}
+                                className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    setEditandoCanalId(`d-${pedido.id}`);
+                                  }
+                                }}
                               >
-                                {iniciaisDoNome(pedido.entregador)}
-                              </button>
-                            ) : !cancelado && !entregue ? (
-                              <button
-                                onClick={() => abrirTransferencia(pedido)}
-                                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40"
-                                title="Atribuir entregador"
-                              >
-                                <Sparkles className="h-3 w-3" />
-                              </button>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-3 text-right text-sm font-semibold text-foreground tabular-nums">
-                            R$ {pedido.valor.toFixed(2)}
-                          </TableCell>
-                          <TableCell className="py-3">
-                            <span className="inline-flex items-center gap-1.5 text-xs font-medium">
-                              <span className={`h-1.5 w-1.5 rounded-full ${sd.color}`} aria-hidden />
-                              <span className="text-foreground/80">{sd.label}</span>
-                            </span>
-                          </TableCell>
-                          <TableCell className="py-3 text-right">
-                            <div className="inline-flex items-center gap-1 justify-end">
-                              {pendente && (
-                                <Button size="sm" variant="default" className="h-7 px-2.5 text-xs" onClick={() => alterarStatusPedido(pedido.id, "em_rota")}>
-                                  Enviar
-                                </Button>
-                              )}
-                              {emRota && (
-                                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => navigate("/operacional/centro")}>
-                                  Mapa
-                                </Button>
-                              )}
-                              {entregue && (
-                                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => imprimirPedido(pedido)}>
-                                  Recibo
-                                </Button>
-                              )}
-                              {cancelado && (
-                                <Button size="sm" variant="ghost" className="h-7 px-2.5 text-xs text-muted-foreground" onClick={() => abrirVisualizacao(pedido)}>
-                                  Motivo
-                                </Button>
-                              )}
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><MoreHorizontal className="h-4 w-4" /></Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
-                                  {!cancelado && !entregue &&
-                                    <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
-                                  }
-                                  {pedido.agendado && !cancelado && !entregue &&
-                                    <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>
-                                  }
-                                  {!cancelado && !entregue &&
-                                    <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>
-                                  }
-                                  {!cancelado && !entregue &&
-                                    <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria (Retirada)</DropdownMenuItem>
-                                  }
-                                  {unidades.length > 1 &&
-                                    <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}>
-                                      <MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial
-                                    </DropdownMenuItem>
-                                  }
+                                <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>
+                                <Pencil className="h-3 w-3 text-muted-foreground" />
+                              </span>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-72 p-0 bg-popover border border-border shadow-lg z-50" align="start">
+                              {renderCanalCommand(pedido.id, pedido.canal_venda)}
+                            </PopoverContent>
+                          </Popover> :
+                          <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>}
+                        </TableCell>
+                        <TableCell className="font-medium text-sm">R$ {pedido.valor.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
+                              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                            <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
+                            }
+                              {pedido.agendado && pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                            <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>
+                            }
+                              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                            <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>
+                            }
+              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                            <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria (Retirada)</DropdownMenuItem>
+                            }
+                              {unidades.length > 1 &&
+                            <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}>
+                                  <MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial
+                                </DropdownMenuItem>
+                            }
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
+                              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                            <>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
-                                  {!cancelado && !entregue &&
-                                    <>
-                                      <DropdownMenuSeparator />
-                                      {pedido.status !== "em_rota" &&
-                                        <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "em_rota")}><Truck className="h-4 w-4 mr-2" />Marcar Em Rota</DropdownMenuItem>
-                                      }
-                                      <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "entregue")}><CheckCircle className="h-4 w-4 mr-2" />Marcar Entregue</DropdownMenuItem>
-                                      {pedido.status !== "pendente" &&
-                                        <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "pendente")}><Clock className="h-4 w-4 mr-2" />Voltar p/ Pendente</DropdownMenuItem>
-                                      }
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => cancelarPedido(pedido.id)}><XCircle className="h-4 w-4 mr-2" />Cancelar Pedido</DropdownMenuItem>
-                                    </>
-                                  }
+                                  {pedido.status !== "em_rota" &&
+                              <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "em_rota")}><Truck className="h-4 w-4 mr-2" />Marcar Em Rota</DropdownMenuItem>
+                              }
+                                  <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "entregue")}><CheckCircle className="h-4 w-4 mr-2" />Marcar Entregue</DropdownMenuItem>
+                                  {pedido.status !== "pendente" &&
+                              <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "pendente")}><Clock className="h-4 w-4 mr-2" />Voltar p/ Pendente</DropdownMenuItem>
+                              }
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => abrirExclusao(pedido)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => cancelarPedido(pedido.id)}><XCircle className="h-4 w-4 mr-2" />Cancelar Pedido</DropdownMenuItem>
+                                </>
+                            }
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => abrirExclusao(pedido)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>
-
 
               {/* #4 - Pagination controls */}
               {totalPages > 1 &&
