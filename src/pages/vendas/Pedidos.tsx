@@ -121,6 +121,51 @@ function formatarItensComQtd(pedido: PedidoFormatado): string {
   return pedido.produtos || "";
 }
 
+// ===== Helpers visuais (tema clean) =====
+function iniciaisDoNome(nome?: string | null): string {
+  if (!nome) return "—";
+  const parts = nome.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "—";
+  return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "?";
+}
+const AVATAR_TONES = [
+  "bg-blue-500",
+  "bg-emerald-500",
+  "bg-amber-500",
+  "bg-violet-500",
+  "bg-rose-500",
+  "bg-sky-500",
+];
+function corDoEntregador(nome?: string | null): string {
+  if (!nome) return "bg-muted";
+  let h = 0;
+  for (let i = 0; i < nome.length; i++) h = (h * 31 + nome.charCodeAt(i)) >>> 0;
+  return AVATAR_TONES[h % AVATAR_TONES.length];
+}
+function pagamentoMeta(forma?: string | null): { icon: string; label: string } {
+  const f = (forma || "").toLowerCase();
+  if (!f) return { icon: "—", label: "—" };
+  if (f.includes("pix")) return { icon: "💳", label: "Pix" };
+  if (f.includes("dinhe")) return { icon: "💵", label: "Dinheiro" };
+  if (f.includes("boleto")) return { icon: "🧾", label: "Boleto" };
+  if (f.includes("crédito") || f.includes("credito")) return { icon: "💳", label: "Crédito" };
+  if (f.includes("débito") || f.includes("debito")) return { icon: "💳", label: "Débito" };
+  if (f.includes("cartão") || f.includes("cartao")) return { icon: "💳", label: "Cartão" };
+  if (f.includes("fiado")) return { icon: "📒", label: "Fiado" };
+  return { icon: "•", label: forma || "—" };
+}
+function statusDot(status?: string | null): { color: string; label: string } {
+  switch (status) {
+    case "pendente": return { color: "bg-warning", label: "Pendente" };
+    case "em_rota": return { color: "bg-info", label: "Em rota" };
+    case "entregue": return { color: "bg-success", label: "Entregue" };
+    case "finalizado": return { color: "bg-success", label: "Finalizado" };
+    case "cancelado": return { color: "bg-destructive", label: "Cancelado" };
+    default: return { color: "bg-muted-foreground", label: status || "—" };
+  }
+}
+
+
 export default function Pedidos() {
   const navigate = useNavigate();
   const hoje = (() => {const d = getBrasiliaDate();return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;})();
