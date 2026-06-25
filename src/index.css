@@ -1414,6 +1414,13 @@
     border-radius: 0 !important;
     background: transparent !important;
   }
+  /* Square out interactive elements inside data tables so cells look flat */
+  .saas-table-scope input,
+  .saas-table-scope .badge,
+  .saas-table-scope [data-slot="badge"],
+  .saas-table-scope button:not([role="checkbox"]):not(.rounded-full) {
+    border-radius: 0 !important;
+  }
 }
 
 /* Force nested rounded boxes to inherit the active theme radius
