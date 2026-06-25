@@ -137,7 +137,7 @@ export function UnidadeSelector({ variant = "header", collapsed = false }: Unida
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={isSidebar ? "start" : "end"} className="z-[80] w-64 border-border/45 bg-popover text-popover-foreground">
+      <DropdownMenuContent align={isSidebar ? "start" : "end"} className="z-[80] w-[var(--radix-dropdown-menu-trigger-width)] min-w-[var(--radix-dropdown-menu-trigger-width)] border-border/45 bg-popover text-popover-foreground">
         <DropdownMenuLabel>Selecionar Unidade</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {unidades.map((unidade) => (
