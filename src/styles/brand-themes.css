@@ -296,23 +296,26 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* Cards / KPIs — radius 14px, padding 24px, sombra mínima com hover suave */
-.brand-theme-operacional-clean :where([data-slot="card"], .card, .kpi-card) {
+/* Cards / KPIs — radius 14px, padding 24px, sombra mínima com hover suave
+   Cobre tanto a API shadcn (data-slot) quanto a API interna deste projeto
+   (data-card, .app-card, .kpi). */
+.brand-theme-operacional-clean :where([data-slot="card"], [data-card], .app-card, .card, .kpi, .kpi-card) {
   background-color: hsl(var(--card));
   color: hsl(var(--card-foreground));
   border: 1px solid hsl(var(--border));
   border-radius: 14px;
   box-shadow: var(--shadow-card);
+  background-image: none;
   transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
 }
-.brand-theme-operacional-clean :where([data-slot="card"], .kpi-card):hover {
+.brand-theme-operacional-clean :where([data-slot="card"], [data-card], .app-card, .kpi, .kpi-card):hover {
   box-shadow: var(--shadow-card-hover);
   border-color: hsl(220 13% 85%);
 }
-.brand-theme-operacional-clean :where([data-slot="card-content"]) {
+.brand-theme-operacional-clean :where([data-slot="card-content"], .app-card-content) {
   padding: 1.5rem;
 }
-.brand-theme-operacional-clean :where([data-slot="card-header"]) {
+.brand-theme-operacional-clean :where([data-slot="card-header"], .app-card-header) {
   padding: 1.5rem 1.5rem 0.75rem;
 }
 
