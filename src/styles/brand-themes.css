@@ -220,75 +220,139 @@
    Header escuro fixo, sidebar claro, seletor de loja no topo do menu.
    ===================================================================== */
 .brand-theme-operacional-clean {
-  --brand-font: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-  --background: 220 20% 97%;
-  --foreground: 222 30% 16%;
-  --card: 0 0% 100%;
-  --card-foreground: 222 30% 16%;
+  --brand-font: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --background: 210 20% 97%;           /* #F5F7FA */
+  --foreground: 220 39% 11%;           /* #111827 */
+  --card: 0 0% 100%;                   /* #FFFFFF */
+  --card-foreground: 220 39% 11%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222 30% 16%;
-  --primary: 250 78% 60%;
+  --popover-foreground: 220 39% 11%;
+  --primary: 217 91% 60%;              /* #3B82F6 */
   --primary-foreground: 0 0% 100%;
-  --secondary: 220 16% 94%;
-  --secondary-foreground: 222 30% 16%;
-  --muted: 220 16% 95%;
-  --muted-foreground: 222 12% 40%;
-  --accent: 250 78% 60%;
-  --accent-foreground: 0 0% 100%;
-  --border: 220 16% 88%;
-  --input: 220 16% 88%;
-  --ring: 250 78% 60%;
-  --radius: 0.5rem;
+  --secondary: 220 14% 96%;            /* #F3F4F6 */
+  --secondary-foreground: 220 39% 11%;
+  --muted: 220 14% 96%;                /* #F3F4F6 */
+  --muted-foreground: 220 9% 46%;      /* #6B7280 */
+  --accent: 214 100% 97%;              /* #EEF5FF */
+  --accent-foreground: 221 83% 53%;    /* #2563EB */
+  --success: 122 39% 49%;              /* #4CAF50 */
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;               /* #F59E0B */
+  --warning-foreground: 220 39% 11%;
+  --info: 217 91% 60%;                 /* #3B82F6 */
+  --info-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;            /* #EF4444 */
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 13% 91%;               /* #E5E7EB */
+  --input: 220 13% 91%;
+  --ring: 217 91% 60%;
+  --radius: 0.625rem;                  /* 10px */
   --sidebar-background: 0 0% 100%;
   --sidebar-gradient-from: 0 0% 100%;
-  --sidebar-gradient-to: 220 20% 98%;
-  --sidebar-foreground: 222 30% 22%;
-  --sidebar-primary: 250 78% 60%;
+  --sidebar-gradient-to: 0 0% 100%;
+  --sidebar-foreground: 220 9% 46%;    /* #6B7280 */
+  --sidebar-primary: 217 91% 60%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 250 78% 60%;
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 220 16% 88%;
-  --sidebar-ring: 250 78% 60%;
-  --kpi-accent: 250 78% 60%;
-  --clean-header-bg: 222 47% 11%;
-  --clean-header-fg: 0 0% 100%;
+  --sidebar-accent: 214 100% 97%;      /* #EEF5FF */
+  --sidebar-accent-foreground: 221 83% 53%; /* #2563EB */
+  --sidebar-border: 220 13% 91%;
+  --sidebar-ring: 217 91% 60%;
+  --kpi-accent: 217 91% 60%;
+  --clean-header-bg: 0 0% 100%;        /* #FFFFFF */
+  --clean-header-fg: 220 39% 11%;      /* #111827 */
+  --clean-header-border: 220 13% 91%;  /* #E5E7EB */
 }
 
-/* Operacional Clean — refinamento visual de KPIs, cards e tabelas */
+/* Operacional Clean — refinamento visual estilo GestãoClick */
 .brand-theme-operacional-clean .system-surface,
 .brand-theme-operacional-clean body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
   font-family: var(--brand-font);
 }
+
+/* Cards e KPIs: branco, borda fina, sombra discreta, radius 12px */
 .brand-theme-operacional-clean :where([data-slot="card"], .card, .kpi-card) {
   background-color: hsl(var(--card));
   color: hsl(var(--card-foreground));
   border: 1px solid hsl(var(--border));
-  border-radius: var(--radius);
-  box-shadow: 0 1px 2px hsl(220 16% 70% / 0.08);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
 }
+.brand-theme-operacional-clean :where([data-slot="card-content"]) {
+  padding: 1.5rem;
+}
+
+/* Tabelas */
 .brand-theme-operacional-clean :where(table) {
   background-color: hsl(var(--card));
   color: hsl(var(--card-foreground));
   border-color: hsl(var(--border));
 }
 .brand-theme-operacional-clean :where(thead, thead tr, th) {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
+  background-color: #F3F4F6;
+  color: #6B7280;
+  font-size: 12px;
   font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
   border-color: hsl(var(--border));
 }
 .brand-theme-operacional-clean :where(tbody tr) {
   border-color: hsl(var(--border));
 }
 .brand-theme-operacional-clean :where(tbody tr:hover) {
-  background-color: hsl(var(--muted) / 0.6);
+  background-color: #F9FAFB;
 }
+
+/* Tipografia */
 .brand-theme-operacional-clean :where(h1, h2, h3, h4, h5, h6) {
   font-family: var(--brand-font);
   color: hsl(var(--foreground));
+  font-weight: 600;
   letter-spacing: -0.01em;
+}
+
+/* Inputs e Selects: altura 42px, radius 10px, foco azul */
+.brand-theme-operacional-clean :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea, [data-slot="input"], [data-slot="select-trigger"]) {
+  min-height: 42px;
+  border-radius: 10px;
+  border-color: hsl(var(--input));
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.brand-theme-operacional-clean :where(input, select, textarea, [data-slot="input"], [data-slot="select-trigger"]):focus,
+.brand-theme-operacional-clean :where(input, select, textarea, [data-slot="input"], [data-slot="select-trigger"]):focus-visible {
+  border-color: hsl(var(--ring));
+  outline: none;
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.18);
+}
+
+/* Botões: radius 10px, sem brilho */
+.brand-theme-operacional-clean :where(button:not([data-slot="select-trigger"]):not([role="menuitem"]):not([data-sidebar])) {
+  border-radius: 10px;
+  transition: background-color 150ms, color 150ms, border-color 150ms;
+}
+
+/* Sidebar — item ativo com barra azul à esquerda */
+.brand-theme-operacional-clean :where(a, button)[data-active="true"],
+.brand-theme-operacional-clean :where(a, button)[aria-current="page"] {
+  box-shadow: inset 3px 0 0 hsl(var(--sidebar-accent-foreground));
+  background-color: hsl(var(--sidebar-accent));
+  color: hsl(var(--sidebar-accent-foreground));
+}
+.brand-theme-operacional-clean :where(a, button)[data-active="true"] :where(svg),
+.brand-theme-operacional-clean :where(a, button)[aria-current="page"] :where(svg) {
+  color: hsl(var(--sidebar-accent-foreground));
+}
+
+/* Hover suave em itens de menu / links */
+.brand-theme-operacional-clean :where(a, button, [role="menuitem"]):hover {
+  transition: background-color 150ms, color 150ms;
+}
+
+/* Fade discreto */
+.brand-theme-operacional-clean :where([data-slot="dialog-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"]) {
+  animation-duration: 200ms;
 }
 
 .brand-theme-gasfacil,
