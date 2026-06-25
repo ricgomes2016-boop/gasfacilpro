@@ -15,6 +15,7 @@ import {
   Monitor,
   PlusCircle,
   ClipboardList,
+  KanbanSquare,
   BarChart3,
   UserCheck,
   Calendar,
