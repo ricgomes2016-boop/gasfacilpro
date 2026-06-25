@@ -1015,7 +1015,7 @@ export default function Pedidos() {
               </span>
             </div>
           </CardHeader>
-          <CardContent className="saas-table-scope overflow-x-auto max-w-full p-0 md:p-6">
+          <CardContent className="saas-table-scope overflow-x-auto max-w-full p-0 md:px-4 md:pt-2 md:pb-4">
             {isLoading ?
             <div className="space-y-3">
                 {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
@@ -1125,17 +1125,17 @@ export default function Pedidos() {
                           checked={selecionados.size === pedidosPaginados.length && pedidosPaginados.length > 0}
                           onCheckedChange={toggleSelecionarTodos} />
                       </TableHead>
-                      <TableHead>Origem</TableHead>
-                      <TableHead>Nº Pedido</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="min-w-[200px]">Cliente</TableHead>
-                      <TableHead>Endereço</TableHead>
-                      <TableHead>Produtos</TableHead>
-                      <TableHead>Entregador</TableHead>
-                      <TableHead>Canal de Venda</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-12">Ações</TableHead>
+                      <TableHead className="w-[72px]">Origem</TableHead>
+                      <TableHead className="w-[72px]">Nº</TableHead>
+                      <TableHead className="w-[132px]">Data</TableHead>
+                      <TableHead className="min-w-[180px]">Cliente</TableHead>
+                      <TableHead className="min-w-[200px]">Endereço</TableHead>
+                      <TableHead className="w-[110px]">Produtos</TableHead>
+                      <TableHead className="w-[150px]">Entregador</TableHead>
+                      <TableHead className="w-[140px]">Canal</TableHead>
+                      <TableHead className="w-[96px] text-right">Valor</TableHead>
+                      <TableHead className="w-[120px]">Status</TableHead>
+                      <TableHead className="w-12 text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1154,12 +1154,12 @@ export default function Pedidos() {
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs">
                           {podeAlterarDataEntrega ?
-                        <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 w-[140px] text-xs" /> :
+                        <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-7 w-[120px] text-xs px-2" /> :
                         pedido.data}
                         </TableCell>
-                        <TableCell className="font-medium text-sm min-w-[200px] max-w-[260px] truncate" title={pedido.cliente}>{pedido.cliente}</TableCell>
-                        <TableCell className="max-w-[180px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
-                        <TableCell className="max-w-[180px] truncate text-xs" title={formatarItensComQtd(pedido)}>{formatarItensComQtd(pedido)}</TableCell>
+                        <TableCell className="font-medium text-sm min-w-[180px] max-w-[240px] truncate" title={pedido.cliente}>{pedido.cliente}</TableCell>
+                        <TableCell className="max-w-[220px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
+                        <TableCell className="max-w-[120px] truncate text-xs" title={formatarItensComQtd(pedido)}>{formatarItensComQtd(pedido)}</TableCell>
                         <TableCell>
                           {pedido.entregador ?
                         <Badge variant="outline" className="cursor-pointer hover:bg-accent text-xs" onClick={() => abrirTransferencia(pedido)}>
@@ -1201,11 +1201,11 @@ export default function Pedidos() {
                           </Popover> :
                           <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>}
                         </TableCell>
-                        <TableCell className="font-medium text-sm">R$ {pedido.valor.toFixed(2)}</TableCell>
+                        <TableCell className="font-medium text-sm text-right whitespace-nowrap">R$ {pedido.valor.toFixed(2)}</TableCell>
                         <TableCell>
                           <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right pr-3">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
