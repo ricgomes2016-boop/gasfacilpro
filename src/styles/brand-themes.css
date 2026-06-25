@@ -625,10 +625,10 @@
   padding: 0 !important;
   color: hsl(var(--foreground)) !important;
 }
-[data-brand-preset="operacional-clean"] .dashboard-hero > .absolute {
+[data-brand-preset="operacional-clean"] .dashboard-hero > [class~="absolute"] {
   display: none !important;
 }
-[data-brand-preset="operacional-clean"] .dashboard-hero > .relative:first-of-type {
+[data-brand-preset="operacional-clean"] .dashboard-hero > [class~="relative"]:first-of-type {
   display: none !important;
 }
 /* KPIs internos voltam ao padrão clean (sem fundo translúcido nem cantos exagerados) */
