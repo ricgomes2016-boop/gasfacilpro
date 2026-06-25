@@ -1445,55 +1445,9 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       <div className="p-3 md:p-4 space-y-3 md:space-y-4"> 
         <CaixaBloqueadoBanner />
 
-        <div className="space-y-2 rounded-lg border border-border/70 bg-card p-2.5 shadow-lg shadow-foreground/10">
-          <VendaStepper
-            customer={customer}
-            itens={itens}
-            pagamentos={pagamentos}
-            totalVenda={totalVenda}
-            entregadorSelecionado={entregadorPreenchido}
-            activeStep={useNewView ? activeStep : undefined}
-            onStepClick={useNewView ? (step) => canOpenStep(step) && setActiveStep(step) : undefined}
-            compact
-          />
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <Badge variant="outline" className="text-[11px] h-6 px-2 border-primary/30 bg-primary/5 text-primary">
-              #{proximoNumero ?? "—"}
-            </Badge>
-            <div className="flex items-center gap-1.5">
-              {aiCommandPopover}
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label="Atalhos de teclado">
-                      <Keyboard className="h-3.5 w-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" align="end" className="text-[11px]">
-                    F2 Novo · F3 Finalizar · F4 Agendar · F5 Cliente · Enter Próximo
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" onClick={toggleViewMode} className="h-7 px-2 text-[11px] font-semibold text-foreground hover:text-primary">
-                      {useNewView ? "Antiga" : "Nova"}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-[11px]">
-                    Alternar versão da tela
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <Button variant="outline" size="sm" onClick={() => openNovaVendaWindow({})} className="h-7 gap-1 text-[11px]">
-                <PlusCircle className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Nova Venda</span>
-              </Button>
-            </div>
-          </div>
-        </div>
+        {aiCommandPopover}
         {hiddenAiInputs}
+
 
 
         {useNewView ? (
