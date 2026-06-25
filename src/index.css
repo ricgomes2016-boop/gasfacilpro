@@ -1401,11 +1401,27 @@
   .app-card .app-card > .app-card-content + .app-card-footer {
     @apply pt-3;
   }
-  /* Tables inside cards should be flush — no double border/padding */
+  /* Tables inside cards should be flush — no double border/radius */
   .app-card > table,
   .app-card .app-card-content > table {
     @apply border-0;
   }
+  .app-card .app-table-wrap,
+  .app-card .app-card-content > .app-table-wrap {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+}
+
+/* Force nested rounded boxes to inherit the active theme radius
+   (preserve rounded-full for avatars/badges/pills). Use attribute selectors
+   so Tailwind does not flag this as a circular @apply on utility classes. */
+.app-card [class*="rounded-xl"]:not([class*="rounded-full"]),
+.app-card [class*="rounded-2xl"]:not([class*="rounded-full"]),
+.app-card [class*="rounded-lg"]:not([class*="rounded-full"]),
+.app-card [class*="rounded-md"]:not([class*="rounded-full"]) {
+  border-radius: var(--radius) !important;
 }
 
 /* ============================================================
