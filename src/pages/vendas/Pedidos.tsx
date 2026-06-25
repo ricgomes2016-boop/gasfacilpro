@@ -1041,18 +1041,52 @@ export default function Pedidos() {
           </Card>
         }
 
-        {/* Table - #3 responsive with hidden columns on mobile */}
-        <Card className="modern-panel overflow-hidden">
-          <CardHeader className="section-header-catalog pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="section-header-title">Pedidos ({pedidosFiltrados.length})</CardTitle>
-              {/* #4 - Pagination info */}
-              <span className="text-xs font-medium text-info-foreground/80">
-                Pág. {paginaAtual}/{totalPages}
-              </span>
+        {/* === Tabela de Pedidos (cartão único, limpo) === */}
+        <Card className="overflow-hidden p-0 border border-border/60 shadow-none">
+          <div className="flex items-center justify-between gap-2 px-4 md:px-6 py-3 border-b border-border/50">
+            <div className="flex items-baseline gap-2 min-w-0">
+              <h2 className="text-sm md:text-base font-semibold text-foreground">
+                {periodo === "hoje" ? "Pedidos de Hoje" : periodo === "semana" ? "Pedidos da Semana" : periodo === "mes" ? "Pedidos do Mês" : "Pedidos"}
+              </h2>
+              <span className="text-xs text-muted-foreground tabular-nums">({pedidosFiltrados.length})</span>
             </div>
-          </CardHeader>
-          <CardContent className="saas-table-scope overflow-x-auto max-w-full p-0 md:p-6">
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+                onClick={() => {
+                  exportarPedidosCSV(pedidosFiltrados);
+                  sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);
+                }}
+              >
+                <Download className="h-3.5 w-3.5" /> Exportar
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-8 w-8" aria-label="Mais ações">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => navigate("/operacional/centro")}>
+                    <MapIcon className="h-4 w-4 mr-2" /> Mapa Operacional
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setFiltrosAbertos(true)}>
+                    <SlidersHorizontal className="h-4 w-4 mr-2" /> Filtros avançados
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <SmartImportButtons
+                    edgeFunctionName="parse-orders-history"
+                    onDataExtracted={handleImportData}
+                    mode="menu-items"
+                  />
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          <CardContent className="saas-table-scope overflow-x-auto max-w-full p-0 md:p-0">
+
             {isLoading ?
             <div className="space-y-3">
                 {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
