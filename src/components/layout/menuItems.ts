@@ -123,7 +123,7 @@ export const menuItems: MenuItem[] = [
       { icon: Monitor, label: "PDV", path: "/vendas/pdv" },
       { icon: PlusCircle, label: "Nova Venda", path: "/vendas/nova" },
       { icon: ClipboardList, label: "Pedidos", path: "/vendas/pedidos" },
-      { icon: KanbanSquare, label: "Pedidos Kanban", path: "/vendas/pedidos/kanban", badge: "Novo" },
+      { icon: KanbanSquare, label: "Pedidos Kanban", path: "/vendas/pedidos/kanban" },
       { icon: RotateCcw, label: "Devoluções / Trocas", path: "/vendas/devolucoes" },
       { icon: BarChart3, label: "Relatório de Vendas", path: "/vendas/relatorio" },
     ],
