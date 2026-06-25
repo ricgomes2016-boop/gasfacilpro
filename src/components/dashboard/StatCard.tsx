@@ -1,6 +1,15 @@
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
+import { Card } from "@/components/ui/card";
+
+const variantToTone: Record<string, "violet" | "green" | "amber" | "blue" | "sky" | "red"> = {
+  default: "sky",
+  primary: "violet",
+  success: "green",
+  warning: "amber",
+  info: "blue",
+};
 
 interface StatCardProps {
   title: string;
