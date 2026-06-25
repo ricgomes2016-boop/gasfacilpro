@@ -1187,147 +1187,159 @@ export default function Pedidos() {
                 ))}
               </div>
 
-              {/* Desktop table */}
+              {/* Desktop table - clean */}
               <div className="overflow-x-auto min-w-0 hidden md:block">
-                <Table className="min-w-[600px]">
+                <Table className="min-w-[760px]">
                   <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-10">
-                        <Checkbox
-                          checked={selecionados.size === pedidosPaginados.length && pedidosPaginados.length > 0}
-                          onCheckedChange={toggleSelecionarTodos} />
-                      </TableHead>
-                      <TableHead>Origem</TableHead>
-                      <TableHead>Nº Pedido</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="min-w-[200px]">Cliente</TableHead>
-                      <TableHead>Endereço</TableHead>
-                      <TableHead>Produtos</TableHead>
-                      <TableHead>Entregador</TableHead>
-                      <TableHead>Canal de Venda</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-12">Ações</TableHead>
+                    <TableRow className="border-b border-border/50 hover:bg-transparent">
+                      <TableHead className="h-10 text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80 w-[80px]">#</TableHead>
+                      <TableHead className="h-10 text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80">Cliente</TableHead>
+                      <TableHead className="h-10 text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80">Produto</TableHead>
+                      <TableHead className="h-10 text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80">Pagamento</TableHead>
+                      <TableHead className="h-10 text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80">Entregador</TableHead>
+                      <TableHead className="h-10 text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80 text-right">Valor</TableHead>
+                      <TableHead className="h-10 text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80">Status</TableHead>
+                      <TableHead className="h-10 w-[120px] text-right text-[10px] font-medium tracking-[0.12em] uppercase text-muted-foreground/80">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pedidosPaginados.map((pedido) =>
-                    <TableRow key={pedido.id} className={pedido.status === "cancelado" ? "opacity-60" : ""}>
-                        <TableCell>
-                          <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} />
-                        </TableCell>
-                        <TableCell>
-                          <OrigemBadge origem={pedido.origem_pedido} />
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs" onClick={() => editarPedido(pedido.id)}>
-                            #{getNumExib(pedido)}
-                          </Button>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {podeAlterarDataEntrega ?
-                        <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 w-[140px] text-xs" /> :
-                        pedido.data}
-                        </TableCell>
-                        <TableCell className="font-medium text-sm min-w-[200px] max-w-[260px] truncate" title={pedido.cliente}>{pedido.cliente}</TableCell>
-                        <TableCell className="max-w-[180px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
-                        <TableCell className="max-w-[180px] truncate text-xs" title={formatarItensComQtd(pedido)}>{formatarItensComQtd(pedido)}</TableCell>
-                        <TableCell>
-                          {pedido.entregador ?
-                        <Badge variant="outline" className="cursor-pointer hover:bg-accent text-xs" onClick={() => abrirTransferencia(pedido)}>
-                              <Truck className="h-3 w-3 mr-1" />{pedido.entregador}
-                            </Badge> :
-                        pedido.status !== "cancelado" && pedido.status !== "entregue" ?
-                        <div className="flex gap-1">
-                              <Button size="sm" variant="ghost" className="text-primary h-6 px-2 text-xs" onClick={() => abrirTransferencia(pedido)}>
-                                <Sparkles className="h-3 w-3 mr-1" /> Atribuir
-                              </Button>
-                              <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => marcarPortariaHandler(pedido.id)} title="Retirada na portaria">
-                                <Building2 className="h-3 w-3" />
-                              </Button>
-                            </div> :
-                        <span className="text-muted-foreground text-xs">-</span>}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {podeEditarCanalPedido(pedido) ?
-                          <Popover open={editandoCanalId === `d-${pedido.id}`} onOpenChange={(open) => setEditandoCanalId(open ? `d-${pedido.id}` : null)}>
-                            <PopoverTrigger asChild>
-                              <span
-                                role="button"
-                                tabIndex={0}
-                                className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    setEditandoCanalId(`d-${pedido.id}`);
-                                  }
-                                }}
+                    {pedidosPaginados.map((pedido) => {
+                      const pag = pagamentoMeta(pedido.forma_pagamento);
+                      const sd = statusDot(pedido.status);
+                      const cancelado = pedido.status === "cancelado";
+                      const entregue = pedido.status === "entregue" || pedido.status === "finalizado";
+                      const emRota = pedido.status === "em_rota";
+                      const pendente = pedido.status === "pendente";
+                      return (
+                        <TableRow
+                          key={pedido.id}
+                          className={`border-b border-border/40 hover:bg-muted/40 transition-colors ${cancelado ? "opacity-60" : ""}`}
+                        >
+                          <TableCell className="py-3">
+                            <button
+                              onClick={() => editarPedido(pedido.id)}
+                              className="font-semibold text-sm text-foreground hover:text-primary tabular-nums"
+                            >
+                              #{getNumExib(pedido)}
+                            </button>
+                          </TableCell>
+                          <TableCell className="py-3 text-sm font-medium text-foreground max-w-[220px] truncate" title={pedido.cliente}>
+                            {pedido.cliente}
+                          </TableCell>
+                          <TableCell className="py-3 text-sm text-muted-foreground max-w-[180px] truncate" title={formatarItensComQtd(pedido)}>
+                            {formatarItensComQtd(pedido)}
+                          </TableCell>
+                          <TableCell className="py-3 text-sm text-muted-foreground">
+                            <span className="inline-flex items-center gap-1.5">
+                              <span aria-hidden>{pag.icon}</span>
+                              <span>{pag.label}</span>
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-3">
+                            {pedido.entregador ? (
+                              <button
+                                onClick={() => abrirTransferencia(pedido)}
+                                className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold text-white ${corDoEntregador(pedido.entregador)} hover:ring-2 hover:ring-offset-1 hover:ring-primary/30 transition`}
+                                title={pedido.entregador}
                               >
-                                <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>
-                                <Pencil className="h-3 w-3 text-muted-foreground" />
-                              </span>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-72 p-0 bg-popover border border-border shadow-lg z-50" align="start">
-                              {renderCanalCommand(pedido.id, pedido.canal_venda)}
-                            </PopoverContent>
-                          </Popover> :
-                          <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>}
-                        </TableCell>
-                        <TableCell className="font-medium text-sm">R$ {pedido.valor.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
-                              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
-                            <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
-                            }
-                              {pedido.agendado && pedido.status !== "cancelado" && pedido.status !== "entregue" &&
-                            <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>
-                            }
-                              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
-                            <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>
-                            }
-              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
-                            <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria (Retirada)</DropdownMenuItem>
-                            }
-                              {unidades.length > 1 &&
-                            <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}>
-                                  <MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial
-                                </DropdownMenuItem>
-                            }
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
-                              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
-                            <>
+                                {iniciaisDoNome(pedido.entregador)}
+                              </button>
+                            ) : !cancelado && !entregue ? (
+                              <button
+                                onClick={() => abrirTransferencia(pedido)}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40"
+                                title="Atribuir entregador"
+                              >
+                                <Sparkles className="h-3 w-3" />
+                              </button>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-3 text-right text-sm font-semibold text-foreground tabular-nums">
+                            R$ {pedido.valor.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="py-3">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-medium">
+                              <span className={`h-1.5 w-1.5 rounded-full ${sd.color}`} aria-hidden />
+                              <span className="text-foreground/80">{sd.label}</span>
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-3 text-right">
+                            <div className="inline-flex items-center gap-1 justify-end">
+                              {pendente && (
+                                <Button size="sm" variant="default" className="h-7 px-2.5 text-xs" onClick={() => alterarStatusPedido(pedido.id, "em_rota")}>
+                                  Enviar
+                                </Button>
+                              )}
+                              {emRota && (
+                                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => navigate("/operacional/centro")}>
+                                  Mapa
+                                </Button>
+                              )}
+                              {entregue && (
+                                <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => imprimirPedido(pedido)}>
+                                  Recibo
+                                </Button>
+                              )}
+                              {cancelado && (
+                                <Button size="sm" variant="ghost" className="h-7 px-2.5 text-xs text-muted-foreground" onClick={() => abrirVisualizacao(pedido)}>
+                                  Motivo
+                                </Button>
+                              )}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><MoreHorizontal className="h-4 w-4" /></Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
+                                  {!cancelado && !entregue &&
+                                    <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
+                                  }
+                                  {pedido.agendado && !cancelado && !entregue &&
+                                    <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>
+                                  }
+                                  {!cancelado && !entregue &&
+                                    <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>
+                                  }
+                                  {!cancelado && !entregue &&
+                                    <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria (Retirada)</DropdownMenuItem>
+                                  }
+                                  {unidades.length > 1 &&
+                                    <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}>
+                                      <MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial
+                                    </DropdownMenuItem>
+                                  }
                                   <DropdownMenuSeparator />
-                                  {pedido.status !== "em_rota" &&
-                              <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "em_rota")}><Truck className="h-4 w-4 mr-2" />Marcar Em Rota</DropdownMenuItem>
-                              }
-                                  <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "entregue")}><CheckCircle className="h-4 w-4 mr-2" />Marcar Entregue</DropdownMenuItem>
-                                  {pedido.status !== "pendente" &&
-                              <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "pendente")}><Clock className="h-4 w-4 mr-2" />Voltar p/ Pendente</DropdownMenuItem>
-                              }
+                                  <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
+                                  {!cancelado && !entregue &&
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      {pedido.status !== "em_rota" &&
+                                        <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "em_rota")}><Truck className="h-4 w-4 mr-2" />Marcar Em Rota</DropdownMenuItem>
+                                      }
+                                      <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "entregue")}><CheckCircle className="h-4 w-4 mr-2" />Marcar Entregue</DropdownMenuItem>
+                                      {pedido.status !== "pendente" &&
+                                        <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "pendente")}><Clock className="h-4 w-4 mr-2" />Voltar p/ Pendente</DropdownMenuItem>
+                                      }
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => cancelarPedido(pedido.id)}><XCircle className="h-4 w-4 mr-2" />Cancelar Pedido</DropdownMenuItem>
+                                    </>
+                                  }
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => cancelarPedido(pedido.id)}><XCircle className="h-4 w-4 mr-2" />Cancelar Pedido</DropdownMenuItem>
-                                </>
-                            }
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => abrirExclusao(pedido)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    )}
+                                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => abrirExclusao(pedido)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
+
 
               {/* #4 - Pagination controls */}
               {totalPages > 1 &&
