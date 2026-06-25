@@ -1401,10 +1401,24 @@
   .app-card .app-card > .app-card-content + .app-card-footer {
     @apply pt-3;
   }
-  /* Tables inside cards should be flush — no double border/padding */
+  /* Tables inside cards should be flush — no double border/radius */
   .app-card > table,
   .app-card .app-card-content > table {
     @apply border-0;
+  }
+  .app-card .app-table-wrap,
+  .app-card .app-card-content > .app-table-wrap {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+  /* Force nested rounded boxes to inherit the active theme radius
+     (preserve rounded-full for avatars/badges/pills) */
+  .app-card .rounded-xl:not(.rounded-full),
+  .app-card .rounded-2xl:not(.rounded-full),
+  .app-card .rounded-lg:not(.rounded-full),
+  .app-card .rounded-md:not(.rounded-full) {
+    border-radius: var(--radius) !important;
   }
 }
 
