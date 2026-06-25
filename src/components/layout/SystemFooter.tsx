@@ -87,15 +87,11 @@ export function SystemFooter({ portalKey, accentHsl, className }: SystemFooterPr
           aria-hidden
         />
 
-        {/* Center: portal target (stepper) or fallback quote */}
+        {/* Center: portal target (stepper with back/next) */}
         <div className="flex-1 min-w-0 flex items-center justify-center">
           <div id={FOOTER_CENTER_ID} className="w-full" />
-          {!centerOverride && (
-            <p className="text-xs md:text-sm text-muted-foreground italic text-center truncate">
-              "{quote}"
-            </p>
-          )}
         </div>
+
 
         {/* Right: action buttons (AI, WhatsApp, etc.) */}
         <div
