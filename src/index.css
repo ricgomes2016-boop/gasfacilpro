@@ -1415,12 +1415,12 @@
 }
 
 /* Force nested rounded boxes to inherit the active theme radius
-   (preserve rounded-full for avatars/badges/pills) — outside @layer to avoid
-   Tailwind treating these class selectors as @apply circular references */
-.app-card .rounded-xl:not(.rounded-full),
-.app-card .rounded-2xl:not(.rounded-full),
-.app-card .rounded-lg:not(.rounded-full),
-.app-card .rounded-md:not(.rounded-full) {
+   (preserve rounded-full for avatars/badges/pills). Use attribute selectors
+   so Tailwind does not flag this as a circular @apply on utility classes. */
+.app-card [class*="rounded-xl"]:not([class*="rounded-full"]),
+.app-card [class*="rounded-2xl"]:not([class*="rounded-full"]),
+.app-card [class*="rounded-lg"]:not([class*="rounded-full"]),
+.app-card [class*="rounded-md"]:not([class*="rounded-full"]) {
   border-radius: var(--radius) !important;
 }
 
