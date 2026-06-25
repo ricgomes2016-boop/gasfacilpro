@@ -253,6 +253,49 @@ export default function MeuPerfil() {
           </CardContent>
         </Card>
 
+        {/* Preferências de interface */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <LayoutGrid className="h-4 w-4" /> Preferências de Interface
+            </CardTitle>
+            <CardDescription>Escolha qual versão da tela de Nova Venda usar</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RadioGroup value={novaVendaView} onValueChange={handleChangeNovaVendaView} className="grid gap-2 sm:grid-cols-2">
+              <Label htmlFor="view-new" className="flex cursor-pointer items-start gap-3 rounded-[var(--radius)] border border-border p-3 hover:bg-muted/40 [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/5">
+                <RadioGroupItem value="new" id="view-new" className="mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold flex items-center gap-1"><Sparkles className="h-3.5 w-3.5 text-primary" /> Nova</p>
+                  <p className="text-xs text-muted-foreground">Fluxo por etapas (stepper) — recomendado</p>
+                </div>
+              </Label>
+              <Label htmlFor="view-old" className="flex cursor-pointer items-start gap-3 rounded-[var(--radius)] border border-border p-3 hover:bg-muted/40 [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/5">
+                <RadioGroupItem value="old" id="view-old" className="mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold">Antiga</p>
+                  <p className="text-xs text-muted-foreground">Tudo em uma única página</p>
+                </div>
+              </Label>
+            </RadioGroup>
+          </CardContent>
+        </Card>
+
+        {/* Atualização do Sistema */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" /> Atualização do Sistema
+            </CardTitle>
+            <CardDescription>Force a busca pela versão mais recente do app</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" size="sm" onClick={handleForceUpdate}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Buscar nova atualização
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Alterar Senha */}
         <Card>
           <CardHeader className="pb-3">
