@@ -37,7 +37,7 @@ export function WhatsAppFloatingChat() {
         onClick={() => setOpen(true)}
         size="icon"
         className={cn(
-          "fixed bottom-4 right-4 z-50 hidden h-14 w-14 rounded-full shadow-lg xl:inline-flex",
+          "fixed bottom-4 right-4 z-50 hidden h-12 w-12 rounded-full shadow-lg md:inline-flex",
           "bg-green-600 hover:bg-green-700 text-white",
           open && "hidden"
         )}
