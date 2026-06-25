@@ -1014,42 +1014,8 @@ export default function Pedidos() {
         }
 
 
-        {/* Stats - compact KPIs, 5 across on md+ */}
-        <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
-          <Card className="kpi-card kpi-card-warning">
-            <CardContent className="flex items-center gap-2 p-2.5">
-              <div className="status-card-icon status-card-icon-warning h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><Clock /></div>
-              <div className="min-w-0"><p className="text-lg font-bold leading-none text-warning">{contadores.pendente}</p><p className="text-[11px] text-muted-foreground mt-0.5">Pendentes</p></div>
-            </CardContent>
-          </Card>
-          <Card className="kpi-card kpi-card-info">
-            <CardContent className="flex items-center gap-2 p-2.5">
-              <div className="status-card-icon status-card-icon-info h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><Truck /></div>
-              <div className="min-w-0"><p className="text-lg font-bold leading-none text-info">{contadores.em_rota}</p><p className="text-[11px] text-muted-foreground mt-0.5">Em Rota</p></div>
-            </CardContent>
-          </Card>
-          <Card className="kpi-card kpi-card-success">
-            <CardContent className="flex items-center gap-2 p-2.5">
-              <div className="status-card-icon status-card-icon-success h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><CheckCircle /></div>
-              <div className="min-w-0"><p className="text-lg font-bold leading-none text-success">{contadores.entregue}</p><p className="text-[11px] text-muted-foreground mt-0.5">Entregues</p></div>
-            </CardContent>
-          </Card>
-          <Card className="kpi-card kpi-card-destructive">
-            <CardContent className="flex items-center gap-2 p-2.5">
-              <div className="status-card-icon status-card-icon-destructive h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><XCircle /></div>
-              <div className="min-w-0"><p className="text-lg font-bold leading-none text-destructive">{contadores.cancelado}</p><p className="text-[11px] text-muted-foreground mt-0.5">Cancelados</p></div>
-            </CardContent>
-          </Card>
-          <Card className="kpi-card kpi-card-success col-span-2 sm:col-span-3 md:col-span-1">
-            <CardContent className="flex items-center gap-2 p-2.5">
-              <div className="status-card-icon status-card-icon-success h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><DollarSign /></div>
-              <div className="min-w-0">
-                <p className="text-base md:text-sm lg:text-base font-bold leading-none text-success truncate">R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Total Vendas</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* KPIs movidos para o topo da página */}
+
 
 
 
