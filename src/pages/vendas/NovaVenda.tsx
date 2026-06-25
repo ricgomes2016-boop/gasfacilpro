@@ -44,6 +44,7 @@ import { markOrderNotified } from "@/lib/novoPedidoDedupe";
 
 import { VendedorSelect } from "@/components/vendas/VendedorSelect";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
+import { PortalToId, FOOTER_CENTER_ID, useFooterCenterOverride } from "@/components/layout/footerPortals";
 
 interface CustomerData {
   id: string | null;
@@ -1520,53 +1521,41 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         <div aria-hidden className="h-20" />
       </div>
 
-      {/* Rodapé fixo: Stepper + navegação Voltar/Continuar */}
+      {/* Rodapé fixo: Stepper + navegação Voltar/Continuar (mobile sticky; desktop via SystemFooter portal) */}
       {useNewView && (
-        <div className="sticky bottom-0 left-0 right-0 z-30 border-t border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_-6px_20px_-12px_rgba(0,0,0,0.25)]">
-          <div className="mx-auto flex max-w-screen-2xl items-center gap-2 px-3 py-2 md:px-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 shrink-0"
-              aria-label="Etapa anterior"
-              disabled={VENDA_STEPS.indexOf(activeStep) === 0}
-              onClick={() => {
-                const idx = VENDA_STEPS.indexOf(activeStep);
-                const prev = VENDA_STEPS[idx - 1];
-                if (prev && canOpenStep(prev)) setActiveStep(prev);
-              }}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <div className="min-w-0 flex-1">
-              <VendaStepper
+        <>
+          {/* Mobile sticky */}
+          <div className="md:hidden sticky bottom-0 left-0 right-0 z-30 border-t border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_-6px_20px_-12px_rgba(0,0,0,0.25)]">
+            <div className="mx-auto flex max-w-screen-2xl items-center gap-2 px-3 py-2">
+              <StepperFooterBar
+                activeStep={activeStep}
+                canOpenStep={canOpenStep}
+                setActiveStep={setActiveStep}
                 customer={customer}
                 itens={itens}
                 pagamentos={pagamentos}
                 totalVenda={totalVenda}
-                entregadorSelecionado={entregadorPreenchido}
-                activeStep={activeStep}
-                onStepClick={(step) => canOpenStep(step) && setActiveStep(step)}
-                compact
+                entregadorPreenchido={entregadorPreenchido}
               />
             </div>
-            <Button
-              variant="default"
-              size="icon"
-              className="h-9 w-9 shrink-0"
-              aria-label="Próxima etapa"
-              disabled={VENDA_STEPS.indexOf(activeStep) === VENDA_STEPS.length - 1}
-              onClick={() => {
-                const idx = VENDA_STEPS.indexOf(activeStep);
-                const next = VENDA_STEPS[idx + 1];
-                if (next && canOpenStep(next)) setActiveStep(next);
-              }}
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
           </div>
-        </div>
+
+          {/* Desktop: portal into SystemFooter center slot */}
+          <NovaVendaFooterStepper>
+            <StepperFooterBar
+              activeStep={activeStep}
+              canOpenStep={canOpenStep}
+              setActiveStep={setActiveStep}
+              customer={customer}
+              itens={itens}
+              pagamentos={pagamentos}
+              totalVenda={totalVenda}
+              entregadorPreenchido={entregadorPreenchido}
+            />
+          </NovaVendaFooterStepper>
+        </>
       )}
+
 
       {/* Dialog Atalhos do teclado */}
       <Dialog open={atalhosOpen} onOpenChange={setAtalhosOpen}>
