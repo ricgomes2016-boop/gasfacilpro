@@ -301,6 +301,14 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     if (!getSavedViewMode() && isGasmais) setUseNewView(true);
   }, [isGasmais]);
 
+  // Permite que o botão "Assistente IA" do Header global abra o diálogo desta tela
+  useEffect(() => {
+    const handler = () => setAiPopoverOpen(true);
+    window.addEventListener("nova-venda:open-ai", handler);
+    return () => window.removeEventListener("nova-venda:open-ai", handler);
+  }, []);
+  }, [isGasmais]);
+
   // #5 - Load draft on mount
   useEffect(() => {
     if (draftLoaded.current) return;
