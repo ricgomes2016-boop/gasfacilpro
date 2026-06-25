@@ -163,7 +163,7 @@ export function Header({ title, subtitle }: HeaderProps) {
             ? "h-11 justify-end gap-1"
             : "h-11 w-full justify-between gap-0.5 px-0 py-1 sm:h-12 sm:w-auto sm:justify-end sm:gap-1 md:h-14 xl:gap-2"
         )}>
-          <UnidadeSelector />
+          {!isCleanTheme && <UnidadeSelector />}
 
           <div className={cn("shrink-0", isCleanTheme ? "block" : "hidden xl:block")}>
             <CommandPalette />
