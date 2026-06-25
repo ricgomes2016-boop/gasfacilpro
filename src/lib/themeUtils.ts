@@ -1000,6 +1000,16 @@ export const PRESET_EXTRA_CSS: Record<string, string> = {
       box-shadow: none !important;
     }
 
+    html[data-theme-preset="operacional-clean"] .quick-action-tile {
+      border-radius: 4px !important;
+      box-shadow: none !important;
+      border: 1px solid hsl(210 10% 82%) !important;
+    }
+    html[data-theme-preset="operacional-clean"] .quick-action-tile:hover {
+      box-shadow: 0 2px 6px hsl(210 22% 12% / 0.08) !important;
+      transform: none !important;
+    }
+
     @media (max-width: 768px) {
       html[data-theme-preset="operacional-clean"] .app-header-premium {
         min-height: 72px;

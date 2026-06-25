@@ -156,6 +156,14 @@ export function Header({ title, subtitle }: HeaderProps) {
               >
                 <img src={brandTheme.logoMark} alt="Gas Facil" className="h-8 w-8 shrink-0 object-contain" />
                 <span className="hidden truncate text-lg font-semibold tracking-tight sm:block">GásFácil</span>
+                {(unidadeAtual?.nome || empresa?.nome) && (
+                  <>
+                    <span className="hidden text-border sm:inline">·</span>
+                    <span className="min-w-0 truncate text-sm font-semibold text-primary sm:text-base">
+                      {unidadeAtual?.nome || empresa?.nome}
+                    </span>
+                  </>
+                )}
               </button>
             </>
           ) : (
