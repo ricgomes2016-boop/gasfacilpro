@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { User, LogOut, Settings, UserCircle, RefreshCw, Menu, Sparkles } from "lucide-react";
+import { useEffect, useState, Fragment } from "react";
+import { User, LogOut, Settings, UserCircle, RefreshCw, Menu, Sparkles, ChevronRight, Home } from "lucide-react";
 import { CommandPalette } from "./CommandPalette";
 import { NotificationCenter } from "./NotificationCenter";
 import { BaseChatPanel } from "@/components/chat/BaseChatPanel";
