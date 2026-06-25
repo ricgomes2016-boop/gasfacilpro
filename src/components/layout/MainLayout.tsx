@@ -21,18 +21,35 @@ interface MainLayoutProps {
 
 function MainLayoutContent({ children }: MainLayoutProps) {
   const { collapsed } = useSidebarContext();
-  const { themeClass, theme } = useDashboardTheme();
-  const isClean = theme === "operacional-clean";
+  const { themeClass } = useDashboardTheme();
   const location = useLocation();
   const isAiPage = location.pathname === "/assistente-ia";
   const [aiOpen, setAiOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [calcOpen, setCalcOpen] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
+  const [activePreset, setActivePreset] = useState(() =>
+    typeof document === "undefined" ? "" : document.documentElement.getAttribute("data-theme-preset") || ""
+  );
+  const isCleanTheme = activePreset === "operacional-clean";
 
   useEffect(() => {
     if (isAiPage) setAiOpen(false);
   }, [isAiPage]);
+
+  useEffect(() => {
+    const syncPreset = () => setActivePreset(document.documentElement.getAttribute("data-theme-preset") || "");
+    syncPreset();
+    window.addEventListener("storage", syncPreset);
+
+    const observer = new MutationObserver(syncPreset);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme-preset"] });
+
+    return () => {
+      window.removeEventListener("storage", syncPreset);
+      observer.disconnect();
+    };
+  }, []);
 
   return (
     <div className={cn(themeClass, "system-surface min-h-screen overflow-x-hidden")}>
@@ -40,7 +57,9 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       <main
         className={cn(
           "relative min-h-screen transition-all duration-300 ml-0 pb-16 md:pb-10",
-          isClean && collapsed ? "xl:ml-0" : collapsed ? "xl:ml-16" : "xl:ml-[260px]"
+          isCleanTheme
+            ? (collapsed ? "xl:ml-0" : "xl:ml-[260px]")
+            : (collapsed ? "xl:ml-16" : "xl:ml-[260px]")
         )}
       >
         <ErpNotificationBanner />

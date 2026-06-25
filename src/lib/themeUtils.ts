@@ -257,6 +257,10 @@ export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
     "--sidebar-border": "210 9% 82%",
     "--sidebar-ring": "151 39% 48%",
     "--kpi-accent": "151 39% 48%",
+    "--clean-header-bg": "210 22% 10%",
+    "--clean-sidebar-unit-bg": "210 22% 12%",
+    "--clean-action-green": "151 39% 48%",
+    "--clean-table-grid": "210 10% 82%",
     "--gradient-primary": "linear-gradient(135deg, hsl(210 22% 12%) 0%, hsl(151 39% 48%) 100%)",
     "--gradient-dark": "linear-gradient(135deg, hsl(210 22% 12%) 0%, hsl(210 18% 18%) 100%)",
     "--gradient-card": "linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 100%)",
@@ -658,11 +662,32 @@ export const PRESET_EXTRA_CSS: Record<string, string> = {
     }
 
     html[data-theme-preset="operacional-clean"] .app-header-premium {
-      background: hsl(210 22% 12% / 0.98) !important;
+      background: hsl(var(--clean-header-bg)) !important;
       border-color: hsl(210 18% 18%) !important;
       color: hsl(0 0% 98%) !important;
       box-shadow: none !important;
       backdrop-filter: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .clean-header {
+      min-height: 3.5rem !important;
+      height: 3.5rem !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      z-index: 50 !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .clean-header-brand,
+    html[data-theme-preset="operacional-clean"] .clean-header-menu,
+    html[data-theme-preset="operacional-clean"] .clean-header-ai {
+      color: hsl(0 0% 96%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .clean-header-brand:hover,
+    html[data-theme-preset="operacional-clean"] .clean-header-menu:hover,
+    html[data-theme-preset="operacional-clean"] .clean-header-ai:hover {
+      background: hsl(210 14% 20%) !important;
+      color: hsl(0 0% 100%) !important;
     }
 
     html[data-theme-preset="operacional-clean"] .app-header-premium h1,
@@ -687,6 +712,8 @@ export const PRESET_EXTRA_CSS: Record<string, string> = {
     html[data-theme-preset="operacional-clean"] .header-actions button:not(.header-unit-selector) {
       color: hsl(0 0% 92%) !important;
       border-radius: 4px !important;
+      min-height: 2.25rem;
+      min-width: 2.25rem;
     }
 
     html[data-theme-preset="operacional-clean"] .header-actions button:not(.header-unit-selector):hover {
@@ -704,6 +731,27 @@ export const PRESET_EXTRA_CSS: Record<string, string> = {
       color: hsl(210 10% 26%) !important;
       border-color: hsl(210 9% 82%) !important;
       box-shadow: 10px 0 26px -22px hsl(210 22% 12% / 0.34) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .clean-sidebar {
+      z-index: 35 !important;
+      border-radius: 0 !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .sidebar-unit-selector {
+      background: hsl(var(--clean-sidebar-unit-bg)) !important;
+      border-color: hsl(210 12% 20%) !important;
+      color: hsl(0 0% 98%) !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .sidebar-unit-selector * {
+      color: inherit !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .sidebar-unit-selector .bg-background\\/70 {
+      background: hsl(0 0% 100% / 0.14) !important;
+      border-color: hsl(0 0% 100% / 0.28) !important;
     }
 
     html[data-theme-preset="operacional-clean"] .app-sidebar-premium::before,
@@ -755,6 +803,38 @@ export const PRESET_EXTRA_CSS: Record<string, string> = {
     html[data-theme-preset="operacional-clean"] .modern-panel-header {
       background: hsl(0 0% 100%) !important;
       border-bottom: 1px solid hsl(210 10% 84%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .system-surface input,
+    html[data-theme-preset="operacional-clean"] .system-surface textarea,
+    html[data-theme-preset="operacional-clean"] .system-surface select,
+    html[data-theme-preset="operacional-clean"] .system-surface [role="combobox"] {
+      background: hsl(0 0% 100%) !important;
+      border-color: hsl(210 10% 78%) !important;
+      border-radius: 4px !important;
+      color: hsl(210 22% 12%) !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .system-surface input:focus,
+    html[data-theme-preset="operacional-clean"] .system-surface textarea:focus,
+    html[data-theme-preset="operacional-clean"] .system-surface [role="combobox"]:focus-visible {
+      border-color: hsl(var(--clean-action-green)) !important;
+      box-shadow: 0 0 0 2px hsl(var(--clean-action-green) / 0.18) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] [role="dialog"],
+    html[data-theme-preset="operacional-clean"] [data-radix-popper-content-wrapper] [role="menu"],
+    html[data-theme-preset="operacional-clean"] [data-radix-popper-content-wrapper] [role="listbox"] {
+      border-color: hsl(210 10% 80%) !important;
+      border-radius: 6px !important;
+      box-shadow: 0 18px 48px -30px hsl(210 22% 12% / 0.45) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .system-surface button.bg-primary,
+    html[data-theme-preset="operacional-clean"] .system-surface .bg-primary.text-primary-foreground {
+      background: hsl(var(--clean-action-green)) !important;
+      color: hsl(0 0% 100%) !important;
     }
 
     html[data-theme-preset="operacional-clean"] .kpi-card,

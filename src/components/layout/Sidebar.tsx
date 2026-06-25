@@ -174,7 +174,11 @@ export function Sidebar() {
   const { signOut, profile } = useAuth();
   const { canAccessPath } = usePlanoAccess();
   const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const [activePreset, setActivePreset] = useState(() =>
+    typeof document === "undefined" ? "" : document.documentElement.getAttribute("data-theme-preset") || ""
+  );
   const sidebarRef = useRef<HTMLElement | null>(null);
+  const isCleanTheme = activePreset === "operacional-clean";
 
   // Filtra menu items pelas regras de plano (fail-open: se nada cadastrado, mostra tudo)
   const visibleMenuItems = useMemo(() => {
@@ -202,6 +206,22 @@ export function Sidebar() {
   }, [location.pathname]);
 
   useEffect(() => {
+    const syncPreset = () => setActivePreset(document.documentElement.getAttribute("data-theme-preset") || "");
+    syncPreset();
+    window.addEventListener("storage", syncPreset);
+
+    const observer = new MutationObserver(syncPreset);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme-preset"] });
+
+    return () => {
+      window.removeEventListener("storage", syncPreset);
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isCleanTheme) return;
+
     const handlePointerDown = (event: PointerEvent) => {
       const isDesktopSidebar = window.matchMedia("(min-width: 1280px)").matches;
       if (!isDesktopSidebar || collapsed || sidebarRef.current?.contains(event.target as Node)) return;
@@ -210,7 +230,7 @@ export function Sidebar() {
 
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [collapsed, setCollapsed]);
+  }, [collapsed, setCollapsed, isCleanTheme]);
 
   const toggleSubmenu = (label: string) => {
     setOpenMenus((prev) =>
@@ -241,31 +261,30 @@ export function Sidebar() {
   const subMenuItemActive = "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border/30";
   const subMenuItemIdle = "text-sidebar-foreground/70 hover:bg-sidebar-accent/15 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15";
 
-  const { themeClass, brandTheme, theme } = useDashboardTheme();
-  const isClean = theme === "operacional-clean";
-
-  // No tema clean, ao colapsar o sidebar some por completo
-  if (isClean && collapsed) {
-    return null;
-  }
+  const { themeClass, brandTheme } = useDashboardTheme();
 
   return (
     <TooltipProvider delayDuration={0}>
       <motion.aside
         ref={sidebarRef}
-        animate={{ width: collapsed ? 64 : 260 }}
+        animate={{ width: collapsed ? (isCleanTheme ? 0 : 64) : 260 }}
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "app-sidebar-premium fixed left-0 top-0 z-40 hidden h-screen flex-col overflow-hidden rounded-r-2xl border-r border-sidebar-border/15 shadow-2xl xl:flex"
+          "app-sidebar-premium fixed left-0 z-40 hidden flex-col overflow-hidden border-r border-sidebar-border/15 shadow-2xl xl:flex",
+          isCleanTheme
+            ? "clean-sidebar top-14 h-[calc(100vh-3.5rem)] rounded-r-none"
+            : "top-0 h-screen rounded-r-2xl"
         )}
       >
         {/* Header */}
-        <div className={cn("flex h-16 min-h-16 items-center border-b border-sidebar-border/15 px-3", collapsed ? "justify-center" : "justify-start")}>
-          {isClean && !collapsed ? (
-            <div className="w-full">
-              <UnidadeSelector variant="sidebar" />
-            </div>
+        <div className={cn(
+          "flex border-b border-sidebar-border/15 px-3",
+          isCleanTheme ? "min-h-28 items-center py-3" : "h-16 min-h-16 items-center",
+          collapsed ? "justify-center" : "justify-start"
+        )}>
+          {isCleanTheme ? (
+            <UnidadeSelector variant="sidebar" collapsed={collapsed} />
           ) : (
             <>
               <button
@@ -301,7 +320,7 @@ export function Sidebar() {
                   variant="ghost"
                   size="icon"
                   onClick={toggle}
-                    className="h-8 w-8 flex-shrink-0 rounded-full text-sidebar-foreground/80 shadow-none hover:bg-sidebar-accent/15 hover:text-sidebar-foreground"
+                  className="h-8 w-8 flex-shrink-0 rounded-full text-sidebar-foreground/80 shadow-none hover:bg-sidebar-accent/15 hover:text-sidebar-foreground"
                 >
                   {collapsed ? (
                     <ChevronRight className="h-4 w-4" />
@@ -313,7 +332,6 @@ export function Sidebar() {
             </>
           )}
         </div>
-
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3.5 py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
