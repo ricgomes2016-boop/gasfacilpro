@@ -1,13 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { getRandomQuote, AuthPortalKey } from "@/lib/motivationalQuotes";
 import { useSidebarContext } from "@/contexts/SidebarContext";
+import { FOOTER_ACTIONS_ID, FOOTER_CENTER_ID } from "./footerPortals";
 
 interface SystemFooterProps {
-  /** Optional override for the portal key. If omitted, inferred from subdomain/path. */
   portalKey?: AuthPortalKey;
-  /** Optional HSL color string ("H S% L%") for the accent dot. */
   accentHsl?: string;
   className?: string;
 }
@@ -23,7 +22,6 @@ const ACCENT_BY_PORTAL: Record<AuthPortalKey, string> = {
   parceiro: "340 80% 55%",
   api: "260 70% 60%",
 };
-
 
 function detectPortalKey(pathname: string): AuthPortalKey {
   const host = typeof window !== "undefined" ? window.location.hostname : "";
@@ -46,10 +44,11 @@ function detectPortalKey(pathname: string): AuthPortalKey {
   return "erp";
 }
 
-
 /**
- * Fixed system footer with a motivational quote.
- * Hidden on mobile to avoid conflict with MobileBottomBar.
+ * Fixed system footer.
+ * - Left: accent dot
+ * - Center: portal slot (e.g. Nova Venda stepper); falls back to motivational quote
+ * - Right: portal slot for floating action buttons (AI / WhatsApp)
  */
 export function SystemFooter({ portalKey, accentHsl, className }: SystemFooterProps) {
   const location = useLocation();
@@ -59,25 +58,50 @@ export function SystemFooter({ portalKey, accentHsl, className }: SystemFooterPr
     [portalKey, location.pathname],
   );
   const [quote] = useState(() => getRandomQuote(resolvedKey));
+  const [centerOverride, setCenterOverride] = useState(false);
   const dotColor = accentHsl ?? ACCENT_BY_PORTAL[resolvedKey] ?? ACCENT_BY_PORTAL.erp;
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<boolean>).detail;
+      setCenterOverride(Boolean(detail));
+    };
+    window.addEventListener("system-footer:center", handler);
+    return () => window.removeEventListener("system-footer:center", handler);
+  }, []);
 
   return (
     <footer
       className={cn(
-        "hidden md:flex fixed bottom-0 right-0 z-40 border-t border-border/40 bg-background/80 backdrop-blur-md transition-all duration-300",
+        "hidden md:flex fixed bottom-0 right-0 z-40 border-t border-border/40 bg-background/85 backdrop-blur-md transition-all duration-300",
         "left-0",
         collapsed ? "xl:left-16" : "xl:left-[260px]",
         className,
       )}
     >
-      <div className="w-full max-w-5xl mx-auto px-4 py-2 flex items-center justify-center gap-2">
+      <div className="w-full mx-auto px-3 py-1.5 flex items-center gap-3">
+        {/* Left: accent */}
         <div
           className="w-2 h-2 rounded-full shrink-0"
           style={{ background: `hsl(${dotColor})` }}
+          aria-hidden
         />
-        <p className="text-xs md:text-sm text-muted-foreground italic text-center truncate">
-          "{quote}"
-        </p>
+
+        {/* Center: portal target (stepper) or fallback quote */}
+        <div className="flex-1 min-w-0 flex items-center justify-center">
+          <div id={FOOTER_CENTER_ID} className="w-full" />
+          {!centerOverride && (
+            <p className="text-xs md:text-sm text-muted-foreground italic text-center truncate">
+              "{quote}"
+            </p>
+          )}
+        </div>
+
+        {/* Right: action buttons (AI, WhatsApp, etc.) */}
+        <div
+          id={FOOTER_ACTIONS_ID}
+          className="flex items-center gap-1.5 shrink-0"
+        />
       </div>
     </footer>
   );
