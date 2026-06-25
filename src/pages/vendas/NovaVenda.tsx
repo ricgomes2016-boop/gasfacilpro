@@ -307,7 +307,6 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     window.addEventListener("nova-venda:open-ai", handler);
     return () => window.removeEventListener("nova-venda:open-ai", handler);
   }, []);
-  }, [isGasmais]);
 
   // #5 - Load draft on mount
   useEffect(() => {
