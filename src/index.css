@@ -808,8 +808,10 @@
 
   .status-pill,
   [class*="badge-status"] {
-    @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold shadow-sm;
+    @apply inline-flex items-center border px-2.5 py-1 text-xs font-bold shadow-sm;
+    border-radius: var(--radius);
   }
+
 
   .status-pendente,
   .badge-status-pendente { @apply border-warning/30 bg-warning/15 text-warning-foreground; }
