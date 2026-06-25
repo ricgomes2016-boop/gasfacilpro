@@ -21,6 +21,7 @@ import { menuItems } from "./menuItems";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import { usePlanoAccess } from "@/hooks/usePlanoAccess";
+import { UnidadeSelector } from "./UnidadeSelector";
 
 // Color map for menu category icons using only semantic design-system tokens
 const menuIconColors: Record<string, string> = {
