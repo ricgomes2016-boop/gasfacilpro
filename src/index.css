@@ -1416,16 +1416,33 @@
     border-radius: 0 !important;
     background: transparent !important;
   }
-  /* Square out interactive elements inside data tables so cells look flat */
+  /* Square out interactive elements inside data tables so cells look flat.
+     Applies globally: any table inside an .app-card (and the legacy
+     .saas-table-scope wrapper) gets flat cells/inputs/badges. */
   .saas-table-scope input,
   .saas-table-scope .badge,
   .saas-table-scope [data-slot="badge"],
   .saas-table-scope th,
   .saas-table-scope td,
   .saas-table-scope tr,
-  .saas-table-scope button:not([role="checkbox"]):not(.rounded-full) {
+  .saas-table-scope button:not([role="checkbox"]):not(.rounded-full),
+  .app-card table th,
+  .app-card table td,
+  .app-card table tr,
+  .app-card table input,
+  .app-card table .badge,
+  .app-card table [data-slot="badge"],
+  .app-card table button:not([role="checkbox"]):not(.rounded-full) {
     border-radius: 0 !important;
   }
+  /* Remove the gap between the card edge and the table when a table is
+     the direct/main child of a card content area. */
+  .app-card > [data-slot="card-content"]:has(> table),
+  .app-card > [data-slot="card-content"]:has(> .app-table-wrap),
+  .app-card > [data-slot="card-content"]:has(> div > table) {
+    padding: 0 !important;
+  }
+
 }
 
 /* Force nested rounded boxes to inherit the active theme radius
