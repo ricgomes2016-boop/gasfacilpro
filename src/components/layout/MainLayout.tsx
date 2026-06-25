@@ -21,7 +21,8 @@ interface MainLayoutProps {
 
 function MainLayoutContent({ children }: MainLayoutProps) {
   const { collapsed } = useSidebarContext();
-  const { themeClass } = useDashboardTheme();
+  const { themeClass, theme } = useDashboardTheme();
+  const isClean = theme === "operacional-clean";
   const location = useLocation();
   const isAiPage = location.pathname === "/assistente-ia";
   const [aiOpen, setAiOpen] = useState(false);
@@ -39,7 +40,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       <main
         className={cn(
           "relative min-h-screen transition-all duration-300 ml-0 pb-16 md:pb-10",
-          collapsed ? "xl:ml-16" : "xl:ml-[260px]"
+          isClean && collapsed ? "xl:ml-0" : collapsed ? "xl:ml-16" : "xl:ml-[260px]"
         )}
       >
         <ErpNotificationBanner />

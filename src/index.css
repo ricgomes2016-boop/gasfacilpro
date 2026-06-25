@@ -129,6 +129,44 @@
     box-shadow: 0 14px 34px -28px hsl(220 35% 10% / 0.28);
   }
 
+  .brand-theme-operacional-clean .app-header-premium,
+  .app-header-premium.app-header-clean {
+    background: hsl(var(--clean-header-bg, 222 47% 11%));
+    color: hsl(var(--clean-header-fg, 0 0% 100%));
+    border-color: hsl(0 0% 100% / 0.06);
+    box-shadow: 0 8px 24px -18px hsl(0 0% 0% / 0.45);
+    backdrop-filter: none;
+  }
+  .brand-theme-operacional-clean .app-header-premium h1,
+  .brand-theme-operacional-clean .app-header-premium .header-actions button:not(.header-unit-selector),
+  .brand-theme-operacional-clean .app-header-premium .header-actions button:not(.header-unit-selector) svg {
+    color: hsl(var(--clean-header-fg, 0 0% 100%));
+  }
+  .brand-theme-operacional-clean .app-header-premium .header-actions button:not(.header-unit-selector):hover {
+    background: hsl(0 0% 100% / 0.08);
+    color: hsl(var(--clean-header-fg, 0 0% 100%));
+  }
+  .brand-theme-operacional-clean .app-header-premium .text-foreground\/65,
+  .brand-theme-operacional-clean .app-header-premium .text-foreground\/80 {
+    color: hsl(0 0% 100% / 0.75);
+  }
+
+  .clean-ia-button {
+    background: linear-gradient(135deg, hsl(258 80% 62%), hsl(238 75% 58%));
+    color: #fff !important;
+    box-shadow: 0 6px 18px -10px hsl(250 78% 60% / 0.7);
+  }
+  .clean-ia-button:hover {
+    background: linear-gradient(135deg, hsl(258 80% 66%), hsl(238 75% 62%));
+    color: #fff !important;
+  }
+
+  .clean-page-banner {
+    background: hsl(var(--card));
+    border-bottom: 1px solid hsl(var(--border) / 0.7);
+  }
+
+
   .header-unit-selector {
     border-color: hsl(var(--primary) / 0.22);
     background: hsl(var(--primary) / 0.08);

@@ -10,10 +10,67 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function UnidadeSelector() {
+interface UnidadeSelectorProps {
+  variant?: "header" | "sidebar";
+}
+
+export function UnidadeSelector({ variant = "header" }: UnidadeSelectorProps) {
   const { unidades, unidadeAtual, loading, setUnidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
+
+  if (variant === "sidebar") {
+    if (loading) return <Skeleton className="h-14 w-full rounded-xl" />;
+    const cnpj = (empresa as any)?.cnpj || (unidadeAtual as any)?.cnpj || "";
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="flex w-full items-center gap-3 rounded-xl border border-sidebar-border/40 bg-sidebar-accent/5 px-3 py-2.5 text-left transition hover:bg-sidebar-accent/10"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sidebar-accent/80 text-sidebar-accent-foreground">
+              <Building2 className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1 leading-tight">
+              <p className="truncate text-[12px] font-extrabold uppercase tracking-wide text-sidebar-foreground">
+                {unidadeAtual?.nome || "Selecionar"}
+              </p>
+              {cnpj && (
+                <p className="truncate text-[10px] font-medium text-sidebar-foreground/60">
+                  {cnpj}
+                </p>
+              )}
+            </div>
+            {unidades.length > 1 && <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />}
+          </button>
+        </DropdownMenuTrigger>
+        {unidades.length > 1 && (
+          <DropdownMenuContent align="start" className="w-60 border-border/45 bg-popover text-popover-foreground">
+            <DropdownMenuLabel>Selecionar Unidade</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {unidades.map((unidade) => (
+              <DropdownMenuItem
+                key={unidade.id}
+                onClick={() => setUnidadeAtual(unidade)}
+                className="flex cursor-pointer items-center justify-between gap-2"
+              >
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="truncate">{unidade.nome}</span>
+                </div>
+                <Badge variant={unidade.tipo === "matriz" ? "default" : "secondary"} className="text-xs capitalize">
+                  {unidade.tipo}
+                </Badge>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        )}
+      </DropdownMenu>
+    );
+  }
 
   if (loading) {
     return <Skeleton className="h-9 w-32 shrink-0 sm:w-36 xl:w-44" />;
@@ -33,7 +90,6 @@ export function UnidadeSelector() {
     );
   }
 
-  // If only one unidade, just show it without dropdown
   if (unidades.length === 1) {
     return (
       <div className="header-unit-selector flex h-9 min-w-[128px] max-w-[46vw] shrink-0 items-center gap-1.5 rounded-md border px-2 py-1.5 shadow-sm sm:min-w-[144px] sm:max-w-[180px] xl:max-w-[240px] xl:px-3">
@@ -75,8 +131,8 @@ export function UnidadeSelector() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
               <span className="truncate">{unidade.nome}</span>
             </div>
-            <Badge 
-              variant={unidade.tipo === "matriz" ? "default" : "secondary"} 
+            <Badge
+              variant={unidade.tipo === "matriz" ? "default" : "secondary"}
               className="text-xs capitalize"
             >
               {unidade.tipo}

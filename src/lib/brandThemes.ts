@@ -1,7 +1,7 @@
 import logoMark from "@/assets/gasfacil-logo-mark.png";
 import logoFull from "@/assets/logo.png";
 
-export type BrandThemeId = "gasfacil" | "gasmais" | "signature" | "executive" | "saas" | "pastel-dashboard" | "classic" | "premium";
+export type BrandThemeId = "gasfacil" | "gasmais" | "signature" | "executive" | "saas" | "pastel-dashboard" | "classic" | "premium" | "operacional-clean";
 
 export type BrandLogoVariant = "markText" | "full" | "compact";
 
@@ -98,6 +98,16 @@ export const brandThemes: BrandThemePreset[] = [
     logoMark,
     logoFull,
     fontLabel: "IBM Plex Sans",
+  },
+  {
+    id: "operacional-clean",
+    name: "Operacional Clean",
+    description: "Visual ERP clean — header escuro, menu claro com seletor de loja no topo.",
+    className: "brand-theme-operacional-clean",
+    logoVariant: "markText",
+    logoMark,
+    logoFull,
+    fontLabel: "Plus Jakarta Sans",
   },
 ];
 
