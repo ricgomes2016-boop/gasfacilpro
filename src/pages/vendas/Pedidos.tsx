@@ -182,6 +182,21 @@ export default function Pedidos() {
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [busca, setBusca] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
+  const [periodo, setPeriodo] = useState<"hoje" | "semana" | "mes" | "personalizado">("hoje");
+  const aplicarPeriodo = (p: "hoje" | "semana" | "mes" | "personalizado") => {
+    setPeriodo(p);
+    if (p === "personalizado") { setFiltrosAbertos(true); return; }
+    const d = getBrasiliaDate();
+    const ymd = (x: Date) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+    if (p === "hoje") { setDataInicio(ymd(d)); setDataFim(ymd(d)); }
+    else if (p === "semana") {
+      const start = new Date(d); start.setDate(d.getDate() - 6);
+      setDataInicio(ymd(start)); setDataFim(ymd(d));
+    } else if (p === "mes") {
+      const start = new Date(d.getFullYear(), d.getMonth(), 1);
+      setDataInicio(ymd(start)); setDataFim(ymd(d));
+    }
+  };
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasAnyRole } = useAuth();
