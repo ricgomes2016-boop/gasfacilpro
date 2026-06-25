@@ -663,9 +663,9 @@ export const PRESET_EXTRA_CSS: Record<string, string> = {
 
     html[data-theme-preset="operacional-clean"] .app-header-premium {
       background: hsl(var(--clean-header-bg)) !important;
-      border-color: hsl(210 18% 18%) !important;
-      color: hsl(0 0% 98%) !important;
-      box-shadow: none !important;
+      border-color: hsl(220 13% 88%) !important;
+      color: hsl(220 39% 11%) !important;
+      box-shadow: 0 1px 0 hsl(220 13% 91%) !important;
       backdrop-filter: none !important;
     }
 
@@ -680,49 +680,49 @@ export const PRESET_EXTRA_CSS: Record<string, string> = {
     html[data-theme-preset="operacional-clean"] .clean-header-brand,
     html[data-theme-preset="operacional-clean"] .clean-header-menu,
     html[data-theme-preset="operacional-clean"] .clean-header-ai {
-      color: hsl(0 0% 96%) !important;
+      color: hsl(220 39% 11%) !important;
     }
 
     html[data-theme-preset="operacional-clean"] .clean-header-brand:hover,
     html[data-theme-preset="operacional-clean"] .clean-header-menu:hover,
     html[data-theme-preset="operacional-clean"] .clean-header-ai:hover {
-      background: hsl(210 14% 20%) !important;
-      color: hsl(0 0% 100%) !important;
+      background: hsl(220 14% 94%) !important;
+      color: hsl(220 39% 11%) !important;
     }
 
     html[data-theme-preset="operacional-clean"] .app-header-premium h1,
     html[data-theme-preset="operacional-clean"] .app-header-premium .text-primary {
-      color: hsl(0 0% 98%) !important;
+      color: hsl(220 39% 11%) !important;
     }
 
     html[data-theme-preset="operacional-clean"] .app-header-premium .text-foreground\\/65,
     html[data-theme-preset="operacional-clean"] .app-header-premium .text-foreground\\/70,
     html[data-theme-preset="operacional-clean"] .app-header-premium .text-foreground\\/80 {
-      color: hsl(0 0% 88% / 0.86) !important;
+      color: hsl(220 14% 35%) !important;
     }
 
     html[data-theme-preset="operacional-clean"] .header-unit-selector {
-      background: hsl(210 12% 32%) !important;
-      border-color: hsl(210 10% 42%) !important;
-      color: hsl(0 0% 100%) !important;
+      background: hsl(0 0% 100%) !important;
+      border-color: hsl(220 13% 85%) !important;
+      color: hsl(220 39% 11%) !important;
       border-radius: 4px !important;
       box-shadow: none !important;
     }
 
     html[data-theme-preset="operacional-clean"] .header-actions button:not(.header-unit-selector) {
-      color: hsl(0 0% 92%) !important;
+      color: hsl(220 39% 11%) !important;
       border-radius: 4px !important;
       min-height: 2.25rem;
       min-width: 2.25rem;
     }
 
     html[data-theme-preset="operacional-clean"] .header-actions button:not(.header-unit-selector):hover {
-      background: hsl(210 12% 22%) !important;
+      background: hsl(220 14% 94%) !important;
     }
 
     html[data-theme-preset="operacional-clean"] .app-header-premium .bg-primary {
-      background: hsl(0 0% 98%) !important;
-      color: hsl(210 22% 12%) !important;
+      background: hsl(151 39% 48%) !important;
+      color: hsl(0 0% 100%) !important;
     }
 
     html[data-theme-preset="operacional-clean"] .app-sidebar-premium,
