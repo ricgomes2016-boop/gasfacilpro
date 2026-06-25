@@ -1201,7 +1201,7 @@ export default function Pedidos() {
                           </Popover> :
                           <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>}
                         </TableCell>
-                        <TableCell className="font-medium text-sm">R$ {pedido.valor.toFixed(2)}</TableCell>
+                        <TableCell className="font-medium text-sm text-right whitespace-nowrap">R$ {pedido.valor.toFixed(2)}</TableCell>
                         <TableCell>
                           <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
                         </TableCell>
