@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const cardVariants = cva(
-  "app-card min-w-0 overflow-hidden rounded-xl text-card-foreground transition-colors duration-150",
+  "app-card min-w-0 overflow-hidden rounded-[var(--radius)] text-card-foreground transition-colors duration-150",
   {
     variants: {
       variant: {
