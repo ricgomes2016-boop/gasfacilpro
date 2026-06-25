@@ -215,6 +215,45 @@
   --shadow-elevated: 0 1px 2px hsl(0 0% 0% / 0.4), 0 12px 32px -12px hsl(0 0% 0% / 0.55);
 }
 
+/* =====================================================================
+   OPERACIONAL CLEAN — visual ERP estilo GestãoClick
+   Header escuro fixo, sidebar claro, seletor de loja no topo do menu.
+   ===================================================================== */
+.brand-theme-operacional-clean {
+  --brand-font: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --background: 220 20% 97%;
+  --foreground: 222 30% 16%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 30% 16%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 30% 16%;
+  --primary: 250 78% 60%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 16% 94%;
+  --secondary-foreground: 222 30% 16%;
+  --muted: 220 16% 95%;
+  --muted-foreground: 222 12% 40%;
+  --accent: 250 78% 60%;
+  --accent-foreground: 0 0% 100%;
+  --border: 220 16% 88%;
+  --input: 220 16% 88%;
+  --ring: 250 78% 60%;
+  --radius: 0.5rem;
+  --sidebar-background: 0 0% 100%;
+  --sidebar-gradient-from: 0 0% 100%;
+  --sidebar-gradient-to: 220 20% 98%;
+  --sidebar-foreground: 222 30% 22%;
+  --sidebar-primary: 250 78% 60%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 250 78% 60%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 220 16% 88%;
+  --sidebar-ring: 250 78% 60%;
+  --kpi-accent: 250 78% 60%;
+  --clean-header-bg: 222 47% 11%;
+  --clean-header-fg: 0 0% 100%;
+}
+
 .brand-theme-gasfacil,
 .brand-theme-saas,
 .brand-theme-pastel-dashboard,
@@ -222,7 +261,8 @@
 .brand-theme-gasmais,
 .brand-theme-executive,
 .brand-theme-classic,
-.brand-theme-premium {
+.brand-theme-premium,
+.brand-theme-operacional-clean {
   font-family: var(--brand-font);
 }
 
