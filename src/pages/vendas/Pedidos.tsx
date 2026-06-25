@@ -1062,6 +1062,12 @@ export default function Pedidos() {
               >
                 <Download className="h-3.5 w-3.5" /> Exportar
               </Button>
+              <SmartImportButtons
+                edgeFunctionName="parse-orders-history"
+                onDataExtracted={handleImportData}
+                mode="menu"
+                menuLabel="Importar"
+              />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="icon" className="h-8 w-8" aria-label="Mais ações">
@@ -1075,14 +1081,9 @@ export default function Pedidos() {
                   <DropdownMenuItem onClick={() => setFiltrosAbertos(true)}>
                     <SlidersHorizontal className="h-4 w-4 mr-2" /> Filtros avançados
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <SmartImportButtons
-                    edgeFunctionName="parse-orders-history"
-                    onDataExtracted={handleImportData}
-                    mode="menu-items"
-                  />
                 </DropdownMenuContent>
               </DropdownMenu>
+
             </div>
           </div>
           <CardContent className="saas-table-scope overflow-x-auto max-w-full p-0 md:p-0">
