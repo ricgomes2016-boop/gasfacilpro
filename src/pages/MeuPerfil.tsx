@@ -45,6 +45,36 @@ export default function MeuPerfil() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
 
+  // Preferência: versão da tela Nova Venda
+  const [novaVendaView, setNovaVendaView] = useState<"new" | "old">(() => {
+    if (typeof window === "undefined") return "new";
+    return (localStorage.getItem("nova-venda-view-mode") as "new" | "old") || "new";
+  });
+  const handleChangeNovaVendaView = (v: string) => {
+    const mode = (v === "old" ? "old" : "new") as "new" | "old";
+    setNovaVendaView(mode);
+    try { localStorage.setItem("nova-venda-view-mode", mode); } catch {}
+    toast.success(`Versão definida: ${mode === "new" ? "Nova" : "Antiga"}`);
+  };
+
+  const handleForceUpdate = async () => {
+    try {
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      toast.success("Atualizando o sistema...");
+      setTimeout(() => window.location.reload(), 400);
+    } catch {
+      window.location.reload();
+    }
+  };
+
+
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || "");
