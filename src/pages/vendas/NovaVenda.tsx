@@ -1333,31 +1333,15 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   );
 
   const aiCommandPopover = (
-    <Popover open={aiPopoverOpen} onOpenChange={setAiPopoverOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "gap-1.5 text-xs border-primary/40 bg-primary/5 text-primary hover:bg-primary/10",
-            (isListening || aiLoading || photoLoading) && "ring-2 ring-primary/40"
-          )}
-          title="Assistente IA — lançar venda por texto, voz ou foto"
-        >
-          {aiLoading || photoLoading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Sparkles className={cn("h-3.5 w-3.5", isListening && "animate-pulse")} />
-          )}
-          <span className="hidden sm:inline">Assistente IA</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-[min(92vw,440px)] p-3">
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="h-4 w-4 text-primary shrink-0" />
-          <span className="text-sm font-semibold">Assistente IA</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <Dialog open={aiPopoverOpen} onOpenChange={setAiPopoverOpen}>
+      <DialogContent className="max-w-[480px] p-4">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+            Assistente IA
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           <Input
             autoFocus
             placeholder='Ex: "2 P13 para Maria, Rua Ceará 30, Centro"'
@@ -1387,9 +1371,10 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         <p className="text-[11px] font-medium text-muted-foreground mt-2">
           {photoLoading ? "📸 Processando foto..." : isListening ? "🔴 Ouvindo... Fale o comando." : "💡 Digite, 🎤 dite, ou 📷 tire foto de anotações."}
         </p>
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   );
+
 
   const hiddenAiInputs = (
     <>
