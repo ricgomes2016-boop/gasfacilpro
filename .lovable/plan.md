@@ -1,70 +1,68 @@
+## Plano: Cards coloridos, tipografia nítida, sem aninhamento
 
-# Tema Premium padrão — menu, cards, KPI e tabelas
+### 1. Paleta de tiles (Acesso Rápido style)
+Adicionar 6 tokens semânticos em `src/index.css` (HSL) replicando a imagem:
+- `--tile-green: 142 71% 45%`
+- `--tile-blue: 217 39% 60%`
+- `--tile-violet: 248 95% 68%`
+- `--tile-amber: 28 75% 52%`
+- `--tile-red: 0 84% 60%`
+- `--tile-sky: 220 60% 95%` (texto escuro)
 
-Como você não escolheu, adoto defaults profissionais:
-- Paleta: **Midnight Indigo** (navy profundo + indigo elétrico + dourado sutil de acento)
-- Modos: **claro e escuro** (alternável)
-- Menu: **compacto com ícones + labels**, colapsável para rail no desktop e drawer no mobile
+Para cada um: `--tile-*-fg` (branco ou foreground escuro no sky), `--tile-*-shadow`.
 
-## O que entrega
+### 2. Aplicação dos cards coloridos (escopo controlado)
+Para evitar poluir telas densas, aplicar apenas onde faz sentido visual:
 
-1. Novo preset **"Premium"** no seletor de Personalização Visual, marcado como padrão sugerido.
-2. Brand theme `premium` (light + dark) com tokens consistentes para fundo, superfícies, primário, accent dourado, bordas hairline e sombras em duas camadas.
-3. Sidebar premium: tipografia mais firme, item ativo com barra lateral indigo + fundo translúcido, hover sutil, agrupamentos com label uppercase tracking-wide, divisores hairline; rail 64px no desktop e drawer fullscreen no mobile.
-4. Card premium: borda hairline + sombra dupla discreta, header sem fundo cinza, sem "card dentro de card". Variantes mantidas: `default`, `flat`, `sunken`, `interactive`, `kpi`.
-5. KPI premium: gradiente leve da superfície para muted, faixa lateral 2px no accent (indigo no light, dourado no dark), número em display font tabular, label uppercase, delta colorido (verde/vermelho) com chip arredondado.
-6. Tabela premium: header `bg-muted/40` uppercase tracking-wide, linhas com hairline `border-b border-border/40`, hover `bg-muted/30`, célula numérica `tabular-nums text-right`, primeira coluna `font-medium`. Sem zebra. Em mobile, wrapper com scroll horizontal + sombra-fade nas bordas; tabelas marcadas com `data-stack-mobile` viram lista de cards.
-7. Ajuste fino mobile: aumenta toque (min-h 44px nas linhas e itens de menu), inputs 16px, paddings reduzidos nos cards (`p-4` mobile / `p-6` desktop), KPIs em grid 2 colunas no mobile.
-8. ThemeSync e PersonalizacaoVisual passam a aplicar `premium` como brand theme quando o preset Premium é escolhido; modo light/dark respeita o toggle global existente.
+**KPI cards do Dashboard e dashboards setoriais** (Financeiro, Vendas, Estoque, Operacional, Marketing, Frota, Vendedor): variante `kpi` do `Card` ganha rotação automática de cor via `data-tile-index` ou classe utilitária `.app-card.kpi[data-color="green|blue|violet|amber|red|sky"]`.
 
-## Arquivos a editar/criar
+**Tiles de atalho** (Acesso Rápido, AcoesRapidas, atalhos em dashboards): já são coloridos — padronizar para usar os mesmos tokens.
 
-- `src/lib/brandThemes.ts` — adicionar `premium` em `BrandThemeId` e no array de presets; tornar `defaultBrandTheme` o premium.
-- `src/styles/brand-themes.css` — `.brand-theme-premium` (light) e `.dark .brand-theme-premium` (dark) com tokens completos: `--background`, `--foreground`, `--card`, `--muted`, `--primary`, `--accent`, `--sidebar-*`, `--border`, `--ring`, `--brand-font`, e variáveis novas `--shadow-elevated`, `--shadow-hairline`, `--kpi-accent`.
-- `src/lib/themeUtils.ts` — registrar preset "Premium" em `PRESET_THEME_OVERRIDES` (apontando para `brandThemeId: "premium"`); incluir `PRESET_EXTRA_CSS["premium"]` com regras de menu/card/kpi/tabela; adicionar `.brand-theme-premium` em `BRAND_THEME_SELECTORS`.
-- `src/pages/config/PersonalizacaoVisual.tsx` — marcar Premium como recomendado/destaque ("Padrão Premium") e como primeiro item.
-- `src/components/ui/card.tsx` — refinar variante `kpi` para usar tokens `--kpi-accent` e `--shadow-elevated`; ajustar paddings responsivos.
-- `src/components/ui/table.tsx` — header/células/rows usando tokens premium; adicionar wrapper com `overflow-x-auto` + máscara de fade nas bordas; suporte a `data-stack-mobile` para virar lista no mobile.
-- `src/components/layout/MainLayout.tsx` / sidebar — aplicar classes premium (item ativo com barra lateral, label uppercase, drawer mobile).
-- `src/index.css` — registrar as variáveis novas (`--shadow-elevated`, `--shadow-hairline`, `--kpi-accent`) com fallback no tema base e reforçar regra anti "card dentro de card".
+**Cards de conteúdo** (listas, formulários, tabelas, modais): permanecem neutros (surface branca/dark) — não viram coloridos.
 
-## Detalhes técnicos (tokens principais)
+Edição em `src/components/ui/card.tsx`:
+- Estender `cardVariants` com `variant: "kpi"` aceitando `tone: "green"|"blue"|"violet"|"amber"|"red"|"sky"|"auto"`.
+- `auto` calcula tom pelo índice do irmão via CSS `:nth-child` em `src/styles/brand-themes.css`.
+- Texto, ícone e delta usam `text-[hsl(var(--tile-*-fg))]`.
 
-```text
-Premium Light
-  --background: 220 25% 98%
-  --foreground: 222 47% 11%
-  --card: 0 0% 100%
-  --muted: 220 20% 95%
-  --primary: 238 75% 58%        (indigo)
-  --accent: 43 70% 52%          (dourado sutil)
-  --border: 220 18% 88%
-  --sidebar-bg: 222 45% 14%
-  --sidebar-fg: 220 18% 92%
-  --sidebar-active: 238 80% 62%
-  --kpi-accent: 238 75% 58%
-  --shadow-elevated: 0 1px 2px hsl(222 47% 11% / .05), 0 8px 24px -12px hsl(222 47% 11% / .12)
+Atualizar consumidores principais de KPI para passar `variant="kpi"` (Dashboard, DashboardFinanceiro, DashboardVendas, DashboardMarketing, DashboardFiscal, VendedorDashboard, ParceiroDashboard). Cards comuns não mudam.
 
-Premium Dark
-  --background: 222 47% 7%
-  --foreground: 220 20% 96%
-  --card: 222 40% 11%
-  --muted: 222 30% 16%
-  --primary: 238 85% 68%
-  --accent: 43 80% 62%
-  --border: 222 25% 20%
-  --sidebar-bg: 222 50% 5%
-  --sidebar-active: 238 90% 70%
-  --kpi-accent: 43 80% 62%
+### 3. Remover "card dentro de card"
+Em `src/index.css` (já existe regra parcial) endurecer:
+```css
+.app-card .app-card,
+[data-card] [data-card],
+.app-card [class*="rounded-"][class*="border"][class*="bg-card"] {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+.app-card .app-card > * { padding: 0; }
 ```
+Aplica globalmente em todas as telas (Dashboard, Financeiro, Estoque, Vendas, Config, etc.) sem precisar tocar componente por componente.
 
-Regras CSS chave injetadas pelo preset:
-- `.app-card.kpi { border-left: 2px solid hsl(var(--kpi-accent)); background: linear-gradient(180deg, hsl(var(--card)), hsl(var(--muted)/.5)); }`
-- `[data-sidebar="menu-button"][data-active="true"] { box-shadow: inset 2px 0 0 hsl(var(--sidebar-active)); background: hsl(var(--sidebar-active)/.12); }`
-- `table thead th { text-transform: uppercase; letter-spacing: .04em; font-size: .72rem; }`
-- `@media (max-width: 640px) { table[data-stack-mobile] thead { display:none } table[data-stack-mobile] tr { display:block; border:1px solid hsl(var(--border)); border-radius:12px; padding:12px; margin-bottom:8px } }`
+Em tabelas: remover wrappers `Card` redundantes quando o pai já é `Card` — via mesma regra CSS (tabela dentro de card vira flush, sem segunda borda).
 
-## Fora de escopo
+### 4. Tipografia nítida (fino, sem quebrar layouts)
+Em `src/index.css` `@layer base`:
+```css
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+body { font-feature-settings: "cv02","cv03","cv04","ss01"; letter-spacing: -0.005em; line-height: 1.55; }
+h1,h2,h3,h4 { letter-spacing: -0.02em; line-height: 1.2; font-weight: 600; }
+.tabular-nums, table td, table th { font-variant-numeric: tabular-nums; }
+input, select, textarea, button { -webkit-font-smoothing: antialiased; }
+```
+Tamanhos base preservados (sem subir px para não deslocar tabelas densas). Mobile mantém inputs em 16px.
 
-- Não mexe em lógica de negócio, rotas, App.tsx, providers, edge functions ou schema.
-- Não remove presets existentes — apenas adiciona Premium e o marca como padrão sugerido.
+### 5. Arquivos a editar
+- `src/index.css` — tokens `--tile-*`, font-smoothing global, regra anti card-in-card endurecida.
+- `src/components/ui/card.tsx` — variant `kpi` com prop `tone`, default `auto`.
+- `src/styles/brand-themes.css` — rotação `nth-child` para `data-tone="auto"`.
+- `src/pages/Dashboard.tsx` e dashboards setoriais — adicionar `variant="kpi"` nos KPIs principais (mudanças mínimas, sem refatorar layout).
+- `src/components/ui/table.tsx` — herdar font-smoothing e `tabular-nums` nas células numéricas.
+
+### Fora de escopo
+- App.tsx, providers, rotas, lógica de negócio, edge functions, schema.
+- Cards de conteúdo continuam neutros (decisão para não poluir telas densas).
+- Sem subir tamanho base de fonte.
