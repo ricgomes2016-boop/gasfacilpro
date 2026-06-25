@@ -849,12 +849,42 @@
     opacity: 0.82;
   }
 
-  .kpi-card-primary { @apply border-l-4 border-l-primary bg-gradient-to-br from-primary/10 via-card to-muted/20 text-card-foreground shadow-primary/10; }
-  .kpi-card-info { @apply border-l-4 border-l-info bg-gradient-to-br from-info/10 via-card to-muted/20 text-card-foreground shadow-info/10; }
-  .kpi-card-success { @apply border-l-4 border-l-success bg-gradient-to-br from-success/10 via-card to-muted/20 text-card-foreground shadow-success/10; }
-  .kpi-card-warning { @apply border-l-4 border-l-warning bg-gradient-to-br from-warning/10 via-card to-muted/20 text-card-foreground shadow-warning/10; }
-  .kpi-card-destructive { @apply border-l-4 border-l-destructive bg-gradient-to-br from-destructive/10 via-card to-muted/20 text-card-foreground shadow-destructive/10; }
-  .kpi-card-muted { @apply border-border/70 bg-gradient-to-br from-muted/50 via-card to-card; }
+  /* Solid tile treatment for legacy .kpi-card-* variants — mirrors .app-card.kpi */
+  .kpi-card[class*="kpi-card-"] {
+    background: hsl(var(--tile-tone, var(--tile-blue))) !important;
+    background-image: none !important;
+    color: hsl(var(--tile-tone-fg, var(--tile-blue-fg))) !important;
+    border: 0 !important;
+    border-left: 0 !important;
+    border-radius: var(--radius) !important;
+    box-shadow:
+      0 1px 0 0 hsl(var(--tile-tone, var(--tile-blue)) / 0.0),
+      0 10px 24px -14px hsl(var(--tile-tone, var(--tile-blue)) / 0.55),
+      0 2px 6px -2px hsl(var(--tile-tone, var(--tile-blue)) / 0.35) !important;
+  }
+  .kpi-card[class*="kpi-card-"] .kpi-value,
+  .kpi-card[class*="kpi-card-"] .kpi-label,
+  .kpi-card[class*="kpi-card-"] [class*="text-success"],
+  .kpi-card[class*="kpi-card-"] [class*="text-warning"],
+  .kpi-card[class*="kpi-card-"] [class*="text-info"],
+  .kpi-card[class*="kpi-card-"] [class*="text-primary"],
+  .kpi-card[class*="kpi-card-"] [class*="text-destructive"],
+  .kpi-card[class*="kpi-card-"] [class*="text-muted-foreground"] {
+    color: hsl(var(--tile-tone-fg, var(--tile-blue-fg))) !important;
+  }
+  .kpi-card[class*="kpi-card-"] .status-card-icon,
+  .kpi-card[class*="kpi-card-"] [class*="status-card-icon-"] {
+    background: hsl(var(--tile-tone-fg, var(--tile-blue-fg)) / 0.18) !important;
+    color: hsl(var(--tile-tone-fg, var(--tile-blue-fg))) !important;
+    border: 0 !important;
+  }
+
+  .kpi-card-primary     { --tile-tone: var(--tile-violet); --tile-tone-fg: var(--tile-violet-fg); }
+  .kpi-card-info        { --tile-tone: var(--tile-blue);   --tile-tone-fg: var(--tile-blue-fg); }
+  .kpi-card-success     { --tile-tone: var(--tile-green);  --tile-tone-fg: var(--tile-green-fg); }
+  .kpi-card-warning     { --tile-tone: var(--tile-amber);  --tile-tone-fg: var(--tile-amber-fg); }
+  .kpi-card-destructive { --tile-tone: var(--tile-red);    --tile-tone-fg: var(--tile-red-fg); }
+  .kpi-card-muted       { --tile-tone: var(--tile-sky);    --tile-tone-fg: var(--tile-sky-fg); }
 
   .semantic-filter-panel {
     @apply rounded-xl border border-border/70 bg-muted/30 p-3 shadow-sm shadow-foreground/5 sm:p-4;
