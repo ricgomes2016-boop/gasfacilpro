@@ -1,78 +1,55 @@
-## Visão geral
+## Ajustes do tema "Operacional Clean"
 
-Adicionar um novo preset visual chamado **Operacional Clean** que muda a estrutura do Header + Sidebar quando ativo, sem afetar nenhum outro tema. Visual baseado nas imagens enviadas (estilo GestãoClick): header escuro, seletor de loja no topo do menu lateral (no lugar do logo grande), e abaixo do header uma faixa com título da tela + atalhos.
+Reformular o header e propagar o tema para todo o sistema (KPIs, cards, tabelas, formulários, modais).
 
-## 1. Registrar o tema
+### 1. Header (`Header.tsx` + `index.css`)
 
-`src/lib/brandThemes.ts`
-- Acrescentar novo preset `{ id: "operacional-clean", name: "Operacional Clean", className: "brand-theme-operacional-clean", … }`.
-- Atualizar o tipo `BrandThemeId`.
+Replicar o layout da imagem de referência (estilo GestãoClick):
 
-`src/styles/brand-themes.css`
-- Bloco `.brand-theme-operacional-clean` com tokens próprios:
-  - `--sidebar-background` branco/cinza muito claro
-  - `--sidebar-foreground` cinza escuro
-  - `--sidebar-accent` cinza neutro (hover)
-  - `--background` cinza claríssimo
-  - `--header-bg` (var custom) preto/grafite (`#0F172A`-ish)
-  - `--header-foreground` branco
+```
+[≡] [Logo GásFácil]                        [⚡][🔔][👤]
+```
 
-`src/pages/config/PersonalizacaoVisual.tsx`
-- Garantir que o card de seleção liste o novo preset (vem automático via `brandThemes`, só validar).
+- **Esquerda**: botão hambúrguer (toggle do sidebar) + logo GásFácil compacta. Remover título da página, subtítulo, breadcrumbs e seletor de unidades do header.
+- **Direita**: manter apenas os botões existentes (busca/CommandPalette, IA assistente com sparkles, notificações, avatar do usuário). Remover do header (apenas no tema Clean): chat, calculadora, telefone — se o usuário quiser ajustar depois, fazemos.
+- Fundo preto sólido (`--clean-header-bg`), altura reduzida (~56px), borda inferior sutil.
 
-## 2. Header — só quando o tema está ativo
+### 2. Sidebar (`Sidebar.tsx` + `UnidadeSelector.tsx`)
 
-`src/components/layout/Header.tsx`
-- Ler `useDashboardTheme()` e detectar `isClean = theme === "operacional-clean"`.
-- Quando `isClean`:
-  - Aplicar fundo escuro + texto claro (classe `app-header-clean`).
-  - Esconder o bloco de título/subtitle dentro do header (vai para a faixa nova abaixo).
-  - Mostrar à esquerda: botão menu (toggle do sidebar, já que o sidebar agora colapsa totalmente) + marca compacta "GasFácil" + logo pequena.
-  - Mostrar à direita apenas os ícones da imagem 3 + IA: `CommandPalette` (busca), `BaseChatPanel` (telefone/chat), `NotificationCenter` (sino), `CalculatorPopover` (calculadora), botão da **Assistente IA** (sparkles roxo, igual imagem 4) e avatar do usuário.
-  - **Não** renderizar `UnidadeSelector` aqui (vai para dentro do menu).
-- Adicionar botão "menu" (ícone hamburger) só no clean, visível também em desktop, chamando `toggle()` do `SidebarContext` (mesmo que já existe para mobile/MobileNav).
+- O `UnidadeSelector` (variant `sidebar`) já está no topo do menu — manter, mas garantir que aparece **no topo do sidebar** ocupando o lugar da logo, com avatar + nome da unidade + CNPJ (igual ao card "MATRIZ" da referência).
+- Hambúrguer do header controla abrir/fechar. Quando fechado: sidebar = `null` (full hide), conteúdo expande para largura total.
 
-## 3. Sidebar — adaptações para o tema clean
+### 3. Remover banner extra (`CleanPageBanner` / `MainLayout.tsx`)
 
-`src/components/layout/Sidebar.tsx`
-- Quando `isClean`:
-  - No header interno do sidebar, substituir o logo + "Gas Facil / ERP PRO" por `<UnidadeSelector variant="sidebar" />` (card com nome da loja, igual imagem 1 — "MATRIZ / CNPJ").
-  - Permitir colapso total (não só ícone). Quando `collapsed === true` no clean, **não** renderizar o `<aside>` (retorna `null`), de modo que o conteúdo ocupe a tela inteira como na imagem 2.
-  - Ajustar `MainLayout` para que `xl:ml-[260px]` vire `xl:ml-0` quando clean+collapsed (regra: `collapsed && isClean ? "xl:ml-0" : collapsed ? "xl:ml-16" : "xl:ml-[260px]"`).
+O `CleanPageBanner` criado antes vai sair — a referência não tem essa faixa abaixo do header. Título da página passa a ser responsabilidade de cada página (já é), sem injeção global.
 
-`src/components/layout/UnidadeSelector.tsx`
-- Adicionar prop opcional `variant?: "header" | "sidebar"`. No modo `sidebar`, renderiza um card vertical (avatar + nome MATRIZ + CNPJ + chevron) que abre o mesmo dropdown.
+### 4. Propagar o tema para todo o sistema
 
-## 4. Faixa de título + atalhos abaixo do header
+Hoje o tema só repinta header/sidebar. Para alcançar KPIs, cards, tabelas e demais componentes, vou estender os tokens do preset `operacional-clean` em `brand-themes.css` cobrindo:
 
-Novo arquivo `src/components/layout/CleanPageBanner.tsx`
-- Componente que recebe `title`, `subtitle`, `badge?` e renderiza:
-  - Linha 1: título grande + chip de build (igual imagem 5).
-  - Linha 2: nome empresa · subtitle · chip da unidade (igual imagem 5).
-  - Linha 3 (atalhos): breadcrumb estilo imagem 6 ("Início > Vendas de produtos > Listar") gerado a partir de `useLocation()` + map dos `menuItems`.
+- `--background`, `--foreground`, `--card`, `--card-foreground`, `--popover`, `--muted`, `--muted-foreground`
+- `--border`, `--input`, `--ring`
+- `--primary` / `--secondary` / `--accent` (paleta clean: cinza-escuro + verde de ação como na referência)
+- Tokens de sidebar (`--sidebar-*`) e específicos (`--clean-*`)
 
-`src/components/layout/Header.tsx`
-- Quando `isClean`, renderizar `<CleanPageBanner>` logo após o `<header>` (dentro do mesmo Fragment, antes do spacer).
-- Ajustar a altura do spacer (`<div aria-hidden>`) para acomodar o banner.
+Como shadcn (Card, Table, Button, Input, Dialog, Badge, Tabs, etc.) já consome esses tokens semânticos, a troca pega automaticamente em todas as telas — sem editar componente por componente.
 
-## 5. CSS de suporte
+Ajustes pontuais via CSS escopado em `.theme-operacional-clean`:
+- Cards: borda fina + sombra suave + cantos `rounded-lg`.
+- Tabelas: header com fundo `--muted`, linhas com hover sutil.
+- KPIs: aplicam tokens novos automaticamente (já usam `bg-card`/`text-foreground`).
 
-`src/index.css`
-- `.app-header-clean { background: hsl(var(--header-bg)); color: hsl(var(--header-foreground)); border-color: rgba(255,255,255,0.05); }` e variantes para os ícones ficarem brancos/roxos.
-- Estilo do botão IA no header (gradiente roxo + sparkle, igual imagem 4).
-- Estilo do `CleanPageBanner` (fundo branco/cinza-claro, divisor sutil, tipografia bold).
+### 5. Fora do escopo
 
-## Fora de escopo
+- Não mexer em outros temas (Premium, gasfacil, gasmais, clássico).
+- Não alterar rotas, dados, lógica de negócio, edge functions.
+- Não refatorar `App.tsx` nem providers.
 
-- Não muda nada em outros temas (premium, gasfacil, gasmais, etc.).
-- Não mexe em rotas, dados, edge functions, schema, KPIs nem cards.
-- Mobile (`MobileNav`/`MobileBottomBar`) permanece igual.
+### Arquivos afetados
 
-## Aceitação
-
-1. Selecionar "Operacional Clean" em /config/personalizacao aplica:
-   - Header preto com busca, telefone, sino, calculadora, IA (sparkle) e avatar.
-   - Sidebar claro com o card da unidade ocupando o topo (sem logo Gás Fácil).
-2. Clicar no ícone de menu do header recolhe o sidebar por completo (some), e o conteúdo ocupa 100% da largura; header mantém só logo + nome + botão menu + ícones da direita.
-3. Abaixo do header aparece a faixa com título da tela + breadcrumb de atalhos.
-4. Outros temas continuam idênticos ao que são hoje.
+- `src/components/layout/Header.tsx` — novo layout Clean
+- `src/components/layout/MainLayout.tsx` — remover `CleanPageBanner`
+- `src/components/layout/CleanPageBanner.tsx` — deletar
+- `src/components/layout/Sidebar.tsx` — confirmar UnidadeSelector no topo
+- `src/styles/brand-themes.css` — expandir tokens do `operacional-clean` cobrindo todo o sistema
+- `src/index.css` — refinamentos `.theme-operacional-clean` para cards/tabelas
