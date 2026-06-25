@@ -1347,16 +1347,127 @@
 
 /* Premium ERP: neutralize visual weight of nested cards to eliminate card-in-card effect */
 @layer components {
-  .app-card .app-card {
+  .app-card .app-card,
+  .app-card [data-card],
+  [data-card] [data-card] {
     @apply border-transparent bg-transparent shadow-none;
+    background-image: none !important;
   }
   .app-card .app-card > .app-card-header,
   .app-card .app-card > .app-card-content,
-  .app-card .app-card > .app-card-footer {
+  .app-card .app-card > .app-card-footer,
+  .app-card .app-card > * {
     @apply px-0 py-0;
   }
   .app-card .app-card > .app-card-header + .app-card-content,
   .app-card .app-card > .app-card-content + .app-card-footer {
     @apply pt-3;
   }
+  /* Tables inside cards should be flush — no double border/padding */
+  .app-card > table,
+  .app-card .app-card-content > table {
+    @apply border-0;
+  }
 }
+
+/* ============================================================
+   Colored KPI / tile tokens (Acesso Rápido palette)
+   ============================================================ */
+@layer base {
+  :root {
+    --tile-green: 142 71% 42%;
+    --tile-green-fg: 0 0% 100%;
+    --tile-blue: 217 39% 60%;
+    --tile-blue-fg: 0 0% 100%;
+    --tile-violet: 248 95% 68%;
+    --tile-violet-fg: 0 0% 100%;
+    --tile-amber: 28 75% 52%;
+    --tile-amber-fg: 0 0% 100%;
+    --tile-red: 0 84% 62%;
+    --tile-red-fg: 0 0% 100%;
+    --tile-sky: 220 60% 95%;
+    --tile-sky-fg: 222 35% 18%;
+  }
+  .dark {
+    --tile-green: 142 65% 38%;
+    --tile-blue: 217 45% 52%;
+    --tile-violet: 248 85% 62%;
+    --tile-amber: 28 75% 48%;
+    --tile-red: 0 75% 55%;
+    --tile-sky: 220 25% 22%;
+    --tile-sky-fg: 220 18% 96%;
+  }
+}
+
+@layer components {
+  /* Base styling for any KPI card — solid color with crisp text */
+  .app-card.kpi {
+    border-color: transparent !important;
+    background: hsl(var(--tile-tone, var(--tile-blue))) !important;
+    background-image: none !important;
+    color: hsl(var(--tile-tone-fg, var(--tile-blue-fg))) !important;
+    box-shadow:
+      0 1px 0 hsl(0 0% 100% / 0.12) inset,
+      0 10px 24px -14px hsl(var(--tile-tone, var(--tile-blue)) / 0.55),
+      0 2px 6px -2px hsl(220 25% 10% / 0.12) !important;
+  }
+  .app-card.kpi *,
+  .app-card.kpi .text-muted-foreground,
+  .app-card.kpi .text-foreground,
+  .app-card.kpi .app-card-title,
+  .app-card.kpi svg {
+    color: hsl(var(--tile-tone-fg, var(--tile-blue-fg))) !important;
+    stroke: currentColor;
+  }
+  .app-card.kpi .text-muted-foreground { opacity: 0.85; }
+
+  /* Auto rotation by sibling index — covers all KPI grids without per-page edits */
+  .app-card.kpi:nth-child(6n+1) { --tile-tone: var(--tile-green); --tile-tone-fg: var(--tile-green-fg); }
+  .app-card.kpi:nth-child(6n+2) { --tile-tone: var(--tile-blue);  --tile-tone-fg: var(--tile-blue-fg); }
+  .app-card.kpi:nth-child(6n+3) { --tile-tone: var(--tile-violet);--tile-tone-fg: var(--tile-violet-fg); }
+  .app-card.kpi:nth-child(6n+4) { --tile-tone: var(--tile-amber); --tile-tone-fg: var(--tile-amber-fg); }
+  .app-card.kpi:nth-child(6n+5) { --tile-tone: var(--tile-red);   --tile-tone-fg: var(--tile-red-fg); }
+  .app-card.kpi:nth-child(6n)   { --tile-tone: var(--tile-sky);   --tile-tone-fg: var(--tile-sky-fg); }
+
+  /* Explicit override via data-tone */
+  .app-card.kpi[data-tone="green"]  { --tile-tone: var(--tile-green);  --tile-tone-fg: var(--tile-green-fg); }
+  .app-card.kpi[data-tone="blue"]   { --tile-tone: var(--tile-blue);   --tile-tone-fg: var(--tile-blue-fg); }
+  .app-card.kpi[data-tone="violet"] { --tile-tone: var(--tile-violet); --tile-tone-fg: var(--tile-violet-fg); }
+  .app-card.kpi[data-tone="amber"]  { --tile-tone: var(--tile-amber);  --tile-tone-fg: var(--tile-amber-fg); }
+  .app-card.kpi[data-tone="red"]    { --tile-tone: var(--tile-red);    --tile-tone-fg: var(--tile-red-fg); }
+  .app-card.kpi[data-tone="sky"]    { --tile-tone: var(--tile-sky);    --tile-tone-fg: var(--tile-sky-fg); }
+}
+
+/* ============================================================
+   Typography polish — sharper rendering, balanced line-heights
+   ============================================================ */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    letter-spacing: -0.005em;
+    line-height: 1.55;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.018em;
+  }
+  h1 { line-height: 1.15; }
+  h2 { line-height: 1.18; }
+  h3, h4 { line-height: 1.22; }
+  .tabular-nums,
+  table td,
+  table th,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "cv02" 1, "cv03" 1, "cv04" 1, "ss01" 1;
+  }
+  input, select, textarea, button {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.003em;
+  }
+}
+
