@@ -12,7 +12,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { User, Mail, Phone, Building2, Shield, Lock, Save, Pencil, X, Eye, EyeOff } from "lucide-react";
+import { User, Mail, Phone, Building2, Shield, Lock, Save, Pencil, X, Eye, EyeOff, Sparkles, RefreshCw, LayoutGrid } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { z } from "zod";
 
 const profileSchema = z.object({
