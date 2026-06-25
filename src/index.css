@@ -1412,14 +1412,16 @@
     border-radius: 0 !important;
     background: transparent !important;
   }
-  /* Force nested rounded boxes to inherit the active theme radius
-     (preserve rounded-full for avatars/badges/pills) */
-  .app-card .rounded-xl:not(.rounded-full),
-  .app-card .rounded-2xl:not(.rounded-full),
-  .app-card .rounded-lg:not(.rounded-full),
-  .app-card .rounded-md:not(.rounded-full) {
-    border-radius: var(--radius) !important;
-  }
+}
+
+/* Force nested rounded boxes to inherit the active theme radius
+   (preserve rounded-full for avatars/badges/pills) — outside @layer to avoid
+   Tailwind treating these class selectors as @apply circular references */
+.app-card .rounded-xl:not(.rounded-full),
+.app-card .rounded-2xl:not(.rounded-full),
+.app-card .rounded-lg:not(.rounded-full),
+.app-card .rounded-md:not(.rounded-full) {
+  border-radius: var(--radius) !important;
 }
 
 /* ============================================================
