@@ -58,20 +58,16 @@ describe("Header mobile menu (Operacional Clean)", () => {
     document.documentElement.setAttribute("data-theme-preset", "operacional-clean");
   });
 
-  it("renders the MobileNav trigger so the drawer opens below xl", () => {
+  it("does not render the legacy MobileNav trigger (clean uses off-canvas sidebar drawer)", () => {
     renderHeader();
-    const trigger = screen.getByTestId("mobile-nav-trigger");
-    expect(trigger).toBeInTheDocument();
-    // MobileNav trigger must be visible on mobile (xl:hidden hides only on >=xl)
-    expect(trigger.className).toMatch(/xl:hidden/);
+    expect(screen.queryByTestId("mobile-nav-trigger")).not.toBeInTheDocument();
   });
 
-  it("hides the desktop sidebar-collapse button below xl", () => {
+  it("renders a single hamburger button visible on all sizes that toggles the sidebar drawer", () => {
     renderHeader();
     const collapseBtn = screen.getByRole("button", { name: /fechar menu|abrir menu/i });
-    // Must be hidden on mobile and only shown from xl up
-    expect(collapseBtn.className).toMatch(/\bhidden\b/);
-    expect(collapseBtn.className).toMatch(/xl:inline-flex/);
     expect(collapseBtn.className).toMatch(/clean-header-menu/);
+    expect(collapseBtn.className).toMatch(/inline-flex/);
+    expect(collapseBtn.className).not.toMatch(/\bhidden\b/);
   });
 });
