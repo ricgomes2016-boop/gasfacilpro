@@ -1125,17 +1125,17 @@ export default function Pedidos() {
                           checked={selecionados.size === pedidosPaginados.length && pedidosPaginados.length > 0}
                           onCheckedChange={toggleSelecionarTodos} />
                       </TableHead>
-                      <TableHead>Origem</TableHead>
-                      <TableHead>Nº Pedido</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="min-w-[200px]">Cliente</TableHead>
-                      <TableHead>Endereço</TableHead>
-                      <TableHead>Produtos</TableHead>
-                      <TableHead>Entregador</TableHead>
-                      <TableHead>Canal de Venda</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-12">Ações</TableHead>
+                      <TableHead className="w-[72px]">Origem</TableHead>
+                      <TableHead className="w-[72px]">Nº</TableHead>
+                      <TableHead className="w-[132px]">Data</TableHead>
+                      <TableHead className="min-w-[180px]">Cliente</TableHead>
+                      <TableHead className="min-w-[200px]">Endereço</TableHead>
+                      <TableHead className="w-[110px]">Produtos</TableHead>
+                      <TableHead className="w-[150px]">Entregador</TableHead>
+                      <TableHead className="w-[140px]">Canal</TableHead>
+                      <TableHead className="w-[96px] text-right">Valor</TableHead>
+                      <TableHead className="w-[120px]">Status</TableHead>
+                      <TableHead className="w-12 text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
