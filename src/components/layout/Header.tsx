@@ -213,7 +213,13 @@ export function Header({ title, subtitle }: HeaderProps) {
           </div>
 
           {isCleanTheme && (
-            <Button variant="ghost" size="icon" className="clean-header-ai h-9 w-9 rounded-md" title="Assistente IA" onClick={() => navigate("/assistente-ia")}>
+            <Button variant="ghost" size="icon" className="clean-header-ai h-9 w-9 rounded-md" title="Assistente IA" onClick={() => {
+              if (typeof window !== "undefined" && window.location.pathname.startsWith("/vendas/nova-venda")) {
+                window.dispatchEvent(new CustomEvent("nova-venda:open-ai"));
+              } else {
+                navigate("/assistente-ia");
+              }
+            }}>
               <Sparkles className="h-4 w-4" />
             </Button>
           )}
