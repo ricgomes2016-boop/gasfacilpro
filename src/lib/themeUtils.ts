@@ -781,6 +781,27 @@ export const PRESET_EXTRA_CSS: Record<string, string> = {
       box-shadow: inset 3px 0 0 hsl(151 39% 48%) !important;
     }
 
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav > div > *,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav > div > * {
+      border-bottom: 1px solid hsl(220 13% 88%);
+      border-radius: 0 !important;
+      margin: 0 !important;
+      padding-top: 2px;
+      padding-bottom: 2px;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav > div > *:last-child,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav > div > *:last-child {
+      border-bottom: none;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav > div > * > a,
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav > div > * > button,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav > div > * > a,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav > div > * > button {
+      border-radius: 0 !important;
+    }
+
     html[data-theme-preset="operacional-clean"] .app-card,
     html[data-theme-preset="operacional-clean"] .modern-panel,
     html[data-theme-preset="operacional-clean"] .modern-status-card,
