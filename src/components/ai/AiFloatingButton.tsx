@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { AiAssistantChat } from "./AiAssistantChat";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { PortalToId, FOOTER_ACTIONS_ID } from "@/components/layout/footerPortals";
 
 interface AiFloatingButtonProps {
   externalOpen?: boolean;
@@ -26,16 +27,18 @@ export function AiFloatingButton({ externalOpen, onExternalClose }: AiFloatingBu
 
   return (
     <>
-      {/* Desktop floating button (hidden on mobile - mobile uses bottom bar) */}
+      {/* Desktop trigger lives inside the fixed SystemFooter (mobile uses bottom bar) */}
       {!open && (
-        <Button
-          onClick={() => setOpen(true)}
-          size="icon"
-          className="hidden md:flex fixed bottom-20 right-4 z-40 h-12 w-12 rounded-full shadow-2xl bg-primary hover:bg-primary/90"
-          title="Abrir Assistente IA"
-        >
-          <Bot className="h-6 w-6" />
-        </Button>
+        <PortalToId id={FOOTER_ACTIONS_ID}>
+          <Button
+            onClick={() => setOpen(true)}
+            size="icon"
+            className="h-8 w-8 rounded-full shadow-md bg-primary hover:bg-primary/90"
+            title="Abrir Assistente IA"
+          >
+            <Bot className="h-4 w-4" />
+          </Button>
+        </PortalToId>
       )}
 
       {/* Chat panel */}
