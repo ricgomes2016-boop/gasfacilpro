@@ -274,6 +274,29 @@ export function Header({ title, subtitle }: HeaderProps) {
         </div>
       </header>
       <div aria-hidden="true" className={isCleanTheme ? "h-14" : "h-[7rem] sm:h-16 md:h-[4.75rem]"} />
+      {isCleanTheme && (
+        <div className="clean-page-subbar flex h-12 items-center justify-between gap-3 border-b border-border bg-card px-4 sm:px-6">
+          <h1 className="min-w-0 truncate text-base font-semibold text-foreground sm:text-lg">
+            {title}
+          </h1>
+          <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1.5 text-[13px] text-muted-foreground sm:flex">
+            <Link to="/dashboard" className="flex items-center gap-1 hover:text-primary">
+              <Home className="h-3.5 w-3.5" />
+              <span>Início</span>
+            </Link>
+            {crumbs.map((c) => (
+              <Fragment key={c.href}>
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                {c.isLast ? (
+                  <span className="truncate font-medium text-foreground" aria-current="page">{c.label}</span>
+                ) : (
+                  <Link to={c.href} className="truncate hover:text-primary">{c.label}</Link>
+                )}
+              </Fragment>
+            ))}
+          </nav>
+        </div>
+      )}
     </>
   );
 }
