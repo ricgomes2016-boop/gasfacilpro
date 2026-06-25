@@ -268,7 +268,7 @@ export function Sidebar() {
       {isCleanTheme && !collapsed && (
         <div
           onClick={toggle}
-          className="fixed inset-0 top-14 z-40 bg-black/40 backdrop-blur-sm"
+          className="fixed inset-x-0 bottom-0 top-14 z-[55] bg-black/40"
           aria-hidden="true"
         />
       )}
@@ -282,10 +282,10 @@ export function Sidebar() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "app-sidebar-premium fixed left-0 z-50 flex-col overflow-hidden border-r border-sidebar-border/15 shadow-2xl",
+          "app-sidebar-premium fixed left-0 flex-col overflow-hidden border-r border-sidebar-border/15 shadow-2xl",
           isCleanTheme
-            ? "clean-sidebar top-14 flex h-[calc(100vh-3.5rem)] w-[260px] rounded-r-none"
-            : "top-0 hidden h-screen rounded-r-2xl xl:flex"
+            ? "clean-sidebar top-14 z-[60] flex h-[calc(100vh-3.5rem)] w-[260px] rounded-r-none"
+            : "top-0 z-40 hidden h-screen rounded-r-2xl xl:flex"
         )}
       >
         {/* Header */}
