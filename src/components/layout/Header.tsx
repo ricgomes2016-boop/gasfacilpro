@@ -210,19 +210,15 @@ export function Header({ title, subtitle }: HeaderProps) {
             </Button>
           )}
 
-          {!isCleanTheme && (
-            <div className="hidden min-[360px]:block">
+          <div className="hidden min-[360px]:block">
             <BaseChatPanel />
-            </div>
-          )}
+          </div>
 
           <NotificationCenter />
 
-          {!isCleanTheme && (
-            <div className="hidden min-[360px]:block">
-              <CalculatorPopover />
-            </div>
-          )}
+          <div className="hidden min-[360px]:block">
+            <CalculatorPopover />
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
