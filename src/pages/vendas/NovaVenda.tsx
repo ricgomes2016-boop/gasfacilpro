@@ -1005,26 +1005,33 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         quantidade: item.quantidade,
       })), unidadeAtual?.id);
 
-      // Prepare receipt data for optional printing
+      // Prepare receipt data: prioriza dados da unidade/loja atual
       let empresaConfig: EmpresaConfig | undefined;
       try {
         let cfgQuery = supabase
           .from("configuracoes_empresa")
-          .select("nome_empresa, cnpj, telefone, endereco, mensagem_cupom")
+          .select("mensagem_cupom")
           .limit(1);
         if (empresa?.id) cfgQuery = cfgQuery.eq("empresa_id", empresa.id);
         const { data: configData } = await cfgQuery.maybeSingle();
 
+        const enderecoUnidade = [
+          unidadeAtual?.endereco,
+          unidadeAtual?.bairro,
+          [unidadeAtual?.cidade, unidadeAtual?.estado].filter(Boolean).join("/"),
+          unidadeAtual?.cep,
+        ].filter(Boolean).join(", ");
+
         empresaConfig = {
-          nome_empresa: empresa?.nome || configData?.nome_empresa || "Empresa",
-          cnpj: configData?.cnpj ?? null,
-          telefone: configData?.telefone ?? null,
-          endereco: configData?.endereco ?? null,
+          nome_empresa: unidadeAtual?.nome || empresa?.nome || "Empresa",
+          cnpj: unidadeAtual?.cnpj ?? null,
+          telefone: unidadeAtual?.telefone ?? null,
+          endereco: enderecoUnidade || null,
           mensagem_cupom: configData?.mensagem_cupom ?? null,
         };
       } catch (e) {
         console.warn("Não foi possível carregar configurações da empresa");
-        if (empresa?.nome) empresaConfig = { nome_empresa: empresa.nome };
+        empresaConfig = { nome_empresa: unidadeAtual?.nome || empresa?.nome || "Empresa" };
       }
 
       const receiptData = {
