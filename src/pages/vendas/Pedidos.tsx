@@ -773,52 +773,63 @@ export default function Pedidos() {
       <Header title="Pedidos" subtitle="Gerenciar pedidos de venda" />
       <div className="p-3 md:p-6 space-y-4 md:space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
 
-        {/* Top action */}
-        <div className="gap-2 flex flex-wrap items-center justify-center sm:justify-start w-full min-w-0">
-          <Button className="h-10 min-w-0 bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30" onClick={() => navigate("/vendas/nova")}>
-            <span className="truncate">+ Novo Pedido</span>
-          </Button>
-          <SmartImportButtons
-            edgeFunctionName="parse-orders-history"
-            onDataExtracted={handleImportData}
-            mode="menu"
-            menuLabel="Mais ações"
-            extraMenuContent={
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => {
-                    exportarPedidosCSV(pedidosFiltrados);
-                    sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);
-                  }}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Exportar CSV
-                </DropdownMenuItem>
-              </>
-            }
-          />
-          <Button variant="outline" className="h-10 min-w-0" onClick={() => navigate("/operacional/centro")}>
-            <MapIcon className="h-4 w-4 mr-2 shrink-0" />
-            <span className="truncate">Mapa Operacional</span>
-          </Button>
-          {(() => {
-            const filtrosAtivos =
-              (busca ? 1 : 0) +
-              (filtroStatus !== "todos" ? 1 : 0) +
-              (filtroEntregador !== "todos" ? 1 : 0) +
-              (dataInicio !== hoje || dataFim !== hoje ? 1 : 0);
-            return (
-              <Button variant="outline" className="h-10 min-w-0 relative" onClick={() => setFiltrosAbertos(true)}>
-                <SlidersHorizontal className="h-4 w-4 mr-2 shrink-0" />
-                <span className="truncate">Mais Filtros</span>
-                {filtrosAtivos > 0 && (
-                  <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">{filtrosAtivos}</Badge>
-                )}
-              </Button>
-            );
-          })()}
+        {/* === KPIs (4 cards, faixa colorida no topo) === */}
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+          {[
+            { label: "Pendentes", value: contadores.pendente, tone: "warning", bar: "bg-warning", num: "text-warning" },
+            { label: "Em Rota", value: contadores.em_rota, tone: "info", bar: "bg-info", num: "text-info" },
+            { label: "Entregues", value: contadores.entregue, tone: "success", bar: "bg-success", num: "text-success" },
+            { label: "Cancelados", value: contadores.cancelado, tone: "destructive", bar: "bg-destructive", num: "text-destructive" },
+          ].map((k) => (
+            <Card key={k.label} className="relative overflow-hidden p-0 border border-border/60 shadow-none bg-card">
+              <span className={`absolute inset-x-0 top-0 h-[3px] ${k.bar}`} aria-hidden />
+              <div className="px-4 pt-4 pb-3">
+                <p className="text-[11px] font-medium tracking-[0.12em] uppercase text-muted-foreground">{k.label}</p>
+                <p className={`mt-1 text-3xl font-bold leading-none tabular-nums ${k.num}`}>{k.value}</p>
+              </div>
+            </Card>
+          ))}
         </div>
+
+        {/* === Toolbar única: busca + status + período + Novo Pedido === */}
+        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center w-full min-w-0">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar pedido, cliente ou endereço..."
+              className="h-10 pl-9"
+            />
+          </div>
+          <div className="flex gap-2 items-center">
+            <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+              <SelectTrigger className="h-10 w-[150px] text-sm"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os status</SelectItem>
+                <SelectItem value="agendado">📅 Agendados</SelectItem>
+                <SelectItem value="pendente">Pendente</SelectItem>
+                <SelectItem value="em_rota">Em rota</SelectItem>
+                <SelectItem value="entregue">Entregue</SelectItem>
+                <SelectItem value="finalizado">Finalizado</SelectItem>
+                <SelectItem value="cancelado">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={periodo} onValueChange={(v) => aplicarPeriodo(v as any)}>
+              <SelectTrigger className="h-10 w-[140px] text-sm"><SelectValue placeholder="Período" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hoje">Hoje</SelectItem>
+                <SelectItem value="semana">Últimos 7 dias</SelectItem>
+                <SelectItem value="mes">Este mês</SelectItem>
+                <SelectItem value="personalizado">Personalizado…</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button className="h-10" onClick={() => navigate("/vendas/nova")}>
+              + Novo Pedido
+            </Button>
+          </div>
+        </div>
+
 
         {/* Filters Dialog */}
         <ResponsiveDialog open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
