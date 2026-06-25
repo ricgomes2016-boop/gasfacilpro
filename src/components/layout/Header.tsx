@@ -102,13 +102,12 @@ export function Header({ title, subtitle }: HeaderProps) {
         <div className={cn("flex min-w-0 flex-1 items-center", isCleanTheme ? "gap-3" : "gap-2.5")}>
           {isCleanTheme ? (
             <>
-              <MobileNav />
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
                 onClick={toggle}
-                className="clean-header-menu hidden h-10 w-10 rounded-md xl:inline-flex"
+                className="clean-header-menu inline-flex h-10 w-10 rounded-md"
                 aria-label={collapsed ? "Abrir menu" : "Fechar menu"}
               >
                 <Menu className="h-5 w-5" />
