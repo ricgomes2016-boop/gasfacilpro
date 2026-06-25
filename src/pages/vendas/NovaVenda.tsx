@@ -18,9 +18,9 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Calendar, ShoppingBag, Sparkles, Loader2, Send, Mic, MicOff, Camera, ImageIcon, PlusCircle, Check, User, Package as PackageIcon, CreditCard, CheckCircle, CalendarClock, Keyboard } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar, ShoppingBag, Sparkles, Loader2, Send, Mic, MicOff, Camera, ImageIcon, PlusCircle, Check, User, Package as PackageIcon, CreditCard, CheckCircle, CalendarClock, Keyboard, ChevronLeft, ChevronRight, MoreVertical, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useNovaVendaWindows } from "@/contexts/NovaVendaWindowsContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -280,6 +280,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const [photoLoading, setPhotoLoading] = useState(false);
   const [aiPopoverOpen, setAiPopoverOpen] = useState(false);
   const [agendarOpen, setAgendarOpen] = useState(false);
+  const [atalhosOpen, setAtalhosOpen] = useState(false);
   const [dataAgendamento, setDataAgendamento] = useState("");
   const [horaAgendamento, setHoraAgendamento] = useState("08:00");
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
@@ -299,6 +300,13 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   useEffect(() => {
     if (!getSavedViewMode() && isGasmais) setUseNewView(true);
   }, [isGasmais]);
+
+  // Permite que o botão "Assistente IA" do Header global abra o diálogo desta tela
+  useEffect(() => {
+    const handler = () => setAiPopoverOpen(true);
+    window.addEventListener("nova-venda:open-ai", handler);
+    return () => window.removeEventListener("nova-venda:open-ai", handler);
+  }, []);
 
   // #5 - Load draft on mount
   useEffect(() => {
@@ -1277,9 +1285,58 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   const metaCard = (
     <Card className="venda-card venda-gasmais-card venda-tone-cliente border-primary/20 bg-card/95">
-      <CardContent className="p-3 md:p-4">
+      <CardContent className="p-3 md:p-4 space-y-3">
+        {/* Cabeçalho da venda dentro do card da data */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <Badge variant="outline" className="h-6 px-2 text-[11px] border-primary/30 bg-primary/5 text-primary font-semibold">
+              #{proximoNumero ?? "—"}
+            </Badge>
+            <span className="text-sm font-semibold text-foreground truncate">Nova Venda</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openNovaVendaWindow({})}
+              className="h-7 gap-1 text-[11px]"
+            >
+              <PlusCircle className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Nova Venda</span>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label="Mais ações">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => setAiPopoverOpen(true)}>
+                  <Sparkles className="h-3.5 w-3.5 mr-2 text-primary" />
+                  Assistente IA
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setAtalhosOpen(true)}>
+                  <Keyboard className="h-3.5 w-3.5 mr-2" />
+                  Atalhos do teclado
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => openNovaVendaWindow({})}>
+                  <PlusCircle className="h-3.5 w-3.5 mr-2" />
+                  Abrir nova janela
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href="/meu-perfil" className="flex items-center w-full">
+                    <HelpCircle className="h-3.5 w-3.5 mr-2" />
+                    Versão da tela (perfil)
+                  </a>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
         <div className="grid gap-3 md:grid-cols-2">
-          <div className="py-[8px]">
+          <div>
             <Label className="text-xs font-semibold text-foreground flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               Data de Entrega
@@ -1290,7 +1347,6 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             <Label className="text-xs font-semibold text-foreground">Canal de Venda</Label>
             <Select value={canalVenda} onValueChange={setCanalVenda}>
               <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o canal de venda" /></SelectTrigger>
-
               <SelectContent>
                 {allChannels.map((ch) => (
                   <SelectItem key={ch.value} value={ch.value}>{ch.label}</SelectItem>
@@ -1300,7 +1356,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           </div>
         </div>
         {parceirosComEmpenho.length > 0 && (
-          <div className="mt-3 grid gap-3 md:grid-cols-2 border-t pt-3">
+          <div className="grid gap-3 md:grid-cols-2 border-t pt-3">
             <div>
               <Label className="text-xs font-semibold text-foreground">Empenho / Parceiro (opcional)</Label>
               <Select value={parceiroEmpenhoId} onValueChange={(v) => { setParceiroEmpenhoId(v); if (v === "nenhum") setValeNumero(""); }}>
@@ -1332,32 +1388,17 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     </Card>
   );
 
+
   const aiCommandPopover = (
-    <Popover open={aiPopoverOpen} onOpenChange={setAiPopoverOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "gap-1.5 text-xs border-primary/40 bg-primary/5 text-primary hover:bg-primary/10",
-            (isListening || aiLoading || photoLoading) && "ring-2 ring-primary/40"
-          )}
-          title="Assistente IA — lançar venda por texto, voz ou foto"
-        >
-          {aiLoading || photoLoading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Sparkles className={cn("h-3.5 w-3.5", isListening && "animate-pulse")} />
-          )}
-          <span className="hidden sm:inline">Assistente IA</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-[min(92vw,440px)] p-3">
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="h-4 w-4 text-primary shrink-0" />
-          <span className="text-sm font-semibold">Assistente IA</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <Dialog open={aiPopoverOpen} onOpenChange={setAiPopoverOpen}>
+      <DialogContent className="max-w-[480px] p-4">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+            Assistente IA
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           <Input
             autoFocus
             placeholder='Ex: "2 P13 para Maria, Rua Ceará 30, Centro"'
@@ -1387,9 +1428,10 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         <p className="text-[11px] font-medium text-muted-foreground mt-2">
           {photoLoading ? "📸 Processando foto..." : isListening ? "🔴 Ouvindo... Fale o comando." : "💡 Digite, 🎤 dite, ou 📷 tire foto de anotações."}
         </p>
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   );
+
 
   const hiddenAiInputs = (
     <>
@@ -1403,55 +1445,9 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       <div className="p-3 md:p-4 space-y-3 md:space-y-4"> 
         <CaixaBloqueadoBanner />
 
-        <div className="space-y-2 rounded-lg border border-border/70 bg-card p-2.5 shadow-lg shadow-foreground/10">
-          <VendaStepper
-            customer={customer}
-            itens={itens}
-            pagamentos={pagamentos}
-            totalVenda={totalVenda}
-            entregadorSelecionado={entregadorPreenchido}
-            activeStep={useNewView ? activeStep : undefined}
-            onStepClick={useNewView ? (step) => canOpenStep(step) && setActiveStep(step) : undefined}
-            compact
-          />
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <Badge variant="outline" className="text-[11px] h-6 px-2 border-primary/30 bg-primary/5 text-primary">
-              #{proximoNumero ?? "—"}
-            </Badge>
-            <div className="flex items-center gap-1.5">
-              {aiCommandPopover}
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label="Atalhos de teclado">
-                      <Keyboard className="h-3.5 w-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" align="end" className="text-[11px]">
-                    F2 Novo · F3 Finalizar · F4 Agendar · F5 Cliente · Enter Próximo
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" onClick={toggleViewMode} className="h-7 px-2 text-[11px] font-semibold text-foreground hover:text-primary">
-                      {useNewView ? "Antiga" : "Nova"}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-[11px]">
-                    Alternar versão da tela
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <Button variant="outline" size="sm" onClick={() => openNovaVendaWindow({})} className="h-7 gap-1 text-[11px]">
-                <PlusCircle className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Nova Venda</span>
-              </Button>
-            </div>
-          </div>
-        </div>
+        {aiCommandPopover}
         {hiddenAiInputs}
+
 
 
         {useNewView ? (
@@ -1519,7 +1515,85 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             </div>
           </div>
         )}
+
+        {/* Espaço para não esconder conteúdo atrás do rodapé fixo */}
+        <div aria-hidden className="h-20" />
       </div>
+
+      {/* Rodapé fixo: Stepper + navegação Voltar/Continuar */}
+      {useNewView && (
+        <div className="sticky bottom-0 left-0 right-0 z-30 border-t border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_-6px_20px_-12px_rgba(0,0,0,0.25)]">
+          <div className="mx-auto flex max-w-screen-2xl items-center gap-2 px-3 py-2 md:px-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              aria-label="Etapa anterior"
+              disabled={VENDA_STEPS.indexOf(activeStep) === 0}
+              onClick={() => {
+                const idx = VENDA_STEPS.indexOf(activeStep);
+                const prev = VENDA_STEPS[idx - 1];
+                if (prev && canOpenStep(prev)) setActiveStep(prev);
+              }}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div className="min-w-0 flex-1">
+              <VendaStepper
+                customer={customer}
+                itens={itens}
+                pagamentos={pagamentos}
+                totalVenda={totalVenda}
+                entregadorSelecionado={entregadorPreenchido}
+                activeStep={activeStep}
+                onStepClick={(step) => canOpenStep(step) && setActiveStep(step)}
+                compact
+              />
+            </div>
+            <Button
+              variant="default"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              aria-label="Próxima etapa"
+              disabled={VENDA_STEPS.indexOf(activeStep) === VENDA_STEPS.length - 1}
+              onClick={() => {
+                const idx = VENDA_STEPS.indexOf(activeStep);
+                const next = VENDA_STEPS[idx + 1];
+                if (next && canOpenStep(next)) setActiveStep(next);
+              }}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog Atalhos do teclado */}
+      <Dialog open={atalhosOpen} onOpenChange={setAtalhosOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Keyboard className="h-4 w-4" /> Atalhos do teclado
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 pt-2 text-sm">
+            {[
+              ["F2", "Novo pedido"],
+              ["F3", "Finalizar venda"],
+              ["F4", "Agendar entrega"],
+              ["F5", "Focar cliente"],
+              ["Enter", "Avançar para o próximo campo"],
+              ["← →", "Navegar entre etapas"],
+            ].map(([k, label]) => (
+              <div key={k} className="flex items-center justify-between border-b border-border/40 py-1.5 last:border-0">
+                <span className="text-muted-foreground">{label}</span>
+                <kbd className="rounded-[var(--radius)] border border-border bg-muted px-2 py-0.5 text-xs font-mono">{k}</kbd>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Dialog Agendamento */}
       <Dialog open={agendarOpen} onOpenChange={setAgendarOpen}>
