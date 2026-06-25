@@ -427,6 +427,140 @@
 .brand-theme-operacional-clean ::-webkit-scrollbar-thumb:hover { background: hsl(220 13% 80%); }
 .brand-theme-operacional-clean ::-webkit-scrollbar-track { background: transparent; }
 
+/* =====================================================================
+   Operacional Clean Premium — Override do CHROME (header / sidebar / breadcrumbs)
+   Neutraliza efeitos pesados definidos em index.css (glow, shadow-2xl,
+   gradiente roxo no botão IA, etc.) sem editar componentes React.
+   ===================================================================== */
+
+/* Header — branco, borda fina, sem sombra pesada */
+.brand-theme-operacional-clean .app-header-premium,
+.brand-theme-operacional-clean .app-header-premium.app-header-clean {
+  background: hsl(var(--clean-header-bg));
+  color: hsl(var(--clean-header-fg));
+  border-color: hsl(var(--clean-header-border));
+  border-bottom-width: 1px;
+  box-shadow: 0 1px 0 hsl(var(--clean-header-border));
+  backdrop-filter: none;
+}
+.brand-theme-operacional-clean .app-header-premium :where(h1, h2, h3) {
+  color: hsl(var(--foreground));
+}
+.brand-theme-operacional-clean .app-header-premium .header-actions button:not(.header-unit-selector),
+.brand-theme-operacional-clean .app-header-premium .header-actions button:not(.header-unit-selector) svg {
+  color: hsl(var(--muted-foreground));
+}
+.brand-theme-operacional-clean .app-header-premium .header-actions button:not(.header-unit-selector):hover {
+  background: hsl(var(--muted));
+  color: hsl(var(--primary));
+}
+.brand-theme-operacional-clean .app-header-premium .header-actions button:not(.header-unit-selector):hover svg {
+  color: hsl(var(--primary));
+}
+.brand-theme-operacional-clean .app-header-premium .text-foreground\/65,
+.brand-theme-operacional-clean .app-header-premium .text-foreground\/80 {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Botão IA — primário sólido azul, sem gradiente */
+.brand-theme-operacional-clean .clean-ia-button {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  box-shadow: 0 1px 2px hsl(var(--primary) / 0.18);
+}
+.brand-theme-operacional-clean .clean-ia-button:hover {
+  background: hsl(var(--secondary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+.brand-theme-operacional-clean .clean-ia-button svg { color: hsl(var(--primary-foreground)) !important; }
+
+/* Seletor de unidade no header — branco, borda fina */
+.brand-theme-operacional-clean .header-unit-selector {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+  box-shadow: none;
+}
+.brand-theme-operacional-clean .header-unit-selector:hover,
+.brand-theme-operacional-clean .header-unit-selector[data-state="open"] {
+  background: hsl(var(--muted));
+  border-color: hsl(var(--border));
+}
+
+/* Sidebar — fundo branco sólido, borda cinza, sem sombra/glow */
+.brand-theme-operacional-clean .app-sidebar-premium {
+  background: hsl(var(--sidebar-background)) !important;
+  background-image: none !important;
+  color: hsl(var(--sidebar-foreground));
+  border-right: 1px solid hsl(var(--sidebar-border));
+  border-radius: 0;
+  box-shadow: none;
+}
+.brand-theme-operacional-clean .app-sidebar-premium::after,
+.brand-theme-operacional-clean .app-mobile-sidebar-modern::before {
+  display: none !important;
+}
+
+/* Itens do menu (sidebar) — altura confortável, radius 10px, hover suave */
+.brand-theme-operacional-clean .app-sidebar-premium :where(a, button):not([data-active="true"]):not([aria-current="page"]) {
+  color: hsl(var(--sidebar-foreground));
+  background: transparent;
+  border-radius: 10px;
+}
+.brand-theme-operacional-clean .app-sidebar-premium :where(a, button):not([data-active="true"]):not([aria-current="page"]):hover {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  box-shadow: none;
+  ring: 0;
+}
+.brand-theme-operacional-clean .app-sidebar-premium :where(a, button):not([data-active="true"]):not([aria-current="page"]) svg {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Item ativo do sidebar — barra azul à esquerda + bg azul claro */
+.brand-theme-operacional-clean .app-sidebar-premium :where(a, button)[data-active="true"],
+.brand-theme-operacional-clean .app-sidebar-premium :where(a, button)[aria-current="page"],
+.brand-theme-operacional-clean .app-sidebar-premium :where(.bg-sidebar-accent),
+.brand-theme-operacional-clean .app-sidebar-premium :where([class*="bg-sidebar-accent"]) {
+  background: hsl(var(--sidebar-accent)) !important;
+  color: hsl(var(--sidebar-accent-foreground)) !important;
+  box-shadow: inset 3px 0 0 hsl(var(--sidebar-accent-foreground)) !important;
+  border-radius: 10px;
+  ring: 0;
+}
+.brand-theme-operacional-clean .app-sidebar-premium :where(a, button)[data-active="true"] svg,
+.brand-theme-operacional-clean .app-sidebar-premium :where(a, button)[aria-current="page"] svg {
+  color: hsl(var(--sidebar-accent-foreground)) !important;
+}
+
+/* Breadcrumbs (componente shadcn renderiza <nav aria-label> + <ol>) */
+.brand-theme-operacional-clean :where(nav[aria-label]) :where(ol) {
+  color: hsl(var(--muted-foreground));
+  font-size: 13px;
+}
+.brand-theme-operacional-clean :where(nav[aria-label]) :where(a) {
+  color: hsl(var(--muted-foreground));
+  transition: color 150ms ease;
+}
+.brand-theme-operacional-clean :where(nav[aria-label]) :where(a:hover) {
+  color: hsl(var(--primary));
+}
+.brand-theme-operacional-clean :where(nav[aria-label]) :where([aria-current="page"]) {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Bottom bar mobile — branco, borda fina, sem sombra forte */
+.brand-theme-operacional-clean .mobile-bottom-bar {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+  box-shadow: 0 -1px 0 hsl(var(--border));
+  backdrop-filter: none;
+}
+
 .brand-theme-gasfacil,
 .brand-theme-saas,
 .brand-theme-pastel-dashboard,
