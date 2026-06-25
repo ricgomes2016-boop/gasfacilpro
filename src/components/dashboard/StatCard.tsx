@@ -217,7 +217,7 @@ export function StatCard({
   }
 
   // Default: solid-colored KPI tile (matches Dashboard KPI styling)
-  const tone = variantToTone[variant] ?? "sky";
+  const tone = variantToTone[variant] ?? "auto";
   return (
     <Card variant="kpi" tone={tone} className="flex h-full min-h-[148px] min-w-0 p-5 sm:p-6">
       <div className="flex w-full min-w-0 items-start justify-between gap-3">
