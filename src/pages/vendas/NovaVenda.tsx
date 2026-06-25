@@ -118,6 +118,72 @@ function toBrasiliaNoonISOString(dateValue: string) {
   return `${dateValue}T12:00:00-03:00`;
 }
 
+// Wrapper that portals stepper into SystemFooter center slot + hides quote
+function NovaVendaFooterStepper({ children }: { children: React.ReactNode }) {
+  useFooterCenterOverride(true);
+  return <PortalToId id={FOOTER_CENTER_ID}>{children}</PortalToId>;
+}
+
+// Reusable stepper bar (prev arrow + stepper + next arrow)
+function StepperFooterBar({
+  activeStep, canOpenStep, setActiveStep,
+  customer, itens, pagamentos, totalVenda, entregadorPreenchido,
+}: {
+  activeStep: VendaStep;
+  canOpenStep: (s: VendaStep) => boolean;
+  setActiveStep: (s: VendaStep) => void;
+  customer: CustomerData;
+  itens: ItemVenda[];
+  pagamentos: Pagamento[];
+  totalVenda: number;
+  entregadorPreenchido: boolean;
+}) {
+  const idx = VENDA_STEPS.indexOf(activeStep);
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 shrink-0"
+        aria-label="Etapa anterior"
+        disabled={idx === 0}
+        onClick={() => {
+          const prev = VENDA_STEPS[idx - 1];
+          if (prev && canOpenStep(prev)) setActiveStep(prev);
+        }}
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      <div className="min-w-0 flex-1">
+        <VendaStepper
+          customer={customer}
+          itens={itens}
+          pagamentos={pagamentos}
+          totalVenda={totalVenda}
+          entregadorSelecionado={entregadorPreenchido}
+          activeStep={activeStep}
+          onStepClick={(step) => canOpenStep(step) && setActiveStep(step)}
+          compact
+        />
+      </div>
+      <Button
+        variant="default"
+        size="icon"
+        className="h-8 w-8 shrink-0"
+        aria-label="Próxima etapa"
+        disabled={idx === VENDA_STEPS.length - 1}
+        onClick={() => {
+          const next = VENDA_STEPS[idx + 1];
+          if (next && canOpenStep(next)) setActiveStep(next);
+        }}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </>
+  );
+}
+
+
 // Stepper component
 function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelecionado = false, activeStep, onStepClick, compact = false }: {
   customer: CustomerData;
