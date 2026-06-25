@@ -807,6 +807,47 @@ export const PRESET_EXTRA_CSS: Record<string, string> = {
       border-radius: 0 !important;
     }
 
+    /* Submenu: remove pill background, animate only the text */
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav a[class*="rounded-full"],
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav a[class*="rounded-full"] {
+      background: transparent !important;
+      box-shadow: none !important;
+      --tw-ring-shadow: 0 0 #0000 !important;
+      --tw-ring-offset-shadow: 0 0 #0000 !important;
+      ring-width: 0 !important;
+      transition: color 0.2s ease, transform 0.2s ease !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav a[class*="rounded-full"]:hover,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav a[class*="rounded-full"]:hover {
+      background: transparent !important;
+      color: hsl(151 39% 38%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav a[class*="rounded-full"] > span,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav a[class*="rounded-full"] > span {
+      transition: transform 0.2s ease, color 0.2s ease, font-weight 0.2s ease;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav a[class*="rounded-full"]:hover > span,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav a[class*="rounded-full"]:hover > span {
+      transform: translateX(3px);
+      color: hsl(151 39% 38%);
+      font-weight: 700;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav a[class*="bg-sidebar-accent"],
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav a[class*="bg-sidebar-accent"] {
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav a[class*="bg-sidebar-accent"] > span,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav a[class*="bg-sidebar-accent"] > span {
+      color: hsl(151 39% 38%) !important;
+      font-weight: 700 !important;
+    }
+
     html[data-theme-preset="operacional-clean"] .app-card,
     html[data-theme-preset="operacional-clean"] .modern-panel,
     html[data-theme-preset="operacional-clean"] .modern-status-card,
