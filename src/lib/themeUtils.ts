@@ -257,7 +257,7 @@ export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
     "--sidebar-border": "210 9% 82%",
     "--sidebar-ring": "151 39% 48%",
     "--kpi-accent": "151 39% 48%",
-    "--clean-header-bg": "210 22% 10%",
+    "--clean-header-bg": "0 0% 100%",
     "--clean-sidebar-unit-bg": "210 22% 12%",
     "--clean-action-green": "151 39% 48%",
     "--clean-table-grid": "210 10% 82%",
