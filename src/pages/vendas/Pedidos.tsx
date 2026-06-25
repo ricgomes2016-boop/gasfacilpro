@@ -466,24 +466,51 @@ export default function Pedidos() {
 
   const imprimirPedido = async (pedido: PedidoFormatado) => {
     try {
-      // Empresa config filtrada pela empresa ativa
+      // Busca a unidade (loja) que originou o pedido p/ emitir recibo com os dados corretos
+      let unidadeRecibo: any = unidadeAtual;
+      try {
+        const { data: pedidoRow } = await supabase
+          .from("pedidos")
+          .select("unidade_id")
+          .eq("id", pedido.id)
+          .maybeSingle();
+        const uid = (pedidoRow as any)?.unidade_id;
+        if (uid) {
+          const { data: u } = await supabase
+            .from("unidades")
+            .select("nome, cnpj, telefone, endereco, bairro, cidade, estado, cep")
+            .eq("id", uid)
+            .maybeSingle();
+          if (u) unidadeRecibo = u;
+        }
+      } catch {}
+
+      // Mensagem de cupom (vinda das configurações da empresa)
       let empresaConfig: EmpresaConfig | undefined;
       try {
         let cfgQuery = supabase
           .from("configuracoes_empresa")
-          .select("nome_empresa, cnpj, telefone, endereco, mensagem_cupom")
+          .select("mensagem_cupom")
           .limit(1);
         if (empresa?.id) cfgQuery = cfgQuery.eq("empresa_id", empresa.id);
         const { data: configData } = await cfgQuery.maybeSingle();
+
+        const enderecoUnidade = [
+          unidadeRecibo?.endereco,
+          unidadeRecibo?.bairro,
+          [unidadeRecibo?.cidade, unidadeRecibo?.estado].filter(Boolean).join("/"),
+          unidadeRecibo?.cep,
+        ].filter(Boolean).join(", ");
+
         empresaConfig = {
-          nome_empresa: empresa?.nome || configData?.nome_empresa || "Empresa",
-          cnpj: configData?.cnpj ?? null,
-          telefone: configData?.telefone ?? null,
-          endereco: configData?.endereco ?? null,
+          nome_empresa: unidadeRecibo?.nome || empresa?.nome || "Empresa",
+          cnpj: unidadeRecibo?.cnpj ?? null,
+          telefone: unidadeRecibo?.telefone ?? null,
+          endereco: enderecoUnidade || null,
           mensagem_cupom: configData?.mensagem_cupom ?? null,
         };
       } catch {
-        if (empresa?.nome) empresaConfig = { nome_empresa: empresa.nome };
+        empresaConfig = { nome_empresa: unidadeRecibo?.nome || empresa?.nome || "Empresa" };
       }
 
       // Pagamentos: o pedido só armazena 'forma_pagamento' (string).
