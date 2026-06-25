@@ -1,6 +1,15 @@
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
+import { Card } from "@/components/ui/card";
+
+const variantToTone: Record<string, "violet" | "green" | "amber" | "blue" | "sky" | "red" | "auto"> = {
+  default: "auto",
+  primary: "violet",
+  success: "green",
+  warning: "amber",
+  info: "blue",
+};
 
 interface StatCardProps {
   title: string;
@@ -207,54 +216,37 @@ export function StatCard({
     );
   }
 
-  const isColored = variant !== "default";
-
+  // Default: solid-colored KPI tile (matches Dashboard KPI styling)
+  const tone = variantToTone[variant] ?? "auto";
   return (
-    <div
-      className={cn(
-        "modern-status-card flex h-full min-h-[148px] min-w-0 p-5 sm:p-6",
-        variantStyles[variant]
-      )}
-    >
+    <Card variant="kpi" tone={tone} className="flex h-full min-h-[148px] min-w-0 p-5 sm:p-6">
       <div className="flex w-full min-w-0 items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p
-            className={cn(
-              "text-sm font-medium",
-              isColored ? "opacity-90" : "text-muted-foreground"
-            )}
-          >
+          <p className="text-xs font-medium uppercase tracking-wide opacity-90">
             {title}
           </p>
-          <p className="mt-2 break-words text-3xl font-extrabold leading-tight text-foreground sm:text-4xl">{value}</p>
+          <p className="mt-2 break-words text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+            {value}
+          </p>
+          {subtitle && (
+            <p className="mt-1 text-xs opacity-85 line-clamp-2">{subtitle}</p>
+          )}
           {trend && (
-            <p
+            <span
               className={cn(
-                "mt-2 text-sm font-medium line-clamp-2",
-                trend.isPositive
-                  ? isColored
-                    ? "opacity-90"
-                    : "text-success"
-                  : isColored
-                  ? "opacity-90"
-                  : "text-destructive"
+                "mt-2 inline-flex items-center gap-1 rounded-[var(--radius)] bg-white/15 px-2 py-0.5 text-xs font-semibold"
               )}
             >
-              {trend.isPositive ? "+" : "-"}
-              {Math.abs(trend.value)}% em relação a ontem
-            </p>
+              {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
+            </span>
           )}
         </div>
-        <div
-          className={cn(
-            "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl p-3",
-            iconVariantStyles[variant]
-          )}
-        >
-          <Icon className="h-6 w-6" />
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[var(--radius)] bg-white/15">
+          <Icon className="h-5 w-5" />
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
+
 
