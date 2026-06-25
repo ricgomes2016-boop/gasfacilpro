@@ -22,12 +22,21 @@ const cardVariants = cva(
 
 export interface CardProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof cardVariants> {}
+    VariantProps<typeof cardVariants> {
+  tone?: "green" | "blue" | "violet" | "amber" | "red" | "sky" | "auto";
+}
 
-const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, variant, ...props }, ref) => (
-  <div ref={ref} className={cn(cardVariants({ variant }), className)} {...props} />
+const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, variant, tone, ...props }, ref) => (
+  <div
+    ref={ref}
+    data-card=""
+    data-tone={variant === "kpi" && tone && tone !== "auto" ? tone : undefined}
+    className={cn(cardVariants({ variant }), className)}
+    {...props}
+  />
 ));
 Card.displayName = "Card";
+
 
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
