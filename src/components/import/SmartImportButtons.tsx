@@ -1,6 +1,22 @@
-import { useRef, useState } from "react";
+import { useRef, useState, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, FileUp, Mic, MicOff, Loader2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Camera,
+  FileUp,
+  Mic,
+  MicOff,
+  Loader2,
+  Image as ImageIcon,
+  FileText,
+  Settings2,
+  ChevronDown,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -9,6 +25,15 @@ interface SmartImportButtonsProps {
   onDataExtracted: (data: any) => void;
   disabled?: boolean;
   className?: string;
+  /**
+   * "buttons" (default) renders the original inline button row.
+   * "menu" renders a single "Mais ações" dropdown without the voice button.
+   */
+  mode?: "buttons" | "menu";
+  /** Optional label for the dropdown trigger (mode="menu"). */
+  menuLabel?: string;
+  /** Extra items appended to the dropdown (mode="menu"). */
+  extraMenuContent?: ReactNode;
 }
 
 const compressImage = (file: File, maxWidth = 1600): Promise<string> => {
@@ -33,7 +58,15 @@ const compressImage = (file: File, maxWidth = 1600): Promise<string> => {
   });
 };
 
-export function SmartImportButtons({ edgeFunctionName, onDataExtracted, disabled, className }: SmartImportButtonsProps) {
+export function SmartImportButtons({
+  edgeFunctionName,
+  onDataExtracted,
+  disabled,
+  className,
+  mode = "buttons",
+  menuLabel = "Mais ações",
+  extraMenuContent,
+}: SmartImportButtonsProps) {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
@@ -72,10 +105,9 @@ export function SmartImportButtons({ edgeFunctionName, onDataExtracted, disabled
 
     setProcessing(true);
     try {
-      // Convert PDF first page to image via canvas
       const arrayBuffer = await file.arrayBuffer();
       const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-      
+
       const { data, error } = await supabase.functions.invoke(edgeFunctionName, {
         body: { imageBase64: `data:application/pdf;base64,${base64Pdf}` },
       });
@@ -144,6 +176,50 @@ export function SmartImportButtons({ edgeFunctionName, onDataExtracted, disabled
 
   const isDisabled = disabled || processing;
 
+  const hiddenInputs = (
+    <>
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageFile} className="hidden" />
+      <input ref={photoInputRef} type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
+      <input ref={pdfInputRef} type="file" accept="application/pdf" onChange={handlePdfFile} className="hidden" />
+    </>
+  );
+
+  if (mode === "menu") {
+    return (
+      <>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className={`h-10 min-w-0 ${className || ""}`} disabled={isDisabled}>
+              {processing ? (
+                <Loader2 className="h-4 w-4 mr-2 shrink-0 animate-spin" />
+              ) : (
+                <Settings2 className="h-4 w-4 mr-2 shrink-0" />
+              )}
+              <span className="truncate">{menuLabel}</span>
+              <ChevronDown className="h-4 w-4 ml-2 shrink-0 opacity-70" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuItem onClick={() => cameraInputRef.current?.click()}>
+              <Camera className="h-4 w-4 mr-2" />
+              Tirar foto
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => photoInputRef.current?.click()}>
+              <ImageIcon className="h-4 w-4 mr-2" />
+              Importar imagem
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => pdfInputRef.current?.click()}>
+              <FileText className="h-4 w-4 mr-2" />
+              Importar PDF
+            </DropdownMenuItem>
+            {extraMenuContent}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {hiddenInputs}
+      </>
+    );
+  }
+
   return (
     <div className={`flex gap-1.5 ${className || ""}`}>
       <Button
@@ -183,10 +259,7 @@ export function SmartImportButtons({ edgeFunctionName, onDataExtracted, disabled
         {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
       </Button>
 
-      {/* Hidden inputs */}
-      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageFile} className="hidden" />
-      <input ref={photoInputRef} type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
-      <input ref={pdfInputRef} type="file" accept="application/pdf" onChange={handlePdfFile} className="hidden" />
+      {hiddenInputs}
 
       {listening && (
         <span className="text-xs text-red-500 flex items-center gap-1">
