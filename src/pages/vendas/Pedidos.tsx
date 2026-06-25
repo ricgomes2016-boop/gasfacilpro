@@ -688,11 +688,29 @@ export default function Pedidos() {
 
         {/* Top action */}
         <div className="gap-2 flex flex-wrap items-center justify-center sm:justify-start w-full min-w-0">
-          <SmartImportButtons edgeFunctionName="parse-orders-history" onDataExtracted={handleImportData} />
-          <Button variant="outline" className="h-10 min-w-0" onClick={() => {exportarPedidosCSV(pedidosFiltrados);sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);}}>
-            <Download className="h-4 w-4 mr-2 shrink-0" />
-            <span className="truncate">Exportar CSV</span>
+          <Button className="h-10 min-w-0 bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30" onClick={() => navigate("/vendas/nova")}>
+            <span className="truncate">+ Novo Pedido</span>
           </Button>
+          <SmartImportButtons
+            edgeFunctionName="parse-orders-history"
+            onDataExtracted={handleImportData}
+            mode="menu"
+            menuLabel="Mais ações"
+            extraMenuContent={
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    exportarPedidosCSV(pedidosFiltrados);
+                    sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar CSV
+                </DropdownMenuItem>
+              </>
+            }
+          />
           <Button variant="outline" className="h-10 min-w-0" onClick={() => navigate("/operacional/centro")}>
             <MapIcon className="h-4 w-4 mr-2 shrink-0" />
             <span className="truncate">Mapa Operacional</span>
@@ -713,9 +731,6 @@ export default function Pedidos() {
               </Button>
             );
           })()}
-          <Button className="h-10 min-w-0 bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30" onClick={() => navigate("/vendas/nova")}>
-            <span className="truncate">+ Novo Pedido</span>
-          </Button>
         </div>
 
         {/* Filters Dialog */}
