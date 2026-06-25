@@ -99,6 +99,16 @@ export const brandThemes: BrandThemePreset[] = [
     logoFull,
     fontLabel: "IBM Plex Sans",
   },
+  {
+    id: "operacional-clean",
+    name: "Operacional Clean",
+    description: "Visual ERP clean — header escuro, menu claro com seletor de loja no topo.",
+    className: "brand-theme-operacional-clean",
+    logoVariant: "markText",
+    logoMark,
+    logoFull,
+    fontLabel: "Plus Jakarta Sans",
+  },
 ];
 
 export const defaultBrandTheme = brandThemes.find((t) => t.id === "premium") || brandThemes[0];
