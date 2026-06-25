@@ -3,6 +3,7 @@ import { RouteConfig } from "./helpers";
 
 const Vendas = lazy(() => import("@/pages/Vendas"));
 const NovaVenda = lazy(() => import("@/pages/vendas/NovaVenda"));
+const PedidosKanban = lazy(() => import("@/pages/vendas/PedidosKanban"));
 const Pedidos = lazy(() => import("@/pages/vendas/Pedidos"));
 const EditarPedido = lazy(() => import("@/pages/vendas/EditarPedido"));
 const PDV = lazy(() => import("@/pages/vendas/PDV"));
