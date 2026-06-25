@@ -800,6 +800,11 @@ export const PRESET_EXTRA_CSS: Record<string, string> = {
     html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav > div > * > a,
     html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav > div > * > button {
       border-radius: 0 !important;
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav a,
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav button,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav a,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav button {
+      border-radius: 0 !important;
     }
 
     html[data-theme-preset="operacional-clean"] .app-card,
