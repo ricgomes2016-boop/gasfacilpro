@@ -34,23 +34,25 @@ export function DashboardKpis() {
     queryFn: async () => {
       const iniISO = format(ini, "yyyy-MM-dd");
       const fimISO = format(fim, "yyyy-MM-dd");
+      const sb = supabase as any;
 
-      const pedidosQ = supabase
+      const pedidosQ = sb
         .from("pedidos")
         .select("id, status, valor_total, data_entrega, created_at")
         .or(`unidade_id.eq.${unidadeAtual!.id},unidade_id.is.null`)
         .gte("data_entrega", iniISO)
         .lte("data_entrega", fimISO);
 
-      const clientesUnQ = supabase
+      const clientesUnQ = sb
         .from("cliente_unidades")
         .select("cliente_id", { count: "exact", head: true })
         .eq("unidade_id", unidadeAtual!.id);
 
-      const estoqueQ = supabase
-        .from("estoque")
-        .select("id, quantidade, estoque_minimo")
-        .eq("unidade_id", unidadeAtual!.id);
+      const estoqueQ = sb
+        .from("vw_previsao_ruptura")
+        .select("id, situacao")
+        .eq("unidade_id", unidadeAtual!.id)
+        .neq("situacao", "ok");
 
       const [{ data: pedidos }, { count: clientesCount }, { data: estoque }] = await Promise.all([
         pedidosQ, clientesUnQ, estoqueQ,
@@ -63,9 +65,7 @@ export function DashboardKpis() {
       const emRota = ped.filter((p: any) => p.status === "em_rota").length;
       const entregues = concluidos.length;
       const ticket = concluidos.length ? receita / concluidos.length : 0;
-      const criticos = (estoque || []).filter(
-        (e: any) => Number(e.quantidade ?? 0) <= Number(e.estoque_minimo ?? 0),
-      ).length;
+      const criticos = (estoque || []).length;
 
       return {
         receita,
