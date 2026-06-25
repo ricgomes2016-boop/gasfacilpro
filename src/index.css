@@ -1443,7 +1443,23 @@
     padding: 0 !important;
   }
 
+  /* Mobile list (md:hidden) inside a card should match the flat table:
+     zero side padding on the container, hairline divided rows, no rounded
+     wrappers. Applies system-wide to any mobile list rendered inside an
+     .app-card on small viewports. */
+  @media (max-width: 767px) {
+    .app-card > [data-slot="card-content"]:has(> .md\:hidden) {
+      padding: 0 !important;
+    }
+    .app-card .md\:hidden > div[class*="rounded"] {
+      border-radius: 0 !important;
+      border-left: 0 !important;
+      border-right: 0 !important;
+      box-shadow: none !important;
+    }
+  }
 }
+
 
 /* Force nested rounded boxes to inherit the active theme radius
    (preserve rounded-full for avatars/badges/pills). Use attribute selectors
