@@ -265,16 +265,27 @@ export function Sidebar() {
 
   return (
     <TooltipProvider delayDuration={0}>
+      {isCleanTheme && !collapsed && (
+        <div
+          onClick={toggle}
+          className="fixed inset-0 top-14 z-40 bg-black/40 backdrop-blur-sm"
+          aria-hidden="true"
+        />
+      )}
       <motion.aside
         ref={sidebarRef}
-        animate={{ width: collapsed ? (isCleanTheme ? 0 : 64) : 260 }}
+        animate={
+          isCleanTheme
+            ? { x: collapsed ? -280 : 0, width: 260 }
+            : { width: collapsed ? 64 : 260, x: 0 }
+        }
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "app-sidebar-premium fixed left-0 z-40 hidden flex-col overflow-hidden border-r border-sidebar-border/15 shadow-2xl xl:flex",
+          "app-sidebar-premium fixed left-0 z-50 flex-col overflow-hidden border-r border-sidebar-border/15 shadow-2xl",
           isCleanTheme
-            ? "clean-sidebar top-14 h-[calc(100vh-3.5rem)] rounded-r-none"
-            : "top-0 h-screen rounded-r-2xl"
+            ? "clean-sidebar top-14 flex h-[calc(100vh-3.5rem)] w-[260px] rounded-r-none"
+            : "top-0 hidden h-screen rounded-r-2xl xl:flex"
         )}
       >
         {/* Header */}

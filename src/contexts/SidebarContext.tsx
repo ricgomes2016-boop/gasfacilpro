@@ -13,7 +13,11 @@ const STORAGE_KEY = "sidebar:collapsed";
 function readInitial(): boolean {
   try {
     if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(STORAGE_KEY) === "true";
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored !== null) return stored === "true";
+    // Clean theme uses an off-canvas drawer that starts closed.
+    const preset = document.documentElement.getAttribute("data-theme-preset");
+    return preset === "operacional-clean";
   } catch {
     return false;
   }

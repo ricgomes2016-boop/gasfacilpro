@@ -58,7 +58,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
         className={cn(
           "relative min-h-screen transition-all duration-300 ml-0 pb-16 md:pb-10",
           isCleanTheme
-            ? (collapsed ? "xl:ml-0" : "xl:ml-[260px]")
+            ? "xl:ml-0"
             : (collapsed ? "xl:ml-16" : "xl:ml-[260px]")
         )}
       >

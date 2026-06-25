@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { User, LogOut, Settings, UserCircle, RefreshCw, Menu, Sparkles } from "lucide-react";
+import { useEffect, useState, Fragment } from "react";
+import { User, LogOut, Settings, UserCircle, RefreshCw, Menu, Sparkles, ChevronRight, Home } from "lucide-react";
 import { CommandPalette } from "./CommandPalette";
 import { NotificationCenter } from "./NotificationCenter";
 import { BaseChatPanel } from "@/components/chat/BaseChatPanel";
@@ -15,7 +15,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { MobileNav } from "./MobileNav";
@@ -42,7 +42,43 @@ export function Header({ title, subtitle }: HeaderProps) {
     typeof document === "undefined" ? "" : document.documentElement.getAttribute("data-theme-preset") || ""
   );
   const navigate = useNavigate();
+  const location = useLocation();
   const isCleanTheme = activePreset === "operacional-clean";
+
+  const SLUG_LABELS: Record<string, string> = {
+    dashboard: "Início",
+    financeiro: "Financeiro",
+    "contas-a-receber": "Contas a receber",
+    "contas-a-pagar": "Contas a pagar",
+    "fluxo-de-caixa": "Fluxo de caixa",
+    vendas: "Vendas",
+    pedidos: "Pedidos",
+    pdv: "PDV",
+    "nova-venda": "Nova venda",
+    devolucoes: "Devoluções",
+    clientes: "Clientes",
+    estoque: "Estoque",
+    cadastros: "Cadastros",
+    fiscal: "Fiscal",
+    frota: "Frota",
+    rh: "RH",
+    marketing: "Marketing",
+    operacional: "Operacional",
+    atendimento: "Atendimento",
+    caixa: "Caixa",
+    config: "Configurações",
+    integracoes: "Integrações",
+    admin: "Admin",
+    "assistente-ia": "Assistente IA",
+  };
+  const humanize = (slug: string) =>
+    SLUG_LABELS[slug] ?? slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const segments = location.pathname.split("/").filter(Boolean);
+  const crumbs = segments.map((seg, i) => ({
+    label: humanize(seg),
+    href: "/" + segments.slice(0, i + 1).join("/"),
+    isLast: i === segments.length - 1,
+  }));
 
   useEffect(() => {
     const syncPreset = () => setActivePreset(document.documentElement.getAttribute("data-theme-preset") || "");
@@ -102,13 +138,12 @@ export function Header({ title, subtitle }: HeaderProps) {
         <div className={cn("flex min-w-0 flex-1 items-center", isCleanTheme ? "gap-3" : "gap-2.5")}>
           {isCleanTheme ? (
             <>
-              <MobileNav />
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
                 onClick={toggle}
-                className="clean-header-menu hidden h-10 w-10 rounded-md xl:inline-flex"
+                className="clean-header-menu inline-flex h-10 w-10 rounded-md"
                 aria-label={collapsed ? "Abrir menu" : "Fechar menu"}
               >
                 <Menu className="h-5 w-5" />
@@ -239,6 +274,29 @@ export function Header({ title, subtitle }: HeaderProps) {
         </div>
       </header>
       <div aria-hidden="true" className={isCleanTheme ? "h-14" : "h-[7rem] sm:h-16 md:h-[4.75rem]"} />
+      {isCleanTheme && (
+        <div className="clean-page-subbar flex h-12 items-center justify-between gap-3 border-b border-border bg-card px-4 sm:px-6">
+          <h1 className="min-w-0 truncate text-base font-semibold text-foreground sm:text-lg">
+            {title}
+          </h1>
+          <nav aria-label="Breadcrumb" className="hidden min-w-0 items-center gap-1.5 text-[13px] text-muted-foreground sm:flex">
+            <Link to="/dashboard" className="flex items-center gap-1 hover:text-primary">
+              <Home className="h-3.5 w-3.5" />
+              <span>Início</span>
+            </Link>
+            {crumbs.map((c) => (
+              <Fragment key={c.href}>
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                {c.isLast ? (
+                  <span className="truncate font-medium text-foreground" aria-current="page">{c.label}</span>
+                ) : (
+                  <Link to={c.href} className="truncate hover:text-primary">{c.label}</Link>
+                )}
+              </Fragment>
+            ))}
+          </nav>
+        </div>
+      )}
     </>
   );
 }
