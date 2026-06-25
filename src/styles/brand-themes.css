@@ -219,68 +219,101 @@
    OPERACIONAL CLEAN — visual ERP estilo GestãoClick
    Header escuro fixo, sidebar claro, seletor de loja no topo do menu.
    ===================================================================== */
+/* =====================================================================
+   OPERACIONAL CLEAN PREMIUM — Design System V2 (Gas Flow ERP)
+   Inspirado em GestãoClick + Linear + Stripe + Vercel + Notion.
+   Identidade GLP: azul confiança + laranja operacional discreto.
+   ===================================================================== */
 .brand-theme-operacional-clean {
   --brand-font: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --background: 210 20% 97%;           /* #F5F7FA */
-  --foreground: 220 39% 11%;           /* #111827 */
-  --card: 0 0% 100%;                   /* #FFFFFF */
+
+  /* Superfícies */
+  --background: 210 20% 97%;             /* #F5F7FA */
+  --foreground: 220 39% 11%;             /* #111827 */
+  --card: 0 0% 100%;
   --card-foreground: 220 39% 11%;
   --popover: 0 0% 100%;
   --popover-foreground: 220 39% 11%;
-  --primary: 217 91% 60%;              /* #3B82F6 */
+
+  /* Marca */
+  --primary: 221 83% 53%;                /* #2563EB */
   --primary-foreground: 0 0% 100%;
-  --secondary: 220 14% 96%;            /* #F3F4F6 */
-  --secondary-foreground: 220 39% 11%;
-  --muted: 220 14% 96%;                /* #F3F4F6 */
-  --muted-foreground: 220 9% 46%;      /* #6B7280 */
-  --accent: 214 100% 97%;              /* #EEF5FF */
-  --accent-foreground: 221 83% 53%;    /* #2563EB */
-  --success: 122 39% 49%;              /* #4CAF50 */
+  --secondary: 224 76% 33%;              /* #1E40AF */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 220 14% 96%;                  /* #F3F4F6 */
+  --muted-foreground: 220 9% 46%;        /* #6B7280 */
+  --accent: 214 100% 97%;                /* #EEF5FF */
+  --accent-foreground: 221 83% 53%;      /* #2563EB */
+
+  /* Sinalização */
+  --success: 142 71% 45%;                /* #22C55E */
   --success-foreground: 0 0% 100%;
-  --warning: 38 92% 50%;               /* #F59E0B */
+  --warning: 38 92% 50%;                 /* #F59E0B */
   --warning-foreground: 220 39% 11%;
-  --info: 217 91% 60%;                 /* #3B82F6 */
+  --info: 217 91% 60%;                   /* #3B82F6 */
   --info-foreground: 0 0% 100%;
-  --destructive: 0 84% 60%;            /* #EF4444 */
+  --destructive: 0 84% 60%;              /* #EF4444 */
   --destructive-foreground: 0 0% 100%;
-  --border: 220 13% 91%;               /* #E5E7EB */
+  --operational: 24 95% 53%;             /* #F97316 — laranja GLP */
+  --operational-foreground: 0 0% 100%;
+
+  /* Bordas + raio */
+  --border: 220 13% 91%;                 /* #E5E7EB */
   --input: 220 13% 91%;
-  --ring: 217 91% 60%;
-  --radius: 0.625rem;                  /* 10px */
+  --ring: 221 83% 53%;
+  --radius: 0.625rem;                    /* 10px */
+
+  /* Sidebar */
   --sidebar-background: 0 0% 100%;
   --sidebar-gradient-from: 0 0% 100%;
   --sidebar-gradient-to: 0 0% 100%;
-  --sidebar-foreground: 220 9% 46%;    /* #6B7280 */
-  --sidebar-primary: 217 91% 60%;
+  --sidebar-foreground: 220 9% 46%;
+  --sidebar-primary: 221 83% 53%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 214 100% 97%;      /* #EEF5FF */
-  --sidebar-accent-foreground: 221 83% 53%; /* #2563EB */
+  --sidebar-accent: 214 100% 97%;
+  --sidebar-accent-foreground: 221 83% 53%;
   --sidebar-border: 220 13% 91%;
-  --sidebar-ring: 217 91% 60%;
-  --kpi-accent: 217 91% 60%;
-  --clean-header-bg: 0 0% 100%;        /* #FFFFFF */
-  --clean-header-fg: 220 39% 11%;      /* #111827 */
-  --clean-header-border: 220 13% 91%;  /* #E5E7EB */
+  --sidebar-ring: 221 83% 53%;
+
+  /* Header */
+  --clean-header-bg: 0 0% 100%;
+  --clean-header-fg: 220 39% 11%;
+  --clean-header-border: 220 13% 91%;
+
+  /* KPIs */
+  --kpi-accent: 221 83% 53%;
+  --shadow-card: 0 1px 2px rgba(17, 24, 39, 0.04), 0 1px 3px rgba(17, 24, 39, 0.03);
+  --shadow-card-hover: 0 4px 12px rgba(17, 24, 39, 0.06);
 }
 
-/* Operacional Clean — refinamento visual estilo GestãoClick */
+/* Base */
 .brand-theme-operacional-clean .system-surface,
 .brand-theme-operacional-clean body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
   font-family: var(--brand-font);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Cards e KPIs: branco, borda fina, sombra discreta, radius 12px */
+/* Cards / KPIs — radius 14px, padding 24px, sombra mínima com hover suave */
 .brand-theme-operacional-clean :where([data-slot="card"], .card, .kpi-card) {
   background-color: hsl(var(--card));
   color: hsl(var(--card-foreground));
   border: 1px solid hsl(var(--border));
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
+}
+.brand-theme-operacional-clean :where([data-slot="card"], .kpi-card):hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: hsl(220 13% 85%);
 }
 .brand-theme-operacional-clean :where([data-slot="card-content"]) {
   padding: 1.5rem;
+}
+.brand-theme-operacional-clean :where([data-slot="card-header"]) {
+  padding: 1.5rem 1.5rem 0.75rem;
 }
 
 /* Tabelas */
@@ -290,19 +323,24 @@
   border-color: hsl(var(--border));
 }
 .brand-theme-operacional-clean :where(thead, thead tr, th) {
-  background-color: #F3F4F6;
-  color: #6B7280;
+  background-color: hsl(var(--card));
+  color: hsl(var(--muted-foreground));
   font-size: 12px;
   font-weight: 600;
   text-transform: none;
   letter-spacing: 0;
-  border-color: hsl(var(--border));
+  border-bottom: 1px solid hsl(var(--border));
 }
 .brand-theme-operacional-clean :where(tbody tr) {
-  border-color: hsl(var(--border));
+  border-bottom: 1px solid hsl(var(--border));
+  transition: background-color 150ms ease;
 }
 .brand-theme-operacional-clean :where(tbody tr:hover) {
-  background-color: #F9FAFB;
+  background-color: hsl(var(--muted) / 0.6);
+}
+.brand-theme-operacional-clean :where(tbody td) {
+  padding-top: 0.875rem;
+  padding-bottom: 0.875rem;
 }
 
 /* Tipografia */
@@ -310,10 +348,20 @@
   font-family: var(--brand-font);
   color: hsl(var(--foreground));
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+}
+.brand-theme-operacional-clean :where(h1) { font-size: 1.5rem; }
+.brand-theme-operacional-clean :where(h2) { font-size: 1.25rem; }
+.brand-theme-operacional-clean :where(h3) { font-size: 1.0625rem; }
+
+/* Valores grandes (KPI) — peso 700, tabular */
+.brand-theme-operacional-clean :where(.kpi-card [data-slot="card-title"], .kpi-value, [data-kpi-value]) {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
-/* Inputs e Selects: altura 42px, radius 10px, foco azul */
+/* Inputs / Selects — 42px, radius 10px, foco azul */
 .brand-theme-operacional-clean :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea, [data-slot="input"], [data-slot="select-trigger"]) {
   min-height: 42px;
   border-radius: 10px;
@@ -327,13 +375,16 @@
   box-shadow: 0 0 0 3px hsl(var(--ring) / 0.18);
 }
 
-/* Botões: radius 10px, sem brilho */
+/* Botões — radius 10px, sem brilho, hover suave */
 .brand-theme-operacional-clean :where(button:not([data-slot="select-trigger"]):not([role="menuitem"]):not([data-sidebar])) {
   border-radius: 10px;
-  transition: background-color 150ms, color 150ms, border-color 150ms;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+.brand-theme-operacional-clean :where(button:not([data-slot="select-trigger"]):not([role="menuitem"]):not([data-sidebar])):active {
+  transform: scale(0.99);
 }
 
-/* Sidebar — item ativo com barra azul à esquerda */
+/* Sidebar — item ativo com barra vertical azul + bg azul muito claro */
 .brand-theme-operacional-clean :where(a, button)[data-active="true"],
 .brand-theme-operacional-clean :where(a, button)[aria-current="page"] {
   box-shadow: inset 3px 0 0 hsl(var(--sidebar-accent-foreground));
@@ -350,10 +401,28 @@
   transition: background-color 150ms, color 150ms;
 }
 
-/* Fade discreto */
+/* Badges de status (utilitários — aplicados pelas próprias páginas via class) */
+.brand-theme-operacional-clean :where(.badge-pendente)   { background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
+.brand-theme-operacional-clean :where(.badge-em-rota)    { background: hsl(217 91% 60% / 0.12); color: hsl(217 91% 45%); }
+.brand-theme-operacional-clean :where(.badge-entregando) { background: hsl(var(--operational) / 0.12); color: hsl(var(--operational)); }
+.brand-theme-operacional-clean :where(.badge-concluido)  { background: hsl(var(--success) / 0.12); color: hsl(142 71% 36%); }
+.brand-theme-operacional-clean :where(.badge-cancelado)  { background: hsl(var(--destructive) / 0.12); color: hsl(0 84% 50%); }
+
+/* Acentos operacionais (identidade GLP) */
+.brand-theme-operacional-clean :where(.text-operational) { color: hsl(var(--operational)); }
+.brand-theme-operacional-clean :where(.bg-operational)   { background-color: hsl(var(--operational)); color: hsl(var(--operational-foreground)); }
+.brand-theme-operacional-clean :where(.ring-operational) { box-shadow: 0 0 0 3px hsl(var(--operational) / 0.18); }
+
+/* Fade discreto em overlays */
 .brand-theme-operacional-clean :where([data-slot="dialog-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"]) {
   animation-duration: 200ms;
 }
+
+/* Scrollbar fina e neutra */
+.brand-theme-operacional-clean ::-webkit-scrollbar { width: 10px; height: 10px; }
+.brand-theme-operacional-clean ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 10px; }
+.brand-theme-operacional-clean ::-webkit-scrollbar-thumb:hover { background: hsl(220 13% 80%); }
+.brand-theme-operacional-clean ::-webkit-scrollbar-track { background: transparent; }
 
 .brand-theme-gasfacil,
 .brand-theme-saas,
