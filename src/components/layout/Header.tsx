@@ -42,7 +42,43 @@ export function Header({ title, subtitle }: HeaderProps) {
     typeof document === "undefined" ? "" : document.documentElement.getAttribute("data-theme-preset") || ""
   );
   const navigate = useNavigate();
+  const location = useLocation();
   const isCleanTheme = activePreset === "operacional-clean";
+
+  const SLUG_LABELS: Record<string, string> = {
+    dashboard: "Início",
+    financeiro: "Financeiro",
+    "contas-a-receber": "Contas a receber",
+    "contas-a-pagar": "Contas a pagar",
+    "fluxo-de-caixa": "Fluxo de caixa",
+    vendas: "Vendas",
+    pedidos: "Pedidos",
+    pdv: "PDV",
+    "nova-venda": "Nova venda",
+    devolucoes: "Devoluções",
+    clientes: "Clientes",
+    estoque: "Estoque",
+    cadastros: "Cadastros",
+    fiscal: "Fiscal",
+    frota: "Frota",
+    rh: "RH",
+    marketing: "Marketing",
+    operacional: "Operacional",
+    atendimento: "Atendimento",
+    caixa: "Caixa",
+    config: "Configurações",
+    integracoes: "Integrações",
+    admin: "Admin",
+    "assistente-ia": "Assistente IA",
+  };
+  const humanize = (slug: string) =>
+    SLUG_LABELS[slug] ?? slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const segments = location.pathname.split("/").filter(Boolean);
+  const crumbs = segments.map((seg, i) => ({
+    label: humanize(seg),
+    href: "/" + segments.slice(0, i + 1).join("/"),
+    isLast: i === segments.length - 1,
+  }));
 
   useEffect(() => {
     const syncPreset = () => setActivePreset(document.documentElement.getAttribute("data-theme-preset") || "");
