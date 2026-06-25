@@ -487,6 +487,48 @@
   border-color: hsl(var(--border));
 }
 
+/* =====================================================================
+   Operacional Clean — força chrome branco mesmo quando o BRAND theme do
+   usuário é diferente (gasfacil, premium, etc.). Garante que o drawer
+   off-canvas e o header sejam sempre legíveis nesse preset.
+   ===================================================================== */
+html[data-theme-preset="operacional-clean"] .app-sidebar-premium {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: hsl(220 9% 25%) !important;
+  border-right: 1px solid hsl(220 13% 91%) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 10px 30px -10px rgba(17, 24, 39, 0.18) !important;
+}
+html[data-theme-preset="operacional-clean"] .app-sidebar-premium::after { display: none !important; }
+html[data-theme-preset="operacional-clean"] .app-sidebar-premium :where(a, button, span, p, h1, h2, h3) {
+  color: inherit;
+}
+html[data-theme-preset="operacional-clean"] .app-sidebar-premium :where(a, button):not([data-active="true"]):not([aria-current="page"]):hover {
+  background: hsl(220 14% 96%) !important;
+  color: hsl(220 39% 11%) !important;
+}
+html[data-theme-preset="operacional-clean"] .app-sidebar-premium :where(a, button)[data-active="true"],
+html[data-theme-preset="operacional-clean"] .app-sidebar-premium :where(a, button)[aria-current="page"] {
+  background: hsl(214 100% 97%) !important;
+  color: hsl(221 83% 53%) !important;
+  box-shadow: inset 3px 0 0 hsl(221 83% 53%) !important;
+}
+html[data-theme-preset="operacional-clean"] .app-header-premium {
+  background: #ffffff !important;
+  color: hsl(220 39% 11%) !important;
+  border-bottom: 1px solid hsl(220 13% 91%) !important;
+  box-shadow: 0 1px 0 hsl(220 13% 91%) !important;
+  backdrop-filter: none !important;
+}
+html[data-theme-preset="operacional-clean"] .app-header-premium :where(h1, h2, h3, span, button, svg) {
+  color: hsl(220 39% 11%);
+}
+html[data-theme-preset="operacional-clean"] .clean-page-subbar {
+  background: #ffffff;
+  border-bottom: 1px solid hsl(220 13% 91%);
+}
+
 /* Sidebar — fundo branco sólido, borda cinza, sem sombra/glow */
 .brand-theme-operacional-clean .app-sidebar-premium {
   background: hsl(var(--sidebar-background)) !important;
