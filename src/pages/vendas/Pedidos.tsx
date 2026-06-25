@@ -1154,12 +1154,12 @@ export default function Pedidos() {
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs">
                           {podeAlterarDataEntrega ?
-                        <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 w-[140px] text-xs" /> :
+                        <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-7 w-[120px] text-xs px-2" /> :
                         pedido.data}
                         </TableCell>
-                        <TableCell className="font-medium text-sm min-w-[200px] max-w-[260px] truncate" title={pedido.cliente}>{pedido.cliente}</TableCell>
-                        <TableCell className="max-w-[180px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
-                        <TableCell className="max-w-[180px] truncate text-xs" title={formatarItensComQtd(pedido)}>{formatarItensComQtd(pedido)}</TableCell>
+                        <TableCell className="font-medium text-sm min-w-[180px] max-w-[240px] truncate" title={pedido.cliente}>{pedido.cliente}</TableCell>
+                        <TableCell className="max-w-[220px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
+                        <TableCell className="max-w-[120px] truncate text-xs" title={formatarItensComQtd(pedido)}>{formatarItensComQtd(pedido)}</TableCell>
                         <TableCell>
                           {pedido.entregador ?
                         <Badge variant="outline" className="cursor-pointer hover:bg-accent text-xs" onClick={() => abrirTransferencia(pedido)}>
