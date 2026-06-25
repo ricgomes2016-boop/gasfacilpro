@@ -1285,9 +1285,58 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   const metaCard = (
     <Card className="venda-card venda-gasmais-card venda-tone-cliente border-primary/20 bg-card/95">
-      <CardContent className="p-3 md:p-4">
+      <CardContent className="p-3 md:p-4 space-y-3">
+        {/* Cabeçalho da venda dentro do card da data */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <Badge variant="outline" className="h-6 px-2 text-[11px] border-primary/30 bg-primary/5 text-primary font-semibold">
+              #{proximoNumero ?? "—"}
+            </Badge>
+            <span className="text-sm font-semibold text-foreground truncate">Nova Venda</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openNovaVendaWindow({})}
+              className="h-7 gap-1 text-[11px]"
+            >
+              <PlusCircle className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Nova Venda</span>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label="Mais ações">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => setAiPopoverOpen(true)}>
+                  <Sparkles className="h-3.5 w-3.5 mr-2 text-primary" />
+                  Assistente IA
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setAtalhosOpen(true)}>
+                  <Keyboard className="h-3.5 w-3.5 mr-2" />
+                  Atalhos do teclado
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => openNovaVendaWindow({})}>
+                  <PlusCircle className="h-3.5 w-3.5 mr-2" />
+                  Abrir nova janela
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href="/meu-perfil" className="flex items-center w-full">
+                    <HelpCircle className="h-3.5 w-3.5 mr-2" />
+                    Versão da tela (perfil)
+                  </a>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
         <div className="grid gap-3 md:grid-cols-2">
-          <div className="py-[8px]">
+          <div>
             <Label className="text-xs font-semibold text-foreground flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               Data de Entrega
@@ -1298,7 +1347,6 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             <Label className="text-xs font-semibold text-foreground">Canal de Venda</Label>
             <Select value={canalVenda} onValueChange={setCanalVenda}>
               <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o canal de venda" /></SelectTrigger>
-
               <SelectContent>
                 {allChannels.map((ch) => (
                   <SelectItem key={ch.value} value={ch.value}>{ch.label}</SelectItem>
@@ -1308,7 +1356,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           </div>
         </div>
         {parceirosComEmpenho.length > 0 && (
-          <div className="mt-3 grid gap-3 md:grid-cols-2 border-t pt-3">
+          <div className="grid gap-3 md:grid-cols-2 border-t pt-3">
             <div>
               <Label className="text-xs font-semibold text-foreground">Empenho / Parceiro (opcional)</Label>
               <Select value={parceiroEmpenhoId} onValueChange={(v) => { setParceiroEmpenhoId(v); if (v === "nenhum") setValeNumero(""); }}>
@@ -1339,6 +1387,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       </CardContent>
     </Card>
   );
+
 
   const aiCommandPopover = (
     <Dialog open={aiPopoverOpen} onOpenChange={setAiPopoverOpen}>
