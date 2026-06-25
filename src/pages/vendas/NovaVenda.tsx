@@ -129,9 +129,9 @@ function StepperFooterBar({
   activeStep, canOpenStep, setActiveStep,
   customer, itens, pagamentos, totalVenda, entregadorPreenchido,
 }: {
-  activeStep: VendaStep;
-  canOpenStep: (s: VendaStep) => boolean;
-  setActiveStep: (s: VendaStep) => void;
+  activeStep: VendaStepId;
+  canOpenStep: (s: VendaStepId) => boolean;
+  setActiveStep: (s: VendaStepId) => void;
   customer: CustomerData;
   itens: ItemVenda[];
   pagamentos: Pagamento[];
