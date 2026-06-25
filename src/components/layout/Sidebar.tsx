@@ -263,23 +263,38 @@ export function Sidebar() {
 
   const { themeClass, brandTheme } = useDashboardTheme();
 
+  // Fecha o drawer no tema clean ao navegar para outra rota
+  const lastPathRef = useRef(location.pathname);
+  useEffect(() => {
+    if (!isCleanTheme) return;
+    if (lastPathRef.current !== location.pathname) {
+      lastPathRef.current = location.pathname;
+      if (!collapsed) setCollapsed(true);
+    }
+  }, [location.pathname, isCleanTheme, collapsed, setCollapsed]);
+
   return (
     <TooltipProvider delayDuration={0}>
       {isCleanTheme && !collapsed && (
         <div
-          onClick={toggle}
+          onClick={(e) => {
+            // Só fecha se o clique foi realmente no overlay (não borbulhou da sidebar)
+            if (e.target === e.currentTarget) toggle();
+          }}
           className="fixed inset-x-0 bottom-0 top-14 z-[55] bg-black/40"
           aria-hidden="true"
         />
       )}
       <motion.aside
         ref={sidebarRef}
+        onClick={(e) => e.stopPropagation()}
         animate={
           isCleanTheme
             ? { x: collapsed ? -280 : 0, width: 260 }
             : { width: collapsed ? 64 : 260, x: 0 }
         }
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+        style={isCleanTheme && collapsed ? { pointerEvents: "none" } : undefined}
         className={cn(
           themeClass,
           "app-sidebar-premium fixed left-0 flex-col overflow-hidden border-r border-sidebar-border/15 shadow-2xl",
