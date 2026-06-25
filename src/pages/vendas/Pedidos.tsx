@@ -1025,9 +1025,10 @@ export default function Pedidos() {
 
             <>
               {/* Mobile cards */}
-              <div className="space-y-3 md:hidden px-3 pb-3 w-full min-w-0">
+              <div className="md:hidden w-full min-w-0 divide-y divide-border/60 border-y border-border/60">
                 {pedidosPaginados.map((pedido) => (
-                  <div key={pedido.id} className={`border border-border/45 bg-card rounded-2xl p-3 space-y-2 w-full min-w-0 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${pedido.status === "cancelado" ? "opacity-60" : ""}`}>
+                  <div key={pedido.id} className={`bg-card p-3 space-y-2 w-full min-w-0 transition-colors hover:bg-muted/30 ${pedido.status === "cancelado" ? "opacity-60" : ""}`}>
+
                     <div className="flex items-start justify-between gap-2 w-full min-w-0">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} className="shrink-0" />
