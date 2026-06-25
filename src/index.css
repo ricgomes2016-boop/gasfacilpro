@@ -812,7 +812,6 @@
     border-radius: var(--radius);
   }
 
-  .status-pill-legacy {
 
   .status-pendente,
   .badge-status-pendente { @apply border-warning/30 bg-warning/15 text-warning-foreground; }
