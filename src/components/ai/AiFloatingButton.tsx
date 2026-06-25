@@ -45,8 +45,7 @@ export function AiFloatingButton({ externalOpen, onExternalClose }: AiFloatingBu
           // Mobile: full width sheet above bottom bar
           "left-2 right-2 bottom-[72px] h-[70svh] max-h-[calc(100svh-96px)] rounded-2xl",
           // Desktop: fixed panel at bottom-right, above floating chat bubble
-          "md:left-auto md:right-6 md:bottom-24 md:w-[400px] md:h-[560px] md:max-h-[calc(100vh-8rem)] md:rounded-xl",
-          "xl:bottom-28"
+          "md:left-auto md:right-4 md:bottom-36 md:w-[400px] md:h-[560px] md:max-h-[calc(100vh-10rem)] md:rounded-xl"
         )}>
 
           <div className="flex items-center justify-between px-4 py-3 border-b bg-primary/5 rounded-t-2xl md:rounded-t-lg">
