@@ -1515,7 +1515,85 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             </div>
           </div>
         )}
+
+        {/* Espaço para não esconder conteúdo atrás do rodapé fixo */}
+        <div aria-hidden className="h-20" />
       </div>
+
+      {/* Rodapé fixo: Stepper + navegação Voltar/Continuar */}
+      {useNewView && (
+        <div className="sticky bottom-0 left-0 right-0 z-30 border-t border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_-6px_20px_-12px_rgba(0,0,0,0.25)]">
+          <div className="mx-auto flex max-w-screen-2xl items-center gap-2 px-3 py-2 md:px-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              aria-label="Etapa anterior"
+              disabled={VENDA_STEPS.indexOf(activeStep) === 0}
+              onClick={() => {
+                const idx = VENDA_STEPS.indexOf(activeStep);
+                const prev = VENDA_STEPS[idx - 1];
+                if (prev && canOpenStep(prev)) setActiveStep(prev);
+              }}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div className="min-w-0 flex-1">
+              <VendaStepper
+                customer={customer}
+                itens={itens}
+                pagamentos={pagamentos}
+                totalVenda={totalVenda}
+                entregadorSelecionado={entregadorPreenchido}
+                activeStep={activeStep}
+                onStepClick={(step) => canOpenStep(step) && setActiveStep(step)}
+                compact
+              />
+            </div>
+            <Button
+              variant="default"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              aria-label="Próxima etapa"
+              disabled={VENDA_STEPS.indexOf(activeStep) === VENDA_STEPS.length - 1}
+              onClick={() => {
+                const idx = VENDA_STEPS.indexOf(activeStep);
+                const next = VENDA_STEPS[idx + 1];
+                if (next && canOpenStep(next)) setActiveStep(next);
+              }}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog Atalhos do teclado */}
+      <Dialog open={atalhosOpen} onOpenChange={setAtalhosOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Keyboard className="h-4 w-4" /> Atalhos do teclado
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 pt-2 text-sm">
+            {[
+              ["F2", "Novo pedido"],
+              ["F3", "Finalizar venda"],
+              ["F4", "Agendar entrega"],
+              ["F5", "Focar cliente"],
+              ["Enter", "Avançar para o próximo campo"],
+              ["← →", "Navegar entre etapas"],
+            ].map(([k, label]) => (
+              <div key={k} className="flex items-center justify-between border-b border-border/40 py-1.5 last:border-0">
+                <span className="text-muted-foreground">{label}</span>
+                <kbd className="rounded-[var(--radius)] border border-border bg-muted px-2 py-0.5 text-xs font-mono">{k}</kbd>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Dialog Agendamento */}
       <Dialog open={agendarOpen} onOpenChange={setAgendarOpen}>
