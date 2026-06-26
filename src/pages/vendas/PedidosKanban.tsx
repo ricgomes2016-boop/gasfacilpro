@@ -184,16 +184,16 @@ export default function PedidosKanban() {
       </div>
 
       {/* Board */}
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-3 px-3 md:mx-0 md:px-0">
+      <div className="flex flex-col md:flex-row gap-3 md:overflow-x-auto pb-2 md:-mx-3 md:px-3">
         {COLUMNS.map(col => (
           <div
             key={col.key}
-            className="flex-shrink-0 w-[280px] md:w-[300px] flex flex-col"
+            className="w-full md:flex-shrink-0 md:w-[300px] flex flex-col"
             onDragOver={onDragOver}
             onDrop={(e) => onDrop(e, col.key)}
           >
             <ColumnHeader col={col} count={porColuna[col.key].length} />
-            <div className="bg-muted/30 border border-border/60 border-t-0 rounded-b-[var(--radius)] p-2 flex-1 min-h-[200px] space-y-2 overflow-y-auto max-h-[calc(100vh-320px)]">
+            <div className="bg-muted/30 border border-border/60 border-t-0 rounded-b-[var(--radius)] p-2 flex-1 min-h-[120px] space-y-2 overflow-y-auto md:max-h-[calc(100vh-320px)]">
               {porColuna[col.key].length === 0 && (
                 <div className="text-center text-xs text-muted-foreground py-8">
                   {isLoading ? "Carregando…" : "Vazio"}
