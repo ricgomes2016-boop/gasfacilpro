@@ -27,6 +27,7 @@ import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSe
 import { format, addDays } from "date-fns";
 import { toast as sonnerToast } from "sonner";
 import { CardPaymentModal } from "@/components/entregador/CardPaymentModal";
+import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
 import { AssinaturaCanhotoCard, type AssinaturaPayload } from "@/components/entregador/AssinaturaCanhotoCard";
 
 const formasPagamento = [
@@ -43,7 +44,10 @@ interface Pagamento {
   data_vencimento_fiado?: string;
   comprovante_url?: string;
   codigo_voucher?: string;
+  conta_bancaria_id?: string;
+  operadora_id?: string;
 }
+
 
 interface PedidoItem {
   id: string;
@@ -205,7 +209,14 @@ export default function FinalizarEntrega() {
       if (novoPagamentoForma === "Cartão Crédito" || novoPagamentoForma === "Cartão Débito") {
         pag.comprovante_url = comprovanteUrl || undefined;
       }
+      if (selectedPaymentExtras.conta_bancaria_id) {
+        pag.conta_bancaria_id = selectedPaymentExtras.conta_bancaria_id;
+      }
+      if (selectedPaymentExtras.operadora_id) {
+        pag.operadora_id = selectedPaymentExtras.operadora_id;
+      }
       setPagamentos((prev) => [...prev, pag]);
+
       setNovoPagamentoForma("");
       setNovoPagamentoValor("");
       setChequeNumero("");
@@ -454,6 +465,48 @@ export default function FinalizarEntrega() {
             .eq("id", pag.valeGasInfo!.valeId);
         }
       }
+
+      // Roteamento imediato de PIX → movimentação bancária na conta escolhida
+      // (cliente já transferiu na hora; cartões/PIX maq permanecem para a conciliação).
+      const pixPagamentos = pagamentos.filter(p => p.forma === "PIX");
+      if (pixPagamentos.length > 0) {
+        const pedidoRef = (pedido as any)?.numero_sequencial
+          ? String((pedido as any).numero_sequencial)
+          : (id || "").slice(0, 8).toUpperCase();
+        for (const pag of pixPagamentos) {
+          try {
+            let contaId = pag.conta_bancaria_id || null;
+            if (!contaId && unidadeId) {
+              // Fallback: primeira conta ativa da unidade com chave PIX
+              const { data: contaFallback } = await supabase
+                .from("contas_bancarias")
+                .select("id")
+                .eq("unidade_id", unidadeId)
+                .eq("ativo", true)
+                .not("chave_pix", "is", null)
+                .limit(1)
+                .maybeSingle();
+              contaId = (contaFallback as any)?.id || null;
+            }
+            if (contaId) {
+              await criarMovimentacaoBancaria({
+                contaBancariaId: contaId,
+                valor: pag.valor,
+                descricao: `Venda #${pedidoRef} - PIX (entrega)`,
+                categoria: "venda",
+                unidadeId,
+                pedidoId: id,
+              });
+            } else {
+              sonnerToast.warning("PIX registrado, mas nenhuma conta bancária com chave PIX foi encontrada para esta unidade.");
+            }
+          } catch (pixErr: any) {
+            console.error("Erro ao rotear PIX:", pixErr);
+            sonnerToast.warning("PIX registrado no pedido, mas não foi possível creditar a conta bancária automaticamente.");
+          }
+        }
+      }
+
 
       toast({ title: "Entrega finalizada!", description: "Os dados foram salvos com sucesso." });
       navigate("/entregador/entregas");
