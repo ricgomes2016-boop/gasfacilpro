@@ -265,7 +265,7 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
               )}
             >
               {step.done ? <Check className={compact ? "h-2.5 w-2.5" : "h-3.5 w-3.5"} /> : <Icon className={compact ? "h-2.5 w-2.5" : "h-3.5 w-3.5"} />}
-              <span className={compact ? "hidden min-[380px]:inline" : "hidden sm:inline"}>{step.label}</span>
+              <span className={compact ? "hidden md:inline" : "hidden sm:inline"}>{step.label}</span>
             </button>
             {i < steps.length - 1 && (
               <div className={cn("h-px rounded", compact ? "w-2 min-w-2" : "flex-1", step.done ? "bg-primary/40" : "bg-muted")} />
