@@ -134,6 +134,7 @@ export async function sendFcmMessages(messages: FcmMessage[]): Promise<{
                 priority: "HIGH",
                 notification: {
                   channel_id: ANDROID_PUSH_CHANNEL_ID,
+                  icon: "ic_stat_icon",
                   sound: ANDROID_PUSH_SOUND,
                   notification_priority: "PRIORITY_MAX",
                   visibility: "PUBLIC",
