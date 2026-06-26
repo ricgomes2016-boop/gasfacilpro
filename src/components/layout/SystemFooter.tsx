@@ -60,6 +60,8 @@ export function SystemFooter({ portalKey, accentHsl, className }: SystemFooterPr
   const [quote] = useState(() => getRandomQuote(resolvedKey));
   const [centerOverride, setCenterOverride] = useState(false);
   const dotColor = accentHsl ?? ACCENT_BY_PORTAL[resolvedKey] ?? ACCENT_BY_PORTAL.erp;
+  const isNovaVendaRoute = location.pathname.startsWith("/vendas/nova");
+  const centerActive = centerOverride || isNovaVendaRoute;
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -75,13 +77,13 @@ export function SystemFooter({ portalKey, accentHsl, className }: SystemFooterPr
       className={cn(
         "fixed bottom-0 right-0 left-0 z-40 border-t border-border/40 bg-background/85 backdrop-blur-md transition-all duration-300",
         // Desktop: always show; Mobile: only when center slot is active (e.g. Nova Venda stepper)
-        centerOverride ? "flex" : "hidden md:flex",
+        centerActive ? "flex" : "hidden md:flex",
         collapsed ? "xl:left-16" : "xl:left-[260px]",
         className,
       )}
-      style={centerOverride ? { paddingBottom: "env(safe-area-inset-bottom)" } : undefined}
+      style={centerActive ? { paddingBottom: "env(safe-area-inset-bottom)" } : undefined}
     >
-      <div className={cn("w-full mx-auto flex items-center", centerOverride ? "px-2 py-1 gap-2 md:px-3 md:py-1.5 md:gap-3" : "px-3 py-1.5 gap-3")}>
+      <div className={cn("w-full mx-auto flex items-center", centerActive ? "px-2 py-1 gap-2 md:px-3 md:py-1.5 md:gap-3" : "px-3 py-1.5 gap-3")}>
         {/* Left: accent — hidden on mobile to free width for stepper */}
         <div
           className="w-2 h-2 rounded-full shrink-0 hidden md:block"

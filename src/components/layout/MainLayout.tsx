@@ -33,6 +33,8 @@ function MainLayoutContent({ children }: MainLayoutProps) {
     typeof document === "undefined" ? "" : document.documentElement.getAttribute("data-theme-preset") || ""
   );
   const isCleanTheme = activePreset === "operacional-clean";
+  const isNovaVendaRoute = location.pathname.startsWith("/vendas/nova");
+  const hasFooterCenterActive = footerCenterActive || isNovaVendaRoute;
 
 
   useEffect(() => {
@@ -80,7 +82,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       <ChatOperador externalOpen={chatOpen} onExternalClose={() => setChatOpen(false)} onUnreadChange={setChatUnread} />
       <TransferenciaPendentePopup />
       <PedidoPendenteAlertProvider />
-      {!footerCenterActive && (
+      {!hasFooterCenterActive && (
         <MobileBottomBar
           onOpenAi={() => {
             if (isAiPage) {

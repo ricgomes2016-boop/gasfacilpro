@@ -90,6 +90,11 @@ function getSavedViewMode() {
   }
 }
 
+function isMobileViewport() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(max-width: 767px)").matches;
+}
+
 function saveViewMode(useNewView: boolean) {
   try {
     localStorage.setItem(VIEW_KEY, useNewView ? "new" : "old");
@@ -356,6 +361,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const [pendingReceiptData, setPendingReceiptData] = useState<any>(null);
   const [boletoAsaasConta, setBoletoAsaasConta] = useState<any>(null);
   const [useNewView, setUseNewView] = useState(() => {
+    // No mobile, a Nova Venda sempre usa o fluxo por etapas para manter o stepper fixo visível.
+    if (isMobileViewport()) return true;
     const saved = getSavedViewMode();
     return saved ? saved === "new" : true;
   });
@@ -369,6 +376,15 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   useEffect(() => {
     if (!getSavedViewMode() && isGasmais) setUseNewView(true);
   }, [isGasmais]);
+
+  useEffect(() => {
+    const enforceMobileStepper = () => {
+      if (isMobileViewport()) setUseNewView(true);
+    };
+    enforceMobileStepper();
+    window.addEventListener("resize", enforceMobileStepper);
+    return () => window.removeEventListener("resize", enforceMobileStepper);
+  }, []);
 
   // Permite que o botão "Assistente IA" do Header global abra o diálogo desta tela
   useEffect(() => {
