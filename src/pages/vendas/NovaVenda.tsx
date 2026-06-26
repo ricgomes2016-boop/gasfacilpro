@@ -1587,40 +1587,22 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         <div aria-hidden className="h-20" />
       </div>
 
-      {/* Rodapé fixo: Stepper + navegação Voltar/Continuar (mobile sticky; desktop via SystemFooter portal) */}
+      {/* Rodapé fixo: Stepper + navegação Voltar/Continuar (portal único no SystemFooter — fixo em mobile e desktop) */}
       {useNewView && (
-        <>
-          {/* Mobile sticky */}
-          <div className="md:hidden sticky bottom-0 left-0 right-0 z-30 border-t border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_-6px_20px_-12px_rgba(0,0,0,0.25)]">
-            <div className="mx-auto flex max-w-screen-2xl items-center gap-2 px-3 py-2">
-              <StepperFooterBar
-                activeStep={activeStep}
-                canOpenStep={canOpenStep}
-                setActiveStep={setActiveStep}
-                customer={customer}
-                itens={itens}
-                pagamentos={pagamentos}
-                totalVenda={totalVenda}
-                entregadorPreenchido={entregadorPreenchido}
-              />
-            </div>
-          </div>
-
-          {/* Desktop: portal into SystemFooter center slot */}
-          <NovaVendaFooterStepper>
-            <StepperFooterBar
-              activeStep={activeStep}
-              canOpenStep={canOpenStep}
-              setActiveStep={setActiveStep}
-              customer={customer}
-              itens={itens}
-              pagamentos={pagamentos}
-              totalVenda={totalVenda}
-              entregadorPreenchido={entregadorPreenchido}
-            />
-          </NovaVendaFooterStepper>
-        </>
+        <NovaVendaFooterStepper>
+          <StepperFooterBar
+            activeStep={activeStep}
+            canOpenStep={canOpenStep}
+            setActiveStep={setActiveStep}
+            customer={customer}
+            itens={itens}
+            pagamentos={pagamentos}
+            totalVenda={totalVenda}
+            entregadorPreenchido={entregadorPreenchido}
+          />
+        </NovaVendaFooterStepper>
       )}
+
 
 
       {/* Dialog Atalhos do teclado */}
