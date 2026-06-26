@@ -72,6 +72,7 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
 
   // Track driver GPS and update DB
   const trackingState = useGeoTracking();
+  useNativePush();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
