@@ -129,8 +129,8 @@ export async function sendFcmMessages(messages: FcmMessage[]): Promise<{
               android: {
                 priority: "HIGH",
                 notification: {
-                  channel_id: "default",
-                  sound: "default",
+                  channel_id: "gasfacil_alerts_v2",
+                  sound: "gasfacil_alert.wav",
                   default_vibrate_timings: true,
                 },
               },

@@ -2,6 +2,9 @@ import { useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 
+const ANDROID_PUSH_CHANNEL_ID = "gasfacil_alerts_v2";
+const ANDROID_PUSH_SOUND = "gasfacil_alert.wav";
+
 /**
  * Registra push notifications nativo (FCM/APNs) via Capacitor.
  * Necessário para entregar notificações com a tela desligada ou app fechado.
@@ -22,12 +25,22 @@ export function useNativePush() {
         if (Capacitor.getPlatform() === "android") {
           try {
             await PushNotifications.createChannel({
-              id: "default",
+              id: ANDROID_PUSH_CHANNEL_ID,
               name: "Notificações Importantes",
               description: "Novos pedidos, chats e alertas",
               importance: 5, // IMPORTANCE_HIGH (heads-up + som + acorda tela)
               visibility: 1,
-              sound: "default",
+              sound: ANDROID_PUSH_SOUND,
+              vibration: true,
+              lights: true,
+            });
+            await LocalNotifications.createChannel({
+              id: ANDROID_PUSH_CHANNEL_ID,
+              name: "Alertas GasFacil",
+              description: "Novos pedidos, chats e alertas",
+              importance: 5,
+              visibility: 1,
+              sound: ANDROID_PUSH_SOUND,
               vibration: true,
               lights: true,
             });
@@ -114,28 +127,18 @@ export function useNativePush() {
         PushNotifications.addListener("registrationError", (err) => {
           console.warn("[useNativePush] registration error", err);
         });
-
-        // Em foreground (app visível): NÃO replicar a notificação como LocalNotification
-        // — isso causaria o som tocar enquanto o entregador já está usando o app.
-        // Quando o app está em background/fechado, o próprio FCM exibe a notificação
-        // pelo canal "default" (HIGH) com som e wake-lock.
+        // Em foreground, o Android entrega o push ao WebView e nao exibe
+        // notificacao do sistema. A notificacao local garante som.
         PushNotifications.addListener("pushNotificationReceived", (n) => {
-          const visible =
-            typeof document !== "undefined" && document.visibilityState === "visible";
-          if (visible) {
-            // App aberto — deixa a UI/toast cuidar. Sem som.
-            return;
-          }
-          // Edge case: evento entregue ao webview mas app não está visível.
           LocalNotifications.schedule({
             notifications: [
               {
                 id: Math.floor(Math.random() * 2_147_483_000),
                 title: n.title || "Novo aviso",
                 body: n.body || "",
-                channelId: "default",
+                channelId: ANDROID_PUSH_CHANNEL_ID,
                 smallIcon: "ic_stat_icon",
-                sound: "default",
+                sound: ANDROID_PUSH_SOUND,
                 extra: n.data ?? {},
               },
             ],
