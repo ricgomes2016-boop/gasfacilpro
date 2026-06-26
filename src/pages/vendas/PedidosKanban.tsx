@@ -8,6 +8,7 @@ import {
 
 import { Card } from "@/components/ui/card";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -139,6 +140,7 @@ export default function PedidosKanban() {
 
   return (
     <MainLayout>
+    <Header title="Pedidos — Kanban" subtitle="Visualização por status" />
     <div className="px-3 md:px-6 py-4 space-y-4">
       {/* Top bar */}
       <Card className="p-3 md:p-4">
