@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
+import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -137,6 +138,7 @@ export default function PedidosKanban() {
   }
 
   return (
+    <MainLayout>
     <div className="px-3 md:px-6 py-4 space-y-4">
       {/* Top bar */}
       <Card className="p-3 md:p-4">
@@ -218,6 +220,7 @@ export default function PedidosKanban() {
         onChangeEntregador={(id) => pedidoAberto && atribuirEntregador({ pedidoId: pedidoAberto.id, entregadorId: id })}
       />
     </div>
+    </MainLayout>
   );
 }
 
