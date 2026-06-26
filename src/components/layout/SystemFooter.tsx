@@ -81,10 +81,10 @@ export function SystemFooter({ portalKey, accentHsl, className }: SystemFooterPr
       )}
       style={centerOverride ? { paddingBottom: "env(safe-area-inset-bottom)" } : undefined}
     >
-      <div className="w-full mx-auto px-3 py-1.5 flex items-center gap-3">
-        {/* Left: accent */}
+      <div className={cn("w-full mx-auto flex items-center", centerOverride ? "px-2 py-1 gap-2 md:px-3 md:py-1.5 md:gap-3" : "px-3 py-1.5 gap-3")}>
+        {/* Left: accent — hidden on mobile to free width for stepper */}
         <div
-          className="w-2 h-2 rounded-full shrink-0"
+          className="w-2 h-2 rounded-full shrink-0 hidden md:block"
           style={{ background: `hsl(${dotColor})` }}
           aria-hidden
         />
@@ -101,6 +101,7 @@ export function SystemFooter({ portalKey, accentHsl, className }: SystemFooterPr
           className="hidden md:flex items-center gap-1.5 shrink-0"
         />
       </div>
+
     </footer>
   );
 }
