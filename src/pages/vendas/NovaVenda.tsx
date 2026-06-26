@@ -357,7 +357,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const [boletoAsaasConta, setBoletoAsaasConta] = useState<any>(null);
   const [useNewView, setUseNewView] = useState(() => {
     const saved = getSavedViewMode();
-    return saved ? saved === "new" : isGasmais;
+    return saved ? saved === "new" : true;
   });
   const [activeStep, setActiveStep] = useState<VendaStepId>("cliente");
   const recognitionRef = useRef<any>(null);
