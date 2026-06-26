@@ -466,6 +466,48 @@ export default function FinalizarEntrega() {
         }
       }
 
+      // Roteamento imediato de PIX → movimentação bancária na conta escolhida
+      // (cliente já transferiu na hora; cartões/PIX maq permanecem para a conciliação).
+      const pixPagamentos = pagamentos.filter(p => p.forma === "PIX");
+      if (pixPagamentos.length > 0) {
+        const pedidoRef = (pedido as any)?.numero_sequencial
+          ? String((pedido as any).numero_sequencial)
+          : (id || "").slice(0, 8).toUpperCase();
+        for (const pag of pixPagamentos) {
+          try {
+            let contaId = pag.conta_bancaria_id || null;
+            if (!contaId && unidadeId) {
+              // Fallback: primeira conta ativa da unidade com chave PIX
+              const { data: contaFallback } = await supabase
+                .from("contas_bancarias")
+                .select("id")
+                .eq("unidade_id", unidadeId)
+                .eq("ativo", true)
+                .not("chave_pix", "is", null)
+                .limit(1)
+                .maybeSingle();
+              contaId = (contaFallback as any)?.id || null;
+            }
+            if (contaId) {
+              await criarMovimentacaoBancaria({
+                contaBancariaId: contaId,
+                valor: pag.valor,
+                descricao: `Venda #${pedidoRef} - PIX (entrega)`,
+                categoria: "venda",
+                unidadeId,
+                pedidoId: id,
+              });
+            } else {
+              sonnerToast.warning("PIX registrado, mas nenhuma conta bancária com chave PIX foi encontrada para esta unidade.");
+            }
+          } catch (pixErr: any) {
+            console.error("Erro ao rotear PIX:", pixErr);
+            sonnerToast.warning("PIX registrado no pedido, mas não foi possível creditar a conta bancária automaticamente.");
+          }
+        }
+      }
+
+
       toast({ title: "Entrega finalizada!", description: "Os dados foram salvos com sucesso." });
       navigate("/entregador/entregas");
     } catch (err: any) {
