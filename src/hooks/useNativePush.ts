@@ -128,26 +128,10 @@ export function useNativePush() {
           console.warn("[useNativePush] registration error", err);
         });
         // Em foreground, o Android entrega o push ao WebView e nao exibe
-        // notificacao do sistema. Mantemos notificação local só quando o app
-        // está visível; em background/lockscreen o FCM nativo já toca pelo canal.
+        // notificacao do sistema. Não reemitimos som aqui para evitar que
+        // notificações represadas toquem apenas quando o app for aberto.
         PushNotifications.addListener("pushNotificationReceived", (n) => {
-          if (typeof document !== "undefined" && document.visibilityState !== "visible") {
-            return;
-          }
-
-          LocalNotifications.schedule({
-            notifications: [
-              {
-                id: Math.floor(Math.random() * 2_147_483_000),
-                title: n.title || "Novo aviso",
-                body: n.body || "",
-                channelId: ANDROID_PUSH_CHANNEL_ID,
-                smallIcon: "ic_stat_icon",
-                sound: ANDROID_PUSH_SOUND,
-                extra: n.data ?? {},
-              },
-            ],
-          }).catch((e) => console.warn("[useNativePush] local schedule error", e));
+          console.info("[useNativePush] push foreground recebido", n?.data ?? {});
         });
 
 
