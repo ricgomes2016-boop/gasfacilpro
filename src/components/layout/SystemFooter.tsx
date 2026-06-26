@@ -73,11 +73,13 @@ export function SystemFooter({ portalKey, accentHsl, className }: SystemFooterPr
   return (
     <footer
       className={cn(
-        "hidden md:flex fixed bottom-0 right-0 z-40 border-t border-border/40 bg-background/85 backdrop-blur-md transition-all duration-300",
-        "left-0",
+        "fixed bottom-0 right-0 left-0 z-40 border-t border-border/40 bg-background/85 backdrop-blur-md transition-all duration-300",
+        // Desktop: always show; Mobile: only when center slot is active (e.g. Nova Venda stepper)
+        centerOverride ? "flex" : "hidden md:flex",
         collapsed ? "xl:left-16" : "xl:left-[260px]",
         className,
       )}
+      style={centerOverride ? { paddingBottom: "env(safe-area-inset-bottom)" } : undefined}
     >
       <div className="w-full mx-auto px-3 py-1.5 flex items-center gap-3">
         {/* Left: accent */}
@@ -93,12 +95,13 @@ export function SystemFooter({ portalKey, accentHsl, className }: SystemFooterPr
         </div>
 
 
-        {/* Right: action buttons (AI, WhatsApp, etc.) */}
+        {/* Right: action buttons (AI, WhatsApp, etc.) — desktop only */}
         <div
           id={FOOTER_ACTIONS_ID}
-          className="flex items-center gap-1.5 shrink-0"
+          className="hidden md:flex items-center gap-1.5 shrink-0"
         />
       </div>
     </footer>
   );
 }
+

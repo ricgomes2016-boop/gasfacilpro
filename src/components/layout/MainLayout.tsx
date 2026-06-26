@@ -28,14 +28,25 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   const [chatOpen, setChatOpen] = useState(false);
   const [calcOpen, setCalcOpen] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
+  const [footerCenterActive, setFooterCenterActive] = useState(false);
   const [activePreset, setActivePreset] = useState(() =>
     typeof document === "undefined" ? "" : document.documentElement.getAttribute("data-theme-preset") || ""
   );
   const isCleanTheme = activePreset === "operacional-clean";
 
+
   useEffect(() => {
     if (isAiPage) setAiOpen(false);
   }, [isAiPage]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setFooterCenterActive(Boolean((e as CustomEvent<boolean>).detail));
+    };
+    window.addEventListener("system-footer:center", handler);
+    return () => window.removeEventListener("system-footer:center", handler);
+  }, []);
+
 
   useEffect(() => {
     const syncPreset = () => setActivePreset(document.documentElement.getAttribute("data-theme-preset") || "");
@@ -69,21 +80,24 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       <ChatOperador externalOpen={chatOpen} onExternalClose={() => setChatOpen(false)} onUnreadChange={setChatUnread} />
       <TransferenciaPendentePopup />
       <PedidoPendenteAlertProvider />
-      <MobileBottomBar
-        onOpenAi={() => {
-          if (isAiPage) {
-            const input = document.querySelector<HTMLInputElement>('input[data-ai-chat-input], textarea[data-ai-chat-input]')
-              || document.querySelector<HTMLInputElement>('main input[type="text"], main textarea');
-            input?.focus();
-            window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-          } else {
-            setAiOpen(true);
-          }
-        }}
-        onOpenChat={() => setChatOpen(true)}
-        onOpenCalc={() => setCalcOpen(true)}
-        chatUnread={chatUnread}
-      />
+      {!footerCenterActive && (
+        <MobileBottomBar
+          onOpenAi={() => {
+            if (isAiPage) {
+              const input = document.querySelector<HTMLInputElement>('input[data-ai-chat-input], textarea[data-ai-chat-input]')
+                || document.querySelector<HTMLInputElement>('main input[type="text"], main textarea');
+              input?.focus();
+              window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+            } else {
+              setAiOpen(true);
+            }
+          }}
+          onOpenChat={() => setChatOpen(true)}
+          onOpenCalc={() => setCalcOpen(true)}
+          chatUnread={chatUnread}
+        />
+      )}
+
       <CalculatorPopover externalOpen={calcOpen} onExternalClose={() => setCalcOpen(false)} />
       <NovaVendaWindowsHost />
       <SystemFooter />
