@@ -1,6 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
-import { requireAuth } from "../_shared/auth.ts";
 import { sendFcmMessages } from "../_shared/fcm.ts";
 
 const corsHeaders = {
@@ -17,23 +16,7 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const auth = await requireAuth(req, corsHeaders);
-  if (!auth.ok) return auth.response;
-
   try {
-    const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
-    const VAPID_SUBJECT =
-      Deno.env.get("VAPID_SUBJECT") ?? "mailto:contato@gasfacilpro.com.br";
-
-    if (!VAPID_PRIVATE_KEY) {
-      return new Response(
-        JSON.stringify({ ok: false, error: "VAPID_PRIVATE_KEY ausente" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-
     const body = await req.json().catch(() => ({}));
     const mensagemId = body?.mensagem_id as string | undefined;
     const conversaIdInput = body?.conversa_id as string | undefined;
@@ -131,25 +114,37 @@ Deno.serve(async (req) => {
     const webSubs = subs.filter((s: any) => s.provider !== "fcm" && s.endpoint && s.p256dh && s.auth);
     const fcmSubs = subs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
 
-    await Promise.all(
-      webSubs.map(async (s: any) => {
-        try {
-          await webpush.sendNotification(
-            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-            payload,
-            { TTL: 60 }
-          );
-          sent++;
-        } catch (err: any) {
-          const status = err?.statusCode;
-          if (status === 404 || status === 410) {
-            staleEndpoints.push(s.endpoint);
-          } else {
-            console.warn("[send-push-novo-chat] erro envio:", status, err?.body);
-          }
-        }
-      })
-    );
+    if (webSubs.length > 0) {
+      const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
+      const VAPID_SUBJECT =
+        Deno.env.get("VAPID_SUBJECT") ?? "mailto:contato@gasfacilpro.com.br";
+
+      if (VAPID_PRIVATE_KEY) {
+        webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+
+        await Promise.all(
+          webSubs.map(async (s: any) => {
+            try {
+              await webpush.sendNotification(
+                { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+                payload,
+                { TTL: 60 }
+              );
+              sent++;
+            } catch (err: any) {
+              const status = err?.statusCode;
+              if (status === 404 || status === 410) {
+                staleEndpoints.push(s.endpoint);
+              } else {
+                console.warn("[send-push-novo-chat] erro envio:", status, err?.body);
+              }
+            }
+          })
+        );
+      } else {
+        console.warn("[send-push-novo-chat] VAPID_PRIVATE_KEY ausente; web push ignorado");
+      }
+    }
 
     if (fcmSubs.length > 0) {
       const fcmResult = await sendFcmMessages(
