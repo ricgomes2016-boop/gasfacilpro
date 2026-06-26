@@ -17,6 +17,8 @@
     "@capacitor/android": "^8.2.0",
     "@capacitor/core": "^8.2.0",
     "@capacitor/ios": "^8.2.0",
+    "@capacitor/local-notifications": "^8.2.0",
+    "@capacitor/push-notifications": "^8.1.1",
     "@elevenlabs/react": "^1.1.1",
     "@hookform/resolvers": "^3.10.0",
     "@lovable.dev/cloud-auth-js": "^1.0.0",
