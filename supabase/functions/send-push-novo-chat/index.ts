@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 import { requireAuth } from "../_shared/auth.ts";
+import { sendFcmMessages } from "../_shared/fcm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -127,8 +128,11 @@ Deno.serve(async (req) => {
     let sent = 0;
     const staleEndpoints: string[] = [];
 
+    const webSubs = subs.filter((s: any) => s.provider !== "fcm" && s.endpoint && s.p256dh && s.auth);
+    const fcmSubs = subs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
+
     await Promise.all(
-      subs.map(async (s: any) => {
+      webSubs.map(async (s: any) => {
         try {
           await webpush.sendNotification(
             { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
@@ -146,6 +150,24 @@ Deno.serve(async (req) => {
         }
       })
     );
+
+    if (fcmSubs.length > 0) {
+      const fcmResult = await sendFcmMessages(
+        fcmSubs.map((s: any) => ({
+          token: s.fcm_token,
+          title: `💬 ${titulo}`,
+          body: preview || "Nova mensagem no WhatsApp",
+          data: { url: "/atendimento/caixa-de-entrada", conversaId: conv.id, tag: `novo-chat-${conv.id}` },
+        }))
+      );
+      sent += fcmResult.sent;
+      if (fcmResult.invalidTokens.length > 0) {
+        await supabase
+          .from("push_subscriptions")
+          .delete()
+          .in("fcm_token", fcmResult.invalidTokens);
+      }
+    }
 
     if (staleEndpoints.length > 0) {
       await supabase

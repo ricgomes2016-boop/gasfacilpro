@@ -131,23 +131,31 @@ export default function MapaOperacional() {
 
   // Markers no mapa: só quem tem GPS, esmaecido se instável, oculto se offline
   const entregadoresMapa: Entregador[] = useMemo(() => {
-    return ents.filter(e => e.latitude && e.longitude).map((e) => {
-      const pres = presencaMap[e.id];
-      const diffMs = e.updated_at ? Date.now() - new Date(e.updated_at).getTime() : Infinity;
-      const diffMin = Math.floor(diffMs / 60000);
-      const ultimaAtt = diffMin < 1 ? "agora" : diffMin < 60 ? `há ${diffMin}min` : `há ${Math.floor(diffMin / 60)}h`;
-      return {
-        id: e.id, nome: e.nome,
-        status: pres?.presenca === "em_rota" ? "em_rota" : "disponivel",
-        lat: e.latitude!, lng: e.longitude!,
-        ultimaAtualizacao: ultimaAtt,
-        updatedAt: e.updated_at,
-      } as Entregador;
-    }).filter(e => {
-      const pres = presencaMap[e.id];
-      return pres?.presenca !== "offline"; // não mostra offline no mapa
-    });
-  }, [ents, presencaMap]);
+    return ents
+      .filter((e) => e.latitude && e.longitude)
+      .map((e) => {
+        const pres = presencaMap[e.id];
+        const diffMs = e.updated_at ? Date.now() - new Date(e.updated_at).getTime() : Infinity;
+        const diffMin = Math.floor(diffMs / 60000);
+        const ultimaAtt =
+          diffMin < 1 ? "agora" : diffMin < 60 ? `há ${diffMin}min` : `há ${Math.floor(diffMin / 60)}h`;
+        return {
+          id: e.id,
+          nome: e.nome,
+          status: pres?.presenca === "em_rota" ? "em_rota" : "disponivel",
+          lat: e.latitude!,
+          lng: e.longitude!,
+          ultimaAtualizacao: ultimaAtt,
+          updatedAt: e.updated_at,
+          presenca: pres?.presenca ?? "offline",
+        } as Entregador;
+      })
+      .filter((e: any) => {
+        // Sempre mostra quem tem GPS. Esconde offline só quando o toggle estiver desligado.
+        if (mostrarOffline) return true;
+        return e.presenca !== "offline";
+      });
+  }, [ents, presencaMap, mostrarOffline]);
 
   // Clientes (entregas) no mapa
   const clientesMapa: ClienteEntrega[] = useMemo(() => peds.map((p) => {
