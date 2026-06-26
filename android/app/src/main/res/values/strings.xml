@@ -4,5 +4,5 @@
     <string name="title_activity_main">GásFacilPro Entregador</string>
     <string name="package_name">com.gasfacilpro.app</string>
     <string name="custom_url_scheme">com.gasfacilpro.app</string>
-    <string name="default_notification_channel_id">gasfacil_alerts_v2</string>
+    <string name="default_notification_channel_id">gasfacil_alerts_v3</string>
 </resources>

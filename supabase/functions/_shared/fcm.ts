@@ -9,6 +9,9 @@ interface ServiceAccount {
   token_uri: string;
 }
 
+const ANDROID_PUSH_CHANNEL_ID = "gasfacil_alerts_v3";
+const ANDROID_PUSH_SOUND = "gasfacil_alert";
+
 function base64url(input: ArrayBuffer | Uint8Array | string): string {
   let bytes: Uint8Array;
   if (typeof input === "string") {
@@ -127,11 +130,16 @@ export async function sendFcmMessages(messages: FcmMessage[]): Promise<{
                 Object.entries(m.data ?? {}).map(([k, v]) => [k, String(v)])
               ),
               android: {
+                ttl: "4500s",
                 priority: "HIGH",
                 notification: {
-                  channel_id: "gasfacil_alerts_v2",
-                  sound: "gasfacil_alert.wav",
+                  channel_id: ANDROID_PUSH_CHANNEL_ID,
+                  icon: "ic_stat_icon",
+                  sound: ANDROID_PUSH_SOUND,
+                  notification_priority: "PRIORITY_MAX",
+                  visibility: "PUBLIC",
                   default_vibrate_timings: true,
+                  default_light_settings: true,
                 },
               },
               apns: {
