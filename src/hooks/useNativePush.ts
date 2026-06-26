@@ -70,12 +70,20 @@ export function useNativePush() {
           if (!empresaId) {
             const { data: ent } = await supabase
               .from("entregadores")
-              .select("empresa_id, unidade_id")
+              .select("unidade_id")
               .eq("user_id", user.id)
               .eq("ativo", true)
               .maybeSingle();
-            empresaId = ent?.empresa_id ?? null;
+            if (ent?.unidade_id) {
+              const { data: uni } = await supabase
+                .from("unidades")
+                .select("empresa_id")
+                .eq("id", ent.unidade_id)
+                .maybeSingle();
+              empresaId = uni?.empresa_id ?? null;
+            }
           }
+
 
           if (!empresaId && unidadeId) {
             const { data: uni } = await supabase
