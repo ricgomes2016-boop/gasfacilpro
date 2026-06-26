@@ -140,11 +140,11 @@ function StepperFooterBar({
 }) {
   const idx = VENDA_STEPS.indexOf(activeStep);
   return (
-    <>
+    <div className="flex w-full items-center gap-1.5 flex-nowrap">
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
-        className="h-8 w-8 shrink-0"
+        className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full"
         aria-label="Etapa anterior"
         disabled={idx === 0}
         onClick={() => {
@@ -152,9 +152,9 @@ function StepperFooterBar({
           if (prev && canOpenStep(prev)) setActiveStep(prev);
         }}
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="h-3.5 w-3.5" />
       </Button>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar">
         <VendaStepper
           customer={customer}
           itens={itens}
@@ -167,9 +167,9 @@ function StepperFooterBar({
         />
       </div>
       <Button
-        variant="default"
+        variant="outline"
         size="icon"
-        className="h-8 w-8 shrink-0"
+        className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full"
         aria-label="Próxima etapa"
         disabled={idx === VENDA_STEPS.length - 1}
         onClick={() => {
@@ -177,11 +177,12 @@ function StepperFooterBar({
           if (next && canOpenStep(next)) setActiveStep(next);
         }}
       >
-        <ChevronRight className="h-4 w-4" />
+        <ChevronRight className="h-3.5 w-3.5" />
       </Button>
-    </>
+    </div>
   );
 }
+
 
 
 // Stepper component
@@ -233,12 +234,12 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
   };
 
   return (
-    <div className="flex items-center justify-between gap-1" role="tablist" aria-label="Etapas da venda">
+    <div className={cn("flex items-center", compact ? "gap-0.5" : "justify-between gap-1")} role="tablist" aria-label="Etapas da venda">
       {steps.map((step, i) => {
         const Icon = step.icon;
         const isActive = activeStep === step.id;
         return (
-          <div key={step.label} className="flex items-center gap-1 flex-1">
+          <div key={step.label} className={cn("flex items-center", compact ? "gap-0.5 shrink-0" : "gap-1 flex-1")}>
             <button
               ref={(el) => (tabRefs.current[i] = el)}
               type="button"
@@ -254,20 +255,20 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
               title={onStepClick && !isActive ? `Clique ou use ← → para ir para ${step.label}` : undefined}
               aria-label={`Etapa ${step.label}${step.done ? " (preenchida)" : ""}`}
               className={cn(
-                "flex items-center gap-1 rounded-full font-medium transition-colors disabled:cursor-not-allowed",
+                "flex items-center gap-1 rounded-full font-medium transition-colors disabled:cursor-not-allowed whitespace-nowrap",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                 "venda-step-tab",
                 STEP_TONE_CLASS[step.id],
-                compact ? "px-1.5 py-0.5 text-[11px]" : "px-2.5 py-1.5 text-xs",
+                compact ? "px-1.5 py-0.5 text-[10px]" : "px-2.5 py-1.5 text-xs",
                 isActive || step.done ? "" : "bg-muted text-muted-foreground",
                 step.enabled && onStepClick && !isActive && "cursor-pointer hover:bg-muted/80 hover:ring-2 hover:ring-primary/30"
               )}
             >
-              {step.done ? <Check className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} /> : <Icon className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />}
-              <span className="hidden sm:inline">{step.label}</span>
+              {step.done ? <Check className={compact ? "h-2.5 w-2.5" : "h-3.5 w-3.5"} /> : <Icon className={compact ? "h-2.5 w-2.5" : "h-3.5 w-3.5"} />}
+              <span className={compact ? "hidden min-[380px]:inline" : "hidden sm:inline"}>{step.label}</span>
             </button>
             {i < steps.length - 1 && (
-              <div className={cn("h-px flex-1 rounded", step.done ? "bg-primary/30" : "bg-muted")} />
+              <div className={cn("h-px rounded", compact ? "w-2 min-w-2" : "flex-1", step.done ? "bg-primary/40" : "bg-muted")} />
             )}
           </div>
         );
@@ -275,6 +276,7 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
     </div>
   );
 }
+
 
 
 interface NovaVendaProps {
