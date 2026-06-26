@@ -140,6 +140,7 @@ export default function PedidosKanban() {
 
   return (
     <MainLayout>
+    <Header title="Pedidos — Kanban" subtitle="Visualização por status" />
     <div className="px-3 md:px-6 py-4 space-y-4">
       {/* Top bar */}
       <Card className="p-3 md:p-4">
