@@ -27,6 +27,7 @@ import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSe
 import { format, addDays } from "date-fns";
 import { toast as sonnerToast } from "sonner";
 import { CardPaymentModal } from "@/components/entregador/CardPaymentModal";
+import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
 import { AssinaturaCanhotoCard, type AssinaturaPayload } from "@/components/entregador/AssinaturaCanhotoCard";
 
 const formasPagamento = [
