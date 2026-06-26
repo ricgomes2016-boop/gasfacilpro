@@ -1,46 +1,34 @@
-## 1. App entregador notificar com tela desligada / fora do app
+## Plano: corrigir busca de endereço do cliente (Nova Venda e Cadastro)
 
-Hoje o app usa Web Push (VAPID) via `usePushSubscription` + edge function `send-push-novo-pedido`. No APK Android dentro de WebView (Capacitor com `server.url`), Web Push **não dispara com a tela desligada nem com o app fechado** — por isso o entregador só recebe quando está com a tela do sistema aberta.
+### Diagnóstico
+Examinei a função `autocomplete_clientes_v2` (usada pelo autocomplete em Nova Venda e por `VendedorClientes`) e o hook `useClientes` (Cadastro de Clientes), e cruzei com os dados reais no banco:
 
-Solução: adicionar push nativo via Capacitor + FCM, mantendo o Web Push como fallback para quem usa pelo navegador.
+- 62.451 clientes ativos, mas só **40.678 têm `endereco`** preenchido na tabela `clientes` e apenas **7.759 têm `numero`**. Boa parte dos clientes do app armazena o endereço principal apenas em `cliente_enderecos` (tabela separada, com `rua`, `numero`, `bairro`, `cep`, `complemento`, `referencia`, `principal`).
+- A função RPC `autocomplete_clientes_v2` **só lê e busca colunas da tabela `clientes`**. Resultado: para clientes que se cadastraram via app, a busca retorna o nome mas sem endereço, e endereços salvos no app não são localizados quando o operador digita rua/bairro.
+- Em registros importados, o endereço inteiro foi colocado no campo `endereco` (ex.: `"Rua Pará, 160, Centro"`) e `numero`/`bairro` ficaram nulos — então a busca "número da casa" não casa.
+- No `useClientes.ts` (Cadastro), a busca também ignora `cliente_enderecos` e usa apenas `ilike` em `endereco`/`bairro` da tabela `clientes`.
 
-Passos:
-- Instalar `@capacitor/push-notifications` e `@capacitor/local-notifications`.
-- Criar hook `useNativePush` que, dentro do Capacitor, pede permissão, registra o token FCM e salva em `push_subscriptions` (novo campo `provider = 'fcm'` + `fcm_token`).
-- Migração: adicionar colunas `provider text default 'web'` e `fcm_token text` em `push_subscriptions`, índice por `user_id + provider`.
-- Atualizar edge function `send-push-novo-pedido` (e `send-push-novo-chat`) para, além do Web Push, disparar via FCM HTTP v1 quando houver `fcm_token` (usa secret `FCM_SERVER_KEY` que vou pedir ao publicar).
-- No app: registrar listener `pushNotificationReceived` para exibir `LocalNotifications` quando o app está em foreground, e `pushNotificationActionPerformed` para abrir a tela do pedido ao tocar.
-- `AndroidManifest`: nada a editar manualmente — o plugin injeta. Documentar para o usuário rodar `npx cap sync android` e gerar nova APK.
+### Correções propostas
 
-Observação: para a notificação acordar o aparelho com tela desligada, a mensagem FCM precisa ser do tipo **notification** (não data-only) com `priority: high`. A edge function fará isso.
+1. **Atualizar a RPC `autocomplete_clientes_v2` (migração SQL)**
+   - Buscar também em `cliente_enderecos` (rua, numero, bairro, cep, cidade, complemento).
+   - Fazer COALESCE para retornar o endereço principal de `cliente_enderecos` quando `clientes.endereco` estiver vazio.
+   - Manter a lógica atual de "rua + número" funcionando tanto via `clientes.numero` quanto via `cliente_enderecos.numero`.
+   - Considerar "rua + número" também quando `clientes.numero` for nulo mas o `endereco` contiver o número (regex sobre o próprio texto), cobrindo a base importada.
+   - Score: dar peso extra quando o match vier do endereço principal.
 
-## 2. Mapa Operacional sem mostrar entregadores
+2. **Atualizar `useClientes.ts` (tela Cadastro)**
+   - Estender o filtro `or(...)` para também encontrar clientes cujo endereço principal (em `cliente_enderecos`) bata com o termo. Implementação: antes de montar a query, fazer um `select cliente_id from cliente_enderecos` filtrando por `rua/bairro/cep ilike` e juntar esses IDs no `.in("id", [...])` final junto com o filtro de unidade.
+   - Ao listar, enriquecer cada cliente com o endereço principal de `cliente_enderecos` quando os campos da tabela `clientes` estiverem vazios, para que a coluna de endereço apareça corretamente na tabela.
 
-A query traz os entregadores corretamente, mas o `useMemo` filtra duas vezes:
-1. `e.latitude && e.longitude` — esconde quem nunca enviou GPS.
-2. `presencaMap[e.id].presenca !== "offline"` — `useEntregadorPresenca` marca como "offline" quem não tem rota em andamento, mesmo que o `entregadores.updated_at` seja recente. Resultado: ninguém aparece.
+3. **(Opcional, mesma migração) view auxiliar `clientes_endereco_resolvido`**
+   - Materializar lógica "endereço efetivo = COALESCE(clientes.endereco_components, principal de cliente_enderecos)" para reaproveitar em outras telas (lista, perfil, kanban). Mantém o restante do app sem mudança imediata.
 
-Correção em `src/pages/operacional/MapaOperacional.tsx` e `src/hooks/useEntregadorPresenca.ts`:
-- Considerar `entregadores.updated_at` (último heartbeat enviado pelo app) como fallback quando não há `rota_historico`. Se atualizado há ≤ 5 min → `online`; ≤ 30 min → `instavel`; senão → `offline`.
-- Respeitar o toggle "Mostrar offline" também na lista de markers; quando ligado, mostrar entregadores com GPS mesmo offline.
-- Quando o entregador não tiver GPS mas tiver pedidos atribuídos, renderizar no pino da unidade com badge "sem GPS" (apenas na lista lateral, não no mapa).
+### Arquivos/objetos afetados
+- `supabase/migrations/<novo>.sql` — recriar `autocomplete_clientes_v2` e (opcional) view auxiliar.
+- `src/hooks/useClientes.ts` — filtro + enriquecimento com `cliente_enderecos`.
+- Sem alteração em `ClienteAutocompleteInput.tsx` nem em `NovaVenda` (eles já consomem os campos que a RPC passar a retornar).
 
-## 3. Renato Roffe aparecendo na Forte Gás
-
-Existem dois registros de "Renato Roffe" ativos:
-- `bc24178c-…` em Forte Gás (antigo)
-- `da20ac76-…` em Central Gas (atual, após transferência)
-
-A transferência criou o novo sem desativar o antigo. Vou:
-- Desativar (`ativo = false`) o registro `bc24178c-…` na Forte Gás (mantém histórico, some dos seletores).
-- Migrar referências pendentes (pedidos/rotas em aberto) do id antigo para o novo, se houver — verifico antes de aplicar.
-
-## Resumo técnico (para devs)
-
-| Área | Arquivos |
-| --- | --- |
-| Push nativo | `package.json`, `src/hooks/useNativePush.ts` (novo), `src/pages/entregador/EntregadorLayout.tsx`, `supabase/functions/send-push-novo-pedido/index.ts`, `send-push-novo-chat/index.ts`, migração `push_subscriptions` |
-| Mapa | `src/hooks/useEntregadorPresenca.ts`, `src/pages/operacional/MapaOperacional.tsx` |
-| Renato | `UPDATE entregadores SET ativo=false WHERE id='bc24178c-9330-4a76-a7b9-199e50df621e'` (+ remap de pedidos abertos se existirem) |
-
-Após aprovar, vou pedir o `FCM_SERVER_KEY` (chave do Firebase Cloud Messaging do projeto) e instruir o `npx cap sync android` + nova build da APK no fim.
+### Fora do escopo
+- Não vou mexer no fluxo de criação/edição de cliente nem em RLS — apenas leitura.
+- Não vou migrar dados em massa entre `clientes.endereco` e `cliente_enderecos`; a correção é de busca/exibição.
