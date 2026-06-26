@@ -113,6 +113,28 @@ export function useClientes() {
           buscaDigits.slice(-9),
         ].filter((v) => v.length >= 8)));
 
+        // Também procurar nos endereços do app (cliente_enderecos)
+        let enderecoIds: string[] = [];
+        try {
+          const orParts = [
+            `rua.ilike.%${buscaTexto}%`,
+            `bairro.ilike.%${buscaTexto}%`,
+            `cidade.ilike.%${buscaTexto}%`,
+          ];
+          if (buscaDigits.length >= 5) orParts.push(`cep.ilike.%${buscaDigits}%`);
+          const { data: ceData } = await supabase
+            .from("cliente_enderecos")
+            .select("cliente_id")
+            .in("cliente_id", clienteIds)
+            .or(orParts.join(","))
+            .limit(500);
+          enderecoIds = Array.from(
+            new Set((ceData || []).map((r: any) => r.cliente_id).filter(Boolean))
+          );
+        } catch (e) {
+          console.warn("[useClientes] busca em cliente_enderecos falhou", e);
+        }
+
         const textFilters = [
           `nome.ilike.%${buscaTexto}%`,
           `telefone.ilike.%${buscaTexto}%`,
@@ -125,6 +147,10 @@ export function useClientes() {
           `telefone.ilike.%${candidate}%`,
           `cpf.ilike.%${candidate}%`,
         ]);
+
+        if (enderecoIds.length > 0) {
+          textFilters.push(`id.in.(${enderecoIds.join(",")})`);
+        }
 
         query = query.or([...textFilters, ...digitFilters].join(","));
       }
