@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 
-const ANDROID_PUSH_CHANNEL_ID = "gasfacil_alerts_v2";
+const ANDROID_PUSH_CHANNEL_ID = "gasfacil_alerts_v3";
 const ANDROID_PUSH_SOUND = "gasfacil_alert.wav";
 
 /**
@@ -128,8 +128,13 @@ export function useNativePush() {
           console.warn("[useNativePush] registration error", err);
         });
         // Em foreground, o Android entrega o push ao WebView e nao exibe
-        // notificacao do sistema. A notificacao local garante som.
+        // notificacao do sistema. Mantemos notificação local só quando o app
+        // está visível; em background/lockscreen o FCM nativo já toca pelo canal.
         PushNotifications.addListener("pushNotificationReceived", (n) => {
+          if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+            return;
+          }
+
           LocalNotifications.schedule({
             notifications: [
               {
