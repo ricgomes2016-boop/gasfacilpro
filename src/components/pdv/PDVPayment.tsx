@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,49 +8,115 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Banknote, CreditCard, Smartphone, Receipt } from "lucide-react";
+import { Banknote, CreditCard, Smartphone, Receipt, Plus, Trash2, Flame } from "lucide-react";
 import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useToast } from "@/hooks/use-toast";
+
+export interface PDVPagamento {
+  id: string;
+  forma: string;
+  valor: number;
+  operadora_id?: string;
+  conta_bancaria_id?: string;
+  info?: string;
+}
 
 interface PDVPaymentProps {
   open: boolean;
   onClose: () => void;
   total: number;
-  onConfirm: (formaPagamento: string, valorRecebido: number, extras?: { operadora_id?: string; conta_bancaria_id?: string }) => void;
+  onConfirm: (pagamentos: PDVPagamento[], valorRecebidoDinheiro: number) => void;
   isLoading: boolean;
+  itens?: Array<{ nome: string; quantidade: number }>;
 }
 
-const formasPagamento = [
+const formasPagamentoBase = [
   { value: "dinheiro", label: "Dinheiro", icon: Banknote },
   { value: "pix", label: "PIX", icon: Smartphone },
   { value: "pix_maquininha", label: "PIX Maquininha", icon: Smartphone },
   { value: "credito", label: "Cartão Crédito", icon: CreditCard },
   { value: "debito", label: "Cartão Débito", icon: CreditCard },
   { value: "vale_gas", label: "Vale Gás", icon: Receipt },
-  
   { value: "cheque", label: "Cheque", icon: Receipt },
 ];
 
-export function PDVPayment({ open, onClose, total, onConfirm, isLoading }: PDVPaymentProps) {
+const GAS_DO_POVO_OPTION = { value: "gas_do_povo", label: "Gás do Povo", icon: Flame };
+
+export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens = [] }: PDVPaymentProps) {
+  const [pagamentos, setPagamentos] = useState<PDVPagamento[]>([]);
   const [formaPagamento, setFormaPagamento] = useState("dinheiro");
-  const [valorRecebido, setValorRecebido] = useState("");
+  const [valorParcial, setValorParcial] = useState("");
   const [pixModalOpen, setPixModalOpen] = useState(false);
   const [cardModalOpen, setCardModalOpen] = useState(false);
-  const [selectedExtras, setSelectedExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string }>({});
-  const [selectedInfo, setSelectedInfo] = useState<string | null>(null);
+  const [pendingExtras, setPendingExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string; info?: string } | null>(null);
   const { unidadeAtual } = useUnidade();
+  const { toast } = useToast();
 
-  const valorRecebidoNum = parseFloat(valorRecebido.replace(",", ".")) || 0;
-  const troco = formaPagamento === "dinheiro" ? Math.max(0, valorRecebidoNum - total) : 0;
-  const canFinalize = formaPagamento !== "dinheiro" || valorRecebidoNum >= total;
+  const gasDoPovoHabilitado = !!(unidadeAtual as any)?.gas_do_povo_habilitado;
+  const gasDoPovoValor = Number((unidadeAtual as any)?.gas_do_povo_valor ?? 101.08);
+  const formasPagamento = gasDoPovoHabilitado
+    ? [...formasPagamentoBase, GAS_DO_POVO_OPTION]
+    : formasPagamentoBase;
+
+  // Carrinho elegível: exatamente 1× Gás P13 (e somente esse item)
+  const cartoElegivelGasDoPovo = (() => {
+    if (itens.length !== 1) return false;
+    const it = itens[0];
+    if (it.quantidade !== 1) return false;
+    return /g[áa]s\s*p13/i.test(it.nome);
+  })();
+
+  const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+  const restante = Math.max(0, total - totalPago);
+  const valorParcialNum = parseFloat(valorParcial.replace(",", ".")) || 0;
+
+  // Reset on open
+  useEffect(() => {
+    if (open) {
+      setPagamentos([]);
+      setFormaPagamento("dinheiro");
+      setValorParcial("");
+      setPendingExtras(null);
+    }
+  }, [open]);
+
+  // Pré-preenche valor parcial com restante quando muda forma ou restante
+  useEffect(() => {
+    if (restante > 0) {
+      setValorParcial(restante.toFixed(2).replace(".", ","));
+    } else {
+      setValorParcial("");
+    }
+  }, [restante, formaPagamento]);
+
+  const dinheiroPagamentos = pagamentos.filter((p) => p.forma === "dinheiro");
+  const totalDinheiro = dinheiroPagamentos.reduce((acc, p) => acc + p.valor, 0);
+  // troco: se total de dinheiro lançado cobre o que falta dos outros, sobra é troco
+  const totalOutros = totalPago - totalDinheiro;
+  const faltaAposOutros = Math.max(0, total - totalOutros);
+  const troco = Math.max(0, totalDinheiro - faltaAposOutros);
+
+  const podeFinalizar = totalPago >= total && pagamentos.length > 0;
 
   const handleSelectForma = (value: string) => {
+    if (value === "gas_do_povo") {
+      if (!cartoElegivelGasDoPovo) {
+        toast({
+          title: "Gás do Povo indisponível",
+          description: "Aceito apenas para venda de exatamente 1× Gás P13.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setFormaPagamento(value);
+      setPendingExtras({ info: `Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2)` });
+      setValorParcial(gasDoPovoValor.toFixed(2).replace(".", ","));
+      return;
+    }
     setFormaPagamento(value);
-    setSelectedExtras({});
-    setSelectedInfo(null);
-
-    // Open selector modals for PIX / Card
+    setPendingExtras(null);
     if (value === "pix") {
       setPixModalOpen(true);
     } else if (value === "credito" || value === "debito" || value === "pix_maquininha") {
@@ -58,15 +124,61 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading }: PDVPa
     }
   };
 
-  const handleConfirm = () => {
-    onConfirm(formaPagamento, valorRecebidoNum, selectedExtras);
+  const addPagamento = () => {
+    if (valorParcialNum <= 0) return;
+    const needsCard = ["credito", "debito", "pix_maquininha"].includes(formaPagamento);
+    const needsPix = formaPagamento === "pix";
+    if (needsCard && !pendingExtras?.operadora_id) {
+      setCardModalOpen(true);
+      return;
+    }
+    if (needsPix && !pendingExtras?.conta_bancaria_id) {
+      setPixModalOpen(true);
+      return;
+    }
+    if (formaPagamento === "gas_do_povo") {
+      if (!cartoElegivelGasDoPovo) {
+        toast({
+          title: "Carrinho inválido",
+          description: "Gás do Povo aceito apenas para 1× Gás P13.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (Math.abs(valorParcialNum - gasDoPovoValor) > 0.01) {
+        toast({
+          title: "Valor incorreto",
+          description: `O valor do Gás do Povo é fixo em R$ ${gasDoPovoValor.toFixed(2)}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    setPagamentos((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        forma: formaPagamento,
+        valor: valorParcialNum,
+        operadora_id: pendingExtras?.operadora_id,
+        conta_bancaria_id: pendingExtras?.conta_bancaria_id,
+        info: pendingExtras?.info,
+      },
+    ]);
+    setPendingExtras(null);
+    setFormaPagamento("dinheiro");
   };
 
-  const setQuickValue = (value: number) => {
-    setValorRecebido(value.toFixed(2).replace(".", ","));
+  const removePagamento = (id: string) => {
+    setPagamentos((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const handleConfirm = () => {
+    onConfirm(pagamentos, totalDinheiro);
   };
 
   const cardTipo = formaPagamento === "credito" ? "credito" : formaPagamento === "pix_maquininha" ? "pix_maquininha" : "debito";
+  const formaLabel = (f: string) => formasPagamento.find((x) => x.value === f)?.label || f;
 
   return (
     <>
@@ -79,89 +191,107 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading }: PDVPa
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-6">
-            {/* Total */}
-            <div className="text-center p-4 bg-primary/10 rounded-lg">
-              <p className="text-sm text-muted-foreground">Total a Pagar</p>
-              <p className="text-4xl font-bold text-primary">
-                R$ {total.toFixed(2)}
-              </p>
-            </div>
-
-            {/* Forma de Pagamento */}
-            <div className="space-y-2">
-              <Label>Forma de Pagamento</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {formasPagamento.map((forma) => {
-                  const Icon = forma.icon;
-                  return (
-                    <Button
-                      key={forma.value}
-                      variant={formaPagamento === forma.value ? "default" : "outline"}
-                      className="h-14 flex-col gap-1"
-                      onClick={() => handleSelectForma(forma.value)}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span className="text-xs">{forma.label}</span>
-                    </Button>
-                  );
-                })}
+          <div className="space-y-4">
+            {/* Total / Restante */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="text-center p-3 bg-primary/10 rounded-lg">
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="text-2xl font-bold text-primary">R$ {total.toFixed(2)}</p>
+              </div>
+              <div className={`text-center p-3 rounded-lg ${restante > 0 ? "bg-destructive/10" : "bg-success/10"}`}>
+                <p className="text-xs text-muted-foreground">Restante</p>
+                <p className={`text-2xl font-bold ${restante > 0 ? "text-destructive" : "text-success"}`}>
+                  R$ {restante.toFixed(2)}
+                </p>
               </div>
             </div>
 
-            {/* Info da seleção (operadora ou chave) */}
-            {selectedInfo && (
-              <div className="p-3 rounded-lg bg-success/10 text-success text-sm text-center font-medium">
-                {selectedInfo}
+            {/* Lista de pagamentos adicionados */}
+            {pagamentos.length > 0 && (
+              <div className="space-y-1 border rounded-lg p-2">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide px-1">Pagamentos</p>
+                {pagamentos.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between gap-2 text-sm p-2 rounded bg-muted/40">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{formaLabel(p.forma)}</p>
+                      {p.info && <p className="text-xs text-muted-foreground truncate">{p.info}</p>}
+                    </div>
+                    <span className="font-semibold shrink-0">R$ {p.valor.toFixed(2)}</span>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removePagamento(p.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* Valor Recebido (só para dinheiro) */}
-            {formaPagamento === "dinheiro" && (
-              <div className="space-y-2">
-                <Label>Valor Recebido</Label>
-                <Input
-                  type="text"
-                  placeholder="0,00"
-                  value={valorRecebido}
-                  onChange={(e) => setValorRecebido(e.target.value)}
-                  className="text-lg text-center font-mono"
-                />
-                <div className="flex gap-2 w-full min-w-0">
-                  {[50, 100, 150, 200].map((value) => (
-                    <Button
-                      key={value}
-                      variant="outline"
-                      className="flex-1 h-10 min-w-0 px-2"
-                      onClick={() => setQuickValue(value)}
-                    >
-                      <span className="truncate">R$ {value}</span>
-                    </Button>
-                  ))}
+            {/* Seletor forma + valor (só se ainda há restante) */}
+            {restante > 0 && (
+              <>
+                <div className="space-y-2">
+                  <Label>Forma de Pagamento</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {formasPagamento.map((forma) => {
+                      const Icon = forma.icon;
+                      return (
+                        <Button
+                          key={forma.value}
+                          type="button"
+                          variant={formaPagamento === forma.value ? "default" : "outline"}
+                          className="h-12 flex-col gap-0.5"
+                          onClick={() => handleSelectForma(forma.value)}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span className="text-[11px]">{forma.label}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                {valorRecebidoNum > 0 && (
-                  <div className="text-center p-3 bg-success/10 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Troco</p>
-                    <p className="text-2xl font-bold text-success">
-                      R$ {troco.toFixed(2)}
-                    </p>
+                {pendingExtras?.info && (
+                  <div className="p-2 rounded-lg bg-success/10 text-success text-xs text-center font-medium">
+                    {pendingExtras.info}
                   </div>
                 )}
+
+                <div className="space-y-2">
+                  <Label>Valor</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      placeholder="0,00"
+                      value={valorParcial}
+                      onChange={(e) => setValorParcial(e.target.value)}
+                      className="text-lg text-center font-mono"
+                    />
+                    <Button type="button" onClick={addPagamento} disabled={valorParcialNum <= 0} className="shrink-0">
+                      <Plus className="h-4 w-4 mr-1" /> Adicionar
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Troco */}
+            {troco > 0 && (
+              <div className="text-center p-3 bg-success/10 rounded-lg">
+                <p className="text-sm text-muted-foreground">Troco</p>
+                <p className="text-2xl font-bold text-success">R$ {troco.toFixed(2)}</p>
               </div>
             )}
 
             {/* Botões */}
             <div className="flex gap-2 w-full min-w-0">
               <Button variant="outline" className="flex-1 h-11 min-w-0" onClick={onClose}>
-                <span className="truncate">Cancelar</span>
+                Cancelar
               </Button>
               <Button
                 className="flex-1 h-11 min-w-0"
-                disabled={!canFinalize || isLoading}
+                disabled={!podeFinalizar || isLoading}
                 onClick={handleConfirm}
               >
-                <span className="truncate">{isLoading ? "Processando..." : "Confirmar"}</span>
+                {isLoading ? "Processando..." : "Confirmar"}
               </Button>
             </div>
           </div>
@@ -172,11 +302,10 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading }: PDVPa
       <PixKeySelectorModal
         open={pixModalOpen}
         onClose={() => setPixModalOpen(false)}
-        valor={total}
+        valor={valorParcialNum > 0 ? valorParcialNum : restante}
         beneficiario={unidadeAtual?.nome}
-        onSelect={(chavePix, contaBancariaId) => {
-          setSelectedExtras({ conta_bancaria_id: contaBancariaId });
-          setSelectedInfo(`PIX via conta selecionada`);
+        onSelect={(_chavePix, contaBancariaId) => {
+          setPendingExtras({ conta_bancaria_id: contaBancariaId, info: "PIX via conta selecionada" });
         }}
       />
 
@@ -184,11 +313,13 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading }: PDVPa
       <CardOperatorSelectorModal
         open={cardModalOpen}
         onClose={() => setCardModalOpen(false)}
-        valor={total}
+        valor={valorParcialNum > 0 ? valorParcialNum : restante}
         tipoCartao={cardTipo}
         onSelect={(op) => {
-          setSelectedExtras({ operadora_id: op.id });
-          setSelectedInfo(`${op.nome} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo} • Líq. R$ ${op.valorLiquido.toFixed(2)}`);
+          setPendingExtras({
+            operadora_id: op.id,
+            info: `${op.nome} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo}`,
+          });
         }}
       />
     </>

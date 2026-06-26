@@ -125,7 +125,7 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
         .from("profiles")
         .select("empresa_id")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError) {
         console.error("Error fetching profile:", profileError);

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useWhatsAppNotifications } from "@/contexts/WhatsAppNotificationContext";
 import { WhatsAppInbox } from "./WhatsAppInbox";
 import { cn } from "@/lib/utils";
+import { PortalToId, FOOTER_ACTIONS_ID } from "@/components/layout/footerPortals";
 
 const HIDDEN_PREFIXES = [
   "/auth",
@@ -33,26 +34,29 @@ export function WhatsAppFloatingChat() {
 
   return (
     <>
-      <Button
-        onClick={() => setOpen(true)}
-        size="icon"
-        className={cn(
-          "fixed bottom-4 right-4 z-50 hidden h-14 w-14 rounded-full shadow-lg xl:inline-flex",
-          "bg-green-600 hover:bg-green-700 text-white",
-          open && "hidden"
-        )}
-        aria-label="Abrir Chat WhatsApp"
-      >
-        <MessageCircle className="h-6 w-6" />
-        {totalUnread > 0 && (
-          <Badge
-            variant="destructive"
-            className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 text-[10px] flex items-center justify-center rounded-full"
-          >
-            {totalUnread > 99 ? "99+" : totalUnread}
-          </Badge>
-        )}
-      </Button>
+      <PortalToId id={FOOTER_ACTIONS_ID}>
+        <Button
+          onClick={() => setOpen(true)}
+          size="icon"
+          className={cn(
+            "relative h-8 w-8 rounded-full shadow-md",
+            "bg-green-600 hover:bg-green-700 text-white",
+            open && "hidden"
+          )}
+          aria-label="Abrir Chat WhatsApp"
+        >
+          <MessageCircle className="h-4 w-4" />
+          {totalUnread > 0 && (
+            <Badge
+              variant="destructive"
+              className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 text-[9px] flex items-center justify-center rounded-full"
+            >
+              {totalUnread > 99 ? "99+" : totalUnread}
+            </Badge>
+          )}
+        </Button>
+      </PortalToId>
+
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent

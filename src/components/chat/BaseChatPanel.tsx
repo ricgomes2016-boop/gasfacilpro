@@ -188,8 +188,9 @@ export function BaseChatPanel() {
 
   useEffect(() => {
     if (unidadeIds.length === 0) return;
+    const channelScope = unidadeIds.slice().sort().join("-");
     const channel = supabase
-      .channel("chat-base-all")
+      .channel(`chat-base-${channelScope}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_mensagens" },

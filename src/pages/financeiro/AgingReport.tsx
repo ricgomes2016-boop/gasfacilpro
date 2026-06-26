@@ -3,11 +3,12 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { AlertTriangle, Download, Clock } from "lucide-react";
+import { AlertTriangle, Download, Clock, CheckCircle2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -184,7 +185,11 @@ export default function AgingReport({ embedded }: { embedded?: boolean } = {}) {
             {isLoading ? (
               <p className="text-center py-8 text-muted-foreground">Carregando...</p>
             ) : items.length === 0 ? (
-              <p className="text-center py-8 text-muted-foreground">🎉 Nenhum título vencido! Parabéns pela gestão.</p>
+              <EmptyState
+                icon={CheckCircle2}
+                title="Nenhum título vencido"
+                description="A carteira está em dia. Novos títulos vencidos aparecerão automaticamente nesta visão."
+              />
             ) : (
               <div className="overflow-x-auto">
                 <Table>

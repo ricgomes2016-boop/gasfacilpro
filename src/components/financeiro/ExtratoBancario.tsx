@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Plus, ArrowUpCircle, ArrowDownCircle, TrendingUp, TrendingDown, Wallet, CalendarDays } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDateString } from "@/lib/utils";
@@ -32,9 +33,10 @@ interface ContaBancaria {
 
 interface Props {
   contas: ContaBancaria[];
+  toolbarExtra?: ReactNode;
 }
 
-export default function ExtratoBancario({ contas }: Props) {
+export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [contaSelecionada, setContaSelecionada] = useState<string>(contas[0]?.id || "");
@@ -175,7 +177,9 @@ export default function ExtratoBancario({ contas }: Props) {
         <Button onClick={() => setDialogOpen(true)} disabled={!contaSelecionada}>
           <Plus className="h-4 w-4 mr-2" />Nova Movimentação
         </Button>
+        {toolbarExtra && <div className="flex items-end">{toolbarExtra}</div>}
       </div>
+
 
       {/* KPIs */}
       {conta && (
@@ -224,9 +228,16 @@ export default function ExtratoBancario({ contas }: Props) {
       {isLoading ? (
         <p className="text-center py-8 text-muted-foreground">Carregando...</p>
       ) : movsPorDia.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">
-          Nenhuma movimentação no período selecionado.
-        </CardContent></Card>
+        <Card>
+          <CardContent className="p-4">
+            <EmptyState
+              icon={Wallet}
+              title="Nenhuma movimentação no período"
+              description="Escolha outro período ou registre uma movimentação para acompanhar o extrato."
+              action={{ label: "Nova movimentação", onClick: () => setDialogOpen(true), icon: Plus }}
+            />
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-3">
           {movsPorDia.map(([dia, { movs, saldoDia }]) => (

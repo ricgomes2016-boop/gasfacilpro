@@ -89,7 +89,7 @@ const STATUS_CONFIG: Record<StatusConexao, { color: string; label: string; icon:
   aguardando: { color: "bg-amber-500", label: "Aguardando QR", icon: Loader2 },
 };
 
-const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
+const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID || "gcrdftnnbgsogoqcmcxo";
 const WEBHOOK_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/meta-webhook`;
 const VERIFY_TOKEN = "gasfacil_meta_verify";
 
@@ -222,7 +222,7 @@ export default function AdminWhatsAppConfig() {
             meta_numero_display: result.display_phone_number || null,
             meta_qualidade_numero: result.quality_rating || "GREEN",
             ultima_verificacao: new Date().toISOString(),
-          })
+          } as any)
           .eq("id", config.id);
 
         return { status: newStatus, display: result.display_phone_number };
@@ -422,7 +422,7 @@ export default function AdminWhatsAppConfig() {
                       meta_coexistencia_ativa: true,
                       status_conexao: "aguardando",
                       updated_at: new Date().toISOString(),
-                    })
+                    } as any)
                     .eq("id", existing.id);
                 } else {
                   await supabase.from("integracoes_whatsapp").insert({
@@ -437,7 +437,7 @@ export default function AdminWhatsAppConfig() {
                     nome_bot: "BIA",
                     ativo: true,
                     status_conexao: "aguardando",
-                  });
+                  } as any);
                 }
 
                 queryClient.invalidateQueries({ queryKey: ["admin-whatsapp-configs"] });

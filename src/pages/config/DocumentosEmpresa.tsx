@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CertidoesEmpresaTab } from "@/components/config/CertidoesEmpresaTab";
@@ -48,8 +49,15 @@ function formatBytes(bytes: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function getStoragePath(value: string | null | undefined, bucket: string) {
+  if (!value) return null;
+  const urlParts = value.split(`/${bucket}/`);
+  return urlParts[1] ? decodeURIComponent(urlParts[1]) : value;
+}
+
 export default function DocumentosEmpresa() {
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,8 +102,7 @@ export default function DocumentosEmpresa() {
 
   const deleteMutation = useMutation({
     mutationFn: async (doc: any) => {
-      const urlParts = doc.arquivo_url.split("/documentos-empresa/");
-      const storagePath = urlParts[1] ? decodeURIComponent(urlParts[1]) : null;
+      const storagePath = getStoragePath(doc.arquivo_url, "documentos-empresa");
 
       if (storagePath) {
         const { error: storageError } = await supabase.storage
@@ -116,26 +123,26 @@ export default function DocumentosEmpresa() {
 
   const handleUpload = async () => {
     if (!selectedFile || !formNome.trim() || !user) return;
+    if (!empresa?.id) {
+      toast.error("Empresa não identificada para salvar o documento");
+      return;
+    }
     setUploading(true);
 
     try {
       const ext = selectedFile.name.split(".").pop();
-      const storagePath = `${crypto.randomUUID()}.${ext}`;
+      const storagePath = `${empresa.id}/documentos/${crypto.randomUUID()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("documentos-empresa")
         .upload(storagePath, selectedFile);
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from("documentos-empresa")
-        .getPublicUrl(storagePath);
-
       const { error: dbError } = await supabase.from("documentos_empresa").insert({
         nome: formNome.trim(),
         descricao: formDescricao.trim() || null,
         categoria: formCategoria,
-        arquivo_url: urlData.publicUrl,
+        arquivo_url: storagePath,
         arquivo_nome: selectedFile.name,
         arquivo_tamanho: selectedFile.size,
         unidade_id: unidadeAtual?.id || null,
@@ -169,8 +176,7 @@ export default function DocumentosEmpresa() {
       return;
     }
 
-    const urlParts = doc.arquivo_url.split("/documentos-empresa/");
-    const storagePath = urlParts[1] ? decodeURIComponent(urlParts[1]) : null;
+    const storagePath = getStoragePath(doc.arquivo_url, "documentos-empresa");
     if (!storagePath) { toast.error("Arquivo não encontrado"); return; }
 
     const { data, error } = await supabase.storage

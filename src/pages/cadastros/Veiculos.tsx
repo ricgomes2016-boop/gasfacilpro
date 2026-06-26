@@ -34,6 +34,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { VeiculoDetalheDialog } from "@/components/frota/VeiculoDetalheDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { SignedImage } from "@/components/ui/signed-image";
 
 const PLACA_MERCOSUL_REGEX = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
 const PLACA_LEGADO_REGEX = /^[A-Z]{3}[0-9]{4}$/;
@@ -718,7 +719,7 @@ export default function Veiculos() {
                         <div className="flex items-start gap-3 min-w-0 flex-1">
                           <button type="button" onClick={() => setDetalheVeiculo(v)} className="shrink-0 focus:outline-none focus:ring-2 focus:ring-primary rounded-lg" title="Ver detalhes">
                           {v.foto_url ? (
-                            <img src={v.foto_url} alt={v.placa} className="h-14 w-14 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition" />
+                            <SignedImage value={v.foto_url} bucket="vehicle-photos" alt={v.placa} className="h-14 w-14 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition" />
                           ) : (
                             <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center cursor-pointer hover:bg-muted/70 transition">
                               <Car className="h-6 w-6 text-muted-foreground" />
@@ -787,7 +788,7 @@ export default function Veiculos() {
                       <TableCell className="w-16">
                         <button type="button" onClick={() => setDetalheVeiculo(v)} className="focus:outline-none focus:ring-2 focus:ring-primary rounded-lg" title="Ver detalhes">
                         {v.foto_url ? (
-                          <img src={v.foto_url} alt={v.placa} className="h-12 w-12 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition" />
+                          <SignedImage value={v.foto_url} bucket="vehicle-photos" alt={v.placa} className="h-12 w-12 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition" />
                         ) : (
                           <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center cursor-pointer hover:bg-muted/70 transition">
                             <Car className="h-5 w-5 text-muted-foreground" />

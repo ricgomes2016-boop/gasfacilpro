@@ -122,6 +122,27 @@ export function ClienteProvider({ children }: { children: ReactNode }) {
   // Resolve empresa: from URL param, localStorage, or user profile
   useEffect(() => {
     const resolveEmpresa = async () => {
+      // Priority 0: URL param ?u=<slug-da-unidade> → resolve a empresa via unidade
+      const unidadeSlugFromUrl = searchParams.get("u") || localStorage.getItem("cliente_unidade_slug");
+      if (unidadeSlugFromUrl) {
+        const { data: uData } = await supabase.rpc("get_unidade_by_slug", { _slug: unidadeSlugFromUrl });
+        const row = Array.isArray(uData) ? uData[0] : uData;
+        if (row?.empresa_slug) {
+          localStorage.setItem("cliente_unidade_slug", unidadeSlugFromUrl);
+          localStorage.setItem("cliente_empresa_slug", row.empresa_slug);
+          localStorage.setItem("cliente_loja_id", row.id);
+          setEmpresaSlug(row.empresa_slug);
+          setEmpresaInfo({
+            id: row.empresa_id,
+            nome: row.empresa_nome,
+            slug: row.empresa_slug,
+            logo_url: row.logo_url || row.empresa_logo_url || null,
+          } as EmpresaInfo);
+          setLojaSelecionadaIdState(row.id);
+          return;
+        }
+      }
+
       // Priority 1: URL param ?empresa=slug
       const slugFromUrl = searchParams.get("empresa");
       // Priority 2: localStorage

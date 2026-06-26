@@ -13,7 +13,11 @@ const STORAGE_KEY = "sidebar:collapsed";
 function readInitial(): boolean {
   try {
     if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(STORAGE_KEY) === "true";
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored !== null) return stored === "true";
+    // Clean theme uses an off-canvas drawer that starts closed.
+    const preset = document.documentElement.getAttribute("data-theme-preset");
+    return preset === "operacional-clean";
   } catch {
     return false;
   }
@@ -39,10 +43,17 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const FALLBACK_SIDEBAR_CONTEXT: SidebarContextType = {
+  collapsed: false,
+  setCollapsed: () => {},
+  toggle: () => {},
+};
+
 export function useSidebarContext() {
   const context = useContext(SidebarContext);
   if (!context) {
-    throw new Error("useSidebarContext must be used within a SidebarProvider");
+    // Fallback for portals (parceiro, cliente, entregador) que não usam o Sidebar do ERP.
+    return FALLBACK_SIDEBAR_CONTEXT;
   }
   return context;
 }

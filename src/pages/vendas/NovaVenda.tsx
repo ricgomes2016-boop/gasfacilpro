@@ -18,7 +18,9 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Calendar, ShoppingBag, Sparkles, Loader2, Send, Mic, MicOff, Camera, ImageIcon, PlusCircle, Check, User, Package as PackageIcon, CreditCard, CheckCircle, CalendarClock } from "lucide-react";
+import { Calendar, ShoppingBag, Sparkles, Loader2, Send, Mic, MicOff, Camera, ImageIcon, PlusCircle, Check, User, Package as PackageIcon, CreditCard, CheckCircle, CalendarClock, Keyboard, ChevronLeft, ChevronRight, MoreVertical, HelpCircle, UserRound, Flame, Wallet, Truck, BadgeCheck } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useNovaVendaWindows } from "@/contexts/NovaVendaWindowsContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +39,12 @@ import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsa
 import { OrderSummary } from "@/components/vendas/OrderSummary";
 import { CustomerHistory } from "@/components/vendas/CustomerHistory";
 import { DeliveryPersonSelect } from "@/components/vendas/DeliveryPersonSelect";
+import { QuickSelectorsRow } from "@/components/vendas/QuickSelectorsRow";
+import { markOrderNotified } from "@/lib/novoPedidoDedupe";
+
+import { VendedorSelect } from "@/components/vendas/VendedorSelect";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
+import { PortalToId, FOOTER_CENTER_ID, useFooterCenterOverride } from "@/components/layout/footerPortals";
 
 interface CustomerData {
   id: string | null;
@@ -83,6 +90,11 @@ function getSavedViewMode() {
   }
 }
 
+function isMobileViewport() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(max-width: 767px)").matches;
+}
+
 function saveViewMode(useNewView: boolean) {
   try {
     localStorage.setItem(VIEW_KEY, useNewView ? "new" : "old");
@@ -111,6 +123,74 @@ function toBrasiliaNoonISOString(dateValue: string) {
   return `${dateValue}T12:00:00-03:00`;
 }
 
+// Wrapper that portals stepper into SystemFooter center slot + hides quote
+function NovaVendaFooterStepper({ children }: { children: React.ReactNode }) {
+  useFooterCenterOverride(true);
+  return <PortalToId id={FOOTER_CENTER_ID}>{children}</PortalToId>;
+}
+
+// Reusable stepper bar (prev arrow + stepper + next arrow)
+function StepperFooterBar({
+  activeStep, canOpenStep, setActiveStep,
+  customer, itens, pagamentos, totalVenda, entregadorPreenchido,
+}: {
+  activeStep: VendaStepId;
+  canOpenStep: (s: VendaStepId) => boolean;
+  setActiveStep: (s: VendaStepId) => void;
+  customer: CustomerData;
+  itens: ItemVenda[];
+  pagamentos: Pagamento[];
+  totalVenda: number;
+  entregadorPreenchido: boolean;
+}) {
+  const idx = VENDA_STEPS.indexOf(activeStep);
+  return (
+    <div className="flex w-full items-center gap-2 flex-nowrap">
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-10 w-10 sm:h-9 sm:w-9 shrink-0 rounded-full"
+        aria-label="Etapa anterior"
+        disabled={idx === 0}
+        onClick={() => {
+          const prev = VENDA_STEPS[idx - 1];
+          if (prev && canOpenStep(prev)) setActiveStep(prev);
+        }}
+      >
+        <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4" />
+      </Button>
+      <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar">
+        <VendaStepper
+          customer={customer}
+          itens={itens}
+          pagamentos={pagamentos}
+          totalVenda={totalVenda}
+          entregadorSelecionado={entregadorPreenchido}
+          activeStep={activeStep}
+          onStepClick={(step) => canOpenStep(step) && setActiveStep(step)}
+          compact
+        />
+      </div>
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-10 w-10 sm:h-9 sm:w-9 shrink-0 rounded-full"
+        aria-label="Próxima etapa"
+        disabled={idx === VENDA_STEPS.length - 1}
+        onClick={() => {
+          const next = VENDA_STEPS[idx + 1];
+          if (next && canOpenStep(next)) setActiveStep(next);
+        }}
+      >
+        <ChevronRight className="h-5 w-5 sm:h-4 sm:w-4" />
+      </Button>
+    </div>
+
+  );
+}
+
+
+
 // Stepper component
 function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelecionado = false, activeStep, onStepClick, compact = false }: {
   customer: CustomerData;
@@ -127,11 +207,11 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
   const produtosOk = itens.length > 0;
   const pagamentoOk = totalPago >= totalVenda && totalVenda > 0;
   const steps: Array<{ id: VendaStepId; label: string; done: boolean; enabled: boolean; icon: typeof User }> = [
-    { id: "cliente", label: "Cliente", done: clienteOk, enabled: true, icon: User },
-    { id: "produtos", label: "Produtos", done: produtosOk, enabled: true, icon: PackageIcon },
-    { id: "pagamento", label: "Pagamento", done: pagamentoOk, enabled: true, icon: CreditCard },
-    { id: "entregador", label: "Entregador", done: entregadorSelecionado, enabled: true, icon: ShoppingBag },
-    { id: "confirmar", label: "Confirmar", done: pagamentoOk && produtosOk && entregadorSelecionado, enabled: true, icon: CheckCircle },
+    { id: "cliente", label: "Cliente", done: clienteOk, enabled: true, icon: UserRound },
+    { id: "produtos", label: "Produtos", done: produtosOk, enabled: true, icon: Flame },
+    { id: "pagamento", label: "Pagamento", done: pagamentoOk, enabled: true, icon: Wallet },
+    { id: "entregador", label: "Entregador", done: entregadorSelecionado, enabled: true, icon: Truck },
+    { id: "confirmar", label: "Confirmar", done: pagamentoOk && produtosOk && entregadorSelecionado, enabled: true, icon: BadgeCheck },
   ];
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -160,12 +240,12 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
   };
 
   return (
-    <div className="flex items-center justify-between gap-1" role="tablist" aria-label="Etapas da venda">
+    <div className={cn("flex items-center", compact ? "gap-1" : "justify-between gap-1")} role="tablist" aria-label="Etapas da venda">
       {steps.map((step, i) => {
         const Icon = step.icon;
         const isActive = activeStep === step.id;
         return (
-          <div key={step.label} className="flex items-center gap-1 flex-1">
+          <div key={step.label} className={cn("flex items-center", compact ? "gap-1 shrink-0" : "gap-1 flex-1")}>
             <button
               ref={(el) => (tabRefs.current[i] = el)}
               type="button"
@@ -181,27 +261,29 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
               title={onStepClick && !isActive ? `Clique ou use ← → para ir para ${step.label}` : undefined}
               aria-label={`Etapa ${step.label}${step.done ? " (preenchida)" : ""}`}
               className={cn(
-                "flex items-center gap-1.5 rounded-full text-xs font-medium transition-colors disabled:cursor-not-allowed",
+                "flex items-center gap-1 rounded-full font-medium transition-colors disabled:cursor-not-allowed whitespace-nowrap",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                 "venda-step-tab",
                 STEP_TONE_CLASS[step.id],
-                compact ? "px-2 py-1" : "px-2.5 py-1.5",
+                compact ? "px-2 py-1.5 text-xs sm:px-2 sm:py-1 sm:text-[11px]" : "px-2.5 py-1.5 text-xs",
                 isActive || step.done ? "" : "bg-muted text-muted-foreground",
                 step.enabled && onStepClick && !isActive && "cursor-pointer hover:bg-muted/80 hover:ring-2 hover:ring-primary/30"
               )}
             >
-              {step.done ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
-              <span className="hidden sm:inline">{step.label}</span>
+              {step.done ? <Check className={compact ? "h-4 w-4 sm:h-3.5 sm:w-3.5" : "h-3.5 w-3.5"} /> : <Icon className={compact ? "h-4 w-4 sm:h-3.5 sm:w-3.5" : "h-3.5 w-3.5"} />}
+              <span className={compact ? "hidden md:inline" : "hidden sm:inline"}>{step.label}</span>
             </button>
             {i < steps.length - 1 && (
-              <div className={cn("h-0.5 flex-1 rounded", step.done ? "bg-primary/30" : "bg-muted")} />
+              <div className={cn("h-px rounded", compact ? "w-3 min-w-3 sm:w-2" : "flex-1", step.done ? "bg-primary/40" : "bg-muted")} />
             )}
           </div>
         );
       })}
+
     </div>
   );
 }
+
 
 
 interface NovaVendaProps {
@@ -218,11 +300,15 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const { isGasmais } = useDashboardTheme();
 
   const [dataEntrega, setDataEntrega] = useState(() => { const d = getBrasiliaDate(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; });
-  const [canalVenda, setCanalVenda] = useState("telefone");
+  const [canalVenda, setCanalVenda] = useState("");
   const [customer, setCustomer] = useState<CustomerData>(initialCustomerData);
   const [itens, setItens] = useState<ItemVenda[]>([]);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [entregador, setEntregador] = useState<{ id: string | null; nome: string | null }>({
+    id: null,
+    nome: null,
+  });
+  const [vendedor, setVendedor] = useState<{ id: string | null; nome: string | null }>({
     id: null,
     nome: null,
   });
@@ -268,15 +354,19 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const [aiLoading, setAiLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [aiPopoverOpen, setAiPopoverOpen] = useState(false);
   const [agendarOpen, setAgendarOpen] = useState(false);
+  const [atalhosOpen, setAtalhosOpen] = useState(false);
   const [dataAgendamento, setDataAgendamento] = useState("");
   const [horaAgendamento, setHoraAgendamento] = useState("08:00");
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [pendingReceiptData, setPendingReceiptData] = useState<any>(null);
   const [boletoAsaasConta, setBoletoAsaasConta] = useState<any>(null);
   const [useNewView, setUseNewView] = useState(() => {
+    // No mobile, a Nova Venda sempre usa o fluxo por etapas para manter o stepper fixo visível.
+    if (isMobileViewport()) return true;
     const saved = getSavedViewMode();
-    return saved ? saved === "new" : isGasmais;
+    return saved ? saved === "new" : true;
   });
   const [activeStep, setActiveStep] = useState<VendaStepId>("cliente");
   const recognitionRef = useRef<any>(null);
@@ -289,6 +379,22 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     if (!getSavedViewMode() && isGasmais) setUseNewView(true);
   }, [isGasmais]);
 
+  useEffect(() => {
+    const enforceMobileStepper = () => {
+      if (isMobileViewport()) setUseNewView(true);
+    };
+    enforceMobileStepper();
+    window.addEventListener("resize", enforceMobileStepper);
+    return () => window.removeEventListener("resize", enforceMobileStepper);
+  }, []);
+
+  // Permite que o botão "Assistente IA" do Header global abra o diálogo desta tela
+  useEffect(() => {
+    const handler = () => setAiPopoverOpen(true);
+    window.addEventListener("nova-venda:open-ai", handler);
+    return () => window.removeEventListener("nova-venda:open-ai", handler);
+  }, []);
+
   // #5 - Load draft on mount
   useEffect(() => {
     if (draftLoaded.current) return;
@@ -298,7 +404,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       setCustomer(draft.customer || initialCustomerData);
       setItens(draft.itens || []);
       setPagamentos(draft.pagamentos || []);
-      setCanalVenda(draft.canalVenda || "telefone");
+      setCanalVenda(draft.canalVenda || "");
       setEntregador(draft.entregador || { id: null, nome: null });
       toast({ title: "Rascunho restaurado", description: "Sua venda em andamento foi recuperada." });
     }
@@ -680,7 +786,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               endereco_entrega: enderecoCompleto,
               valor_total: valorTotal,
               forma_pagamento: venda.forma_pagamento || null,
-              canal_venda: venda.canal_venda || "telefone",
+              canal_venda: venda.canal_venda || null,
+              origem_pedido: "erp",
               observacoes: venda.observacoes || null,
               status: "pendente",
               unidade_id: unidadeAtual?.id,
@@ -691,6 +798,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             .single();
 
           if (pedidoError) throw pedidoError;
+          if (pedido?.id) markOrderNotified(pedido.id, venda.telefone_entrega || venda.cliente_telefone || null);
+
 
           if (venda.itens?.length) {
             const itensInsert = venda.itens.map((item: any) => ({
@@ -787,27 +896,58 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     });
   };
 
+  const handleVendedorAuto = (vendedorUserId: string | null, nome: string | null) => {
+    // Só auto-preenche se ainda não há vendedor escolhido manualmente
+    if (!vendedor.id && vendedorUserId) {
+      setVendedor({ id: vendedorUserId, nome });
+    }
+  };
+
+
+  const advanceStep = useCallback(() => {
+    const currentIdx = VENDA_STEPS.indexOf(activeStep);
+    const nextStep = VENDA_STEPS[currentIdx + 1];
+    if (nextStep && canOpenStep(nextStep)) {
+      setActiveStep(nextStep);
+    }
+  }, [activeStep]);
+
   const handleStepEnterNavigation = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.defaultPrevented || event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
     const target = event.target as HTMLElement;
     if (target.closest("#ai-send-btn") || target.closest("[data-venda-enter-skip]") || target.closest('[role="combobox"]') || target.closest("button")) return;
     if (target instanceof HTMLTextAreaElement) return;
-    if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) return;
-    if (target.type === "file" || target.type === "checkbox" || target.type === "radio") return;
-    if (!target.matches("[data-venda-enter-next]")) return;
 
-    const panel = target.closest(".venda-step-panel");
-    if (!panel) return;
+    const isNavigableInput =
+      (target instanceof HTMLInputElement || target instanceof HTMLSelectElement) &&
+      target.matches("[data-venda-enter-next]") &&
+      !(target instanceof HTMLInputElement && (target.type === "file" || target.type === "checkbox" || target.type === "radio"));
 
-    const focusables = Array.from(
-      panel.querySelectorAll<HTMLElement>('[data-venda-enter-next]:not([disabled])')
-    ).filter((el) => el.offsetParent !== null && !el.closest('[aria-hidden="true"]'));
-    const index = focusables.indexOf(target);
-    const next = focusables[index + 1];
+    if (isNavigableInput) {
+      const panel = target.closest(".venda-step-panel");
+      if (panel) {
+        const focusables = Array.from(
+          panel.querySelectorAll<HTMLElement>('[data-venda-enter-next]:not([disabled])')
+        ).filter((el) => el.offsetParent !== null && !el.closest('[aria-hidden="true"]'));
+        const index = focusables.indexOf(target);
+        const next = focusables[index + 1];
 
-    if (next) {
+        if (next) {
+          event.preventDefault();
+          next.focus();
+          return;
+        }
+        // No próximo input no painel: avança para a próxima aba
+        event.preventDefault();
+        advanceStep();
+        return;
+      }
+    }
+
+    // Enter fora de um input navegável (ex: painel Entregador/Confirmar) também avança
+    if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) {
       event.preventDefault();
-      next.focus();
+      advanceStep();
     }
   };
 
@@ -821,6 +961,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       toast({ title: "Forma de pagamento obrigatória", description: "Selecione pelo menos uma forma de pagamento antes de finalizar.", variant: "destructive" });
       return;
     }
+
+    if (!canalVenda) {
+      toast({ title: "Canal de venda obrigatório", description: "Selecione o canal de venda antes de finalizar.", variant: "destructive" });
+      return;
+    }
+
 
     const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
     if (totalPago < totalVenda) {
@@ -888,10 +1034,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       const pedidoInsert: any = {
         cliente_id: clienteId,
         entregador_id: entregador.id,
+        vendedor_id: vendedor.id,
         endereco_entrega: enderecoCompleto,
         valor_total: totalVenda,
         forma_pagamento: pagamentos.map((p) => p.forma).join(", "),
         canal_venda: canalVenda,
+        origem_pedido: "erp",
         observacoes: customer.observacao,
         status: "pendente",
         unidade_id: unidadeAtual?.id,
@@ -916,6 +1064,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         .single();
 
       if (pedidoError) throw pedidoError;
+      if (pedido?.id) markOrderNotified(pedido.id, (pedidoInsert as any)?.telefone_entrega || customer?.telefone || null);
+
 
       // Regra Empenho: consumir vale físico vinculado ao empenho do parceiro
       if (parceiroEmpenhoId !== "nenhum" && valeNumero) {
@@ -950,26 +1100,33 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         quantidade: item.quantidade,
       })), unidadeAtual?.id);
 
-      // Prepare receipt data for optional printing
+      // Prepare receipt data: prioriza dados da unidade/loja atual
       let empresaConfig: EmpresaConfig | undefined;
       try {
         let cfgQuery = supabase
           .from("configuracoes_empresa")
-          .select("nome_empresa, cnpj, telefone, endereco, mensagem_cupom")
+          .select("mensagem_cupom")
           .limit(1);
         if (empresa?.id) cfgQuery = cfgQuery.eq("empresa_id", empresa.id);
         const { data: configData } = await cfgQuery.maybeSingle();
 
+        const enderecoUnidade = [
+          unidadeAtual?.endereco,
+          unidadeAtual?.bairro,
+          [unidadeAtual?.cidade, unidadeAtual?.estado].filter(Boolean).join("/"),
+          unidadeAtual?.cep,
+        ].filter(Boolean).join(", ");
+
         empresaConfig = {
-          nome_empresa: empresa?.nome || configData?.nome_empresa || "Empresa",
-          cnpj: configData?.cnpj ?? null,
-          telefone: configData?.telefone ?? null,
-          endereco: configData?.endereco ?? null,
+          nome_empresa: unidadeAtual?.nome || empresa?.nome || "Empresa",
+          cnpj: unidadeAtual?.cnpj ?? null,
+          telefone: unidadeAtual?.telefone ?? null,
+          endereco: enderecoUnidade || null,
           mensagem_cupom: configData?.mensagem_cupom ?? null,
         };
       } catch (e) {
         console.warn("Não foi possível carregar configurações da empresa");
-        if (empresa?.nome) empresaConfig = { nome_empresa: empresa.nome };
+        empresaConfig = { nome_empresa: unidadeAtual?.nome || empresa?.nome || "Empresa" };
       }
 
       const receiptData = {
@@ -1001,6 +1158,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             cheque_banco: p.cheque_banco,
             cheque_foto_url: p.cheque_foto_url,
             data_vencimento_fiado: p.data_vencimento_fiado,
+            operadora_id: (p as any).operadora_id,
+            conta_bancaria_id: (p as any).conta_bancaria_id,
           })),
           unidadeId: unidadeAtual?.id,
           entregadorId: null,
@@ -1010,7 +1169,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       // #5.1 - Se houver boleto, buscar a conta_receber criada para abrir o Asaas
       const temBoleto = pagamentos.some((p) => p.forma === "boleto");
       let contaBoletoAsaas: any = null;
-      if (temBoleto && !entregador.id) {
+      if (temBoleto) {
         const { data: cr } = await supabase
           .from("contas_receber")
           .select("id, cliente, descricao, valor, vencimento, pedido_id, asaas_charge_id, linha_digitavel, boleto_url, pix_copia_cola")
@@ -1047,8 +1206,13 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       toast({ title: "Erro", description: "Adicione pelo menos um produto.", variant: "destructive" });
       return;
     }
+    if (!canalVenda) {
+      toast({ title: "Canal de venda obrigatório", description: "Selecione o canal de venda antes de agendar.", variant: "destructive" });
+      return;
+    }
     setAgendarOpen(true);
   };
+
 
   const handleConfirmarAgendamento = async () => {
     if (!dataAgendamento) {
@@ -1066,10 +1230,10 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert({
-          cliente_id: customer.id, entregador_id: entregador.id,
+          cliente_id: customer.id, entregador_id: entregador.id, vendedor_id: vendedor.id,
           endereco_entrega: enderecoCompleto, valor_total: totalVenda,
           forma_pagamento: pagamentos.map((p) => p.forma).join(", "),
-          canal_venda: canalVenda, observacoes: customer.observacao,
+          canal_venda: canalVenda, origem_pedido: "erp", observacoes: customer.observacao,
           status: "pendente", unidade_id: unidadeAtual?.id,
           data_entrega: dataAgendamento,
           agendado: true, data_agendamento: agendamentoDate.toISOString(),
@@ -1078,6 +1242,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         .single();
 
       if (pedidoError) throw pedidoError;
+      if (pedido?.id) markOrderNotified(pedido.id, customer?.telefone || null);
+
 
       const itensInsert = itens.map((item) => ({
         pedido_id: pedido.id, produto_id: item.produto_id,
@@ -1111,6 +1277,45 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       navigate("/vendas/pedidos");
     }
   };
+
+  // Refs para atalhos de teclado (evita stale closures)
+  const handleFinalizarRef = useRef(handleFinalizar);
+  const handleAgendarRef = useRef(handleAgendar);
+  const openNovaVendaWindowRef = useRef(openNovaVendaWindow);
+  const isLoadingRef = useRef(isLoading);
+  useEffect(() => { handleFinalizarRef.current = handleFinalizar; });
+  useEffect(() => { handleAgendarRef.current = handleAgendar; });
+  useEffect(() => { openNovaVendaWindowRef.current = openNovaVendaWindow; });
+  useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
+
+  // Atalhos de teclado: F2 novo pedido, F3 finalizar, F4 agendar, F5 cadastro cliente
+  useEffect(() => {
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      switch (e.key) {
+        case "F2":
+          e.preventDefault();
+          openNovaVendaWindowRef.current({});
+          break;
+        case "F3":
+          e.preventDefault();
+          if (!isLoadingRef.current) handleFinalizarRef.current();
+          break;
+        case "F4":
+          e.preventDefault();
+          if (!isLoadingRef.current) handleAgendarRef.current();
+          break;
+        case "F5":
+          e.preventDefault();
+          window.open("/clientes/cadastro", "_blank", "noopener,noreferrer,width=1200,height=800");
+          break;
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+
 
   // Load initial client when in embedded mode (e.g., from CallerIdPopup) OR via URL ?cliente_id=
   const urlClienteId = searchParams.get("cliente_id");
@@ -1167,9 +1372,58 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   const metaCard = (
     <Card className="venda-card venda-gasmais-card venda-tone-cliente border-primary/20 bg-card/95">
-      <CardContent className="p-3 md:p-4">
+      <CardContent className="p-3 md:p-4 space-y-3">
+        {/* Cabeçalho da venda dentro do card da data */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <Badge variant="outline" className="h-6 px-2 text-[11px] border-primary/30 bg-primary/5 text-primary font-semibold">
+              #{proximoNumero ?? "—"}
+            </Badge>
+            <span className="text-sm font-semibold text-foreground truncate">Nova Venda</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openNovaVendaWindow({})}
+              className="h-7 gap-1 text-[11px]"
+            >
+              <PlusCircle className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Nova Venda</span>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label="Mais ações">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => setAiPopoverOpen(true)}>
+                  <Sparkles className="h-3.5 w-3.5 mr-2 text-primary" />
+                  Assistente IA
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setAtalhosOpen(true)}>
+                  <Keyboard className="h-3.5 w-3.5 mr-2" />
+                  Atalhos do teclado
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => openNovaVendaWindow({})}>
+                  <PlusCircle className="h-3.5 w-3.5 mr-2" />
+                  Abrir nova janela
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href="/meu-perfil" className="flex items-center w-full">
+                    <HelpCircle className="h-3.5 w-3.5 mr-2" />
+                    Versão da tela (perfil)
+                  </a>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
         <div className="grid gap-3 md:grid-cols-2">
-          <div className="py-[8px]">
+          <div>
             <Label className="text-xs font-semibold text-foreground flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               Data de Entrega
@@ -1179,7 +1433,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           <div>
             <Label className="text-xs font-semibold text-foreground">Canal de Venda</Label>
             <Select value={canalVenda} onValueChange={setCanalVenda}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o canal de venda" /></SelectTrigger>
               <SelectContent>
                 {allChannels.map((ch) => (
                   <SelectItem key={ch.value} value={ch.value}>{ch.label}</SelectItem>
@@ -1189,7 +1443,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           </div>
         </div>
         {parceirosComEmpenho.length > 0 && (
-          <div className="mt-3 grid gap-3 md:grid-cols-2 border-t pt-3">
+          <div className="grid gap-3 md:grid-cols-2 border-t pt-3">
             <div>
               <Label className="text-xs font-semibold text-foreground">Empenho / Parceiro (opcional)</Label>
               <Select value={parceiroEmpenhoId} onValueChange={(v) => { setParceiroEmpenhoId(v); if (v === "nenhum") setValeNumero(""); }}>
@@ -1221,18 +1475,25 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     </Card>
   );
 
-  const aiCommandCard = (
-    <Card className="venda-card venda-gasmais-card venda-tone-confirmar border-primary/40 bg-primary/5 shadow-primary/10">
-      <CardContent className="py-3 md:py-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary shrink-0" />
+
+  const aiCommandPopover = (
+    <Dialog open={aiPopoverOpen} onOpenChange={setAiPopoverOpen}>
+      <DialogContent className="max-w-[480px] p-4">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+            Assistente IA
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           <Input
+            autoFocus
             placeholder='Ex: "2 P13 para Maria, Rua Ceará 30, Centro"'
             value={aiCommand}
             onChange={(e) => setAiCommand(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !aiLoading && handleAiCommand()}
             className="bg-background flex-1 min-w-0"
-              data-venda-enter-skip
+            data-venda-enter-skip
             disabled={aiLoading || isListening}
           />
           <div className="flex items-center gap-1">
@@ -1251,13 +1512,19 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             </Button>
           </div>
         </div>
-        <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
-        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
-        <p className="text-xs font-medium text-foreground mt-2 ml-7">
+        <p className="text-[11px] font-medium text-muted-foreground mt-2">
           {photoLoading ? "📸 Processando foto..." : isListening ? "🔴 Ouvindo... Fale o comando." : "💡 Digite, 🎤 dite, ou 📷 tire foto de anotações."}
         </p>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
+  );
+
+
+  const hiddenAiInputs = (
+    <>
+      <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
+    </>
   );
 
   const vendaContent = (
@@ -1265,39 +1532,17 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       <div className="p-3 md:p-4 space-y-3 md:space-y-4"> 
         <CaixaBloqueadoBanner />
 
-        <div className="space-y-3 rounded-lg border border-border/70 bg-card p-3 shadow-lg shadow-foreground/10">
-          <VendaStepper
-            customer={customer}
-            itens={itens}
-            pagamentos={pagamentos}
-            totalVenda={totalVenda}
-            entregadorSelecionado={entregadorPreenchido}
-            activeStep={useNewView ? activeStep : undefined}
-            onStepClick={useNewView ? (step) => canOpenStep(step) && setActiveStep(step) : undefined}
-            compact
-          />
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <Badge variant="outline" className="text-xs border-primary/30 bg-primary/5 text-primary">
-              #{proximoNumero ?? "—"}
-            </Badge>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={toggleViewMode} className="h-8 px-2 text-xs font-semibold text-foreground hover:text-primary">
-                {useNewView ? "Versão antiga" : "Versão nova"}
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => openNovaVendaWindow({})} className="gap-1.5 text-xs">
-                <PlusCircle className="h-3.5 w-3.5" />
-                Nova Venda
-              </Button>
-            </div>
-          </div>
-        </div>
+        {aiCommandPopover}
+        {hiddenAiInputs}
+
+
 
         {useNewView ? (
           <div className="space-y-3 md:space-y-4">
             {activeStep === "cliente" && (
               <div className="venda-step-panel grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]" onKeyDown={handleStepEnterNavigation}>
                 <div className="space-y-3 md:space-y-4 min-w-0">
-                  {aiCommandCard}
+                  
                   {metaCard}
                   <div className="venda-tone-cliente"><CustomerSearch value={customer} onChange={setCustomer} /></div>
                 </div>
@@ -1313,12 +1558,13 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             )}
             {activeStep === "pagamento" && (
               <div className="venda-step-panel venda-tone-pagamento w-full" onKeyDown={handleStepEnterNavigation}>
-                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
+                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} />
               </div>
             )}
             {activeStep === "entregador" && (
               <div className="venda-step-panel venda-tone-entregador w-full">
-                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} />
+                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} onVendedorAuto={handleVendedorAuto} endereco={customer.endereco} />
+                <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
               </div>
             )}
             {activeStep === "confirmar" && (
@@ -1328,24 +1574,83 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             )}
           </div>
         ) : (
-          <>
-            {aiCommandCard}
-            <div className="grid gap-3 md:gap-4 lg:grid-cols-3">
-              <div className="lg:col-span-2 space-y-3 md:space-y-4">
-                {metaCard}
-                <CustomerSearch value={customer} onChange={setCustomer} />
-                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} />
-                <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
-                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
-              </div>
-              <div className="lg:sticky lg:top-4 space-y-3 md:space-y-4 self-start">
-                <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
-                <CustomerHistory clienteId={customer.id} />
-              </div>
+          <div className="grid gap-3 md:gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-3 md:space-y-4 order-1">
+              {metaCard}
+              <CustomerSearch value={customer} onChange={setCustomer} />
+              <QuickSelectorsRow
+                unidadeId={unidadeAtual?.id}
+                clienteId={customer.id}
+                entregadorId={entregador.id}
+                itens={itens}
+                onItensChange={setItens}
+                pagamentos={pagamentos}
+                onPagamentosChange={setPagamentos}
+                totalVenda={totalVenda}
+                onSelectEntregador={handleSelecionarEntregador}
+                onVendedorAuto={handleVendedorAuto}
+              />
+              <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
+              <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
+              <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} />
             </div>
-          </>
+            <div className="lg:sticky lg:top-4 space-y-3 md:space-y-4 self-start order-2">
+              <CustomerHistory clienteId={customer.id} />
+            </div>
+            <div className="order-3 lg:col-span-3">
+              <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
+            </div>
+          </div>
         )}
+
+        {/* Espaço para não esconder conteúdo atrás do rodapé fixo */}
+        <div aria-hidden className="h-24 md:h-20" />
       </div>
+
+      {/* Rodapé fixo: Stepper + navegação Voltar/Continuar (portal único no SystemFooter — fixo em mobile e desktop) */}
+      {useNewView && (
+        <NovaVendaFooterStepper>
+          <StepperFooterBar
+            activeStep={activeStep}
+            canOpenStep={canOpenStep}
+            setActiveStep={setActiveStep}
+            customer={customer}
+            itens={itens}
+            pagamentos={pagamentos}
+            totalVenda={totalVenda}
+            entregadorPreenchido={entregadorPreenchido}
+          />
+        </NovaVendaFooterStepper>
+      )}
+
+
+
+      {/* Dialog Atalhos do teclado */}
+      <Dialog open={atalhosOpen} onOpenChange={setAtalhosOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Keyboard className="h-4 w-4" /> Atalhos do teclado
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 pt-2 text-sm">
+            {[
+              ["F2", "Novo pedido"],
+              ["F3", "Finalizar venda"],
+              ["F4", "Agendar entrega"],
+              ["F5", "Focar cliente"],
+              ["Enter", "Avançar para o próximo campo"],
+              ["← →", "Navegar entre etapas"],
+            ].map(([k, label]) => (
+              <div key={k} className="flex items-center justify-between border-b border-border/40 py-1.5 last:border-0">
+                <span className="text-muted-foreground">{label}</span>
+                <kbd className="rounded-[var(--radius)] border border-border bg-muted px-2 py-0.5 text-xs font-mono">{k}</kbd>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Dialog Agendamento */}
       <Dialog open={agendarOpen} onOpenChange={setAgendarOpen}>
@@ -1390,7 +1695,20 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           {boletoAsaasConta && (
             <p className="text-xs text-primary">Em seguida abriremos a emissão do boleto Asaas.</p>
           )}
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex flex-wrap justify-end gap-2 pt-2">
+            {boletoAsaasConta && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setBoletoAsaasConta(null);
+                  setPrintDialogOpen(false);
+                  setPendingReceiptData(null);
+                  if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
+                }}
+              >
+                Pular emissão do boleto
+              </Button>
+            )}
             <Button variant="outline" onClick={() => {
               setPrintDialogOpen(false);
               setPendingReceiptData(null);

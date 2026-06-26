@@ -4,7 +4,8 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Sun, TrendingUp, AlertTriangle, Package, DollarSign, Users, Truck, CheckCircle, Clock } from "lucide-react";
+import { PageSectionLoader } from "@/components/ui/page-loader";
+import { Sun, TrendingUp, AlertTriangle, Package, DollarSign, Users, Truck, CheckCircle, Clock } from "lucide-react";
 import { RemindersWidget } from "@/components/dashboard/RemindersWidget";
 import { AiInsightsWidget } from "@/components/dashboard/AiInsightsWidget";
 import { ProdutividadeWidget } from "@/components/operacional/ProdutividadeWidget";
@@ -97,7 +98,7 @@ export default function CockpitGestor() {
   if (loading) return (
     <MainLayout>
       <Header title="Cockpit do Gestor" subtitle="Resumo matinal" />
-      <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+      <PageSectionLoader label="Carregando cockpit..." />
     </MainLayout>
   );
 

@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -272,8 +273,14 @@ export default function CanaisVenda() {
                 <TableBody>
                   {canais.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        Nenhum canal cadastrado.
+                      <TableCell colSpan={5} className="p-4">
+                        <EmptyState
+                          compact
+                          icon={Megaphone}
+                          title="Nenhum canal cadastrado"
+                          description="Cadastre canais para acompanhar a origem das vendas e separar parceiros."
+                          action={{ label: "Novo Canal", onClick: () => setDialogOpen(true), icon: Plus }}
+                        />
                       </TableCell>
                     </TableRow>
                   )}

@@ -121,7 +121,13 @@ function SignupForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
             {form.showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>
         </div>
-        {form.errors.password && <p className="text-sm text-destructive">{form.errors.password}</p>}
+        {form.errors.password ? (
+          <p className="text-sm text-destructive">{form.errors.password}</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Use uma senha forte: mínimo 8 caracteres, com letras, números e símbolos. Evite senhas comuns como "123456".
+          </p>
+        )}
       </div>
 
       <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600" disabled={form.isLoading}>
@@ -152,13 +158,21 @@ export default function AuthCliente() {
 
   const urlSlug = searchParams.get("empresa");
   const urlUnidade = searchParams.get("unidade");
+  const urlUnidadeSlug = searchParams.get("u");
   const codigoIndicacao = normalizarCodigoIndicacao(searchParams.get("ref"));
   const [showSignup, setShowSignup] = useState(false);
+
+  const [unidadeSlug, setUnidadeSlug] = useState<string | undefined>(
+    urlUnidadeSlug || localStorage.getItem("cliente_unidade_slug") || undefined
+  );
   const [empresaSlug, setEmpresaSlug] = useState<string | undefined>(
-    urlSlug || localStorage.getItem("cliente_empresa_slug") || undefined
+    // Se há ?u= na URL, ignoramos cache de empresa para evitar mostrar marca antiga
+    urlSlug || (urlUnidadeSlug ? undefined : localStorage.getItem("cliente_empresa_slug") || undefined)
   );
   const [empresa, setEmpresa] = useState<EmpresaInfo | null>(null);
-  const [empresaLoading, setEmpresaLoading] = useState(!!empresaSlug);
+  const [unidadeBrand, setUnidadeBrand] = useState<{ id: string; nome: string; logo_url: string | null } | null>(null);
+  const [unidadeLoading, setUnidadeLoading] = useState(!!unidadeSlug);
+  const [empresaLoading, setEmpresaLoading] = useState(!!(empresaSlug || unidadeSlug));
   const [empresaError, setEmpresaError] = useState(false);
   const [unidadeNome, setUnidadeNome] = useState<string | null>(null);
 
@@ -172,6 +186,13 @@ export default function AuthCliente() {
   }, [urlSlug]);
 
   useEffect(() => {
+    if (urlUnidadeSlug) {
+      localStorage.setItem("cliente_unidade_slug", urlUnidadeSlug);
+      setUnidadeSlug(urlUnidadeSlug);
+    }
+  }, [urlUnidadeSlug]);
+
+  useEffect(() => {
     if (!urlUnidade) return;
     supabase
       .from("unidades")
@@ -183,11 +204,36 @@ export default function AuthCliente() {
       });
   }, [urlUnidade]);
 
+  // Branding por unidade (?u=slug)
+  useEffect(() => {
+    if (!unidadeSlug) {
+      setUnidadeLoading(false);
+      return;
+    }
+    setUnidadeLoading(true);
+    (async () => {
+      const { data, error } = await supabase.rpc("get_unidade_by_slug", { _slug: unidadeSlug });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (error || !row) {
+        localStorage.removeItem("cliente_unidade_slug");
+        setUnidadeLoading(false);
+        return;
+      }
+      setUnidadeBrand({ id: row.id, nome: row.nome, logo_url: row.logo_url });
+      setUnidadeNome(row.nome);
+      if (row.empresa_slug) {
+        setEmpresaSlug(row.empresa_slug);
+        localStorage.setItem("cliente_empresa_slug", row.empresa_slug);
+      }
+      setUnidadeLoading(false);
+    })();
+  }, [unidadeSlug]);
+
   useEffect(() => {
     async function fetchEmpresa() {
       if (!empresaSlug) {
         setEmpresaLoading(false);
-        if (isSubdomain) setEmpresaError(true);
+        if (isSubdomain && !unidadeSlug) setEmpresaError(true);
         return;
       }
 
@@ -209,9 +255,10 @@ export default function AuthCliente() {
     }
 
     fetchEmpresa();
-  }, [empresaSlug]);
+  }, [empresaSlug, isSubdomain, unidadeSlug]);
 
-  const displayName = unidadeNome || empresa?.nome || "GásFácil Pro";
+  const displayName = unidadeBrand?.nome || unidadeNome || empresa?.nome || "GásFácil Pro";
+  const displayLogo = unidadeBrand?.logo_url || empresa?.logo_url || null;
 
   useEffect(() => {
     document.title = `${displayName} — Área do Cliente`;
@@ -230,7 +277,7 @@ export default function AuthCliente() {
     navigate("/cliente");
   }, [user, loading, roles, navigate, signOut]);
 
-  if (loading || empresaLoading) {
+  if (loading || empresaLoading || unidadeLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -276,10 +323,10 @@ export default function AuthCliente() {
       gradientTo="15 90% 50%"
       pageClassName="bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-background dark:via-background dark:to-muted/20"
       logo={
-        empresa?.logo_url ? (
+        displayLogo ? (
           <img
-            src={empresa.logo_url}
-            alt={empresa.nome}
+            src={displayLogo}
+            alt={displayName}
             className="h-16 w-16 rounded-2xl object-cover shadow-lg"
           />
         ) : (

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Truck, MapPin, Clock, Package, TrendingUp, Route, Loader2 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageSectionLoader } from "@/components/ui/page-loader";
+import { Truck, MapPin, Clock, Package, TrendingUp, Route } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -47,11 +49,11 @@ export default function LogisticoContent() {
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+  if (loading) return <PageSectionLoader label="Carregando visão logística..." />;
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><Package className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">{entregasHoje}</p><p className="text-sm text-muted-foreground">Entregas Hoje</p></div></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-chart-2/10"><Clock className="h-6 w-6 text-chart-2" /></div><div><p className="text-2xl font-bold">-</p><p className="text-sm text-muted-foreground">Tempo Médio</p></div></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-chart-3/10"><TrendingUp className="h-6 w-6 text-chart-3" /></div><div><p className="text-2xl font-bold">{taxaSucesso.toFixed(0)}%</p><p className="text-sm text-muted-foreground">Taxa Sucesso</p></div></div></CardContent></Card>
@@ -63,9 +65,16 @@ export default function LogisticoContent() {
           <CardHeader><CardTitle className="flex items-center gap-2"><Truck className="h-5 w-5" />Status dos Entregadores</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {entregadores.length === 0 && <p className="text-muted-foreground text-center py-4">Nenhum entregador ativo hoje</p>}
+              {entregadores.length === 0 && (
+                <EmptyState
+                  compact
+                  icon={Truck}
+                  title="Nenhum entregador ativo hoje"
+                  description="Quando houver entregas ou rotas em andamento, os entregadores aparecerão aqui."
+                />
+              )}
               {entregadores.map((e) => (
-                <div key={e.id} className="flex items-center justify-between p-3 rounded-lg border">
+                <div key={e.id} className="intelligence-list-item flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><Truck className="h-5 w-5 text-primary" /></div>
                     <p className="font-medium">{e.nome}</p>
@@ -84,12 +93,26 @@ export default function LogisticoContent() {
           <CardContent>
             {entregasPorBairro.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={entregasPorBairro} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" /><XAxis type="number" /><YAxis dataKey="bairro" type="category" width={80} /><Tooltip />
-                  <Bar dataKey="entregas" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                <BarChart data={entregasPorBairro} layout="vertical" margin={{ top: 10, right: 22, left: 8, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="4 8" horizontal={false} stroke="hsl(var(--border) / 0.5)" />
+                  <XAxis type="number" axisLine={false} tickLine={false} allowDecimals={false} />
+                  <YAxis dataKey="bairro" type="category" width={92} axisLine={false} tickLine={false} tickMargin={8} />
+                  <Tooltip
+                    cursor={{ fill: "hsl(var(--info) / 0.08)" }}
+                    contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
+                    formatter={(value) => [value, "Entregas"]}
+                  />
+                  <Bar dataKey="entregas" fill="hsl(var(--info))" radius={[0, 8, 8, 0]} barSize={18} />
                 </BarChart>
               </ResponsiveContainer>
-            ) : <p className="text-muted-foreground text-center py-8">Sem dados de entregas por bairro</p>}
+            ) : (
+              <EmptyState
+                compact
+                icon={MapPin}
+                title="Sem entregas por bairro"
+                description="As entregas concluídas do mês formarão este ranking por região."
+              />
+            )}
           </CardContent>
         </Card>
       </div>

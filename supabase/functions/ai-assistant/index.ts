@@ -242,27 +242,30 @@ const ACTION_TOOLS = [
     type: "function",
     function: {
       name: "criar_pedido",
-      description: "Cria um novo pedido de venda",
+      description: "Cria um novo pedido de venda. Pode ser imediato ou agendado para data/hora futura (use data_entrega e hora_entrega). Sempre tente localizar o cliente cadastrado pelo nome ou telefone informado.",
       parameters: {
         type: "object",
         properties: {
-          cliente_nome: { type: "string", description: "Nome do cliente" },
-          cliente_telefone: { type: "string", description: "Telefone do cliente" },
+          cliente_id: { type: "string", description: "UUID do cliente já identificado (opcional)" },
+          cliente_nome: { type: "string", description: "Nome do cliente (usado para busca se cliente_id ausente)" },
+          cliente_telefone: { type: "string", description: "Telefone do cliente (usado para busca)" },
           itens: {
             type: "array",
             items: {
               type: "object",
               properties: {
-                produto_nome: { type: "string", description: "Nome do produto" },
+                produto_nome: { type: "string", description: "Nome do produto (ex: 'Gás P13', 'Gás P20', 'Água 20L')" },
                 quantidade: { type: "number" },
               },
               required: ["produto_nome", "quantidade"],
             },
           },
-          forma_pagamento: { type: "string", enum: ["dinheiro", "pix", "cartao_credito", "cartao_debito", "fiado"], description: "Forma de pagamento" },
-          endereco_entrega: { type: "string", description: "Endereço de entrega" },
-          observacoes: { type: "string", description: "Observações do pedido" },
-          troco_para: { type: "number", description: "Troco para (se dinheiro)" },
+          forma_pagamento: { type: "string", enum: ["dinheiro", "pix", "cartao_credito", "cartao_debito", "fiado"] },
+          endereco_entrega: { type: "string", description: "Endereço de entrega (se vazio, usa endereço cadastrado do cliente)" },
+          data_entrega: { type: "string", description: "Data agendada da entrega no formato YYYY-MM-DD (opcional). Use sempre que o usuário pedir 'amanhã', 'dia X', 'sexta', etc." },
+          hora_entrega: { type: "string", description: "Hora agendada no formato HH:MM (opcional, default 08:00)" },
+          observacoes: { type: "string" },
+          troco_para: { type: "number" },
         },
         required: ["itens"],
         additionalProperties: false,
@@ -387,12 +390,19 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, unidade_id } = await req.json();
+    const { messages, unidade_id, pending_actions, action_confirmation } = await req.json();
+    const unidadeId = unidade_id ? String(unidade_id) : null;
 
     // Validate unidade_id as UUID to prevent prompt/SQL injection
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (unidade_id !== null && unidade_id !== undefined && unidade_id !== "" && !UUID_RE.test(String(unidade_id))) {
+    if (unidadeId && !UUID_RE.test(unidadeId)) {
       return new Response(JSON.stringify({ error: "unidade_id inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!unidadeId) {
+      return new Response(JSON.stringify({ error: "Selecione uma unidade para usar o Assistente IA." }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -423,12 +433,13 @@ serve(async (req) => {
 
     // Require a privileged role to use the AI assistant (it can read all tenant data
     // and perform mutations via the service role key).
-    const allowedRoles = ["admin", "gestor", "super_admin", "financeiro", "operacional"];
+    const allowedRoles = ["admin", "gestor", "super_admin"];
     const { data: roleRows } = await callerClient
       .from("user_roles")
       .select("role")
       .eq("user_id", userData.user.id);
     const hasAllowedRole = (roleRows || []).some((r: any) => allowedRoles.includes(r.role));
+    const isSuperAdmin = (roleRows || []).some((r: any) => r.role === "super_admin");
     if (!hasAllowedRole) {
       return new Response(JSON.stringify({ error: "Acesso negado: requer perfil administrativo." }), {
         status: 403,
@@ -436,21 +447,31 @@ serve(async (req) => {
       });
     }
 
+    const { data: profile, error: profileError } = await callerClient
+      .from("profiles")
+      .select("empresa_id")
+      .eq("user_id", userData.user.id)
+      .maybeSingle();
+    if (profileError || (!isSuperAdmin && !profile?.empresa_id)) {
+      return new Response(JSON.stringify({ error: "Perfil sem empresa vinculada." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Verify unidade_id belongs to the caller's empresa (tenant isolation)
-    if (unidade_id) {
-      const { data: profile } = await callerClient.from("profiles").select("empresa_id").eq("user_id", userData.user.id).single();
-      if (profile?.empresa_id) {
-        const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-        const { data: u } = await adminClient.from("unidades").select("id").eq("id", unidade_id).eq("empresa_id", profile.empresa_id).maybeSingle();
-        if (!u) {
-          return new Response(JSON.stringify({ error: "Acesso negado a essa unidade." }), {
-            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      }
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    let unidadeQuery = adminClient.from("unidades").select("id, empresa_id").eq("id", unidadeId);
+    if (!isSuperAdmin) unidadeQuery = unidadeQuery.eq("empresa_id", profile!.empresa_id);
+    const { data: unidadeAutorizada } = await unidadeQuery.maybeSingle();
+    if (!unidadeAutorizada) {
+      return new Response(JSON.stringify({ error: "Acesso negado a essa unidade." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const empresaId = unidadeAutorizada.empresa_id || profile?.empresa_id || null;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -464,8 +485,42 @@ serve(async (req) => {
     let queryError: string | null = null;
     let queryDescription = "";
     let actionResults: string[] = [];
+    let pendingActions: Array<{ action: string; params: Record<string, unknown>; preview: string }> = [];
+    const safeQuery = buildSafeQuery(lastUserMessage, unidadeId);
+    const hasConfirmedPendingActions = Array.isArray(pending_actions)
+      && pending_actions.length > 0
+      && (action_confirmation === "confirm" || isActionConfirmed(lastUserMessage));
 
-    if (!isConversational) {
+    if (hasConfirmedPendingActions) {
+      for (const pending of pending_actions) {
+        if (!pending?.action || typeof pending.action !== "string") continue;
+        const result = await executeAction(supabase, pending.action, pending.params || {}, unidadeId, empresaId);
+        await logAiAction(supabase, {
+          user_id: userData.user.id,
+          empresa_id: empresaId,
+          unidade_id: unidadeId,
+          action: pending.action,
+          params: pending.params || {},
+          result,
+          success: !/^(\s*)?(❌|Acao rejeitada|Erro)/i.test(result),
+        });
+        actionResults.push(result);
+      }
+    }
+
+    if (safeQuery && !hasConfirmedPendingActions) {
+      try {
+        const { data, error } = await supabase.rpc("execute_readonly_query", { query_text: safeQuery.sql });
+        if (error) {
+          queryError = error.message;
+        } else {
+          queryData = data;
+          queryDescription = safeQuery.description;
+        }
+      } catch (e) {
+        queryError = e instanceof Error ? e.message : "Erro ao executar consulta";
+      }
+    } else if (!isConversational && !hasConfirmedPendingActions) {
       // Step 1: Determine intent — SQL query vs action vs both
       const intentResponse = await callAI(LOVABLE_API_KEY, [
         {
@@ -479,9 +534,9 @@ serve(async (req) => {
 REGRAS IMPORTANTES:
 - Só gere SELECT statements. NUNCA INSERT/UPDATE/DELETE via SQL.
 - Para QUALQUER cadastro ou modificação de dados, use as ferramentas de ação (cadastrar_produto, registrar_compra, etc.)
-- Sempre confirme com o usuário ANTES de executar ações. Se o usuário está PEDINDO algo (ex: "cadastre o produto X"), execute diretamente.
+- Use ferramentas de ação somente quando o usuário pedir explicitamente cadastro, registro ou atualização.
 - Se o usuário está perguntando sobre algo (ex: "quanto custa o P13?"), use SQL para consultar.
-${unidade_id ? `Filtre por unidade_id = '${unidade_id}' quando a tabela tiver essa coluna.` : ""}
+Filtre por unidade_id = '${unidadeId}' quando a tabela tiver essa coluna.
 Use timezone 'America/Sao_Paulo' para datas. Use NOW() para data atual.
 Limite resultados a no máximo 50 linhas.
 Para "hoje": created_at::date = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date
@@ -536,28 +591,55 @@ ${TABLES_SCHEMA}`,
           const chartType = args.chart_type || "none";
 
           // Validate
-          if (sqlQuery !== "NO_SQL" && sqlQuery.trim().toUpperCase().startsWith("SELECT")) {
-            try {
-              const { data, error } = await supabase.rpc("execute_readonly_query", { query_text: sqlQuery });
-              if (error) {
-                queryError = error.message;
-              } else {
-                queryData = data;
+          if (sqlQuery !== "NO_SQL") {
+            // SECURITY: enforce tenant scoping — the AI-generated SQL MUST reference
+            // the validated unidade_id (which we already confirmed belongs to user's empresa).
+            // This prevents prompt-injection from leaking cross-tenant data.
+            const validationError = validateGeneratedSql(sqlQuery, unidadeId);
+            if (validationError) {
+              queryError = "Consulta rejeitada: filtro de unidade obrigatório.";
+            } else {
+              try {
+                const { data, error } = await supabase.rpc("execute_readonly_query", { query_text: sqlQuery });
+                if (error) {
+                  queryError = error.message;
+                } else {
+                  queryData = data;
+                }
+              } catch (e) {
+                queryError = e instanceof Error ? e.message : "Erro ao executar consulta";
               }
-            } catch (e) {
-              queryError = e instanceof Error ? e.message : "Erro ao executar consulta";
-            }
 
-            if (queryData && chartType !== "none" && Array.isArray(queryData) && queryData.length > 0) {
-              queryDescription += `\n\n[CHART_META]${JSON.stringify({ type: chartType, data: queryData })}[/CHART_META]`;
+              if (queryData && chartType !== "none" && Array.isArray(queryData) && queryData.length > 0) {
+                queryDescription += `\n\n[CHART_META]${JSON.stringify({ type: chartType, data: queryData })}[/CHART_META]`;
+              }
             }
           }
         } else {
+          if (!isActionConfirmed(lastUserMessage)) {
+            pendingActions.push({ action: fnName, params: args, preview: formatActionPreview(fnName, args) });
+            continue;
+          }
+
           // Execute action
-          const result = await executeAction(supabase, fnName, args, unidade_id);
+          const result = await executeAction(supabase, fnName, args, unidadeId, empresaId);
+          await logAiAction(supabase, {
+            user_id: userData.user.id,
+            empresa_id: empresaId,
+            unidade_id: unidadeId,
+            action: fnName,
+            params: args,
+            result,
+            success: !/^(\s*)?(❌|Acao rejeitada|Erro)/i.test(result),
+          });
           actionResults.push(result);
         }
       }
+    }
+
+    if (pendingActions.length > 0) {
+      const content = `Revise antes de executar. Nenhuma ação foi gravada ainda.\n\n${pendingActions.map((p) => p.preview).join("\n")}\n\nConfirme somente se os dados estiverem corretos.\n\n[PENDING_ACTIONS]${JSON.stringify(pendingActions)}[/PENDING_ACTIONS]`;
+      return streamTextResponse(content, corsHeaders);
     }
 
     // Step 2: Generate final natural language response
@@ -586,6 +668,9 @@ ${TABLES_SCHEMA}`,
     }
     if (actionResults.length > 0) {
       dataContext += `\n\nResultados das ações executadas:\n${actionResults.join("\n")}`;
+    }
+    if (pendingActions.length > 0) {
+      dataContext += `\n\nAcoes pendentes de confirmacao, ainda NAO executadas:\n${pendingActions.map((p) => p.preview).join("\n")}\n\nPeca ao usuario para revisar e responder se deseja confirmar ou cancelar.`;
     }
     if (!dataContext) {
       dataContext = "\nNenhuma consulta ou ação foi necessária.";
@@ -616,6 +701,10 @@ Formatação:
 - Formate valores como R$ X.XXX,XX.
 - Se não houver dados, informe de forma clara.
 - Ao executar ações, confirme o que foi feito.
+- Para criar pedidos: SEMPRE chame a tool criar_pedido. Quando o usuário disser "amanhã", "sexta", "dia X", "às 8h", calcule a data exata (data_entrega = YYYY-MM-DD) e hora (hora_entrega = HH:MM) e passe nos parâmetros — não invente que está agendado sem usar a tool.
+- Sempre tente identificar o cliente pelo nome OU telefone informado. Se não houver cadastro, crie o pedido mesmo assim (a tool aceita cliente não-cadastrado).
+- Interprete nomes de produtos com flexibilidade: "p13"/"P13" = Gás P13, "p20" = Gás P20, "p45" = Gás P45, "água" = Água 20L.
+- Se houver acoes pendentes de confirmacao no contexto, diga claramente que nada foi executado ainda e peca confirmacao.
 - Mantenha o bloco [CHART_META]...[/CHART_META] na resposta quando presente.
 
 Contexto: Hoje é ${dayOfWeek}, ${now.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}. ${timeContext}${sundayContext}
@@ -656,6 +745,128 @@ function errResponse(status: number, error: string, corsHeaders: Record<string, 
   });
 }
 
+function streamTextResponse(content: string, corsHeaders: Record<string, string>) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`));
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    },
+  });
+  return new Response(stream, {
+    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+  });
+}
+
+function isActionConfirmed(message: string): boolean {
+  const normalized = message
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return /\b(confirmo|confirmar|pode executar|pode cadastrar|pode registrar|pode atualizar|sim pode|sim confirme|autorizo|execute)\b/.test(normalized);
+}
+
+function formatActionPreview(action: string, params: Record<string, unknown>): string {
+  const entries = Object.entries(params)
+    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .slice(0, 8)
+    .map(([key, value]) => `${key}: ${typeof value === "object" ? JSON.stringify(value) : String(value)}`);
+  return `- ${action}${entries.length ? ` (${entries.join(", ")})` : ""}`;
+}
+
+function buildSafeQuery(message: string, unidadeId: string): { description: string; sql: string } | null {
+  const normalized = message
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  if (/\b(vendas?|faturamento|pedidos?)\b/.test(normalized) && /\b(hoje|dia)\b/.test(normalized)) {
+    return {
+      description: "Resumo de vendas de hoje",
+      sql: `
+        select
+          count(*)::int as pedidos,
+          coalesce(sum(valor_total), 0)::numeric as faturamento,
+          coalesce(avg(valor_total), 0)::numeric as ticket_medio
+        from pedidos
+        where unidade_id = '${unidadeId}'
+          and created_at::date = (now() at time zone 'America/Sao_Paulo')::date
+          and coalesce(status, '') <> 'cancelado'
+      `,
+    };
+  }
+
+  if (/\b(estoque|ruptura|baixo|critico|critico)\b/.test(normalized)) {
+    return {
+      description: "Produtos com estoque baixo",
+      sql: `
+        select nome, categoria, estoque, estoque_minimo
+        from produtos
+        where unidade_id = '${unidadeId}'
+          and ativo = true
+          and coalesce(estoque, 0) <= coalesce(estoque_minimo, 0)
+        order by coalesce(estoque, 0) asc, nome asc
+        limit 20
+      `,
+    };
+  }
+
+  if (/\b(contas?|vencid[ao]s?|atras[ao])\b/.test(normalized)) {
+    return {
+      description: "Contas vencidas a pagar e a receber",
+      sql: `
+        select 'pagar' as tipo, fornecedor as pessoa, descricao, valor, vencimento, status
+        from contas_pagar
+        where unidade_id = '${unidadeId}'
+          and status <> 'pago'
+          and vencimento < current_date
+        union all
+        select 'receber' as tipo, cliente as pessoa, descricao, valor, vencimento, status
+        from contas_receber
+        where unidade_id = '${unidadeId}'
+          and status <> 'pago'
+          and vencimento < current_date
+        order by vencimento asc
+        limit 30
+      `,
+    };
+  }
+
+  return null;
+}
+
+function validateGeneratedSql(sqlQuery: string, unidadeId: string): string | null {
+  const normalized = sqlQuery.trim();
+  const upper = normalized.toUpperCase();
+  const blocked = "Consulta rejeitada: filtro de unidade obrigatorio.";
+  if (!upper.startsWith("SELECT")) return blocked;
+  if (normalized.includes(";") || normalized.includes("--") || normalized.includes("/*") || normalized.includes("*/")) {
+    return blocked;
+  }
+  if (/\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|MERGE|CALL|DO|EXECUTE)\b/i.test(normalized)) {
+    return blocked;
+  }
+  if (!normalized.includes(unidadeId)) return blocked;
+  return null;
+}
+
+async function logAiAction(supabase: any, entry: {
+  user_id: string;
+  empresa_id: string | null;
+  unidade_id: string;
+  action: string;
+  params: Record<string, unknown>;
+  result: string;
+  success: boolean;
+}) {
+  try {
+    await supabase.from("ai_action_logs").insert(entry);
+  } catch (e) {
+    console.warn("ai action audit log failed:", e);
+  }
+}
+
 async function callAI(apiKey: string, messages: any[], tools: any[]) {
   return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -672,8 +883,10 @@ async function callAI(apiKey: string, messages: any[], tools: any[]) {
   });
 }
 
-async function executeAction(supabase: any, action: string, params: any, unidade_id: string | null): Promise<string> {
+async function executeAction(supabase: any, action: string, params: any, unidade_id: string, empresa_id: string | null): Promise<string> {
   try {
+    if (!unidade_id) return "Acao rejeitada: selecione uma unidade antes de alterar dados.";
+
     switch (action) {
       case "cadastrar_produto": {
         const { nome, preco, categoria, tipo_botijao, estoque, custo, estoque_minimo, descricao, codigo_barras } = params;
@@ -717,12 +930,7 @@ async function executeAction(supabase: any, action: string, params: any, unidade
 
       case "cadastrar_cliente": {
         const { nome, telefone, cpf, email, endereco, bairro, cidade, numero, cep, tipo } = params;
-        // Get empresa_id from the unidade
-        let empresa_id = null;
-        if (unidade_id) {
-          const { data: unidade } = await supabase.from("unidades").select("empresa_id").eq("id", unidade_id).single();
-          empresa_id = unidade?.empresa_id || null;
-        }
+        if (!empresa_id) return "Acao rejeitada: empresa nao identificada para a unidade atual.";
         // Normaliza telefone: remove não-dígitos e prefixo de país "55" se vier com 12-13 dígitos
         let telefoneNormalizado: string | null = null;
         if (telefone) {
@@ -776,7 +984,7 @@ async function executeAction(supabase: any, action: string, params: any, unidade
         // Find or identify fornecedor
         let fId = fornecedor_id;
         if (!fId && fornecedor_nome) {
-          const { data: forn } = await supabase.from("fornecedores").select("id").ilike("razao_social", `%${fornecedor_nome}%`).limit(1).single();
+          const { data: forn } = await supabase.from("fornecedores").select("id").ilike("razao_social", `%${fornecedor_nome}%`).eq("unidade_id", unidade_id).limit(1).single();
           fId = forn?.id || null;
         }
 
@@ -830,9 +1038,9 @@ async function executeAction(supabase: any, action: string, params: any, unidade
               unidade_id,
             });
             // Update product stock
-            const { data: currentProd } = await supabase.from("produtos").select("estoque").eq("id", item.produto_id).single();
+            const { data: currentProd } = await supabase.from("produtos").select("estoque").eq("id", item.produto_id).eq("unidade_id", unidade_id).single();
             if (currentProd) {
-              await supabase.from("produtos").update({ estoque: (currentProd.estoque || 0) + item.quantidade }).eq("id", item.produto_id);
+              await supabase.from("produtos").update({ estoque: (currentProd.estoque || 0) + item.quantidade }).eq("id", item.produto_id).eq("unidade_id", unidade_id);
             }
           }
         }
@@ -857,25 +1065,108 @@ async function executeAction(supabase: any, action: string, params: any, unidade
       }
 
       case "criar_pedido": {
-        const { cliente_nome, cliente_telefone, itens, forma_pagamento, endereco_entrega, observacoes, troco_para } = params;
+        let { cliente_id, cliente_nome, cliente_telefone, itens, forma_pagamento, endereco_entrega, observacoes, troco_para, data_entrega, hora_entrega } = params;
 
-        // Find or create client
-        let clienteId = null;
-        if (cliente_nome) {
-          const { data: cli } = await supabase.from("clientes").select("id").ilike("nome", `%${cliente_nome}%`).limit(1).single();
-          clienteId = cli?.id || null;
+        // Fallback determinístico: se LLM não preencheu data/hora mas o usuário pediu agendamento, extrair da mensagem
+        if (!data_entrega) {
+          const msg = (lastUserMessage || "").toLowerCase();
+          const isAgendaIntent = /\b(agend[ae]|amanh[ãa]|depois de amanh[ãa]|hoje|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|domingo|dia\s+\d{1,2}|\d{1,2}\/\d{1,2})\b/.test(msg);
+          if (isAgendaIntent) {
+            const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+            let target: Date | null = null;
+            if (/depois de amanh[ãa]/.test(msg)) {
+              target = new Date(now); target.setDate(target.getDate() + 2);
+            } else if (/amanh[ãa]/.test(msg)) {
+              target = new Date(now); target.setDate(target.getDate() + 1);
+            } else if (/\bhoje\b/.test(msg)) {
+              target = new Date(now);
+            } else {
+              const weekdays: Record<string, number> = { domingo: 0, segunda: 1, "terça": 2, terca: 2, quarta: 3, quinta: 4, sexta: 5, sábado: 6, sabado: 6 };
+              for (const [k, v] of Object.entries(weekdays)) {
+                if (new RegExp(`\\b${k}\\b`).test(msg)) {
+                  target = new Date(now);
+                  const diff = (v - target.getDay() + 7) % 7 || 7;
+                  target.setDate(target.getDate() + diff);
+                  break;
+                }
+              }
+              if (!target) {
+                const m = msg.match(/\b(?:dia\s+)?(\d{1,2})(?:\/(\d{1,2}))?\b/);
+                if (m) {
+                  const d = parseInt(m[1], 10);
+                  const mo = m[2] ? parseInt(m[2], 10) - 1 : now.getMonth();
+                  if (d >= 1 && d <= 31) {
+                    target = new Date(now.getFullYear(), mo, d);
+                    if (target < now) target.setFullYear(target.getFullYear() + 1);
+                  }
+                }
+              }
+              // Fallback: usuário pediu "agenda" sem especificar data → assume amanhã
+              if (!target && /\bagend[ae]/.test(msg)) {
+                target = new Date(now); target.setDate(target.getDate() + 1);
+              }
+            }
+            if (target) {
+              const y = target.getFullYear();
+              const m = String(target.getMonth() + 1).padStart(2, "0");
+              const d = String(target.getDate()).padStart(2, "0");
+              data_entrega = `${y}-${m}-${d}`;
+            }
+          }
+        }
+        if (!hora_entrega) {
+          const msg = (lastUserMessage || "").toLowerCase();
+          const horaM = msg.match(/\b(\d{1,2})(?::|h)\s*(\d{2})?\b/);
+          if (horaM) {
+            const hh = String(Math.min(23, parseInt(horaM[1], 10))).padStart(2, "0");
+            const mm = String(horaM[2] ? Math.min(59, parseInt(horaM[2], 10)) : 0).padStart(2, "0");
+            hora_entrega = `${hh}:${mm}`;
+          } else if (/manh[ãa]/.test(msg)) hora_entrega = "09:00";
+          else if (/tarde/.test(msg)) hora_entrega = "14:00";
+          else if (/noite/.test(msg)) hora_entrega = "18:00";
+        }
+        console.log("[criar_pedido] agendamento", { data_entrega, hora_entrega });
+
+        // Resolve client: id > telefone > nome
+        let cliente: any = null;
+        if (cliente_id) {
+          const { data } = await supabase.from("clientes")
+            .select("id, nome, telefone, endereco, numero, bairro")
+            .eq("id", cliente_id)
+            .eq("empresa_id", empresa_id)
+            .maybeSingle();
+          cliente = data;
+        }
+        if (!cliente && cliente_telefone) {
+          const tel = String(cliente_telefone).replace(/\D/g, "");
+          if (tel.length >= 8) {
+            const { data } = await supabase.from("clientes")
+              .select("id, nome, telefone, endereco, numero, bairro")
+              .ilike("telefone", `%${tel.slice(-8)}%`)
+              .eq("empresa_id", empresa_id)
+              .limit(1).maybeSingle();
+            cliente = data;
+          }
+        }
+        if (!cliente && cliente_nome) {
+          const { data } = await supabase.from("clientes")
+            .select("id, nome, telefone, endereco, numero, bairro")
+            .ilike("nome", `%${cliente_nome}%`)
+            .eq("empresa_id", empresa_id)
+            .limit(1).maybeSingle();
+          cliente = data;
         }
 
         // Resolve products and calculate total
         let valorTotal = 0;
-        const pedidoItens = [];
+        const pedidoItens: any[] = [];
         for (const item of itens || []) {
           const { data: prod } = await supabase.from("produtos")
             .select("id, nome, preco")
             .ilike("nome", `%${item.produto_nome}%`)
             .eq("unidade_id", unidade_id)
             .limit(1)
-            .single();
+            .maybeSingle();
           const preco = prod?.preco || 0;
           pedidoItens.push({
             produto_id: prod?.id || null,
@@ -886,36 +1177,63 @@ async function executeAction(supabase: any, action: string, params: any, unidade
           valorTotal += item.quantidade * preco;
         }
 
-        const { data: pedido, error: pedidoErr } = await supabase.from("pedidos").insert({
-          cliente_id: clienteId,
+        // Endereço: usa o passado, senão monta do cliente
+        let enderecoFinal = endereco_entrega || null;
+        if (!enderecoFinal && cliente) {
+          const partes = [cliente.endereco, cliente.numero, cliente.bairro].filter(Boolean);
+          if (partes.length) enderecoFinal = partes.join(", ");
+        }
+
+        // Agendamento
+        const agendado = !!data_entrega;
+        let dataAgendamentoIso: string | null = null;
+        if (agendado) {
+          const hora = (hora_entrega && /^\d{1,2}:\d{2}$/.test(hora_entrega)) ? hora_entrega : "08:00";
+          // Brasil = UTC-3, salvamos em UTC somando 3h
+          const local = new Date(`${data_entrega}T${hora.padStart(5, "0")}:00-03:00`);
+          if (!isNaN(local.getTime())) dataAgendamentoIso = local.toISOString();
+        }
+
+        const insertPayload: any = {
+          cliente_id: cliente?.id || null,
           valor_total: valorTotal,
           forma_pagamento: forma_pagamento || "dinheiro",
           status: "pendente",
           canal_venda: "assistente",
-          endereco_entrega: endereco_entrega || null,
-          observacoes: observacoes || `Pedido via Assistente IA${cliente_nome ? ` - ${cliente_nome}` : ""}${cliente_telefone ? ` (${cliente_telefone})` : ""}`,
+          endereco_entrega: enderecoFinal,
+          observacoes: observacoes || `Pedido via Assistente IA${cliente?.nome ? ` - ${cliente.nome}` : (cliente_nome ? ` - ${cliente_nome}` : "")}${cliente_telefone ? ` (${cliente_telefone})` : ""}`,
           troco_para: troco_para || null,
           unidade_id,
-        }).select("id").single();
+          agendado,
+          data_agendamento: dataAgendamentoIso,
+          data_entrega: data_entrega || null,
+        };
+
+        const { data: pedido, error: pedidoErr } = await supabase.from("pedidos").insert(insertPayload).select("id").single();
         if (pedidoErr) throw pedidoErr;
 
         for (const item of pedidoItens) {
-          await supabase.from("pedido_itens").insert({
+          const { error: itemErr } = await supabase.from("pedido_itens").insert({
             pedido_id: pedido.id,
             produto_id: item.produto_id,
-            produto_nome: item.produto_nome,
             quantidade: item.quantidade,
             preco_unitario: item.preco_unitario,
           });
+          if (itemErr) {
+            await supabase.from("pedidos").delete().eq("id", pedido.id);
+            throw itemErr;
+          }
         }
 
         const itensStr = pedidoItens.map(i => `${i.quantidade}x ${i.produto_nome}`).join(", ");
-        return `✅ Pedido criado (#${pedido.id.substring(0, 8)}): ${itensStr}. Total: R$ ${valorTotal.toFixed(2)}. Status: Pendente.`;
+        const clienteStr = cliente?.nome ? ` para ${cliente.nome}` : (cliente_nome ? ` para ${cliente_nome} (não cadastrado)` : "");
+        const agendaStr = agendado ? ` 📅 AGENDADO para ${data_entrega} às ${hora_entrega || "08:00"}` : "";
+        return `✅ Pedido criado (#${pedido.id.substring(0, 8)})${clienteStr}: ${itensStr}. Total: R$ ${valorTotal.toFixed(2)}.${agendaStr}`;
       }
 
       case "atualizar_status_pedido": {
         const { pedido_id, novo_status } = params;
-        const { error } = await supabase.from("pedidos").update({ status: novo_status }).eq("id", pedido_id);
+        const { error } = await supabase.from("pedidos").update({ status: novo_status }).eq("id", pedido_id).eq("unidade_id", unidade_id);
         if (error) throw error;
         return `✅ Pedido ${pedido_id.substring(0, 8)} atualizado para "${novo_status}"`;
       }
@@ -939,7 +1257,7 @@ async function executeAction(supabase: any, action: string, params: any, unidade
         });
 
         const novoEstoque = tipo === "entrada" ? (prod.estoque || 0) + quantidade : (prod.estoque || 0) - quantidade;
-        await supabase.from("produtos").update({ estoque: Math.max(0, novoEstoque) }).eq("id", prod.id);
+        await supabase.from("produtos").update({ estoque: Math.max(0, novoEstoque) }).eq("id", prod.id).eq("unidade_id", unidade_id);
 
         return `✅ ${tipo.charAt(0).toUpperCase() + tipo.slice(1)} de ${quantidade}x "${prod.nome}" registrada. Estoque: ${prod.estoque || 0} → ${Math.max(0, novoEstoque)}`;
       }
@@ -964,7 +1282,7 @@ async function executeAction(supabase: any, action: string, params: any, unidade
         const { veiculo_placa, tipo, descricao, valor, data, km, oficina } = params;
         let veiculoId = null;
         if (veiculo_placa) {
-          const { data: vei } = await supabase.from("veiculos").select("id").ilike("placa", `%${veiculo_placa}%`).limit(1).single();
+          const { data: vei } = await supabase.from("veiculos").select("id").ilike("placa", `%${veiculo_placa}%`).eq("unidade_id", unidade_id).limit(1).single();
           veiculoId = vei?.id || null;
         }
         const { data: man, error } = await supabase.from("manutencoes").insert({
@@ -1007,7 +1325,7 @@ async function executeAction(supabase: any, action: string, params: any, unidade
           .single();
         if (!prod) return `❌ Produto "${produto_nome}" não encontrado na unidade atual`;
         const precoAntigo = prod.preco;
-        await supabase.from("produtos").update({ preco: novo_preco }).eq("id", prod.id);
+        await supabase.from("produtos").update({ preco: novo_preco }).eq("id", prod.id).eq("unidade_id", unidade_id);
         return `✅ Preço de "${prod.nome}" atualizado: R$ ${precoAntigo?.toFixed(2)} → R$ ${novo_preco.toFixed(2)}`;
       }
 

@@ -956,7 +956,7 @@ export default function Compras() {
     if (status === "recebido") {
       updateData.data_recebimento = new Date().toISOString();
     }
-    const { error } = await supabase.from("compras").update(updateData).eq("id", id);
+    const { error } = await supabase.from("compras").update(updateData as any).eq("id", id);
     if (error) { toast.error("Erro ao atualizar"); return; }
     toast.success("Status atualizado!");
     fetchCompras();

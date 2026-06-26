@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
-import { SystemFooter } from "@/components/layout/SystemFooter";
+import { ParceiroErrorBoundary } from "@/components/parceiro/ParceiroErrorBoundary";
 
 interface ParceiroLayoutProps {
   children: ReactNode;
@@ -94,7 +94,7 @@ export function ParceiroLayout({ children, title }: ParceiroLayoutProps) {
       </header>
 
       <main className="flex-1 overflow-auto pb-20">
-        {children}
+        <ParceiroErrorBoundary>{children}</ParceiroErrorBoundary>
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-50">
@@ -118,7 +118,7 @@ export function ParceiroLayout({ children, title }: ParceiroLayoutProps) {
           })}
         </div>
       </nav>
-      <SystemFooter portalKey="parceiro" />
+      
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { getBrasiliaDateString } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -30,6 +31,15 @@ export interface CategoriaDesp {
   ativo: boolean;
 }
 
+export interface FornecedorCadastro {
+  id: string;
+  razao_social: string;
+  nome_fantasia: string | null;
+  cnpj: string | null;
+  tipo: string | null;
+  ativo: boolean | null;
+}
+
 export const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque"];
 export const CATEGORIAS_FALLBACK = ["Fornecedores", "Frota", "Infraestrutura", "Utilidades", "RH", "Compras", "Outros"];
 
@@ -37,12 +47,14 @@ const EMPTY_FORM = { fornecedor: "", descricao: "", valor: "", vencimento: "", c
 
 export function useContasPagar() {
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const hoje = getBrasiliaDateString();
 
   // ------- Core data -------
   const [contas, setContas] = useState<ContaPagar[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoriasDB, setCategoriasDB] = useState<CategoriaDesp[]>([]);
+  const [fornecedoresCadastro, setFornecedoresCadastro] = useState<FornecedorCadastro[]>([]);
 
   // ------- UI / dialog state -------
   const [search, setSearch] = useState("");
@@ -61,7 +73,7 @@ export function useContasPagar() {
   // ------- Filters -------
   const [dataInicial, setDataInicial] = useState("");
   const [dataFinal, setDataFinal] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState("abertas");
   const [filtroFornecedor, setFiltroFornecedor] = useState("todos");
   const [filtroCategoria, setFiltroCategoria] = useState("todos");
 
@@ -131,7 +143,20 @@ export function useContasPagar() {
     setContasBancarias((data as any) || []);
   };
 
-  useEffect(() => { fetchContas(); fetchCategorias(); fetchContasBancarias(); }, [unidadeAtual]);
+  const fetchFornecedores = async () => {
+    const { data, error } = await supabase
+      .from("fornecedores")
+      .select("id,razao_social,nome_fantasia,cnpj,tipo,ativo")
+      .eq("ativo", true)
+      .order("razao_social");
+    if (error) {
+      console.error(error);
+      return;
+    }
+    setFornecedoresCadastro((data as FornecedorCadastro[]) || []);
+  };
+
+  useEffect(() => { fetchContas(); fetchCategorias(); fetchContasBancarias(); fetchFornecedores(); }, [unidadeAtual]);
 
 
   // ===================== COMPUTED (derived state) =====================
@@ -140,7 +165,10 @@ export function useContasPagar() {
     ? categoriasDB.filter(c => c.ativo).map(c => c.nome)
     : CATEGORIAS_FALLBACK;
 
-  const fornecedoresUnicos = [...new Set(contas.map(c => c.fornecedor))].sort();
+  const fornecedoresUnicos = [...new Set([
+    ...fornecedoresCadastro.map(f => f.razao_social),
+    ...contas.map(c => c.fornecedor),
+  ])].sort();
   const categoriasUnicas = [...new Set(contas.map(c => c.categoria).filter(Boolean))].sort() as string[];
 
   const filtered = contas.filter(c => {
@@ -150,7 +178,10 @@ export function useContasPagar() {
     const matchDataFim = !dataFinal || c.vencimento <= dataFinal;
     const isVencida = (c.status === "pendente" || c.status === "vencida") && c.vencimento < hoje;
     const statusAtual = c.status === "paga" ? "paga" : isVencida ? "vencida" : c.status;
-    const matchStatus = filtroStatus === "todos" || statusAtual === filtroStatus;
+    const matchStatus =
+      filtroStatus === "todos" ||
+      (filtroStatus === "abertas" && statusAtual !== "paga") ||
+      statusAtual === filtroStatus;
     const matchFornecedor = filtroFornecedor === "todos" || c.fornecedor === filtroFornecedor;
     const matchCategoria = filtroCategoria === "todos" || (c.categoria || "") === filtroCategoria;
     return matchSearch && matchDataIni && matchDataFim && matchStatus && matchFornecedor && matchCategoria;
@@ -161,7 +192,7 @@ export function useContasPagar() {
   const totalPago = filtered.filter(c => c.status === "paga").reduce((a, c) => a + Number(c.valor), 0);
   const totalAberto = totalPendente + totalVencido;
 
-  const hasActiveFilters = !!(dataInicial || dataFinal || filtroStatus !== "todos" || filtroFornecedor !== "todos" || filtroCategoria !== "todos");
+  const hasActiveFilters = !!(dataInicial || dataFinal || filtroStatus !== "abertas" || filtroFornecedor !== "todos" || filtroCategoria !== "todos");
 
   const resumoPorFornecedor = (() => {
     const pendentes = contas.filter(c => c.status !== "paga");
@@ -372,7 +403,7 @@ export function useContasPagar() {
   // ===================== FILTERS =====================
 
   const clearAllFilters = () => {
-    setDataInicial(""); setDataFinal(""); setFiltroStatus("todos");
+    setDataInicial(""); setDataFinal(""); setFiltroStatus("abertas");
     setFiltroFornecedor("todos"); setFiltroCategoria("todos");
   };
 
@@ -459,12 +490,12 @@ export function useContasPagar() {
     if (!boletoData?.fornecedor || !boletoData?.valor) { toast.error("Fornecedor e valor são obrigatórios"); return; }
     let boletoUrl: string | null = null;
     if (boletoFile) {
+      if (!empresa?.id) { toast.error("Empresa não identificada para salvar o boleto"); return; }
       const ext = boletoFile.name.split(".").pop() || "pdf";
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+      const fileName = `${empresa.id}/boletos/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
       const { error: uploadError } = await supabase.storage.from("boletos").upload(fileName, boletoFile);
       if (!uploadError) {
-        const { data: urlData } = supabase.storage.from("boletos").getPublicUrl(fileName);
-        boletoUrl = urlData.publicUrl;
+        boletoUrl = fileName;
       }
     }
     const { error } = await supabase.from("contas_pagar").insert({
@@ -485,8 +516,9 @@ export function useContasPagar() {
     setViewBoletoConta(conta);
     if (conta.boleto_url) {
       const urlParts = conta.boleto_url.split("/boletos/");
-      if (urlParts.length > 1) {
-        const { data } = await supabase.storage.from("boletos").createSignedUrl(urlParts[1], 3600);
+      const storagePath = urlParts.length > 1 ? decodeURIComponent(urlParts[1]) : conta.boleto_url;
+      if (!/^https?:\/\//i.test(storagePath)) {
+        const { data } = await supabase.storage.from("boletos").createSignedUrl(storagePath, 3600);
         setViewBoletoUrl(data?.signedUrl || conta.boleto_url);
       } else { setViewBoletoUrl(conta.boleto_url); }
     }
@@ -628,7 +660,7 @@ export function useContasPagar() {
 
   return {
     // data
-    contas, loading, categoriasNomes, hoje,
+    contas, loading, categoriasNomes, fornecedoresCadastro, hoje,
     // computed
     filtered, totalPendente, totalVencido, totalPago, totalAberto,
     resumoPorFornecedor, fornecedoresComMultiplas, groupedFiltered,

@@ -47,8 +47,10 @@ export function PendingDeliveriesBanner() {
 
   // Realtime
   useEffect(() => {
+    if (!user?.id) return;
+
     const channel = supabase
-      .channel("pending-banner")
+      .channel(`pending-banner-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => fetchPending())
       .subscribe();
     return () => { supabase.removeChannel(channel); };

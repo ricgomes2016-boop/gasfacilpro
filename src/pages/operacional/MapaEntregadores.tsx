@@ -4,7 +4,8 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Truck, RefreshCw, Route, History, User, Clock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { PageSectionLoader } from "@/components/ui/page-loader";
+import { MapPin, Truck, RefreshCw, Route, History, User, Clock, Eye, EyeOff } from "lucide-react";
 import { DeliveryRoutesMap, Entregador, ClienteEntrega, PercursoPonto } from "@/components/mapa/DeliveryRoutesMap";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -147,9 +148,7 @@ export default function MapaEntregadores() {
     return (
       <MainLayout>
         <Header title="Mapa dos Entregadores" subtitle="Acompanhe a localização em tempo real" />
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <PageSectionLoader label="Carregando mapa dos entregadores..." />
       </MainLayout>
     );
   }

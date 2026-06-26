@@ -27,9 +27,11 @@ export default function AsaasConfig() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [hasWebhookToken, setHasWebhookToken] = useState(false);
   const [balance, setBalance] = useState<{ balance: number; } | null>(null);
 
-  const webhookUrl = `https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/asaas-webhook`;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://gcrdftnnbgsogoqcmcxo.supabase.co";
+  const webhookUrl = `${supabaseUrl}/functions/v1/asaas-webhook`;
 
 
   useEffect(() => {
@@ -38,43 +40,44 @@ export default function AsaasConfig() {
 
   const loadConfig = async () => {
     if (!empresa?.id) return;
-    const { data } = await supabase
-      .from("configuracoes_empresa")
-      .select("*")
-      .eq("empresa_id", empresa.id)
-      .single();
+    const { data } = await (supabase as any).rpc("get_asaas_config_status", {
+      p_empresa_id: empresa.id,
+    });
 
-    const row = data as any;
-    if (row?.asaas_api_key) {
-      setApiKey(row.asaas_api_key);
-      setSandbox(row.asaas_sandbox ?? true);
-      setWebhookToken(row.asaas_webhook_token ?? "");
-      setConnected(true);
-    }
+    const row = Array.isArray(data) ? data[0] : data;
+    setSandbox(row?.asaas_sandbox ?? true);
+    setConnected(Boolean(row?.has_asaas_api_key));
+    setHasWebhookToken(Boolean(row?.has_asaas_webhook_token));
   };
 
 
   const handleSave = async () => {
     if (!empresa?.id) return;
-    if (!apiKey.trim()) {
+    if (!connected && !apiKey.trim()) {
       toast.error("Informe a API Key do Asaas");
       return;
     }
 
     setSaving(true);
     try {
+      const payload: Record<string, unknown> = {
+        empresa_id: empresa.id,
+        asaas_sandbox: sandbox,
+      };
+
+      if (apiKey.trim()) payload.asaas_api_key = apiKey.trim();
+      if (webhookToken.trim()) payload.asaas_webhook_token = webhookToken.trim();
+
       const { error } = await supabase
         .from("configuracoes_empresa")
-        .upsert({
-          empresa_id: empresa.id,
-          asaas_api_key: apiKey.trim(),
-          asaas_sandbox: sandbox,
-          asaas_webhook_token: webhookToken.trim() || null,
-        } as any, { onConflict: "empresa_id" });
+        .upsert(payload as any, { onConflict: "empresa_id" });
 
 
       if (error) throw error;
       setConnected(true);
+      setHasWebhookToken(Boolean(webhookToken.trim()) || hasWebhookToken);
+      setApiKey("");
+      setWebhookToken("");
       toast.success("Configuração do Asaas salva com sucesso!");
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar configuração");
@@ -115,6 +118,8 @@ export default function AsaasConfig() {
       if (error) throw error;
       setApiKey("");
       setSandbox(true);
+      setWebhookToken("");
+      setHasWebhookToken(false);
       setConnected(false);
       setBalance(null);
       toast.success("Asaas desconectado");
@@ -192,7 +197,7 @@ export default function AsaasConfig() {
                   type={showKey ? "text" : "password"}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="$aact_xxxxxxxxxxxxxxxx..."
+                  placeholder={connected ? "Chave já configurada. Digite uma nova para substituir." : "$aact_xxxxxxxxxxxxxxxx..."}
                   className="pr-10"
                 />
                 <Button
@@ -231,7 +236,7 @@ export default function AsaasConfig() {
             <Separator />
 
             <div className="flex flex-wrap gap-2">
-              <Button onClick={handleSave} disabled={saving || !apiKey.trim()}>
+              <Button onClick={handleSave} disabled={saving || (!connected && !apiKey.trim())}>
                 {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                 Salvar Configuração
               </Button>
@@ -286,7 +291,7 @@ export default function AsaasConfig() {
                   type={showToken ? "text" : "password"}
                   value={webhookToken}
                   onChange={(e) => setWebhookToken(e.target.value)}
-                  placeholder="ex: meu-token-secreto-123"
+                  placeholder={hasWebhookToken ? "Token já configurado. Digite um novo para substituir." : "ex: meu-token-secreto-123"}
                   className="pr-10 font-mono"
                 />
                 <Button

@@ -113,15 +113,40 @@ Deno.serve(async (req) => {
     // Step 3: Número registrado?
     if (resolvedPhoneId && results[0]?.status === "ok") {
       try {
-        const r = await fetch(`${META_API}/${resolvedPhoneId}?fields=display_phone_number,verified_name,code_verification_status,quality_rating,platform_type,status&access_token=${token}`);
+        const r = await fetch(`${META_API}/${resolvedPhoneId}?fields=display_phone_number,verified_name,code_verification_status,quality_rating,platform_type,status,webhook_configuration&access_token=${token}`);
         const d = await r.json();
         if (r.ok && d.display_phone_number) {
+          const verifExpired = d.code_verification_status === "EXPIRED";
           results.push({
             step: "numero_registrado",
-            status: "ok",
-            message: `Número: ${d.display_phone_number} | Status: ${d.code_verification_status || "N/A"} | Qualidade: ${d.quality_rating || "N/A"}`,
+            status: verifExpired ? "erro" : "ok",
+            message: verifExpired
+              ? `⚠️ Verificação em 2 etapas EXPIRADA no número ${d.display_phone_number}. A Meta para de entregar mensagens enquanto isso. Acesse Meta Business → WhatsApp Manager → Números → reenvie o PIN.`
+              : `Número: ${d.display_phone_number} | Status: ${d.code_verification_status || "N/A"} | Qualidade: ${d.quality_rating || "N/A"}`,
             data: d,
           });
+
+          // Step 3b: Webhook configurado no número aponta para nosso endpoint?
+          const expectedWebhook = `${Deno.env.get("SUPABASE_URL")}/functions/v1/meta-webhook`;
+          const configuredWebhook = d.webhook_configuration?.application || null;
+          if (configuredWebhook) {
+            const matches = configuredWebhook.includes("/functions/v1/meta-webhook");
+            results.push({
+              step: "webhook_configurado",
+              status: matches ? "ok" : "erro",
+              message: matches
+                ? `Webhook OK: ${configuredWebhook}`
+                : `Webhook aponta para outro endereço: ${configuredWebhook}. Esperado: ${expectedWebhook}`,
+              data: { configured: configuredWebhook, expected: expectedWebhook },
+            });
+          } else {
+            results.push({
+              step: "webhook_configurado",
+              status: "erro",
+              message: `Nenhum webhook configurado neste número. Configure ${expectedWebhook} em Meta for Developers → App → WhatsApp → Configuração → Webhook.`,
+              data: { expected: expectedWebhook },
+            });
+          }
         } else {
           const errCode = d.error?.code;
           const errMsg = d.error?.message || "Erro desconhecido";
@@ -141,6 +166,33 @@ Deno.serve(async (req) => {
       results.push({ step: "numero_registrado", status: "skip", message: "Phone Number ID não configurado" });
     } else {
       results.push({ step: "numero_registrado", status: "skip", message: "Pulado (token inválido)" });
+    }
+
+    // Step 3c: App inscrito no WABA?
+    if (wabaId && results[0]?.status === "ok") {
+      try {
+        const r = await fetch(`${META_API}/${wabaId}/subscribed_apps?access_token=${token}`);
+        const d = await r.json();
+        if (r.ok && Array.isArray(d.data)) {
+          if (d.data.length > 0) {
+            const apps = d.data.map((a: any) => a.whatsapp_business_api_data?.name || a.whatsapp_business_api_data?.id).join(", ");
+            results.push({ step: "subscribed_apps", status: "ok", message: `App(s) inscrito(s) no WABA: ${apps}`, data: d.data });
+          } else {
+            results.push({
+              step: "subscribed_apps",
+              status: "erro",
+              message: "Nenhum app inscrito no WABA. Em Meta for Developers → App → WhatsApp → Configuração, clique em 'Inscrever' no webhook e marque o campo 'messages'.",
+              data: d,
+            });
+          }
+        } else {
+          results.push({ step: "subscribed_apps", status: "erro", message: d.error?.message || "Falha ao consultar subscribed_apps", data: d });
+        }
+      } catch (e) {
+        results.push({ step: "subscribed_apps", status: "erro", message: `Erro de rede: ${e.message}` });
+      }
+    } else {
+      results.push({ step: "subscribed_apps", status: "skip", message: "Pulado (sem WABA ou token inválido)" });
     }
 
     // Step 4: Registro automático

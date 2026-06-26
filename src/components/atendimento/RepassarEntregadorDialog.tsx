@@ -162,7 +162,7 @@ export function RepassarEntregadorDialog({
 
       const { error } = await supabase
         .from("pedidos")
-        .update(updateData)
+        .update(updateData as any)
         .eq("id", pedidoId);
 
       if (error) throw error;

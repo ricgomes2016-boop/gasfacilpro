@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
-import { TrendingUp, BarChart3, PieChart, Activity, Loader2 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Legend } from "recharts";
+import { PageSectionLoader } from "@/components/ui/page-loader";
+import { TrendingUp, BarChart3, PieChart, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 
@@ -60,19 +61,19 @@ export default function AvancadoContent() {
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+  if (loading) return <PageSectionLoader label="Carregando análise avançada..." />;
 
   return (
     <div className="space-y-6">
       <Tabs defaultValue="financeiro" className="space-y-6">
-        <TabsList>
+        <TabsList className="intelligence-tabs grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
           <TabsTrigger value="vendas">Vendas</TabsTrigger>
           <TabsTrigger value="operacional">Operacional</TabsTrigger>
         </TabsList>
 
         <TabsContent value="financeiro" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-chart-3/10"><TrendingUp className="h-6 w-6 text-chart-3" /></div><div><p className="text-2xl font-bold">R$ {(metricas.faturamento / 1000).toFixed(1)}k</p><p className="text-sm text-muted-foreground">Faturamento (6 meses)</p></div></div></CardContent></Card>
             <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-destructive/10"><BarChart3 className="h-6 w-6 text-destructive" /></div><div><p className="text-2xl font-bold">R$ {(metricas.despesas / 1000).toFixed(1)}k</p><p className="text-sm text-muted-foreground">Despesas (6 meses)</p></div></div></CardContent></Card>
             <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><PieChart className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">R$ {(metricas.lucro / 1000).toFixed(1)}k</p><p className="text-sm text-muted-foreground">Lucro Líquido</p></div></div></CardContent></Card>
@@ -81,11 +82,28 @@ export default function AvancadoContent() {
             <CardHeader><CardTitle>Evolução Financeira</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={350}>
-                <AreaChart data={dadosMensais}>
-                  <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="mes" /><YAxis />
-                  <Tooltip formatter={(value) => `R$ ${Number(value).toLocaleString("pt-BR")}`} />
-                  <Area type="monotone" dataKey="vendas" stackId="1" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} name="Vendas" />
-                  <Area type="monotone" dataKey="lucro" stackId="2" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.3} name="Lucro" />
+                <AreaChart data={dadosMensais} margin={{ top: 14, right: 20, left: 0, bottom: 4 }}>
+                  <defs>
+                    <linearGradient id="vendasGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.32} />
+                      <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0.03} />
+                    </linearGradient>
+                    <linearGradient id="lucroGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--info))" stopOpacity={0.28} />
+                      <stop offset="95%" stopColor="hsl(var(--info))" stopOpacity={0.03} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="4 8" vertical={false} stroke="hsl(var(--border) / 0.5)" />
+                  <XAxis dataKey="mes" axisLine={false} tickLine={false} tickMargin={10} />
+                  <YAxis axisLine={false} tickLine={false} tickMargin={10} width={58} tickFormatter={(value) => `R$ ${(Number(value) / 1000).toFixed(0)}k`} />
+                  <Tooltip
+                    cursor={{ stroke: "hsl(var(--primary))", strokeWidth: 1, strokeDasharray: "4 4" }}
+                    contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
+                    formatter={(value) => `R$ ${Number(value).toLocaleString("pt-BR")}`}
+                  />
+                  <Legend iconType="circle" verticalAlign="top" align="right" height={32} />
+                  <Area type="monotone" dataKey="vendas" stroke="hsl(var(--success))" strokeWidth={3} fill="url(#vendasGradient)" name="Vendas" />
+                  <Area type="monotone" dataKey="lucro" stroke="hsl(var(--info))" strokeWidth={3} fill="url(#lucroGradient)" name="Lucro" />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
@@ -97,9 +115,16 @@ export default function AvancadoContent() {
             <CardHeader><CardTitle>Vendas por Hora do Dia (Hoje)</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={vendasPorHora}>
-                  <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="hora" /><YAxis /><Tooltip />
-                  <Bar dataKey="vendas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <BarChart data={vendasPorHora} margin={{ top: 14, right: 18, left: 0, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="4 8" vertical={false} stroke="hsl(var(--border) / 0.5)" />
+                  <XAxis dataKey="hora" axisLine={false} tickLine={false} tickMargin={10} />
+                  <YAxis axisLine={false} tickLine={false} tickMargin={10} width={36} allowDecimals={false} />
+                  <Tooltip
+                    cursor={{ fill: "hsl(var(--primary) / 0.08)" }}
+                    contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
+                    formatter={(value) => [value, "Vendas"]}
+                  />
+                  <Bar dataKey="vendas" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} barSize={22} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -110,7 +135,7 @@ export default function AvancadoContent() {
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5" />Métricas Operacionais</CardTitle></CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="p-4 rounded-lg border"><p className="text-sm text-muted-foreground">Taxa de Conclusão</p><p className="text-2xl font-bold">{metricas.taxaConclusao.toFixed(1)}%</p></div>
                 <div className="p-4 rounded-lg border"><p className="text-sm text-muted-foreground">Entregas por Entregador/Mês</p><p className="text-2xl font-bold">{metricas.entregasPorEntregador.toFixed(1)}</p></div>
                 <div className="p-4 rounded-lg border"><p className="text-sm text-muted-foreground">Custo por Entrega</p><p className="text-2xl font-bold">R$ {metricas.custoPorEntrega.toFixed(2)}</p></div>

@@ -4,7 +4,8 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Package, DollarSign, Users, Truck, Clock, CheckCircle, Loader2, Bell, TrendingDown, ShieldAlert } from "lucide-react";
+import { PageSectionLoader } from "@/components/ui/page-loader";
+import { AlertTriangle, ArrowRight, Package, DollarSign, Truck, Clock, CheckCircle, Bell, TrendingDown, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { getBrasiliaDate, getBrasiliaDateString } from "@/lib/utils";
@@ -19,7 +20,7 @@ interface Alerta {
   acao?: string;
 }
 
-export default function AlertasInteligentes() {
+export function AlertasInteligentesContent() {
   const { unidadeAtual } = useUnidade();
   const [loading, setLoading] = useState(true);
   const [alertas, setAlertas] = useState<Alerta[]>([]);
@@ -108,46 +109,110 @@ export default function AlertasInteligentes() {
   const info = alertas.filter(a => a.tipo === "info");
 
   if (loading) return (
-    <MainLayout>
-      <Header title="Alertas Inteligentes" subtitle="Monitoramento proativo" />
-      <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-    </MainLayout>
+    <PageSectionLoader label="Carregando alertas..." />
   );
 
-  const renderAlerta = (alerta: Alerta) => (
-    <div key={alerta.id} className={`flex items-start gap-4 p-4 rounded-lg border ${alerta.tipo === "critico" ? "border-destructive/50 bg-destructive/5" : alerta.tipo === "atencao" ? "border-chart-4/50 bg-chart-4/5" : "border-border"}`}>
-      <div className={`p-2 rounded-lg ${alerta.tipo === "critico" ? "bg-destructive/10" : alerta.tipo === "atencao" ? "bg-chart-4/10" : "bg-primary/10"}`}>
+  const toneByTipo = {
+    critico: {
+      card: "border-destructive/45 bg-destructive/5",
+      icon: "bg-destructive/10 text-destructive",
+      title: "text-destructive",
+      label: "Crítico",
+      heading: "Críticos",
+    },
+    atencao: {
+      card: "border-warning/45 bg-warning/10",
+      icon: "bg-warning/15 text-warning",
+      title: "text-warning",
+      label: "Atenção",
+      heading: "Atenção",
+    },
+    info: {
+      card: "border-primary/30 bg-primary/5",
+      icon: "bg-primary/10 text-primary",
+      title: "text-primary",
+      label: "Info",
+      heading: "Informativos",
+    },
+  } satisfies Record<Alerta["tipo"], { card: string; icon: string; title: string; label: string; heading: string }>;
+
+  const renderAlerta = (alerta: Alerta) => {
+    const tone = toneByTipo[alerta.tipo];
+
+    return (
+    <div key={alerta.id} className={`intelligence-alert-item flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-start ${tone.card}`}>
+      <div className={`rounded-lg p-2 ${tone.icon}`}>
         <alerta.icone className={`h-5 w-5 ${alerta.tipo === "critico" ? "text-destructive" : alerta.tipo === "atencao" ? "text-chart-4" : "text-primary"}`} />
       </div>
-      <div className="flex-1">
-        <div className="flex items-center gap-2 mb-1">
+      <div className="min-w-0 flex-1">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="text-[10px]">{alerta.categoria}</Badge>
-          <Badge variant={alerta.tipo === "critico" ? "destructive" : alerta.tipo === "atencao" ? "default" : "secondary"} className="text-[10px]">{alerta.tipo === "critico" ? "Crítico" : alerta.tipo === "atencao" ? "Atenção" : "Info"}</Badge>
+          <Badge variant={alerta.tipo === "critico" ? "destructive" : alerta.tipo === "atencao" ? "default" : "secondary"} className="text-[10px]">{tone.label}</Badge>
         </div>
-        <p className="font-medium">{alerta.titulo}</p>
+        <p className={`font-semibold leading-snug ${tone.title}`}>{alerta.titulo}</p>
         <p className="text-sm text-muted-foreground mt-1">{alerta.descricao}</p>
       </div>
-      {alerta.acao && <Button variant="outline" size="sm" onClick={() => window.location.href = alerta.acao!}>Ver</Button>}
+      {alerta.acao && (
+        <Button variant="outline" size="sm" className="w-full shrink-0 sm:w-auto" onClick={() => window.location.href = alerta.acao!}>
+          Ver
+          <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+        </Button>
+      )}
     </div>
   );
+  };
 
+  const renderSection = (tipo: Alerta["tipo"], items: Alerta[]) => {
+    if (items.length === 0) return null;
+    const tone = toneByTipo[tipo];
+
+    return (
+      <Card className={`border ${tone.card}`}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between gap-3 text-base">
+            <span className={`flex items-center gap-2 ${tone.title}`}>
+              {tipo === "critico" ? <AlertTriangle className="h-4 w-4" /> : tipo === "atencao" ? <Bell className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+              {tone.heading}
+            </span>
+            <Badge variant="outline">{items.length}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {items.map(renderAlerta)}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  return (
+    <div className="intelligence-workspace space-y-4 md:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium">Monitoramento operacional</p>
+          <p className="text-xs text-muted-foreground">Priorize os críticos, depois revise atenção e informativos.</p>
+        </div>
+        <Button onClick={analisar} className="w-full sm:w-auto"><AlertTriangle className="h-4 w-4 mr-2" />Reanalisar</Button>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card className="intelligence-summary-card border-l-4 border-l-destructive bg-destructive/5"><CardContent className="py-4"><p className="summary-value text-destructive">{criticos.length}</p><p className="summary-label">Críticos</p></CardContent></Card>
+        <Card className="intelligence-summary-card border-l-4 border-l-warning bg-warning/10"><CardContent className="py-4"><p className="summary-value text-warning">{atencao.length}</p><p className="summary-label">Atenção</p></CardContent></Card>
+        <Card className="intelligence-summary-card border-l-4 border-l-primary bg-primary/5"><CardContent className="py-4"><p className="summary-value text-primary">{info.length}</p><p className="summary-label">Informativos</p></CardContent></Card>
+      </div>
+
+      {renderSection("critico", criticos)}
+      {renderSection("atencao", atencao)}
+      {renderSection("info", info)}
+    </div>
+  );
+}
+
+export default function AlertasInteligentes() {
   return (
     <MainLayout>
       <Header title="Alertas Inteligentes" subtitle="Monitoramento proativo" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        <div className="flex items-center justify-between">
-          <Button onClick={analisar}><AlertTriangle className="h-4 w-4 mr-2" />Reanalisar</Button>
-        </div>
-
-        <div className="grid gap-3 grid-cols-3">
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-destructive">{criticos.length}</p><p className="text-xs text-muted-foreground">Críticos</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-chart-4">{atencao.length}</p><p className="text-xs text-muted-foreground">Atenção</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-primary">{info.length}</p><p className="text-xs text-muted-foreground">Informativos</p></CardContent></Card>
-        </div>
-
-        {criticos.length > 0 && <div className="space-y-3">{criticos.map(renderAlerta)}</div>}
-        {atencao.length > 0 && <div className="space-y-3">{atencao.map(renderAlerta)}</div>}
-        {info.length > 0 && <div className="space-y-3">{info.map(renderAlerta)}</div>}
+      <div className="p-3 sm:p-4 md:p-6">
+        <AlertasInteligentesContent />
       </div>
     </MainLayout>
   );

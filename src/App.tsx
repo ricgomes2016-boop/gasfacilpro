@@ -34,6 +34,7 @@ import { rhRoutes } from "@/routes/rhRoutes";
 import { fiscalRoutes } from "@/routes/fiscalRoutes";
 import { configRoutes } from "@/routes/configRoutes";
 import { entregadorRoutes } from "@/routes/entregadorRoutes";
+import { vendedorRoutes } from "@/routes/vendedorRoutes";
 import { clienteAppRoutes } from "@/routes/clienteAppRoutes";
 import { parceiroRoutes } from "@/routes/parceiroRoutes";
 import { transportadoraRoutes } from "@/routes/transportadoraRoutes";
@@ -51,6 +52,7 @@ const CentralGasCP = lazy(() => import("./pages/publico/CentralGasCP"));
 const ForteGas = lazy(() => import("./pages/publico/ForteGas"));
 const JapaGas = lazy(() => import("./pages/publico/JapaGas"));
 const DiagnosticoFontes = lazy(() => import("./pages/DiagnosticoFontes"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
 
 const ContadorDashboard = lazy(() => import("./pages/contador/ContadorDashboard"));
 const ContadorXML = lazy(() => import("./pages/contador/ContadorXML"));
@@ -63,7 +65,10 @@ const queryClient = new QueryClient();
 
 function RootRedirect() {
   const app = detectSubdomainApp();
-  if (app === "landing" || app === null) {
+  if (app === "landing") {
+    return <LandingPage />;
+  }
+  if (app === null) {
     return <Navigate to="/dashboard" replace />;
   }
   const defaultRoute = getSubdomainDefaultRoute(app);
@@ -127,6 +132,7 @@ const App = () => (
                             {renderRoutes(fiscalRoutes)}
                             {renderRoutes(configRoutes)}
                             {renderRoutes(entregadorRoutes)}
+                            {renderRoutes(vendedorRoutes)}
                             {renderRoutes(clienteAppRoutes)}
                             {renderRoutes(parceiroRoutes)}
                             {renderRoutes(transportadoraRoutes)}

@@ -14,7 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from
 "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from
 "@/components/ui/dialog";
 import {
   Popover, PopoverContent, PopoverTrigger } from
@@ -29,8 +29,12 @@ import {
   User, RefreshCw, MoreHorizontal, Edit, ArrowRightLeft, Printer,
   Share2, DollarSign, Trash2, Lock, MessageCircle, CreditCard,
   ChevronLeft, ChevronRight, CheckSquare, Building2, Pencil, MoveRight, Map as MapIcon,
-  Download } from
+  Download, Package, Calendar, SlidersHorizontal } from
 "lucide-react";
+import {
+  ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader,
+  ResponsiveDialogTitle, ResponsiveDialogTrigger, ResponsiveDialogFooter } from
+"@/components/ui/responsive-dialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { SugestaoEntregador } from "@/components/sugestao/SugestaoEntregador";
@@ -38,6 +42,7 @@ import { useToast } from "@/hooks/use-toast";
 import { gerarComprovanteEntregaPdf } from "@/lib/comprovanteEntregaPdf";
 import { PedidoViewDialog } from "@/components/pedidos/PedidoViewDialog";
 import { StatusDropdown } from "@/components/pedidos/StatusDropdown";
+import { EditarAgendamentoDialog } from "@/components/pedidos/EditarAgendamentoDialog";
 import { usePedidos } from "@/hooks/usePedidos";
 import { PedidoFormatado, PedidoStatus } from "@/types/pedido";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,24 +55,37 @@ import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
 import { toast as sonnerToast } from "sonner";
 import { getBrasiliaDate } from "@/lib/utils";
 import { format as fnsFormat } from "date-fns";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { getOrigemMeta, ORIGEM_PEDIDO_META, ORIGENS_PEDIDO, type OrigemPedido } from "@/lib/pedidos/origem";
+
+function OrigemBadge({ origem }: { origem?: string | null }) {
+  const meta = getOrigemMeta(origem);
+  return (
+    <Badge variant="outline" className={`text-[10px] gap-1 ${meta.color}`} title={meta.label}>
+      <span aria-hidden>{meta.icon}</span>
+      <span className="truncate">{meta.label}</span>
+    </Badge>
+  );
+}
 
 function getNumeroExibicao(p: { numero_sequencial?: number | null; id: string }) {
   return p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase();
 }
 
 function exportarPedidosCSV(pedidos: PedidoFormatado[]) {
-  const header = ["Nº", "Data", "Cliente", "Endereço", "Produtos", "Valor (R$)", "Status", "Pagamento", "Entregador", "Canal"];
+  const header = ["Origem", "Nº", "Data", "Cliente", "Endereço", "Produtos", "Entregador", "Canal", "Valor (R$)", "Status", "Pagamento"];
   const rows = pedidos.map((p) => [
+  getOrigemMeta(p.origem_pedido).label,
   getNumeroExibicao(p),
   p.data,
   p.cliente,
   (p.endereco || "").replace(/,/g, " "),
   (p.produtos || "").replace(/,/g, " |"),
+  p.entregador || "",
+  p.canal_venda || "",
   p.valor.toFixed(2),
   p.status,
-  p.forma_pagamento || "",
-  p.entregador || "",
-  p.canal_venda || ""]
+  p.forma_pagamento || ""]
   );
   const csv = [header, ...rows].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -86,7 +104,22 @@ interface Entregador {
   status: string | null;
 }
 
+interface ResumoProduto {
+  nome: string;
+  quantidade: number;
+  total: number;
+}
+
 const ITEMS_PER_PAGE = 20;
+
+function formatarItensComQtd(pedido: PedidoFormatado): string {
+  if (pedido.itens && pedido.itens.length > 0) {
+    return pedido.itens
+      .map((it) => `${Number(it.quantidade) || 0}x ${it.produto?.nome || "Produto"}`)
+      .join(" · ");
+  }
+  return pedido.produtos || "";
+}
 
 export default function Pedidos() {
   const navigate = useNavigate();
@@ -100,12 +133,15 @@ export default function Pedidos() {
   const [pedidoView, setPedidoView] = useState<PedidoFormatado | null>(null);
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroEntregador, setFiltroEntregador] = useState<string>("todos");
+  const [filtroOrigem, setFiltroOrigem] = useState<string>("todos");
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [busca, setBusca] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasAnyRole } = useAuth();
   const podeAlterarDataEntrega = hasAnyRole(["admin", "gestor"]);
+  const podeAlterarCanalFinalizado = hasAnyRole(["admin", "gestor"]);
 
   // Batch selection (#7)
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
@@ -131,20 +167,66 @@ export default function Pedidos() {
   const [senhaExclusao, setSenhaExclusao] = useState("");
   const [senhaErro, setSenhaErro] = useState("");
 
+  // Editar agendamento
+  const [agendamentoDialogAberto, setAgendamentoDialogAberto] = useState(false);
+  const [pedidoAgendamento, setPedidoAgendamento] = useState<PedidoFormatado | null>(null);
+  const abrirEditarAgendamento = (p: PedidoFormatado) => {
+    setPedidoAgendamento(p);
+    setAgendamentoDialogAberto(true);
+  };
+
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
 
   // Canal de venda
   const [editandoCanalId, setEditandoCanalId] = useState<string | null>(null);
   const { data: canaisVenda = [] } = useQuery({
-    queryKey: ["canais-venda-empresa"],
+    queryKey: ["canais-venda-empresa", unidadeAtual?.id],
     queryFn: async () => {
-      let query = supabase.from("canais_venda").select("id, nome").eq("ativo", true);
-      // Buscar canais de TODAS as unidades da empresa (vale gás pode ser retirado em qualquer unidade)
-      const { data } = await query;
+      // Canais fixos da unidade atual + parceiros vale gás de toda a empresa
+      const filtro = unidadeAtual?.id
+        ? `unidade_id.eq.${unidadeAtual.id},tipo.eq.parceiro_vale_gas`
+        : `tipo.eq.parceiro_vale_gas`;
+      const { data } = await supabase
+        .from("canais_venda")
+        .select("id, nome, tipo, unidade_id")
+        .eq("ativo", true)
+        .or(filtro)
+        .order("nome");
       return data || [];
     }
   });
+  const canaisFixos = useMemo(() => canaisVenda.filter((c: any) => c.tipo !== "parceiro_vale_gas"), [canaisVenda]);
+  const canaisParceiros = useMemo(() => canaisVenda.filter((c: any) => c.tipo === "parceiro_vale_gas"), [canaisVenda]);
+
+  const renderCanalCommand = (pedidoId: string, canalAtual: string | null | undefined) => (
+    <Command>
+      <CommandInput placeholder="Buscar canal..." className="h-9" />
+      <CommandList className="max-h-[260px]">
+        <CommandEmpty>Nenhum canal encontrado.</CommandEmpty>
+        {canaisFixos.length > 0 && (
+          <CommandGroup heading="Canais da unidade">
+            {canaisFixos.map((c: any) => (
+              <CommandItem key={c.id} value={c.nome} onSelect={() => { alterarCanalVenda(pedidoId, c.nome); setEditandoCanalId(null); }}>
+                {c.nome}
+                {canalAtual === c.nome && <span className="ml-auto text-xs text-primary">✓</span>}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+        {canaisParceiros.length > 0 && (
+          <CommandGroup heading="Parceiros Vale Gás">
+            {canaisParceiros.map((c: any) => (
+              <CommandItem key={c.id} value={c.nome} onSelect={() => { alterarCanalVenda(pedidoId, c.nome); setEditandoCanalId(null); }}>
+                {c.nome}
+                {canalAtual === c.nome && <span className="ml-auto text-xs text-primary">✓</span>}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+      </CommandList>
+    </Command>
+  );
 
   // Import history states
   const [importItems, setImportItems] = useState<Array<{
@@ -179,7 +261,7 @@ export default function Pedidos() {
           data_entrega: p.data || undefined,
           created_at: p.data ? new Date(p.data + "T12:00:00-03:00").toISOString() : undefined,
           unidade_id: unidadeAtual?.id || null
-        }).select("id").single();
+        } as any).select("id").single();
         if (error) {console.error(error);continue;}
         if (pedido && p._itens?.length > 0) {
           await supabase.from("pedido_itens").insert(
@@ -219,7 +301,18 @@ export default function Pedidos() {
   }, [unidadeAtual?.id]);
 
   // Reset page when filters change
-  useEffect(() => {setPaginaAtual(1);}, [filtroStatus, filtroEntregador, busca, dataInicio, dataFim]);
+  useEffect(() => {setPaginaAtual(1);}, [filtroStatus, filtroEntregador, filtroOrigem, busca, dataInicio, dataFim]);
+  // Quando filtrar agendados, ampliar a data para os próximos 90 dias
+  useEffect(() => {
+    if (filtroStatus === "agendado") {
+      const d = getBrasiliaDate();
+      const fim = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 90);
+      const iso = `${fim.getFullYear()}-${String(fim.getMonth() + 1).padStart(2, "0")}-${String(fim.getDate()).padStart(2, "0")}`;
+      setDataInicio(hoje);
+      setDataFim(iso);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtroStatus]);
   // Clear selection when data changes
   useEffect(() => {setSelecionados(new Set());}, [pedidos]);
 
@@ -239,12 +332,24 @@ export default function Pedidos() {
     );
   };
 
+  const podeEditarCanalPedido = (pedido: PedidoFormatado) => {
+    if (pedido.status === "cancelado") return false;
+    if (pedido.status === "entregue" || pedido.status === "finalizado") return podeAlterarCanalFinalizado;
+    return true;
+  };
+
   const alterarCanalVenda = async (pedidoId: string, novoCanal: string) => {
+    const pedido = pedidos.find((p) => p.id === pedidoId);
+    if (!pedido || !podeEditarCanalPedido(pedido)) {
+      toast({ title: "Alteração não permitida", description: "Somente Admin ou Gestor pode alterar o canal de pedidos já entregues ou finalizados.", variant: "destructive" });
+      setEditandoCanalId(null);
+      return;
+    }
     const { error } = await supabase.from("pedidos").update({ canal_venda: novoCanal }).eq("id", pedidoId);
     if (error) {
       toast({ title: "Erro ao alterar canal", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Canal de venda atualizado!" });
+      toast({ title: "Canal de venda atualizado!", description: `${pedido.canal_venda || "Não informado"} → ${novoCanal}` });
       queryClient.invalidateQueries({ queryKey: ["pedidos"] });
     }
     setEditandoCanalId(null);
@@ -257,7 +362,7 @@ export default function Pedidos() {
 
   const alterarDataEntrega = async (pedido: PedidoFormatado, novaData: string) => {
     if (!podeAlterarDataEntrega || !novaData || novaData === dataPedidoParaInput(pedido.data)) return;
-    const { error } = await supabase.from("pedidos").update({ data_entrega: novaData } as Record<string, unknown>).eq("id", pedido.id);
+    const { error } = await supabase.from("pedidos").update({ data_entrega: novaData } as any).eq("id", pedido.id);
     if (error) {
       toast({ title: "Erro ao alterar data", description: error.message, variant: "destructive" });
       return;
@@ -361,24 +466,51 @@ export default function Pedidos() {
 
   const imprimirPedido = async (pedido: PedidoFormatado) => {
     try {
-      // Empresa config filtrada pela empresa ativa
+      // Busca a unidade (loja) que originou o pedido p/ emitir recibo com os dados corretos
+      let unidadeRecibo: any = unidadeAtual;
+      try {
+        const { data: pedidoRow } = await supabase
+          .from("pedidos")
+          .select("unidade_id")
+          .eq("id", pedido.id)
+          .maybeSingle();
+        const uid = (pedidoRow as any)?.unidade_id;
+        if (uid) {
+          const { data: u } = await supabase
+            .from("unidades")
+            .select("nome, cnpj, telefone, endereco, bairro, cidade, estado, cep")
+            .eq("id", uid)
+            .maybeSingle();
+          if (u) unidadeRecibo = u;
+        }
+      } catch {}
+
+      // Mensagem de cupom (vinda das configurações da empresa)
       let empresaConfig: EmpresaConfig | undefined;
       try {
         let cfgQuery = supabase
           .from("configuracoes_empresa")
-          .select("nome_empresa, cnpj, telefone, endereco, mensagem_cupom")
+          .select("mensagem_cupom")
           .limit(1);
         if (empresa?.id) cfgQuery = cfgQuery.eq("empresa_id", empresa.id);
         const { data: configData } = await cfgQuery.maybeSingle();
+
+        const enderecoUnidade = [
+          unidadeRecibo?.endereco,
+          unidadeRecibo?.bairro,
+          [unidadeRecibo?.cidade, unidadeRecibo?.estado].filter(Boolean).join("/"),
+          unidadeRecibo?.cep,
+        ].filter(Boolean).join(", ");
+
         empresaConfig = {
-          nome_empresa: empresa?.nome || configData?.nome_empresa || "Empresa",
-          cnpj: configData?.cnpj ?? null,
-          telefone: configData?.telefone ?? null,
-          endereco: configData?.endereco ?? null,
+          nome_empresa: unidadeRecibo?.nome || empresa?.nome || "Empresa",
+          cnpj: unidadeRecibo?.cnpj ?? null,
+          telefone: unidadeRecibo?.telefone ?? null,
+          endereco: enderecoUnidade || null,
           mensagem_cupom: configData?.mensagem_cupom ?? null,
         };
       } catch {
-        if (empresa?.nome) empresaConfig = { nome_empresa: empresa.nome };
+        empresaConfig = { nome_empresa: unidadeRecibo?.nome || empresa?.nome || "Empresa" };
       }
 
       // Pagamentos: o pedido só armazena 'forma_pagamento' (string).
@@ -452,18 +584,43 @@ export default function Pedidos() {
     const buscaLower = busca.toLowerCase().trim();
     const buscaDigits = buscaLower.replace(/\D/g, "");
     return pedidos.filter((p) => {
-      const matchStatus = filtroStatus === "todos" || p.status === filtroStatus;
+      const matchStatus =
+        filtroStatus === "todos"
+          ? true
+          : filtroStatus === "agendado"
+            ? !!p.agendado && p.status !== "cancelado" && p.status !== "entregue" && p.status !== "finalizado"
+            : p.status === filtroStatus;
       const matchEntregador = filtroEntregador === "todos" || (
       filtroEntregador === "sem_entregador" ? !p.entregador : p.entregador === filtroEntregador);
+      const matchOrigem = filtroOrigem === "todos" || (p.origem_pedido || "erp") === filtroOrigem;
       const matchBusca = busca === "" ||
       p.cliente.toLowerCase().includes(buscaLower) ||
       p.endereco.toLowerCase().includes(buscaLower) ||
       p.id.toLowerCase().includes(buscaLower) ||
       (p.numero_sequencial != null && buscaDigits !== "" && String(p.numero_sequencial).includes(buscaDigits)) ||
       (p.entregador && p.entregador.toLowerCase().includes(buscaLower));
-      return matchStatus && matchEntregador && matchBusca;
+      return matchStatus && matchEntregador && matchOrigem && matchBusca;
     });
-  }, [pedidos, filtroStatus, filtroEntregador, busca]);
+  }, [pedidos, filtroStatus, filtroEntregador, filtroOrigem, busca]);
+
+  const resumoProdutos = useMemo<ResumoProduto[]>(() => {
+    const produtos = new Map<string, ResumoProduto>();
+    pedidosFiltrados
+      .filter((pedido) => pedido.status !== "cancelado")
+      .forEach((pedido) => {
+        pedido.itens.forEach((item) => {
+          const nome = item.produto?.nome || "Produto não identificado";
+          const atual = produtos.get(nome) || { nome, quantidade: 0, total: 0 };
+          const quantidade = Number(item.quantidade) || 0;
+          atual.quantidade += quantidade;
+          atual.total += quantidade * (Number(item.preco_unitario) || 0);
+          produtos.set(nome, atual);
+        });
+      });
+    return Array.from(produtos.values()).sort((a, b) => b.quantidade - a.quantidade);
+  }, [pedidosFiltrados]);
+
+  const totalItensVendidos = useMemo(() => resumoProdutos.reduce((acc, produto) => acc + produto.quantidade, 0), [resumoProdutos]);
 
   // #4 - Pagination
   const totalPages = Math.max(1, Math.ceil(pedidosFiltrados.length / ITEMS_PER_PAGE));
@@ -558,19 +715,132 @@ export default function Pedidos() {
 
         {/* Top action */}
         <div className="gap-2 flex flex-wrap items-center justify-center sm:justify-start w-full min-w-0">
-          <SmartImportButtons edgeFunctionName="parse-orders-history" onDataExtracted={handleImportData} />
-          <Button variant="outline" className="h-10 min-w-0" onClick={() => {exportarPedidosCSV(pedidosFiltrados);sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);}}>
-            <Download className="h-4 w-4 mr-2 shrink-0" />
-            <span className="truncate">Exportar CSV</span>
+          <Button className="h-10 min-w-0 bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30" onClick={() => navigate("/vendas/nova")}>
+            <span className="truncate">+ Novo Pedido</span>
           </Button>
+          <SmartImportButtons
+            edgeFunctionName="parse-orders-history"
+            onDataExtracted={handleImportData}
+            mode="menu"
+            menuLabel="Mais ações"
+            extraMenuContent={
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    exportarPedidosCSV(pedidosFiltrados);
+                    sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar CSV
+                </DropdownMenuItem>
+              </>
+            }
+          />
           <Button variant="outline" className="h-10 min-w-0" onClick={() => navigate("/operacional/centro")}>
             <MapIcon className="h-4 w-4 mr-2 shrink-0" />
             <span className="truncate">Mapa Operacional</span>
           </Button>
-          <Button className="h-10 min-w-0 bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30" onClick={() => navigate("/vendas/nova")}>
-            <span className="truncate">+ Novo Pedido</span>
-          </Button>
+          {(() => {
+            const filtrosAtivos =
+              (busca ? 1 : 0) +
+              (filtroStatus !== "todos" ? 1 : 0) +
+              (filtroEntregador !== "todos" ? 1 : 0) +
+              (dataInicio !== hoje || dataFim !== hoje ? 1 : 0);
+            return (
+              <Button variant="outline" className="h-10 min-w-0 relative" onClick={() => setFiltrosAbertos(true)}>
+                <SlidersHorizontal className="h-4 w-4 mr-2 shrink-0" />
+                <span className="truncate">Mais Filtros</span>
+                {filtrosAtivos > 0 && (
+                  <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">{filtrosAtivos}</Badge>
+                )}
+              </Button>
+            );
+          })()}
         </div>
+
+        {/* Filters Dialog */}
+        <ResponsiveDialog open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
+          <ResponsiveDialogContent className="sm:max-w-lg">
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle>Filtros</ResponsiveDialogTitle>
+            </ResponsiveDialogHeader>
+            <div className="flex flex-col gap-3 py-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar nº pedido, cliente, endereço..."
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  className="h-10 pl-9" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground block">Início</label>
+                  <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="h-10 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground block">Fim</label>
+                  <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="h-10 text-sm" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground block">Status</label>
+                <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos Status</SelectItem>
+                    <SelectItem value="agendado">📅 Agendados</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="em_rota">Em Rota</SelectItem>
+                    <SelectItem value="entregue">Entregue</SelectItem>
+                    <SelectItem value="finalizado">Finalizado</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground block">Entregador</label>
+                <Select value={filtroEntregador} onValueChange={setFiltroEntregador}>
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue placeholder="Entregador" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos Entregadores</SelectItem>
+                    <SelectItem value="sem_entregador">Sem entregador</SelectItem>
+                    {entregadoresNoPeriodo.map((nome) =>
+                      <SelectItem key={nome} value={nome}>{nome}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground block">Origem do pedido</label>
+                <Select value={filtroOrigem} onValueChange={setFiltroOrigem}>
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue placeholder="Origem" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas Origens</SelectItem>
+                    {ORIGENS_PEDIDO.map((o) => (
+                      <SelectItem key={o} value={o}>{ORIGEM_PEDIDO_META[o].icon} {ORIGEM_PEDIDO_META[o].label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <ResponsiveDialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => {setBusca("");setDataInicio(hoje);setDataFim(hoje);setFiltroStatus("todos");setFiltroEntregador("todos");setFiltroOrigem("todos");}}>
+                <RefreshCw className="h-3.5 w-3.5 mr-1" /> Limpar
+              </Button>
+              <Button onClick={() => setFiltrosAbertos(false)}>Aplicar</Button>
+            </ResponsiveDialogFooter>
+          </ResponsiveDialogContent>
+        </ResponsiveDialog>
+
 
         {/* Alert for old pending orders */}
         {(() => {
@@ -649,6 +919,9 @@ export default function Pedidos() {
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Sugerir Entregador - Pedido #{getNumExib(pedido)}</DialogTitle>
+                        <DialogDescription>
+                          Selecione o entregador mais adequado para este pedido.
+                        </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4 mt-4">
                         <div className="p-4 bg-muted rounded-lg">
@@ -669,112 +942,45 @@ export default function Pedidos() {
           </Card>
         }
 
-        {/* Filters - #6 added entregador filter */}
-          <Card className="modern-panel">
-          <CardContent className="pt-3 md:pt-6">
-            <div className="flex flex-col gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar nº pedido, cliente, endereço..."
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  className="h-9 pl-9" />
-                
-              </div>
-              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 items-end">
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground block">Início</label>
-                  <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="h-9 text-xs" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground block">Fim</label>
-                  <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="h-9 text-xs" />
-                </div>
-                <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos Status</SelectItem>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="em_rota">Em Rota</SelectItem>
-                    <SelectItem value="entregue">Entregue</SelectItem>
-                    <SelectItem value="finalizado">Finalizado</SelectItem>
-                    <SelectItem value="cancelado">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={filtroEntregador} onValueChange={setFiltroEntregador}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Entregador" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos Entregadores</SelectItem>
-                    <SelectItem value="sem_entregador">Sem entregador</SelectItem>
-                    {entregadoresNoPeriodo.map((nome) =>
-                    <SelectItem key={nome} value={nome}>{nome}</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="sm" className="h-9 col-span-2 sm:col-span-1" onClick={() => {setBusca("");setDataInicio(hoje);setDataFim(hoje);setFiltroStatus("todos");setFiltroEntregador("todos");}}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-1" /> Limpar
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Stats - #3 responsive grid */}
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+        {/* Stats - compact KPIs, 5 across on md+ */}
+        <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
           <Card className="kpi-card kpi-card-warning">
-            <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="status-card-icon status-card-icon-warning"><Clock /></div>
-              <div className="min-w-0"><p className="kpi-value text-warning">{contadores.pendente}</p><p className="kpi-label">Pendentes</p></div>
+            <CardContent className="flex items-center gap-2 p-2.5">
+              <div className="status-card-icon status-card-icon-warning h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><Clock /></div>
+              <div className="min-w-0"><p className="text-lg font-bold leading-none text-warning">{contadores.pendente}</p><p className="text-[11px] text-muted-foreground mt-0.5">Pendentes</p></div>
             </CardContent>
           </Card>
           <Card className="kpi-card kpi-card-info">
-            <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="status-card-icon status-card-icon-info"><Truck /></div>
-              <div className="min-w-0"><p className="kpi-value text-info">{contadores.em_rota}</p><p className="kpi-label">Em Rota</p></div>
+            <CardContent className="flex items-center gap-2 p-2.5">
+              <div className="status-card-icon status-card-icon-info h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><Truck /></div>
+              <div className="min-w-0"><p className="text-lg font-bold leading-none text-info">{contadores.em_rota}</p><p className="text-[11px] text-muted-foreground mt-0.5">Em Rota</p></div>
             </CardContent>
           </Card>
           <Card className="kpi-card kpi-card-success">
-            <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="status-card-icon status-card-icon-success"><CheckCircle /></div>
-              <div className="min-w-0"><p className="kpi-value text-success">{contadores.entregue}</p><p className="kpi-label">Entregues</p></div>
+            <CardContent className="flex items-center gap-2 p-2.5">
+              <div className="status-card-icon status-card-icon-success h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><CheckCircle /></div>
+              <div className="min-w-0"><p className="text-lg font-bold leading-none text-success">{contadores.entregue}</p><p className="text-[11px] text-muted-foreground mt-0.5">Entregues</p></div>
             </CardContent>
           </Card>
           <Card className="kpi-card kpi-card-destructive">
-            <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="status-card-icon status-card-icon-destructive"><XCircle /></div>
-              <div className="min-w-0"><p className="kpi-value text-destructive">{contadores.cancelado}</p><p className="kpi-label">Cancelados</p></div>
+            <CardContent className="flex items-center gap-2 p-2.5">
+              <div className="status-card-icon status-card-icon-destructive h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><XCircle /></div>
+              <div className="min-w-0"><p className="text-lg font-bold leading-none text-destructive">{contadores.cancelado}</p><p className="text-[11px] text-muted-foreground mt-0.5">Cancelados</p></div>
             </CardContent>
           </Card>
-          <Card className="kpi-card kpi-card-success col-span-2 lg:col-span-1">
-            <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="status-card-icon status-card-icon-success"><DollarSign /></div>
+          <Card className="kpi-card kpi-card-success col-span-2 sm:col-span-3 md:col-span-1">
+            <CardContent className="flex items-center gap-2 p-2.5">
+              <div className="status-card-icon status-card-icon-success h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><DollarSign /></div>
               <div className="min-w-0">
-                <p className="kpi-value text-success">R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-                <p className="kpi-label">Total Vendas</p>
+                <p className="text-base md:text-sm lg:text-base font-bold leading-none text-success truncate">R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Total Vendas</p>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* #5 - Payment method breakdown */}
-        {pagamentoContadores.length > 0 &&
-        <div className="flex flex-wrap gap-2">
-            {pagamentoContadores.map(([method, valor]) =>
-          <Badge key={method} variant="outline" className="gap-1.5 py-1.5 px-3 text-xs">
-                <CreditCard className="h-3 w-3" />
-                {method}: R$ {valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                <span className="text-muted-foreground">
-                  ({contadores.total > 0 ? Math.round(valor / contadores.total * 100) : 0}%)
-                </span>
-              </Badge>
-          )}
-          </div>
-        }
+
 
         {/* #7 - Batch actions bar */}
         {selecionados.size > 0 &&
@@ -809,7 +1015,7 @@ export default function Pedidos() {
               </span>
             </div>
           </CardHeader>
-          <CardContent className="saas-table-scope overflow-x-auto max-w-full p-0 md:p-6">
+          <CardContent className="saas-table-scope overflow-x-auto max-w-full p-0">
             {isLoading ?
             <div className="space-y-3">
                 {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
@@ -819,17 +1025,27 @@ export default function Pedidos() {
 
             <>
               {/* Mobile cards */}
-              <div className="space-y-3 md:hidden px-3 pb-3 w-full min-w-0">
+              <div className="md:hidden w-full min-w-0 divide-y divide-border/60 border-y border-border/60">
                 {pedidosPaginados.map((pedido) => (
-                  <div key={pedido.id} className={`border border-border/45 bg-card rounded-2xl p-3 space-y-2 w-full min-w-0 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${pedido.status === "cancelado" ? "opacity-60" : ""}`}>
+                  <div key={pedido.id} className={`bg-card p-3 space-y-2 w-full min-w-0 transition-colors hover:bg-muted/30 ${pedido.status === "cancelado" ? "opacity-60" : ""}`}>
+
                     <div className="flex items-start justify-between gap-2 w-full min-w-0">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} className="shrink-0" />
                         <div className="min-w-0 flex-1">
-                          <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs truncate max-w-full" onClick={() => editarPedido(pedido.id)}>
-                            #{getNumExib(pedido)}
-                          </Button>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <OrigemBadge origem={pedido.origem_pedido} />
+                            <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs truncate max-w-full" onClick={() => editarPedido(pedido.id)}>
+                              #{getNumExib(pedido)}
+                            </Button>
+                          </div>
                           <p className="text-sm font-medium truncate">{pedido.cliente}</p>
+                          {pedido.agendado && pedido.data_agendamento && (
+                            <Badge variant="secondary" className="mt-1 text-[10px] gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(pedido.data_agendamento).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <DropdownMenu>
@@ -839,6 +1055,7 @@ export default function Pedidos() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
                           {pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>}
+                          {pedido.agendado && pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>}
                           {pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>}
                           {pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria (Retirada)</DropdownMenuItem>}
                           {unidades.length > 1 && <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}><MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial</DropdownMenuItem>}
@@ -868,13 +1085,29 @@ export default function Pedidos() {
                       </DropdownMenu>
                     </div>
                     <p className="text-xs text-muted-foreground truncate">{pedido.endereco}</p>
-                    <p className="text-xs truncate">{pedido.produtos}</p>
+                    <p className="text-xs truncate" title={formatarItensComQtd(pedido)}>{formatarItensComQtd(pedido)}</p>
                     <div className="flex items-center justify-between gap-2 flex-wrap w-full min-w-0">
                       <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
                         <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
                         {pedido.entregador && <Badge variant="outline" className="text-[10px] max-w-[140px] truncate"><Truck className="h-3 w-3 mr-1 shrink-0" /><span className="truncate">{pedido.entregador}</span></Badge>}
                       </div>
                       <span className="font-bold text-sm shrink-0">R$ {pedido.valor.toFixed(2)}</span>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground">Canal de venda</label>
+                      {podeEditarCanalPedido(pedido) ?
+                      <Popover open={editandoCanalId === `m-${pedido.id}`} onOpenChange={(open) => setEditandoCanalId(open ? `m-${pedido.id}` : null)}>
+                        <PopoverTrigger asChild>
+                          <button className="h-8 text-[11px] w-full inline-flex items-center justify-between gap-2 rounded-md border border-input bg-background px-2 hover:bg-accent transition-colors">
+                            <span className="truncate">{pedido.canal_venda || "Selecionar canal"}</span>
+                            <Pencil className="h-3 w-3 text-muted-foreground shrink-0" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-72 p-0 bg-popover border border-border shadow-lg z-50" align="start">
+                          {renderCanalCommand(pedido.id, pedido.canal_venda)}
+                        </PopoverContent>
+                      </Popover> :
+                      <Badge variant="outline" className="text-[10px]">{pedido.canal_venda || "Canal não informado"}</Badge>}
                     </div>
                     {podeAlterarDataEntrega ?
                     <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 text-[11px]" /> :
@@ -893,16 +1126,17 @@ export default function Pedidos() {
                           checked={selecionados.size === pedidosPaginados.length && pedidosPaginados.length > 0}
                           onCheckedChange={toggleSelecionarTodos} />
                       </TableHead>
-                      <TableHead>Pedido</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Endereço</TableHead>
-                      <TableHead>Produtos</TableHead>
-                      <TableHead>Entregador</TableHead>
-                      <TableHead>Canal</TableHead>
-                      <TableHead>Valor</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="w-12">Ações</TableHead>
+                      <TableHead className="w-[72px]">Origem</TableHead>
+                      <TableHead className="w-[72px]">Nº</TableHead>
+                      <TableHead className="w-[132px]">Data</TableHead>
+                      <TableHead className="min-w-[180px]">Cliente</TableHead>
+                      <TableHead className="min-w-[200px]">Endereço</TableHead>
+                      <TableHead className="w-[110px]">Produtos</TableHead>
+                      <TableHead className="w-[150px]">Entregador</TableHead>
+                      <TableHead className="w-[140px]">Canal</TableHead>
+                      <TableHead className="w-[96px] text-right">Valor</TableHead>
+                      <TableHead className="w-[120px]">Status</TableHead>
+                      <TableHead className="w-12 text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -912,13 +1146,21 @@ export default function Pedidos() {
                           <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} />
                         </TableCell>
                         <TableCell>
+                          <OrigemBadge origem={pedido.origem_pedido} />
+                        </TableCell>
+                        <TableCell>
                           <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs" onClick={() => editarPedido(pedido.id)}>
                             #{getNumExib(pedido)}
                           </Button>
                         </TableCell>
-                        <TableCell className="font-medium text-sm max-w-[120px] truncate">{pedido.cliente}</TableCell>
-                        <TableCell className="max-w-[200px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
-                        <TableCell className="max-w-[130px] truncate text-xs">{pedido.produtos}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {podeAlterarDataEntrega ?
+                        <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-7 w-[120px] text-xs px-2" /> :
+                        pedido.data}
+                        </TableCell>
+                        <TableCell className="font-medium text-sm min-w-[180px] max-w-[240px] truncate" title={pedido.cliente}>{pedido.cliente}</TableCell>
+                        <TableCell className="max-w-[220px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
+                        <TableCell className="max-w-[120px] truncate text-xs" title={formatarItensComQtd(pedido)}>{formatarItensComQtd(pedido)}</TableCell>
                         <TableCell>
                           {pedido.entregador ?
                         <Badge variant="outline" className="cursor-pointer hover:bg-accent text-xs" onClick={() => abrirTransferencia(pedido)}>
@@ -936,38 +1178,35 @@ export default function Pedidos() {
                         <span className="text-muted-foreground text-xs">-</span>}
                         </TableCell>
                         <TableCell className="text-xs">
-                          <Popover open={editandoCanalId === pedido.id} onOpenChange={(open) => setEditandoCanalId(open ? pedido.id : null)}>
+                          {podeEditarCanalPedido(pedido) ?
+                          <Popover open={editandoCanalId === `d-${pedido.id}`} onOpenChange={(open) => setEditandoCanalId(open ? `d-${pedido.id}` : null)}>
                             <PopoverTrigger asChild>
-                              <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity">
+                              <span
+                                role="button"
+                                tabIndex={0}
+                                className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    setEditandoCanalId(`d-${pedido.id}`);
+                                  }
+                                }}
+                              >
                                 <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>
                                 <Pencil className="h-3 w-3 text-muted-foreground" />
-                              </button>
+                              </span>
                             </PopoverTrigger>
-                            <PopoverContent className="w-48 p-2 bg-popover border border-border shadow-lg z-50" align="start">
-                              <div className="space-y-1">
-                                <p className="text-xs font-medium text-muted-foreground px-1 mb-2">Trocar canal:</p>
-                                {canaisVenda.map((c) =>
-                              <button
-                                key={c.id}
-                                className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors ${pedido.canal_venda === c.nome ? "bg-accent font-medium" : ""}`}
-                                onClick={() => alterarCanalVenda(pedido.id, c.nome)}>
-                                    {c.nome}
-                                  </button>
-                              )}
-                              </div>
+                            <PopoverContent className="w-72 p-0 bg-popover border border-border shadow-lg z-50" align="start">
+                              {renderCanalCommand(pedido.id, pedido.canal_venda)}
                             </PopoverContent>
-                          </Popover>
+                          </Popover> :
+                          <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>}
                         </TableCell>
-                        <TableCell className="font-medium text-sm">R$ {pedido.valor.toFixed(2)}</TableCell>
+                        <TableCell className="font-medium text-sm text-right whitespace-nowrap">R$ {pedido.valor.toFixed(2)}</TableCell>
                         <TableCell>
                           <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {podeAlterarDataEntrega ?
-                        <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 w-[140px] text-xs" /> :
-                        pedido.data}
-                        </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right pr-3">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
@@ -976,6 +1215,9 @@ export default function Pedidos() {
                               <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
                               {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
                             <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
+                            }
+                              {pedido.agendado && pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                            <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>
                             }
                               {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
                             <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>
@@ -1037,6 +1279,64 @@ export default function Pedidos() {
           </CardContent>
         </Card>
 
+        {/* Product sold summary: follows current period/status/driver/search filters and ignores cancelled orders */}
+        {resumoProdutos.length > 0 &&
+        <Card className="modern-panel">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base flex items-center gap-2"><Package className="h-4 w-4 text-primary" />Produtos Vendidos</CardTitle>
+              <Badge variant="secondary">{totalItensVendidos.toLocaleString("pt-BR")} itens</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">Quantidade por produto considerando os filtros aplicados.</p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+              {resumoProdutos.map((produto) =>
+              <div key={produto.nome} className="rounded-xl border bg-background px-3 py-2 min-w-0 sm:min-w-[150px]">
+                <p className="text-xs text-muted-foreground truncate" title={produto.nome}>{produto.nome}</p>
+                <p className="text-lg font-bold leading-tight">{produto.quantidade.toLocaleString("pt-BR")}</p>
+                <p className="text-[11px] text-muted-foreground truncate">R$ {produto.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+              </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        }
+
+        {/* Resumo Financeiro - breakdown por forma de pagamento */}
+        {pagamentoContadores.length > 0 &&
+        <Card className="modern-panel">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base flex items-center gap-2"><CreditCard className="h-4 w-4 text-primary" />Resumo Financeiro</CardTitle>
+              <Badge variant="secondary">R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">Recebimentos por forma de pagamento (ignora cancelados).</p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {pagamentoContadores.map(([method, valor]) => {
+                const pct = contadores.total > 0 ? Math.round(valor / contadores.total * 100) : 0;
+                return (
+                  <div key={method} className="rounded-xl border bg-background px-3 py-2 min-w-0">
+                    <p className="text-xs text-muted-foreground truncate capitalize" title={method}>{method}</p>
+                    <p className="text-lg font-bold leading-tight">R$ {valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                    <p className="text-[11px] text-muted-foreground">{pct}% do total</p>
+                  </div>
+                );
+              })}
+              <div className="rounded-xl border border-success/40 bg-success/5 px-3 py-2 min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Total Geral</p>
+                <p className="text-lg font-bold leading-tight text-success">R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                <p className="text-[11px] text-muted-foreground">100%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        }
+
+
+
         <PedidoViewDialog pedido={pedidoView} open={viewDialogAberto} onOpenChange={setViewDialogAberto} onCancelar={cancelarPedido} />
 
         {/* Transfer/Assign driver dialog */}
@@ -1047,6 +1347,9 @@ export default function Pedidos() {
                 <ArrowRightLeft className="h-5 w-5" />
                 {pedidoTransferir?.entregador ? "Transferir Entregador" : "Atribuir Entregador"}
               </DialogTitle>
+              <DialogDescription>
+                Escolha o entregador responsável por este pedido.
+              </DialogDescription>
             </DialogHeader>
             {pedidoTransferir &&
             <div className="space-y-4 mt-2">
@@ -1120,6 +1423,9 @@ export default function Pedidos() {
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle>{batchAction === "status" ? "Alterar Status em Lote" : "Atribuir Entregador em Lote"}</DialogTitle>
+              <DialogDescription>
+                Aplique a ação selecionada aos pedidos marcados.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 mt-2">
               <p className="text-sm text-muted-foreground">{selecionados.size} pedido(s) selecionado(s)</p>
@@ -1173,6 +1479,9 @@ export default function Pedidos() {
               <MoveRight className="h-5 w-5 text-primary" />
               Transferir Pedido para Outra Filial
             </DialogTitle>
+            <DialogDescription>
+              Selecione a filial de destino para continuar o atendimento.
+            </DialogDescription>
           </DialogHeader>
           {pedidoTransferirFilial &&
           <div className="space-y-4 mt-2">
@@ -1236,6 +1545,13 @@ export default function Pedidos() {
           }
         </DialogContent>
       </Dialog>
+
+      <EditarAgendamentoDialog
+        pedido={pedidoAgendamento}
+        open={agendamentoDialogAberto}
+        onOpenChange={setAgendamentoDialogAberto}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["pedidos"] })}
+      />
     </MainLayout>);
 
 }

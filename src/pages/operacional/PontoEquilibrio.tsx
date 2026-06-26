@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
+import { PageSectionLoader } from "@/components/ui/page-loader";
 import { ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Line, Area } from "recharts";
-import { Calculator, TrendingUp, DollarSign, Package, AlertTriangle, Plus, Trash2, Loader2, CheckCircle2, XCircle, FileDown, Printer } from "lucide-react";
+import { Calculator, TrendingUp, DollarSign, Package, AlertTriangle, Plus, Trash2, CheckCircle2, XCircle, FileDown, Printer } from "lucide-react";
 import { exportPEtoPdf, handlePrint } from "@/services/reportPdfService";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -171,7 +172,7 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
   }, [peUnidades, precoVendaUnit, custoVariavelUnit, totalCustosFixos, vendasMesAtual]);
 
   if (loading) {
-    const loader = <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+    const loader = <PageSectionLoader label="Carregando ponto de equilíbrio..." />;
     if (embedded) return loader;
     return (
       <MainLayout>

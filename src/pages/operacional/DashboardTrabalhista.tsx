@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Clock, AlertTriangle, CheckCircle, FileText, Loader2 } from "lucide-react";
+import { PageSectionLoader } from "@/components/ui/page-loader";
+import { Users, Clock, AlertTriangle, CheckCircle, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 
@@ -68,7 +69,7 @@ export default function DashboardTrabalhista() {
     return (
       <MainLayout>
         <Header title="Dashboard Trabalhista" subtitle="Controle de jornadas e horas extras" />
-        <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+        <PageSectionLoader label="Carregando dashboard trabalhista..." />
       </MainLayout>
     );
   }

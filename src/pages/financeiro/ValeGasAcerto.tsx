@@ -110,7 +110,7 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
           status: "recebida",
           data_pagamento: hoje,
           forma_pagamento: formaPagamento,
-        })
+        } as any)
         .eq("origem", "vale_gas_acerto")
         .eq("status", "pendente")
         .ilike("observacoes", `%${acertoMarker(pagamentoAcertoId)}%`);

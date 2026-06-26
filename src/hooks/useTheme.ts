@@ -8,7 +8,7 @@ function getSystemTheme(): "light" | "dark" {
 
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(() => {
-    return (localStorage.getItem("theme") as Theme) || "system";
+    return (localStorage.getItem("theme") as Theme) || "light";
   });
 
   const resolvedTheme = theme === "system" ? getSystemTheme() : theme;

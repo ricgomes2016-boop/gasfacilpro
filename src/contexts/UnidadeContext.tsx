@@ -2,7 +2,6 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
-import { UNIDADES_PUBLIC_COLUMNS } from "@/lib/db/sensitiveColumns";
 
 export interface Unidade {
   id: string;
@@ -23,7 +22,14 @@ export interface Unidade {
   horario_abertura: string | null;
   horario_fechamento: string | null;
   bairros_atendidos: string | null;
+  gas_do_povo_habilitado?: boolean | null;
+  gas_do_povo_valor?: number | null;
 }
+
+const UNIDADES_CONTEXT_COLUMNS =
+  "id, nome, tipo, cnpj, telefone, email, endereco, bairro, cidade, estado, cep, " +
+  "ativo, created_at, updated_at, latitude, longitude, chave_pix, empresa_id, " +
+  "horario_abertura, horario_fechamento, gas_do_povo_habilitado, gas_do_povo_valor";
 
 interface UnidadeContextType {
   unidades: Unidade[];
@@ -57,7 +63,7 @@ export function UnidadeProvider({ children }: { children: ReactNode }) {
         // Admin/gestor sees all active unidades of their empresa
         let query = supabase
           .from("unidades")
-          .select(UNIDADES_PUBLIC_COLUMNS)
+          .select(UNIDADES_CONTEXT_COLUMNS)
           .eq("ativo", true)
           .order("tipo", { ascending: true })
           .order("nome");
@@ -107,7 +113,7 @@ export function UnidadeProvider({ children }: { children: ReactNode }) {
 
         const { data, error } = await supabase
           .from("unidades")
-          .select(UNIDADES_PUBLIC_COLUMNS)
+          .select(UNIDADES_CONTEXT_COLUMNS)
           .in("id", unidadeIds)
           .eq("ativo", true)
           .order("tipo", { ascending: true })

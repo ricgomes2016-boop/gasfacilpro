@@ -12,7 +12,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { User, Mail, Phone, Building2, Shield, Lock, Save, Pencil, X, Eye, EyeOff } from "lucide-react";
+import { User, Mail, Phone, Building2, Shield, Lock, Save, Pencil, X, Eye, EyeOff, Sparkles, RefreshCw, LayoutGrid } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { z } from "zod";
 
 const profileSchema = z.object({
@@ -43,6 +44,36 @@ export default function MeuPerfil() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
+
+  // Preferência: versão da tela Nova Venda
+  const [novaVendaView, setNovaVendaView] = useState<"new" | "old">(() => {
+    if (typeof window === "undefined") return "new";
+    return (localStorage.getItem("nova-venda-view-mode") as "new" | "old") || "new";
+  });
+  const handleChangeNovaVendaView = (v: string) => {
+    const mode = (v === "old" ? "old" : "new") as "new" | "old";
+    setNovaVendaView(mode);
+    try { localStorage.setItem("nova-venda-view-mode", mode); } catch {}
+    toast.success(`Versão definida: ${mode === "new" ? "Nova" : "Antiga"}`);
+  };
+
+  const handleForceUpdate = async () => {
+    try {
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      toast.success("Atualizando o sistema...");
+      setTimeout(() => window.location.reload(), 400);
+    } catch {
+      window.location.reload();
+    }
+  };
+
 
   useEffect(() => {
     if (profile) {
@@ -219,6 +250,49 @@ export default function MeuPerfil() {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Preferências de interface */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <LayoutGrid className="h-4 w-4" /> Preferências de Interface
+            </CardTitle>
+            <CardDescription>Escolha qual versão da tela de Nova Venda usar</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RadioGroup value={novaVendaView} onValueChange={handleChangeNovaVendaView} className="grid gap-2 sm:grid-cols-2">
+              <Label htmlFor="view-new" className="flex cursor-pointer items-start gap-3 rounded-[var(--radius)] border border-border p-3 hover:bg-muted/40 [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/5">
+                <RadioGroupItem value="new" id="view-new" className="mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold flex items-center gap-1"><Sparkles className="h-3.5 w-3.5 text-primary" /> Nova</p>
+                  <p className="text-xs text-muted-foreground">Fluxo por etapas (stepper) — recomendado</p>
+                </div>
+              </Label>
+              <Label htmlFor="view-old" className="flex cursor-pointer items-start gap-3 rounded-[var(--radius)] border border-border p-3 hover:bg-muted/40 [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/5">
+                <RadioGroupItem value="old" id="view-old" className="mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold">Antiga</p>
+                  <p className="text-xs text-muted-foreground">Tudo em uma única página</p>
+                </div>
+              </Label>
+            </RadioGroup>
+          </CardContent>
+        </Card>
+
+        {/* Atualização do Sistema */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" /> Atualização do Sistema
+            </CardTitle>
+            <CardDescription>Force a busca pela versão mais recente do app</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" size="sm" onClick={handleForceUpdate}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Buscar nova atualização
+            </Button>
           </CardContent>
         </Card>
 

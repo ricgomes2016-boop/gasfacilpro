@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCliente } from "@/contexts/ClienteContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePhone, setCachedClienteId } from "@/lib/clienteAppLookup";
 import {
   CreditCard,
   Banknote,
@@ -51,7 +52,7 @@ interface Endereco {
 export default function ClienteCheckout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { cart, cartTotal, clearCart } = useCliente();
+  const { cart, cartTotal, clearCart, lojaSelecionadaId } = useCliente();
   const { user } = useAuth();
 
   const {
@@ -120,29 +121,176 @@ export default function ClienteCheckout() {
     try {
       const enderecoCompleto = buildEnderecoString();
 
-      let clienteId: string | null = null;
+      // Empresa do usuário autenticado (fonte de verdade para RLS)
+      let empresaId: string | null = null;
       if (user) {
-        const { data: clienteData } = await supabase
-          .from("clientes")
-          .select("id")
-          .eq("email", user.email || "")
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("empresa_id")
+          .eq("user_id", user.id)
           .maybeSingle();
-        clienteId = clienteData?.id || null;
+        empresaId = (profileData as any)?.empresa_id || null;
       }
 
-      const { data: pedido, error: pedidoError } = await supabase
+      if (!empresaId) {
+        toast.error("Não foi possível identificar sua empresa. Faça login novamente.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // cliente_id: prioridade
+      // (1) match por endereço já cadastrado na empresa → reaproveita o cliente
+      // (2) match por telefone (normalizado em dígitos)
+      // (3) match por email
+      // (4) cria novo registro com nome significativo
+      let clienteId: string | null = null;
+      const userPhoneRaw = (user as any)?.phone || (user?.user_metadata as any)?.telefone || null;
+      const userPhone = normalizePhone(userPhoneRaw);
+      const userEmail = user?.email || null;
+      const userNome =
+        (user?.user_metadata as any)?.nome ||
+        (user?.user_metadata as any)?.full_name ||
+        null;
+
+      // (1) Procura por endereço já cadastrado (mesma empresa)
+      const enderecoRua = (enderecoSelecionado?.rua || novoEndereco.rua || "").trim();
+      const enderecoNumero = (enderecoSelecionado?.numero || novoEndereco.numero || "").trim();
+      const enderecoBairro = (enderecoSelecionado?.bairro || novoEndereco.bairro || "").trim();
+
+      if (enderecoRua && enderecoNumero && enderecoBairro) {
+        const { data: enderecosMatch } = await (supabase as any)
+          .from("cliente_enderecos")
+          .select("cliente_id, rua, numero, bairro, clientes!inner(id, empresa_id, telefone)")
+          .ilike("rua", enderecoRua)
+          .eq("numero", enderecoNumero)
+          .ilike("bairro", enderecoBairro)
+          .eq("clientes.empresa_id", empresaId)
+          .limit(5);
+
+        const hit = (enderecosMatch || []).find((e: any) => e.cliente_id);
+        if (hit?.cliente_id) {
+          clienteId = hit.cliente_id;
+          // Atualiza telefone se estiver vazio ou diferente
+          const telefoneAtual = normalizePhone(hit?.clientes?.telefone);
+          if (userPhone && telefoneAtual !== userPhone) {
+            await (supabase as any)
+              .from("clientes")
+              .update({ telefone: userPhone })
+              .eq("id", clienteId);
+          }
+        }
+      }
+
+      // (2) telefone
+      if (!clienteId && userPhone) {
+        const { data: porTel } = await (supabase as any)
+          .from("clientes")
+          .select("id, telefone")
+          .eq("empresa_id", empresaId)
+          .not("telefone", "is", null)
+          .limit(200);
+        const hit = (porTel || []).find(
+          (c: any) => normalizePhone(c.telefone) === userPhone
+        );
+        if (hit) clienteId = hit.id;
+      }
+
+      // (3) email
+      if (!clienteId && userEmail) {
+        const { data: porEmail } = await (supabase as any)
+          .from("clientes")
+          .select("id")
+          .eq("empresa_id", empresaId)
+          .eq("email", userEmail)
+          .maybeSingle();
+        if (porEmail?.id) clienteId = porEmail.id;
+      }
+
+      // (4) cria novo
+      if (!clienteId) {
+        const nomeBase =
+          userNome ||
+          (userEmail ? userEmail.split("@")[0] : null) ||
+          (userPhone ? `Cliente ${userPhone.slice(-4)}` : null) ||
+          "Cliente App";
+        const { data: novoCliente, error: novoClienteErr } = await (supabase as any)
+          .from("clientes")
+          .insert({
+            empresa_id: empresaId,
+            nome: nomeBase,
+            email: userEmail,
+            telefone: userPhone,
+            tipo: "varejo",
+            ativo: true,
+          })
+          .select("id")
+          .single();
+        if (novoClienteErr) {
+          console.error("Erro ao criar cliente:", novoClienteErr);
+        } else {
+          clienteId = novoCliente?.id || null;
+        }
+      }
+
+      if (!clienteId) {
+        toast.error("Não foi possível identificar seu cadastro de cliente.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Cache local para que ClienteHome/Historico achem rapidamente
+      setCachedClienteId(clienteId);
+
+      // Unidade: prefere a loja escolhida pelo cliente (se pertencer à empresa);
+      // fallback: primeira unidade ativa da empresa (satisfaz tenant_isolation_pedidos)
+      let unidadeId: string | null = null;
+      if (lojaSelecionadaId) {
+        const { data: lojaData } = await (supabase as any)
+          .from("unidades")
+          .select("id")
+          .eq("id", lojaSelecionadaId)
+          .eq("empresa_id", empresaId)
+          .eq("ativo", true)
+          .maybeSingle();
+        unidadeId = lojaData?.id || null;
+      }
+      if (!unidadeId) {
+        const { data: unidadeData } = await (supabase as any)
+          .from("unidades")
+          .select("id")
+          .eq("empresa_id", empresaId)
+          .eq("ativo", true)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        unidadeId = unidadeData?.id || null;
+      }
+
+      if (!unidadeId) {
+        toast.error("Nenhuma unidade ativa disponível para receber o pedido.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { data: pedido, error: pedidoError } = await (supabase as any)
         .from("pedidos")
         .insert({
           cliente_id: clienteId,
+          unidade_id: unidadeId,
           endereco_entrega: enderecoCompleto,
           forma_pagamento: paymentMethods.find(p => p.id === paymentMethod)?.label || paymentMethod,
           valor_total: finalTotal,
           status: "pendente",
           canal_venda: "Aplicativo",
-          observacoes: changeFor ? `Troco para R$ ${changeFor}` : null,
+          origem_pedido: "app_cliente",
+          observacoes: [
+            userNome || userEmail || userPhone ? `Cliente App: ${userNome || userEmail || userPhone}${userPhone ? ` (${userPhone})` : ""}` : null,
+            changeFor ? `Troco para R$ ${changeFor}` : null,
+          ].filter(Boolean).join(" — ") || null,
         })
         .select("id")
         .single();
+
 
       if (pedidoError) throw pedidoError;
 
@@ -160,11 +308,15 @@ export default function ClienteCheckout() {
       if (itensError) throw itensError;
 
       clearCart();
+      try { localStorage.setItem("last_pedido_id", pedido.id); } catch {}
       toast.success("Pedido realizado com sucesso! 🎉");
-      navigate("/cliente/historico");
-    } catch (error) {
+      navigate(`/cliente/rastreamento/${pedido.id}`);
+
+    } catch (error: any) {
       console.error("Erro ao criar pedido:", error);
-      toast.error("Erro ao processar pedido. Tente novamente.");
+      const msg = error?.message || error?.details || "Tente novamente.";
+      toast.error(`Erro ao processar pedido: ${msg}`);
+
     } finally {
       setIsSubmitting(false);
     }

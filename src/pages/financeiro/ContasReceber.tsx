@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,12 +26,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Wallet, Search, Plus, AlertCircle, CheckCircle2, Clock, MoreHorizontal,
-  Pencil, Trash2, DollarSign, Download, MapPin, User, Filter, X,
-  CreditCard, Banknote, FileText, Handshake, Flame, Receipt, CheckSquare, RefreshCw,
-  CalendarRange, Zap, Tag, ChevronDown,
+  Pencil, Trash2, DollarSign, Download, X,
+  Banknote, CheckSquare, RefreshCw, Eye, SlidersHorizontal,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { isFormaAVista, getFormaCategoria, FORMA_LABELS, type FormaCategoria } from "@/lib/financeiro/formaPagamento";
 import { supabase } from "@/integrations/supabase/client";
 import { ConferenciaCartao } from "@/components/financeiro/ConferenciaCartao";
@@ -46,6 +45,7 @@ import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
 import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
 import { useAuth } from "@/contexts/AuthContext";
 import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
+import { ClienteAutocompleteInput } from "@/components/clientes/ClienteAutocompleteInput";
 
 interface ContaReceber {
   id: string;
@@ -88,6 +88,7 @@ const FORMA_FILTER_OPTIONS: { value: FormaCategoria; label: string; grupo: "a_vi
   { value: "fiado", label: "Fiado", grupo: "a_prazo" },
   { value: "cheque", label: "Cheque", grupo: "a_prazo" },
   { value: "vale_gas", label: "Vale Gás", grupo: "a_prazo" },
+  { value: "gas_do_povo", label: "Gás do Povo", grupo: "a_prazo" },
   { value: "transferencia", label: "Transferência", grupo: "a_prazo" },
   { value: "outros", label: "Outros", grupo: "outros" },
 ];
@@ -116,7 +117,8 @@ export default function ContasReceber() {
   const [dataFinal, setDataFinal] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<Set<StatusFiltro>>(new Set(["a_receber", "vencida"]));
   const [filtroFormas, setFiltroFormas] = useState<Set<FormaCategoria>>(new Set());
-  const [activeTab, setActiveTab] = useState("todos"); // mantido só pra aba Conferência
+  const [conferenciaDialogOpen, setConferenciaDialogOpen] = useState(false);
+  const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { unidadeAtual } = useUnidade();
 
@@ -133,6 +135,7 @@ export default function ContasReceber() {
   const [editDataRecConta, setEditDataRecConta] = useState<ContaReceber | null>(null);
   const [asaasDialogOpen, setAsaasDialogOpen] = useState(false);
   const [asaasConta, setAsaasConta] = useState<ContaReceber | null>(null);
+  const [detalheConta, setDetalheConta] = useState<ContaReceber | null>(null);
   const [editDataRecValue, setEditDataRecValue] = useState("");
   const [editDataRecSaving, setEditDataRecSaving] = useState(false);
 
@@ -238,7 +241,7 @@ export default function ContasReceber() {
           status: "recebida",
           data_recebimento: charge.paymentDate || charge.clientPaymentDate || getBrasiliaDateString(),
         };
-        const { error: upErr } = await supabase.from("contas_receber").update(update).eq("id", conta.id);
+        const { error: upErr } = await supabase.from("contas_receber").update(update as any).eq("id", conta.id);
         if (upErr) throw upErr;
         toast.success("Pagamento confirmado e baixado!");
         fetchContas();
@@ -598,32 +601,17 @@ export default function ContasReceber() {
     });
   }, [contas, filtroNome, dataInicial, dataFinal, filtroStatus, filtroFormas, hoje]);
 
-  // Aba "Conferência" continua isolada; demais formas vêm pelo filtro de formas.
-  const filtered = useMemo(() => {
-    if (activeTab === "conferencia") return [];
-    return baseFiltered;
-  }, [baseFiltered, activeTab]);
+  const filtered = baseFiltered;
 
   // KPIs respeitam os filtros ativos
   const totalPendente = useMemo(() => baseFiltered.filter(c => c.status === "pendente" && c.vencimento >= hoje).reduce((a, c) => a + Number(c.valor), 0), [baseFiltered, hoje]);
   const totalVencido = useMemo(() => baseFiltered.filter(c => c.status === "pendente" && c.vencimento < hoje).reduce((a, c) => a + Number(c.valor), 0), [baseFiltered, hoje]);
   const totalRecebido = useMemo(() => baseFiltered.filter(c => c.status === "recebida").reduce((a, c) => a + Number(c.valor), 0), [baseFiltered]);
-
-  // Resumo por forma (top 4 categorias com volume)
-  const resumoPorForma = useMemo(() => {
-    const map = new Map<FormaCategoria, { count: number; total: number; recebido: number }>();
-    baseFiltered.forEach(c => {
-      const cat = getFormaCategoria(c.forma_pagamento);
-      const cur = map.get(cat) || { count: 0, total: 0, recebido: 0 };
-      cur.count++;
-      cur.total += Number(c.valor);
-      if (c.status === "recebida") cur.recebido += Number(c.valor);
-      map.set(cat, cur);
-    });
-    return Array.from(map.entries())
-      .map(([cat, v]) => ({ cat, ...v }))
-      .sort((a, b) => b.total - a.total);
-  }, [baseFiltered]);
+  const totalAberto = totalPendente + totalVencido;
+  const countAberto = baseFiltered.filter(c => c.status !== "recebida").length;
+  const countVencido = baseFiltered.filter(c => c.status === "pendente" && c.vencimento < hoje).length;
+  const countPendente = baseFiltered.filter(c => c.status === "pendente" && c.vencimento >= hoje).length;
+  const countRecebido = baseFiltered.filter(c => c.status === "recebida").length;
 
   const defaultStatus: Set<StatusFiltro> = new Set(["a_receber", "vencida"]);
   const hasActiveFilters =
@@ -729,6 +717,47 @@ export default function ContasReceber() {
   // (renderTabBadge removido — abas por forma foram substituídas pelo filtro unificado)
 
 
+  const getReceberRowClass = (displayStatus: string) => {
+    const base = "group border-b border-border/60 transition-colors hover:bg-muted/40 data-[state=selected]:bg-primary/5 [&>td]:h-14 [&>td]:py-2.5";
+    if (displayStatus === "Recebida") return `${base} [&>td:first-child]:border-l-4 [&>td:first-child]:border-l-success`;
+    if (displayStatus === "Vencida") return `${base} [&>td:first-child]:border-l-4 [&>td:first-child]:border-l-destructive`;
+    return `${base} [&>td:first-child]:border-l-4 [&>td:first-child]:border-l-success`;
+  };
+
+  const quickStatusValue = (() => {
+    if (filtroStatus.size === 0) return "todos";
+    if (filtroStatus.size === defaultStatus.size && [...filtroStatus].every(s => defaultStatus.has(s))) return "abertas";
+    if (filtroStatus.size === 1) return [...filtroStatus][0];
+    return "personalizado";
+  })();
+
+  const quickPeriodValue = (() => {
+    if (!dataInicial && !dataFinal) return "todos";
+    if (dataInicial === hoje && dataFinal === hoje) return "hoje";
+    return "personalizado";
+  })();
+
+  const handleQuickStatusChange = (value: string) => {
+    if (value === "todos") setFiltroStatus(new Set(["a_receber", "vencida", "recebida"]));
+    else if (value === "abertas") setFiltroStatus(new Set(["a_receber", "vencida"]));
+    else if (value === "personalizado") setAdvancedSearchOpen(true);
+    else setFiltroStatus(new Set([value as StatusFiltro]));
+  };
+
+  const handleQuickPeriodChange = (value: string) => {
+    if (value === "todos") { setDataInicial(""); setDataFinal(""); return; }
+    if (value === "hoje") { aplicarPresetPeriodo("hoje"); return; }
+    if (value === "7d") { aplicarPresetPeriodo("7d"); return; }
+    if (value === "mes_atual") { aplicarPresetPeriodo("mes_atual"); return; }
+    setAdvancedSearchOpen(true);
+  };
+
+  const getTituloRecebivel = (conta: ContaReceber) => {
+    if (conta.vale_numero) return `V${String(conta.vale_numero).padStart(5, "0")}`;
+    if (conta.pedido_id) return `P${String(conta.pedido_id).slice(-6)}`;
+    return conta.id.slice(0, 8).toUpperCase();
+  };
+
   const renderTable = () => (
     <>
       {/* Bulk action bar */}
@@ -761,7 +790,12 @@ export default function ContasReceber() {
       {loading ? (
         <p className="text-center py-8 text-muted-foreground">Carregando...</p>
       ) : filtered.length === 0 ? (
-        <p className="text-center py-8 text-muted-foreground">Nenhum recebível nesta categoria</p>
+        <EmptyState
+          icon={Wallet}
+          title="Nenhum recebível encontrado"
+          description="Ajuste os filtros ou cadastre um novo recebível para acompanhar cobranças e vencimentos."
+          action={{ label: "Novo recebível", onClick: () => setDialogOpen(true), icon: Plus }}
+        />
       ) : (
         <>
           {/* Mobile cards */}
@@ -770,26 +804,35 @@ export default function ContasReceber() {
               const vencida = conta.status === "pendente" && conta.vencimento < hoje;
               const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "Pendente";
               return (
-                <div key={conta.id} className="border rounded-lg p-3" data-state={selectedIds.has(conta.id) ? "selected" : undefined}>
-                  <div className="flex items-start justify-between gap-2">
+                <div
+                  key={conta.id}
+                  className="mobile-record-card transition hover:border-primary/40 hover:shadow-md data-[state=selected]:border-primary/50 data-[state=selected]:bg-primary/5"
+                  data-state={selectedIds.has(conta.id) ? "selected" : undefined}
+                  onClick={() => setDetalheConta(conta)}
+                >
+                  <div className="mobile-record-card-header">
                     <div className="flex items-center gap-2 min-w-0">
-                      <Checkbox checked={selectedIds.has(conta.id)} onCheckedChange={() => toggleSelect(conta.id)} />
+                      <Checkbox
+                        checked={selectedIds.has(conta.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        onCheckedChange={() => toggleSelect(conta.id)}
+                      />
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{conta.parceiro_nome || conta.cliente}</p>
+                        <p className="mobile-record-card-title line-clamp-2">{conta.parceiro_nome || conta.cliente}</p>
                         {conta.endereco_cliente && (
-                          <p className="text-[10px] text-muted-foreground truncate">
+                          <p className="mobile-record-card-meta truncate">
                             {conta.endereco_cliente}{conta.bairro_cliente ? ` — ${conta.bairro_cliente}` : ""}
                           </p>
                         )}
-                        <p className="text-xs text-muted-foreground truncate">{conta.descricao}</p>
+                        <p className="mobile-record-card-meta truncate">{conta.descricao}</p>
                         {conta.vale_numero && <p className="text-[10px] text-muted-foreground">Vale nº {conta.vale_numero}</p>}
                       </div>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={(e) => e.stopPropagation()}><MoreHorizontal className="h-4 w-4" /></Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
+                      <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50" onClick={(e) => e.stopPropagation()}>
                         {conta.status !== "recebida" && <DropdownMenuItem onClick={() => openReceberDialog(conta)}><DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber</DropdownMenuItem>}
                         {conta.status !== "recebida" && (
                           <DropdownMenuItem onClick={() => { setAsaasConta(conta); setAsaasDialogOpen(true); }}>
@@ -818,8 +861,8 @@ export default function ContasReceber() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge variant={displayStatus === "Recebida" ? "default" : displayStatus === "Vencida" ? "destructive" : "secondary"} className="text-[10px]">{displayStatus}</Badge>
                       {conta.forma_pagamento && <Badge variant="outline" className="text-[10px]">{conta.forma_pagamento}</Badge>}
                       {(() => {
@@ -831,7 +874,7 @@ export default function ContasReceber() {
                     </div>
                     <span className="font-bold text-sm">R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="flex items-center justify-between mt-1 gap-2">
+                  <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/45 pt-3">
                     <p className="text-[10px] text-muted-foreground">
                       {conta.data_venda && <>Venda: {format(new Date(conta.data_venda), "dd/MM/yyyy")} · </>}
                       Venc: {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}
@@ -844,120 +887,135 @@ export default function ContasReceber() {
           </div>
 
           {/* Desktop table */}
-          <div className="overflow-x-auto hidden md:block">
+          <div className="hidden table-card-shell md:block">
             <Table>
-              <TableHeader>
-                <TableRow>
+              <TableHeader className="sticky top-0 z-10">
+                <TableRow className="border-b bg-muted/75 hover:bg-muted/75 [&_th]:h-11 [&_th]:border-0 [&_th]:text-[11px] [&_th]:font-extrabold [&_th]:uppercase [&_th]:tracking-[0.02em] [&_th]:text-foreground">
                   <TableHead className="w-10">
                     <Checkbox
                       checked={filtered.length > 0 && selectedIds.size === filtered.length}
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
+                  <TableHead className="w-[120px]">Nº Título</TableHead>
                   <TableHead>Cliente</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Data Venda</TableHead>
-                  <TableHead>Forma</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right w-12">Ações</TableHead>
+                  <TableHead className="w-[150px]">Vencimento</TableHead>
+                  <TableHead className="w-[140px]">Valor</TableHead>
+                  <TableHead className="w-[130px]">Situação</TableHead>
+                  <TableHead className="w-[170px]">Forma de Pagamento</TableHead>
+                  <TableHead className="w-[92px] text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map(conta => {
                   const vencida = conta.status === "pendente" && conta.vencimento < hoje;
-                  const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "Pendente";
+                  const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "A vencer";
                   return (
-                    <TableRow key={conta.id} data-state={selectedIds.has(conta.id) ? "selected" : undefined}>
-                      <TableCell>
+                    <TableRow
+                      key={conta.id}
+                      className={`${getReceberRowClass(displayStatus)} cursor-pointer`}
+                      data-state={selectedIds.has(conta.id) ? "selected" : undefined}
+                      onClick={() => setDetalheConta(conta)}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox checked={selectedIds.has(conta.id)} onCheckedChange={() => toggleSelect(conta.id)} />
                       </TableCell>
                       <TableCell>
-                        <p className="font-medium text-sm">{conta.parceiro_nome || conta.cliente}</p>
-                        {conta.endereco_cliente && (
-                          <p className="text-xs text-muted-foreground">
-                            {conta.endereco_cliente}{conta.bairro_cliente ? ` — ${conta.bairro_cliente}` : ""}
-                          </p>
-                        )}
-                        {conta.vale_numero && <p className="text-xs text-muted-foreground">Vale nº {conta.vale_numero} · {conta.vale_codigo}</p>}
+                        <button
+                          type="button"
+                          className="font-semibold text-primary hover:underline"
+                          onClick={(e) => { e.stopPropagation(); setDetalheConta(conta); }}
+                        >
+                          {getTituloRecebivel(conta)}
+                        </button>
                       </TableCell>
-                      <TableCell className="text-sm">{conta.descricao}</TableCell>
-                      <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
-                        {conta.data_venda ? format(new Date(conta.data_venda), "dd/MM/yyyy") : "—"}
+                      <TableCell>
+                        <p className="text-sm font-semibold text-foreground">{conta.parceiro_nome || conta.cliente}</p>
+                        <p className="max-w-[260px] truncate text-xs text-muted-foreground">
+                          {conta.descricao || conta.endereco_cliente || "Sem descrição"}
+                        </p>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        <div>{format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</div>
+                        {(() => { const a = agingLabel(conta); return a ? <div className={`text-[10px] ${a.cls}`}>{a.text}</div> : null; })()}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm font-semibold text-foreground">
+                        R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={displayStatus === "Recebida" ? "default" : displayStatus === "Vencida" ? "destructive" : "secondary"}
+                          className={`text-xs ${displayStatus === "A vencer" ? "bg-success/10 text-success hover:bg-success/10" : ""}`}
+                        >
+                          {displayStatus}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          <Badge variant="outline" className="text-xs w-fit">{conta.forma_pagamento || "—"}</Badge>
+                          <span className="text-sm">{conta.forma_pagamento || "—"}</span>
                           {(() => {
                             const be = getBoletoEmissaoStatus(conta);
-                            if (be === "pendente_emissao") return <Badge variant="warning" className="text-[10px] w-fit"><Clock className="h-2.5 w-2.5" />Pendente de emissão</Badge>;
-                            if (be === "emitido") return <Badge variant="info" className="text-[10px] w-fit"><CheckCircle2 className="h-2.5 w-2.5" />Emitido</Badge>;
+                            if (be === "pendente_emissao") return <span className="text-[10px] text-warning">Boleto pendente</span>;
+                            if (be === "emitido") return <span className="text-[10px] text-primary">Boleto emitido</span>;
                             return null;
                           })()}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">
-                        <div>{format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</div>
-                        {(() => { const a = agingLabel(conta); return a ? <div className={`text-[10px] ${a.cls}`}>{a.text}</div> : null; })()}
-                      </TableCell>
-                      <TableCell className="font-medium text-sm whitespace-nowrap">
-                        R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={displayStatus === "Recebida" ? "default" : displayStatus === "Vencida" ? "destructive" : "secondary"} className="text-xs">
-                          {displayStatus}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
-                            {conta.status !== "recebida" && (
-                              <DropdownMenuItem onClick={() => openReceberDialog(conta)}>
-                                <DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDetalheConta(conta)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
+                              {conta.status !== "recebida" && (
+                                <DropdownMenuItem onClick={() => openReceberDialog(conta)}>
+                                  <DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber
+                                </DropdownMenuItem>
+                              )}
+                              {conta.status !== "recebida" && (
+                                <DropdownMenuItem onClick={() => { setAsaasConta(conta); setAsaasDialogOpen(true); }}>
+                                  <Banknote className="h-4 w-4 mr-2" />
+                                  {conta.asaas_charge_id ? "Ver boleto / PIX (Asaas)" : "Emitir boleto / PIX (Asaas)"}
+                                </DropdownMenuItem>
+                              )}
+                              {conta.asaas_charge_id && conta.boleto_url && (
+                                <DropdownMenuItem onClick={() => window.open(conta.boleto_url!, "_blank", "noopener,noreferrer")}>
+                                  <Download className="h-4 w-4 mr-2" />Baixar 2ª via do boleto
+                                </DropdownMenuItem>
+                              )}
+                              {conta.asaas_charge_id && conta.status !== "recebida" && (
+                                <DropdownMenuItem disabled={syncingId === conta.id} onClick={() => sincronizarAsaas(conta)}>
+                                  <RefreshCw className={`h-4 w-4 mr-2 ${syncingId === conta.id ? "animate-spin" : ""}`} />
+                                  Sincronizar com Asaas
+                                </DropdownMenuItem>
+                              )}
+                              {conta.status === "recebida" && podeEditarDataRecebimento && (
+                                <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
+                                  <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => handleEdit(conta)}>
+                                <Pencil className="h-4 w-4 mr-2" />Editar
                               </DropdownMenuItem>
-                            )}
-                            {conta.status !== "recebida" && (
-                              <DropdownMenuItem onClick={() => { setAsaasConta(conta); setAsaasDialogOpen(true); }}>
-                                <Banknote className="h-4 w-4 mr-2" />
-                                {conta.asaas_charge_id ? "Ver boleto / PIX (Asaas)" : "Emitir boleto / PIX (Asaas)"}
+                              <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(conta.id)}>
+                                <Trash2 className="h-4 w-4 mr-2" />Excluir
                               </DropdownMenuItem>
-                            )}
-                            {conta.asaas_charge_id && conta.boleto_url && (
-                              <DropdownMenuItem onClick={() => window.open(conta.boleto_url!, "_blank", "noopener,noreferrer")}>
-                                <Download className="h-4 w-4 mr-2" />Baixar 2ª via do boleto
-                              </DropdownMenuItem>
-                            )}
-                            {conta.asaas_charge_id && conta.status !== "recebida" && (
-                              <DropdownMenuItem disabled={syncingId === conta.id} onClick={() => sincronizarAsaas(conta)}>
-                                <RefreshCw className={`h-4 w-4 mr-2 ${syncingId === conta.id ? "animate-spin" : ""}`} />
-                                Sincronizar com Asaas
-                              </DropdownMenuItem>
-                            )}
-                            {conta.status === "recebida" && podeEditarDataRecebimento && (
-                              <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
-                                <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => handleEdit(conta)}>
-                              <Pencil className="h-4 w-4 mr-2" />Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(conta.id)}>
-                              <Trash2 className="h-4 w-4 mr-2" />Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
-            <div className="px-3 py-2 text-xs text-muted-foreground border-t">
-              {filtered.length} registro{filtered.length !== 1 ? "s" : ""}
+            <div className="flex items-center justify-between border-t px-4 py-3 text-xs text-muted-foreground">
+              <span>Mostrando {filtered.length} registro{filtered.length !== 1 ? "s" : ""}</span>
+              <span>{hasActiveFilters ? "Filtros aplicados" : "Sem filtros ativos"}</span>
             </div>
           </div>
         </>
@@ -970,41 +1028,33 @@ export default function ContasReceber() {
       <Header title="Contas a Receber" subtitle="Recebíveis unificados por categoria" />
       <div className="p-3 md:p-6 space-y-4 md:space-y-6">
 
-        {/* Dashboard resumo estilo PagBank */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">💰 O que vendi (a receber)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl sm:text-2xl font-bold">
-                R$ {(totalPendente + totalVencido).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Total em aberto</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">⏳ O que vou receber</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl sm:text-2xl font-bold text-warning">
-                R$ {totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Pendente (a vencer)</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">✅ O que recebi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl sm:text-2xl font-bold text-success">
-                R$ {totalRecebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Liquidado</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            { title: "A Receber (Total)", value: totalAberto, count: countAberto, tone: "primary", icon: Wallet, detail: "Total em aberto" },
+            { title: "Vencidas", value: totalVencido, count: countVencido, tone: "destructive", icon: AlertCircle, detail: "Exigem cobrança" },
+            { title: "A Vencer", value: totalPendente, count: countPendente, tone: "success", icon: Clock, detail: "Dentro do prazo" },
+            { title: "Recebidos (Mês)", value: totalRecebido, count: countRecebido, tone: "info", icon: CheckCircle2, detail: "Liquidado no filtro" },
+          ].map((card) => {
+            const Icon = card.icon;
+            const valueClass = card.tone === "destructive" ? "text-destructive" : card.tone === "success" ? "text-success" : "";
+            const iconClass = card.tone === "destructive" ? "status-card-icon-destructive" : card.tone === "success" ? "status-card-icon-success" : "status-card-icon-primary";
+            return (
+              <Card key={card.title} className="kpi-card">
+                <CardContent className="flex items-center justify-between gap-3 p-4">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{card.title}</p>
+                    <p className={`mt-2 text-xl font-bold sm:text-2xl ${valueClass}`}>
+                      R$ {card.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{card.count} título{card.count === 1 ? "" : "s"} · {card.detail}</p>
+                  </div>
+                  <div className={`status-card-icon ${iconClass} h-10 w-10 shrink-0`}>
+                    <Icon />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {totalVencido > 0 && (
@@ -1016,18 +1066,39 @@ export default function ContasReceber() {
           </div>
         )}
 
-        {/* Actions bar */}
-        <div className="flex items-center gap-2 justify-between flex-wrap">
-          <div className="flex items-center gap-2">
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditId(null); resetForm(); } }}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gap-2"><Plus className="h-4 w-4" />Novo</Button>
-              </DialogTrigger>
-              <SmartImportButtons edgeFunctionName="parse-receivables-import" onDataExtracted={handleImportData} />
-              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        {/* Painel operacional */}
+        <div className="rounded-xl border bg-card/90 p-3 shadow-sm">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                <Button variant="outline" className="h-10 gap-2" onClick={() => setConferenciaDialogOpen(true)}>
+                  <CheckSquare className="h-4 w-4" />Conferência de cartão
+                </Button>
+                <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditId(null); resetForm(); } }}>
+                  <DialogTrigger asChild>
+                    <Button className="h-10 gap-2"><Plus className="h-4 w-4" />Novo recebível</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>{editId ? "Editar Recebível" : "Novo Recebível"}</DialogTitle></DialogHeader>
                 <div className="space-y-4 pt-4">
-                  <div><Label>Cliente *</Label><Input value={form.cliente} onChange={e => setForm({ ...form, cliente: e.target.value })} /></div>
+                  {!editId && (
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold">Importar com IA</p>
+                          <p className="text-xs text-muted-foreground">Leia um arquivo ou imagem e revise os recebíveis encontrados.</p>
+                        </div>
+                      </div>
+                      <SmartImportButtons edgeFunctionName="parse-receivables-import" onDataExtracted={handleImportData} />
+                    </div>
+                  )}
+                  <div>
+                    <Label>Cliente *</Label>
+                    <ClienteAutocompleteInput
+                      value={form.cliente}
+                      onChange={(nome) => setForm({ ...form, cliente: nome })}
+                    />
+                  </div>
                   <div><Label>Descrição *</Label><Input value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} /></div>
                   <div className="grid grid-cols-2 gap-4">
                     <div><Label>Valor *</Label><Input type="number" step="0.01" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} /></div>
@@ -1049,156 +1120,163 @@ export default function ContasReceber() {
                   </div>
                 </div>
               </DialogContent>
-            </Dialog>
-          </div>
+                </Dialog>
+              </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={exportToExcel} className="gap-1.5">
-              <Download className="h-4 w-4" /><span className="hidden sm:inline">Excel</span>
-            </Button>
-            <Button variant="outline" size="sm" onClick={exportToPDF} className="gap-1.5">
-              <Download className="h-4 w-4" /><span className="hidden sm:inline">PDF</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Barra de filtros unificada (sticky) */}
-        <div className="sticky top-0 z-20 -mx-3 md:-mx-6 px-3 md:px-6 py-2 bg-background/85 backdrop-blur border-b border-border">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 min-w-[180px]">
-              <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar cliente, descrição, vale…"
-                value={filtroNome}
-                onChange={e => setFiltroNome(e.target.value)}
-                className="h-9 pl-8 text-sm"
-              />
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="h-10 gap-2">
+                      <Download className="h-4 w-4" />Exportar
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={exportToExcel}><Download className="h-4 w-4 mr-2" />Exportar Excel</DropdownMenuItem>
+                    <DropdownMenuItem onClick={exportToPDF}><Download className="h-4 w-4 mr-2" />Exportar PDF</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
 
-            {/* Período */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5">
-                  <CalendarRange className="h-3.5 w-3.5" />
-                  {dataInicial || dataFinal
-                    ? `${dataInicial ? format(new Date(dataInicial + "T12:00:00"), "dd/MM") : "…"} → ${dataFinal ? format(new Date(dataFinal + "T12:00:00"), "dd/MM") : "…"}`
-                    : "Período"}
-                  <ChevronDown className="h-3 w-3 opacity-60" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-72 p-3" align="start">
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Atalhos</p>
-                <div className="grid grid-cols-2 gap-1.5 mb-3">
-                  {[
-                    { k: "hoje", l: "Hoje" },
-                    { k: "7d", l: "Últimos 7 dias" },
-                    { k: "mes_atual", l: "Mês atual" },
-                    { k: "mes_passado", l: "Mês passado" },
-                    { k: "30d", l: "Últimos 30 dias" },
-                    { k: "90d", l: "Últimos 90 dias" },
-                    { k: "ano", l: "Este ano" },
-                    { k: "limpar", l: "Sem período" },
-                  ].map(p => (
-                    <Button key={p.k} variant="outline" size="sm" className="h-8 text-xs justify-start"
-                      onClick={() => aplicarPresetPeriodo(p.k as any)}>{p.l}</Button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground uppercase">De</Label>
-                    <Input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} className="h-8 text-xs mt-1" />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground uppercase">Até</Label>
-                    <Input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} className="h-8 text-xs mt-1" />
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* Status (multi) */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5">
-                  <Tag className="h-3.5 w-3.5" />
-                  Status{filtroStatus.size > 0 && <span className="text-[10px] opacity-70">· {filtroStatus.size}</span>}
-                  <ChevronDown className="h-3 w-3 opacity-60" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-52 p-2" align="start">
-                {([
-                  { k: "a_receber", l: "A Receber", icon: Clock },
-                  { k: "vencida", l: "Vencidas", icon: AlertCircle },
-                  { k: "recebida", l: "Recebidas", icon: CheckCircle2 },
-                ] as const).map(s => {
-                  const checked = filtroStatus.has(s.k);
-                  const Icon = s.icon;
-                  return (
-                    <button key={s.k} type="button" onClick={() => toggleStatus(s.k)}
-                      className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-accent text-sm">
-                      <Checkbox checked={checked} className="pointer-events-none" />
-                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                      {s.l}
-                    </button>
-                  );
-                })}
-              </PopoverContent>
-            </Popover>
-
-            {/* Forma de pagamento (multi) */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5">
-                  <CreditCard className="h-3.5 w-3.5" />
-                  Forma{filtroFormas.size > 0 && <span className="text-[10px] opacity-70">· {filtroFormas.size}</span>}
-                  <ChevronDown className="h-3 w-3 opacity-60" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-2" align="start">
-                <p className="text-[10px] uppercase font-semibold text-muted-foreground px-2 pt-1 pb-1 flex items-center gap-1">
-                  <Zap className="h-3 w-3" /> À vista (auto‑baixa)
-                </p>
-                {FORMA_FILTER_OPTIONS.filter(o => o.grupo === "a_vista").map(o => (
-                  <button key={o.value} type="button" onClick={() => toggleForma(o.value)}
-                    className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-accent text-sm">
-                    <Checkbox checked={filtroFormas.has(o.value)} className="pointer-events-none" />
-                    {o.label}
-                  </button>
-                ))}
-                <p className="text-[10px] uppercase font-semibold text-muted-foreground px-2 pt-2 pb-1">A prazo</p>
-                {FORMA_FILTER_OPTIONS.filter(o => o.grupo === "a_prazo").map(o => (
-                  <button key={o.value} type="button" onClick={() => toggleForma(o.value)}
-                    className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-accent text-sm">
-                    <Checkbox checked={filtroFormas.has(o.value)} className="pointer-events-none" />
-                    {o.label}
-                  </button>
-                ))}
-                <div className="border-t mt-1 pt-1">
-                  {FORMA_FILTER_OPTIONS.filter(o => o.grupo === "outros").map(o => (
-                    <button key={o.value} type="button" onClick={() => toggleForma(o.value)}
-                      className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-accent text-sm">
-                      <Checkbox checked={filtroFormas.has(o.value)} className="pointer-events-none" />
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Button variant="ghost" size="sm" onClick={() => setActiveTab(activeTab === "conferencia" ? "todos" : "conferencia")}
-              className={`h-9 gap-1.5 ${activeTab === "conferencia" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}>
-              <CreditCard className="h-3.5 w-3.5" /><span className="hidden sm:inline">Conferência</span>
-            </Button>
-
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-9 text-xs gap-1">
-                <X className="h-3.5 w-3.5" /> Limpar
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(240px,1fr)_180px_190px_auto] md:items-center">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="h-10 pl-9"
+                  placeholder="Buscar cliente, título, pedido ou descrição..."
+                  value={filtroNome}
+                  onChange={(e) => setFiltroNome(e.target.value)}
+                />
+              </div>
+              <Select value={quickStatusValue} onValueChange={handleQuickStatusChange}>
+                <SelectTrigger className="h-10"><SelectValue placeholder="Situação" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="abertas">Situação: abertas</SelectItem>
+                  <SelectItem value="todos">Situação: todas</SelectItem>
+                  <SelectItem value="vencida">Vencidas</SelectItem>
+                  <SelectItem value="a_receber">A vencer</SelectItem>
+                  <SelectItem value="recebida">Recebidas</SelectItem>
+                  <SelectItem value="personalizado">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={quickPeriodValue} onValueChange={handleQuickPeriodChange}>
+                <SelectTrigger className="h-10"><SelectValue placeholder="Vencimento" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Vencimento: todos</SelectItem>
+                  <SelectItem value="hoje">Hoje</SelectItem>
+                  <SelectItem value="7d">Últimos 7 dias</SelectItem>
+                  <SelectItem value="mes_atual">Mês atual</SelectItem>
+                  <SelectItem value="personalizado">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" className="h-10 gap-2" onClick={() => setAdvancedSearchOpen(true)}>
+                <SlidersHorizontal className="h-4 w-4" />Filtros
               </Button>
-            )}
-          </div>
+            </div>
 
-          {/* Chips de filtros ativos */}
-          {(filtroNome || dataInicial || dataFinal || filtroFormas.size > 0 || filtroStatus.size !== 2 || ![...filtroStatus].every(s => s === "a_receber" || s === "vencida")) && (
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span>{filtered.length} registro{filtered.length !== 1 ? "s" : ""} no filtro atual</span>
+              <div className="flex items-center gap-2">
+                {hasActiveFilters && (
+                  <Button variant="ghost" onClick={clearAllFilters} className="h-8 gap-1 px-2 text-xs">
+                    <X className="h-3.5 w-3.5" /> Limpar filtros
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <Dialog open={advancedSearchOpen} onOpenChange={setAdvancedSearchOpen}>
+              <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+                <DialogHeader><DialogTitle>Busca avançada</DialogTitle></DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-2">
+                    <Label>Busca geral</Label>
+                    <div className="relative">
+                      <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar cliente, descrição, vale..."
+                        value={filtroNome}
+                        onChange={e => setFiltroNome(e.target.value)}
+                        className="pl-8"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Vencimento inicial</Label>
+                      <Input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Vencimento final</Label>
+                      <Input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Atalhos de período</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { k: "hoje", l: "Hoje" },
+                        { k: "7d", l: "Últimos 7 dias" },
+                        { k: "mes_atual", l: "Mês atual" },
+                        { k: "mes_passado", l: "Mes passado" },
+                        { k: "30d", l: "Últimos 30 dias" },
+                        { k: "90d", l: "Últimos 90 dias" },
+                        { k: "ano", l: "Este ano" },
+                        { k: "limpar", l: "Sem periodo" },
+                      ].map(p => (
+                        <Button key={p.k} variant="outline" size="sm" type="button" onClick={() => aplicarPresetPeriodo(p.k as any)}>{p.l}</Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <div className="rounded-lg border p-2">
+                        {([
+                          { k: "a_receber", l: "A receber", icon: Clock },
+                          { k: "vencida", l: "Vencidas", icon: AlertCircle },
+                          { k: "recebida", l: "Recebidas", icon: CheckCircle2 },
+                        ] as const).map(s => {
+                          const Icon = s.icon;
+                          return (
+                            <button key={s.k} type="button" onClick={() => toggleStatus(s.k)}
+                              className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-accent">
+                              <Checkbox checked={filtroStatus.has(s.k)} className="pointer-events-none" />
+                              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                              {s.l}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Forma de pagamento</Label>
+                      <div className="max-h-52 overflow-y-auto rounded-lg border p-2">
+                        {FORMA_FILTER_OPTIONS.map(o => (
+                          <button key={o.value} type="button" onClick={() => toggleForma(o.value)}
+                            className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-accent">
+                            <Checkbox checked={filtroFormas.has(o.value)} className="pointer-events-none" />
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button variant="outline" onClick={clearAllFilters}>Limpar</Button>
+                    <Button onClick={() => setAdvancedSearchOpen(false)}><Search className="h-4 w-4 mr-2" />Aplicar busca</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Chips de filtros ativos */}
+            {(filtroNome || dataInicial || dataFinal || filtroFormas.size > 0 || filtroStatus.size !== 2 || ![...filtroStatus].every(s => s === "a_receber" || s === "vencida")) && (
             <div className="flex flex-wrap items-center gap-1.5 mt-2">
               {filtroNome && (
                 <Badge variant="secondary" className="gap-1 pr-1">
@@ -1226,35 +1304,120 @@ export default function ContasReceber() {
               ))}
             </div>
           )}
+          </div>
         </div>
 
-        {/* Resumo por forma (mini cards) */}
-        {resumoPorForma.length > 0 && activeTab !== "conferencia" && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {resumoPorForma.slice(0, 4).map(r => (
-              <button key={r.cat} type="button"
-                onClick={() => toggleForma(r.cat)}
-                className={`text-left p-2.5 rounded-lg border transition ${filtroFormas.has(r.cat) ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{FORMA_LABELS[r.cat]}</p>
-                <p className="text-sm font-semibold mt-0.5">R$ {r.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-                <p className="text-[10px] text-muted-foreground">{r.count} título{r.count !== 1 ? "s" : ""} · R$ {r.recebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} recebido</p>
-              </button>
-            ))}
-          </div>
-        )}
+        <Card>
+          <CardContent className="p-0 md:p-4">
+            {renderTable()}
+          </CardContent>
+        </Card>
 
-        {/* Conteúdo: tabela única OU painel de conferência */}
-        {activeTab === "conferencia" ? (
-          <ConferenciaCartao />
-        ) : (
-          <Card>
-            <CardContent className="p-0 md:p-6 md:pt-4">
-              {renderTable()}
-            </CardContent>
-          </Card>
-        )}
+        <Dialog open={conferenciaDialogOpen} onOpenChange={setConferenciaDialogOpen}>
+          <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-6xl">
+            <DialogHeader>
+              <DialogTitle>Conferência de cartão</DialogTitle>
+            </DialogHeader>
+            <ConferenciaCartao />
+          </DialogContent>
+        </Dialog>
 
+        <Dialog open={!!detalheConta} onOpenChange={(open) => !open && setDetalheConta(null)}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+            {detalheConta && (() => {
+              const vencida = detalheConta.status === "pendente" && detalheConta.vencimento < hoje;
+              const displayStatus = vencida ? "Vencida" : detalheConta.status === "recebida" ? "Recebida" : "Pendente";
+              const boletoStatus = getBoletoEmissaoStatus(detalheConta);
+              return (
+                <>
+                  <DialogHeader>
+                    <DialogTitle>Detalhes do recebivel</DialogTitle>
+                  </DialogHeader>
 
+                  <div className="space-y-4 pt-2">
+                    <div className="rounded-xl border bg-muted/30 p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm text-muted-foreground">Cliente</p>
+                          <p className="truncate text-lg font-semibold">{detalheConta.parceiro_nome || detalheConta.cliente}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{detalheConta.descricao}</p>
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <p className="text-2xl font-bold">R$ {Number(detalheConta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                          <Badge variant={displayStatus === "Recebida" ? "default" : displayStatus === "Vencida" ? "destructive" : "secondary"}>{displayStatus}</Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                      <div className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">Vencimento</p>
+                        <p className="font-medium">{format(new Date(detalheConta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</p>
+                        {(() => { const a = agingLabel(detalheConta); return a ? <p className={`text-xs ${a.cls}`}>{a.text}</p> : null; })()}
+                      </div>
+                      <div className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">Forma</p>
+                        <p className="font-medium">{detalheConta.forma_pagamento || "-"}</p>
+                        {boletoStatus === "pendente_emissao" && <Badge variant="warning" className="mt-1 text-[10px]">Pendente de emissao</Badge>}
+                        {boletoStatus === "emitido" && <Badge variant="info" className="mt-1 text-[10px]">Boleto emitido</Badge>}
+                      </div>
+                      <div className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">Data da venda</p>
+                        <p className="font-medium">{detalheConta.data_venda ? format(new Date(detalheConta.data_venda), "dd/MM/yyyy") : "-"}</p>
+                      </div>
+                      <div className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">Referencia</p>
+                        <p className="font-medium">{detalheConta.vale_numero ? `Vale ${detalheConta.vale_numero}` : detalheConta.pedido_id ? `Pedido ${detalheConta.pedido_id}` : "-"}</p>
+                      </div>
+                    </div>
+
+                    {detalheConta.endereco_cliente && (
+                      <div className="rounded-lg border p-3 text-sm">
+                        <p className="text-xs text-muted-foreground">Endereco</p>
+                        <p>{detalheConta.endereco_cliente}{detalheConta.bairro_cliente ? ` - ${detalheConta.bairro_cliente}` : ""}</p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {detalheConta.status !== "recebida" && (
+                        <Button onClick={() => { const conta = detalheConta; setDetalheConta(null); openReceberDialog(conta); }}>
+                          <DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber
+                        </Button>
+                      )}
+                      {detalheConta.status !== "recebida" && (
+                        <Button variant="outline" onClick={() => { setAsaasConta(detalheConta); setDetalheConta(null); setAsaasDialogOpen(true); }}>
+                          <Banknote className="h-4 w-4 mr-2" />
+                          {detalheConta.asaas_charge_id ? "Ver boleto / PIX" : "Emitir boleto / PIX"}
+                        </Button>
+                      )}
+                      {detalheConta.asaas_charge_id && detalheConta.boleto_url && (
+                        <Button variant="outline" onClick={() => window.open(detalheConta.boleto_url!, "_blank", "noopener,noreferrer")}>
+                          <Download className="h-4 w-4 mr-2" />Baixar 2a via
+                        </Button>
+                      )}
+                      {detalheConta.asaas_charge_id && detalheConta.status !== "recebida" && (
+                        <Button variant="outline" disabled={syncingId === detalheConta.id} onClick={() => sincronizarAsaas(detalheConta)}>
+                          <RefreshCw className={`h-4 w-4 mr-2 ${syncingId === detalheConta.id ? "animate-spin" : ""}`} />Sincronizar Asaas
+                        </Button>
+                      )}
+                      {detalheConta.status === "recebida" && podeEditarDataRecebimento && (
+                        <Button variant="outline" onClick={() => { const conta = detalheConta; setDetalheConta(null); openEditDataRecDialog(conta); }}>
+                          <Pencil className="h-4 w-4 mr-2" />Editar data
+                        </Button>
+                      )}
+                      <Button variant="outline" onClick={() => { const conta = detalheConta; setDetalheConta(null); handleEdit(conta); }}>
+                        <Pencil className="h-4 w-4 mr-2" />Editar
+                      </Button>
+                      <Button variant="destructive" onClick={() => { setDeleteId(detalheConta.id); setDetalheConta(null); }}>
+                        <Trash2 className="h-4 w-4 mr-2" />Excluir
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </DialogContent>
+        </Dialog>
 
 
         {/* Dialog Receber */}

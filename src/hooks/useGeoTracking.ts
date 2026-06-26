@@ -205,7 +205,7 @@ export function useGeoTracking(): GeoTrackingState {
 
       await fetchActiveRotaId();
 
-      channel = supabase.channel('entregador_status_changes').on(
+      channel = supabase.channel(`entregador-status-${data.id}`).on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'entregadores', filter: `id=eq.${data.id}` },
         async (payload) => {

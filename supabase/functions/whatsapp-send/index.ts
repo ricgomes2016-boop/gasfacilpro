@@ -40,8 +40,8 @@ serve(async (req) => {
       }
     }
 
-    // Ignora unidade_id do payload — confiamos só na conversa
-    const { conversa_id, content, media_url, media_type, mime_type, filename } = await req.json();
+    const { conversa_id, content, media_url, media_type, mime_type, filename, unidade_id } = await req.json();
+    const requestedUnidadeId = typeof unidade_id === "string" && unidade_id.trim() ? unidade_id.trim() : null;
 
     if (!conversa_id) return json(200, { ok: false, error: "conversa_id é obrigatório" });
     if (!media_url && !content?.trim()) return json(200, { ok: false, error: "Envie content ou media_url" });
@@ -66,7 +66,31 @@ serve(async (req) => {
       }
     }
 
-    const effectiveUnidade = conversa.unidade_id || null;
+    let effectiveUnidade = conversa.unidade_id || null;
+    if (!effectiveUnidade && requestedUnidadeId) {
+      const { data: unidade } = await supabase
+        .from("unidades")
+        .select("id, empresa_id")
+        .eq("id", requestedUnidadeId)
+        .maybeSingle();
+
+      if (!unidade) {
+        return json(200, { ok: false, error: "Unidade informada não encontrada" });
+      }
+      if (!auth.isServiceRole && !userRoles.includes("super_admin") && unidade.empresa_id !== userEmpresaId) {
+        return json(200, { ok: false, error: "Unidade pertence a outra empresa (forbidden_unidade)" });
+      }
+      if (conversa.empresa_id && unidade.empresa_id && conversa.empresa_id !== unidade.empresa_id) {
+        return json(200, { ok: false, error: "Unidade não pertence à empresa da conversa" });
+      }
+
+      effectiveUnidade = requestedUnidadeId;
+      await supabase
+        .from("ai_conversas")
+        .update({ unidade_id: effectiveUnidade, empresa_id: conversa.empresa_id || unidade.empresa_id || null })
+        .eq("id", conversa_id)
+        .is("unidade_id", null);
+    }
 
     // 2. Config: prioriza o provedor configurado na unidade
     const provedores = ["meta", "evolution", "zapi", "uazapi", "gateway"] as const;

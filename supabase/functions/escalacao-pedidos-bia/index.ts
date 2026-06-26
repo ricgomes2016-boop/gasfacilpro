@@ -3,16 +3,31 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolveConfig, sendMessage } from "../_shared/bia-core.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GESTOR_WHATSAPP = "5543999692765";
+const GESTOR_WHATSAPP = Deno.env.get("GESTOR_WHATSAPP_NUMBER") || "";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const auth = await requireAuth(req, corsHeaders);
+  if (!auth.ok) return auth.response;
+  if (!auth.isServiceRole) {
+    return new Response(JSON.stringify({ error: "Apenas chamadas do cron (service_role)" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (!GESTOR_WHATSAPP) {
+    return new Response(JSON.stringify({ ok: false, erro: "GESTOR_WHATSAPP_NUMBER não configurado" }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,

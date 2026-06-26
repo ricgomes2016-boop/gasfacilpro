@@ -20,15 +20,21 @@ interface Entregador {
   nome: string;
   status: string | null;
   foto_url?: string | null;
+  funcionario_id?: string | null;
+  vendedor_user_id?: string | null;
+  is_vendedor?: boolean;
 }
 
 interface DeliveryPersonSelectProps {
   value: string | null;
   onChange: (id: string, nome: string) => void;
   endereco?: string;
+  /** Called whenever an entregador is selected. Provides the seller auth user_id when available. */
+  onVendedorAuto?: (vendedorUserId: string | null, nome: string | null) => void;
 }
 
-export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPersonSelectProps) {
+export function DeliveryPersonSelect({ value, onChange, endereco, onVendedorAuto }: DeliveryPersonSelectProps) {
+
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
   const [loading, setLoading] = useState(true);
   const { unidadeAtual } = useUnidade();
@@ -43,10 +49,11 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
 
   useEffect(() => {
     const fetchEntregadores = async () => {
+      setLoading(true);
       try {
         let query = supabase
           .from("entregadores")
-          .select("id, nome, status, foto_url")
+          .select("id, nome, status, foto_url, funcionario_id")
           .eq("ativo", true)
           .order("nome");
 
@@ -56,19 +63,53 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
 
         const { data, error } = await query;
 
-        if (!error && data) {
-          // Remover duplicados por nome para evitar confusão visual se houver registros redundantes
-          const nomesUnicos = new Set();
-          const uniqueData = data.filter(e => {
-            if (nomesUnicos.has(e.nome)) {
-              console.warn(`Entregador duplicado detectado: ${e.nome} (ID: ${e.id})`);
-              return false;
-            }
+        if (error) {
+          console.error("Erro ao buscar entregadores:", error);
+          setEntregadores([]);
+          return;
+        }
+
+        const rows = (data || []) as any[];
+        const funcionarioIds = Array.from(
+          new Set(rows.map((r) => r.funcionario_id).filter(Boolean))
+        );
+
+        let funcionariosMap = new Map<string, { is_vendedor: boolean; user_id: string | null }>();
+        if (funcionarioIds.length > 0) {
+          const { data: funcs, error: funcErr } = await supabase
+            .from("funcionarios")
+            .select("id, is_vendedor, user_id")
+            .in("id", funcionarioIds);
+
+          if (funcErr) {
+            console.warn("Erro ao buscar dados de vendedor dos funcionários (seguindo sem):", funcErr);
+          } else if (funcs) {
+            funcs.forEach((f: any) => {
+              funcionariosMap.set(f.id, { is_vendedor: !!f.is_vendedor, user_id: f.user_id || null });
+            });
+          }
+        }
+
+        const nomesUnicos = new Set<string>();
+        const uniqueData: Entregador[] = rows
+          .filter((e) => {
+            if (nomesUnicos.has(e.nome)) return false;
             nomesUnicos.add(e.nome);
             return true;
+          })
+          .map((e) => {
+            const f = e.funcionario_id ? funcionariosMap.get(e.funcionario_id) : undefined;
+            return {
+              id: e.id,
+              nome: e.nome,
+              status: e.status,
+              foto_url: e.foto_url,
+              funcionario_id: e.funcionario_id,
+              vendedor_user_id: f?.user_id || null,
+              is_vendedor: !!f?.is_vendedor,
+            };
           });
-          setEntregadores(uniqueData);
-        }
+        setEntregadores(uniqueData);
       } catch (error) {
         console.error("Erro ao buscar entregadores:", error);
       } finally {
@@ -79,12 +120,22 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
     fetchEntregadores();
   }, [unidadeAtual?.id]);
 
+
   const handleSelect = (id: string) => {
     const entregador = entregadores.find((e) => e.id === id);
     if (entregador) {
       onChange(id, entregador.nome);
+      if (onVendedorAuto) {
+        if (entregador.is_vendedor && entregador.vendedor_user_id) {
+          onVendedorAuto(entregador.vendedor_user_id, entregador.nome);
+        } else {
+          onVendedorAuto(null, null);
+        }
+      }
     }
   };
+
+
 
   const handleSugestao = (id: number, nome: string) => {
     const entregador = entregadores.find((e) => e.nome === nome) || entregadores[0];
@@ -175,7 +226,14 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
                     </p>
                     {selected && <CheckCircle2 className="h-4 w-4 shrink-0 text-primary-foreground drop-shadow-sm" />}
                   </div>
-                  <div className="mt-1">{getStatusBadge(entregador.status)}</div>
+                  <div className="mt-1 flex flex-wrap items-center justify-center gap-1">
+                    {getStatusBadge(entregador.status)}
+                    {entregador.is_vendedor && (
+                      <Badge variant="outline" className="border-primary-foreground/40 bg-primary-foreground/15 text-[10px] text-primary-foreground">
+                        Vendedor
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </button>
             );

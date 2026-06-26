@@ -10,6 +10,7 @@ import {
   downloadAudio, transcribeAudio, getEntregadorLocation,
   getOffHoursMessage,
   identifyContact, checkRateLimit, processCancelTagInReply, stripPedidoConfirmadoBlock,
+  ORDER_CONFIRMATION_REGEX, recoverOrderBlock,
   type BiaConfig,
 } from "../_shared/bia-core.ts";
 
@@ -97,9 +98,10 @@ serve(async (req) => {
       };
     }
 
-    // Enforce security token if configured (defense against fake inbound messages)
-    if (finalConfig.securityToken && incomingToken !== finalConfig.securityToken) {
-      console.warn("Z-API webhook: invalid or missing security token");
+    // Z-API uses Client-Token for outbound API calls. Some webhook deliveries do
+    // not include it, so only reject when a token is explicitly sent and wrong.
+    if (finalConfig.securityToken && incomingToken && incomingToken !== finalConfig.securityToken) {
+      console.warn("Z-API webhook: invalid security token");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -129,13 +131,14 @@ serve(async (req) => {
       getOrderStatus(supabase, cliente.id, normalized),
     ]);
 
-    // Save inbound + upsert conversation
+    // Keep the conversation scoped before the message insert so realtime
+    // notification triggers can resolve empresa/unidade on the first message.
+    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized, finalConfig?.unidadeId || null);
     await saveMessage(supabase, conversationId, "user", messageText, {
       source: "zapi-webhook", message_id: messageKey,
       raw_message_id: body.messageId ?? null, moment: body.momment ?? null,
       tipo_contato: contact.tipo, contato_id: contact.id || null,
     });
-    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized, finalConfig?.unidadeId || null);
 
     // Hard block: off-hours → fixed message, no AI
     if (bh.isOffHours) {
@@ -189,7 +192,8 @@ serve(async (req) => {
 
     // Parse order tag from raw reply BEFORE cleaning
     const rawReply = reply;
-    const orderMatch = rawReply.match(/\[PEDIDO_CONFIRMADO\]([\s\S]*?)\[\/PEDIDO_CONFIRMADO\]/);
+    let orderMatch = rawReply.match(/\[PEDIDO_CONFIRMADO\]([\s\S]*?)\[\/PEDIDO_CONFIRMADO\]/);
+    let orderData = orderMatch ? parseOrderData(orderMatch[1]) : null;
 
     // Strip internal tag before saving / sending
     reply = stripPedidoConfirmadoBlock(reply);
@@ -199,28 +203,35 @@ serve(async (req) => {
     // Process cancellation tag
     { const cancelRes = await processCancelTagInReply(supabase, reply, cliente.id); reply = cancelRes.reply; }
 
+    // Recovery: assistente confirmou em texto mas esqueceu o bloco técnico → tenta recuperar
+    if (!orderData && ORDER_CONFIRMATION_REGEX.test(reply)) {
+      console.warn("[order-recovery] confirmação detectada sem tag, acionando fallback de extração");
+      const recovered = await recoverOrderBlock(history, messageText, reply, normalized, cliente.nome);
+      if (recovered) {
+        orderData = recovered;
+        console.log("[order-recovery] bloco recuperado:", JSON.stringify(recovered));
+      }
+    }
+
     // Process order
-    if (orderMatch) {
-      const orderData = parseOrderData(orderMatch[1]);
-      if (orderData) {
-        // Dedup: 2 min window
-        const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-        const { data: dup } = await supabase.from("pedidos").select("id")
-          .eq("canal_venda", "whatsapp").gte("created_at", twoMinAgo)
-          .ilike("observacoes", `%${normalized}%`).limit(1);
+    if (orderData) {
+      // Dedup: 2 min window
+      const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      const { data: dup } = await supabase.from("pedidos").select("id")
+        .eq("canal_venda", "whatsapp").gte("created_at", twoMinAgo)
+        .ilike("observacoes", `%${normalized}%`).limit(1);
 
-        if (dup?.length) {
-          reply += "\n\nSeu pedido já foi registrado! Aguarde a entrega 😊";
-        } else {
-          const isAgendado = bh.isOffHours || orderData.agendado === "sim";
-          const { data: prevMsgs } = await supabase.from("ai_mensagens").select("content")
-            .eq("conversa_id", conversationId).eq("role", "assistant")
-            .order("created_at", { ascending: false }).limit(30);
-          const discount = extractLatestNegotiatedDiscountPerUnit([rawReply, ...(prevMsgs || []).map((m: any) => m.content)]);
+      if (dup?.length) {
+        reply += "\n\nSeu pedido já foi registrado! Aguarde a entrega 😊";
+      } else {
+        const isAgendado = bh.isOffHours || orderData.agendado === "sim";
+        const { data: prevMsgs } = await supabase.from("ai_mensagens").select("content")
+          .eq("conversa_id", conversationId).eq("role", "assistant")
+          .order("created_at", { ascending: false }).limit(30);
+        const discount = extractLatestNegotiatedDiscountPerUnit([rawReply, ...(prevMsgs || []).map((m: any) => m.content)]);
 
-          const orderResult = await createOrder(supabase, orderData, cliente.id, cliente.nome, senderName, normalized, finalConfig.unidadeId, isAgendado, discount);
-          await registerCall(supabase, phone, cliente.id, cliente.nome, senderName, finalConfig.unidadeId, orderResult?.pedidoId);
-        }
+        const orderResult = await createOrder(supabase, orderData, cliente.id, cliente.nome, senderName, normalized, finalConfig.unidadeId, isAgendado, discount);
+        await registerCall(supabase, phone, cliente.id, cliente.nome, senderName, finalConfig.unidadeId, orderResult?.pedidoId);
       }
     }
 

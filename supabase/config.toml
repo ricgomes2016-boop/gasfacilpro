@@ -1,16 +1,19 @@
 project_id = "gcrdftnnbgsogoqcmcxo"
 
+[functions.check-subscription]
+verify_jwt = true
+
 [functions.parse-fuel-photo]
-verify_jwt = false
+verify_jwt = true
 
 [functions.parse-products-import]
-verify_jwt = false
+verify_jwt = true
 
 [functions.parse-receivables-import]
-verify_jwt = false
+verify_jwt = true
 
 [functions.parse-orders-history]
-verify_jwt = false
+verify_jwt = true
 
 [functions.goto-webhook]
 verify_jwt = false
@@ -25,22 +28,22 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.previsao-demanda]
-verify_jwt = false
+verify_jwt = true
 
 [functions.relatorio-gerencial-ia]
-verify_jwt = false
+verify_jwt = true
 
 [functions.daily-briefing]
-verify_jwt = false
+verify_jwt = true
 
 [functions.marketing-ai]
-verify_jwt = false
+verify_jwt = true
 
 [functions.pagamento-iniciar]
-verify_jwt = false
+verify_jwt = true
 
 [functions.pagamento-confirmar]
-verify_jwt = false
+verify_jwt = true
 
 [functions.recompra-whatsapp-dispatch]
 verify_jwt = false
@@ -55,13 +58,13 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.consulta-cnpj]
-verify_jwt = false
+verify_jwt = true
 
 [functions.evolution-webhook]
 verify_jwt = false
 
 [functions.evolution-proxy]
-verify_jwt = false
+verify_jwt = true
 
 [functions.vapi-webhook]
 verify_jwt = false
@@ -70,7 +73,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.whatsapp-send]
-verify_jwt = false
+verify_jwt = true
 
 [functions.meta-webhook]
 verify_jwt = false
@@ -94,10 +97,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.importar_xml_outlook_compras]
-verify_jwt = false
+verify_jwt = true
 
 [functions.match-produtos-xml]
-verify_jwt = false
+verify_jwt = true
 
 
 
@@ -108,4 +111,13 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.bia-followup-cron]
+verify_jwt = false
+
+[functions.escalacao-pedidos-bia]
+verify_jwt = false
+
+[functions.twilio-voice-webhook]
+verify_jwt = false
+
+[functions.pagbank-webhook]
 verify_jwt = false

@@ -1,5 +1,5 @@
 .brand-theme-gasfacil {
-  --brand-font: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --brand-font: 'Inter', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --primary: 174 61% 47%;
   --primary-foreground: 0 0% 100%;
   --secondary: 243 100% 69%;
@@ -17,13 +17,13 @@
 }
 
 .brand-theme-saas {
-  --brand-font: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --brand-font: 'Inter', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --background: 225 24% 97%;
-  --foreground: 0 0% 18%;
+  --foreground: 222 22% 13%;
   --card: 0 0% 100%;
-  --card-foreground: 0 0% 18%;
+  --card-foreground: 222 22% 13%;
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 18%;
+  --popover-foreground: 222 22% 13%;
   --primary: 174 61% 47%;
   --primary-foreground: 0 0% 100%;
   --secondary: 243 100% 69%;
@@ -31,15 +31,15 @@
   --accent: 31 100% 63%;
   --accent-foreground: 0 0% 100%;
   --muted: 225 24% 94%;
-  --muted-foreground: 231 10% 59%;
+  --muted-foreground: 225 12% 45%;
   --success: 122 39% 49%;
   --success-foreground: 0 0% 100%;
   --warning: 45 100% 51%;
   --warning-foreground: 0 0% 18%;
   --info: 216 100% 62%;
   --info-foreground: 0 0% 100%;
-  --border: 225 20% 91%;
-  --input: 225 20% 91%;
+  --border: 225 18% 87%;
+  --input: 225 18% 87%;
   --ring: 174 61% 47%;
   --radius: 1rem;
   --sidebar-background: 174 61% 47%;
@@ -54,7 +54,7 @@
 }
 
 .brand-theme-pastel-dashboard {
-  --brand-font: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --brand-font: 'Inter', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --background: 220 11% 96%;
   --foreground: 240 10% 9%;
   --card: 0 0% 100%;
@@ -91,7 +91,7 @@
 }
 
 .brand-theme-signature {
-  --brand-font: 'Outfit', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --brand-font: 'Inter', 'Outfit', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --primary: 174 61% 47%;
   --primary-foreground: 0 0% 100%;
   --secondary: 243 100% 69%;
@@ -109,11 +109,11 @@
 }
 
 .brand-theme-gasmais {
-  --brand-font: 'Manrope', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --brand-font: 'Inter', 'Manrope', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
 .brand-theme-executive {
-  --brand-font: 'IBM Plex Sans', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --brand-font: 'Inter', 'IBM Plex Sans', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --primary: 207 66% 24%;
   --primary-foreground: 0 0% 100%;
   --secondary: 170 50% 36%;
@@ -130,12 +130,488 @@
   --sidebar-border: 210 24% 24%;
 }
 
+.brand-theme-classic {
+  --brand-font: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* =====================================================================
+   PREMIUM — tema padrão (Midnight Indigo + dourado).
+   Tokens completos para light + dark, cobrindo menu, cards, KPIs, tabelas.
+   ===================================================================== */
+.brand-theme-premium {
+  --brand-font: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --background: 220 25% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 238 75% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 22% 94%;
+  --secondary-foreground: 222 47% 14%;
+  --muted: 220 20% 95%;
+  --muted-foreground: 222 16% 38%;
+  --accent: 43 78% 52%;
+  --accent-foreground: 222 47% 11%;
+  --success: 152 65% 40%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 222 47% 11%;
+  --info: 217 91% 58%;
+  --info-foreground: 0 0% 100%;
+  --destructive: 0 78% 56%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 18% 88%;
+  --input: 220 18% 88%;
+  --ring: 238 75% 58%;
+  --radius: 0.75rem;
+  --sidebar-background: 222 47% 11%;
+  --sidebar-gradient-from: 222 47% 11%;
+  --sidebar-gradient-to: 235 50% 16%;
+  --sidebar-foreground: 220 18% 92%;
+  --sidebar-primary: 238 80% 64%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 238 75% 58%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 222 30% 20%;
+  --sidebar-ring: 238 80% 64%;
+  --kpi-accent: 238 75% 58%;
+  --shadow-elevated: 0 1px 2px hsl(222 47% 11% / 0.05), 0 8px 24px -12px hsl(222 47% 11% / 0.14);
+  --gradient-primary: linear-gradient(135deg, hsl(238 75% 58%) 0%, hsl(222 47% 22%) 100%);
+  --shadow-glow: 0 0 28px hsl(238 75% 58% / 0.28);
+}
+
+.dark .brand-theme-premium,
+.brand-theme-premium.dark {
+  --background: 222 47% 6%;
+  --foreground: 220 18% 96%;
+  --card: 222 40% 10%;
+  --card-foreground: 220 18% 96%;
+  --popover: 222 40% 10%;
+  --popover-foreground: 220 18% 96%;
+  --primary: 238 90% 70%;
+  --primary-foreground: 222 47% 6%;
+  --secondary: 222 30% 16%;
+  --secondary-foreground: 220 18% 96%;
+  --muted: 222 28% 14%;
+  --muted-foreground: 220 14% 70%;
+  --accent: 43 85% 62%;
+  --accent-foreground: 222 47% 6%;
+  --border: 222 25% 18%;
+  --input: 222 25% 18%;
+  --ring: 238 90% 70%;
+  --sidebar-background: 222 50% 4%;
+  --sidebar-gradient-from: 222 50% 4%;
+  --sidebar-gradient-to: 235 55% 10%;
+  --sidebar-foreground: 220 18% 92%;
+  --sidebar-primary: 238 90% 70%;
+  --sidebar-primary-foreground: 222 47% 6%;
+  --sidebar-accent: 238 60% 22%;
+  --sidebar-accent-foreground: 220 18% 96%;
+  --sidebar-border: 222 25% 14%;
+  --sidebar-ring: 238 90% 70%;
+  --kpi-accent: 43 85% 62%;
+  --shadow-elevated: 0 1px 2px hsl(0 0% 0% / 0.4), 0 12px 32px -12px hsl(0 0% 0% / 0.55);
+}
+
+/* =====================================================================
+   OPERACIONAL CLEAN — visual ERP estilo GestãoClick
+   Header escuro fixo, sidebar claro, seletor de loja no topo do menu.
+   ===================================================================== */
+/* =====================================================================
+   OPERACIONAL CLEAN PREMIUM — Design System V2 (Gas Flow ERP)
+   Inspirado em GestãoClick + Linear + Stripe + Vercel + Notion.
+   Identidade GLP: azul confiança + laranja operacional discreto.
+   ===================================================================== */
+.brand-theme-operacional-clean {
+  --brand-font: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* Superfícies */
+  --background: 210 20% 97%;             /* #F5F7FA */
+  --foreground: 220 39% 11%;             /* #111827 */
+  --card: 0 0% 100%;
+  --card-foreground: 220 39% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 39% 11%;
+
+  /* Marca */
+  --primary: 221 83% 53%;                /* #2563EB */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 224 76% 33%;              /* #1E40AF */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 220 14% 96%;                  /* #F3F4F6 */
+  --muted-foreground: 220 9% 46%;        /* #6B7280 */
+  --accent: 214 100% 97%;                /* #EEF5FF */
+  --accent-foreground: 221 83% 53%;      /* #2563EB */
+
+  /* Sinalização */
+  --success: 142 71% 45%;                /* #22C55E */
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;                 /* #F59E0B */
+  --warning-foreground: 220 39% 11%;
+  --info: 217 91% 60%;                   /* #3B82F6 */
+  --info-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;              /* #EF4444 */
+  --destructive-foreground: 0 0% 100%;
+  --operational: 24 95% 53%;             /* #F97316 — laranja GLP */
+  --operational-foreground: 0 0% 100%;
+
+  /* Bordas + raio */
+  --border: 220 13% 91%;                 /* #E5E7EB */
+  --input: 220 13% 91%;
+  --ring: 221 83% 53%;
+  --radius: 0.625rem;                    /* 10px */
+
+  /* Sidebar */
+  --sidebar-background: 0 0% 100%;
+  --sidebar-gradient-from: 0 0% 100%;
+  --sidebar-gradient-to: 0 0% 100%;
+  --sidebar-foreground: 220 9% 46%;
+  --sidebar-primary: 221 83% 53%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 214 100% 97%;
+  --sidebar-accent-foreground: 221 83% 53%;
+  --sidebar-border: 220 13% 91%;
+  --sidebar-ring: 221 83% 53%;
+
+  /* Header */
+  --clean-header-bg: 0 0% 100%;
+  --clean-header-fg: 220 39% 11%;
+  --clean-header-border: 220 13% 91%;
+
+  /* KPIs */
+  --kpi-accent: 221 83% 53%;
+  --shadow-card: 0 1px 2px rgba(17, 24, 39, 0.04), 0 1px 3px rgba(17, 24, 39, 0.03);
+  --shadow-card-hover: 0 4px 12px rgba(17, 24, 39, 0.06);
+}
+
+/* Base */
+.brand-theme-operacional-clean .system-surface,
+.brand-theme-operacional-clean body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--brand-font);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cards / KPIs — radius 14px, padding 24px, sombra mínima com hover suave
+   Cobre tanto a API shadcn (data-slot) quanto a API interna deste projeto
+   (data-card, .app-card, .kpi). */
+.brand-theme-operacional-clean :where([data-slot="card"], [data-card], .app-card, .card, .kpi, .kpi-card) {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  background-image: none;
+  transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
+}
+.brand-theme-operacional-clean :where([data-slot="card"], [data-card], .app-card, .kpi, .kpi-card):hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: hsl(220 13% 85%);
+}
+.brand-theme-operacional-clean :where([data-slot="card-content"], .app-card-content) {
+  padding: 1.5rem;
+}
+.brand-theme-operacional-clean :where([data-slot="card-header"], .app-card-header) {
+  padding: 1.5rem 1.5rem 0.75rem;
+}
+
+/* Tabelas */
+.brand-theme-operacional-clean :where(table) {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-color: hsl(var(--border));
+}
+.brand-theme-operacional-clean :where(thead, thead tr, th) {
+  background-color: hsl(var(--card));
+  color: hsl(var(--muted-foreground));
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.brand-theme-operacional-clean :where(tbody tr) {
+  border-bottom: 1px solid hsl(var(--border));
+  transition: background-color 150ms ease;
+}
+.brand-theme-operacional-clean :where(tbody tr:hover) {
+  background-color: hsl(var(--muted) / 0.6);
+}
+.brand-theme-operacional-clean :where(tbody td) {
+  padding-top: 0.875rem;
+  padding-bottom: 0.875rem;
+}
+
+/* Tipografia */
+.brand-theme-operacional-clean :where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--brand-font);
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.brand-theme-operacional-clean :where(h1) { font-size: 1.5rem; }
+.brand-theme-operacional-clean :where(h2) { font-size: 1.25rem; }
+.brand-theme-operacional-clean :where(h3) { font-size: 1.0625rem; }
+
+/* Valores grandes (KPI) — peso 700, tabular */
+.brand-theme-operacional-clean :where(.kpi-card [data-slot="card-title"], .kpi-value, [data-kpi-value]) {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Inputs / Selects — 42px, radius 10px, foco azul */
+.brand-theme-operacional-clean :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea, [data-slot="input"], [data-slot="select-trigger"]) {
+  min-height: 42px;
+  border-radius: 10px;
+  border-color: hsl(var(--input));
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.brand-theme-operacional-clean :where(input, select, textarea, [data-slot="input"], [data-slot="select-trigger"]):focus,
+.brand-theme-operacional-clean :where(input, select, textarea, [data-slot="input"], [data-slot="select-trigger"]):focus-visible {
+  border-color: hsl(var(--ring));
+  outline: none;
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.18);
+}
+
+/* Botões — radius 10px, sem brilho, hover suave */
+.brand-theme-operacional-clean :where(button:not([data-slot="select-trigger"]):not([role="menuitem"]):not([data-sidebar])) {
+  border-radius: 10px;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+.brand-theme-operacional-clean :where(button:not([data-slot="select-trigger"]):not([role="menuitem"]):not([data-sidebar])):active {
+  transform: scale(0.99);
+}
+
+/* Sidebar — item ativo com barra vertical azul + bg azul muito claro */
+.brand-theme-operacional-clean :where(a, button)[data-active="true"],
+.brand-theme-operacional-clean :where(a, button)[aria-current="page"] {
+  box-shadow: inset 3px 0 0 hsl(var(--sidebar-accent-foreground));
+  background-color: hsl(var(--sidebar-accent));
+  color: hsl(var(--sidebar-accent-foreground));
+}
+.brand-theme-operacional-clean :where(a, button)[data-active="true"] :where(svg),
+.brand-theme-operacional-clean :where(a, button)[aria-current="page"] :where(svg) {
+  color: hsl(var(--sidebar-accent-foreground));
+}
+
+/* Hover suave em itens de menu / links */
+.brand-theme-operacional-clean :where(a, button, [role="menuitem"]):hover {
+  transition: background-color 150ms, color 150ms;
+}
+
+/* Badges de status (utilitários — aplicados pelas próprias páginas via class) */
+.brand-theme-operacional-clean :where(.badge-pendente)   { background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
+.brand-theme-operacional-clean :where(.badge-em-rota)    { background: hsl(217 91% 60% / 0.12); color: hsl(217 91% 45%); }
+.brand-theme-operacional-clean :where(.badge-entregando) { background: hsl(var(--operational) / 0.12); color: hsl(var(--operational)); }
+.brand-theme-operacional-clean :where(.badge-concluido)  { background: hsl(var(--success) / 0.12); color: hsl(142 71% 36%); }
+.brand-theme-operacional-clean :where(.badge-cancelado)  { background: hsl(var(--destructive) / 0.12); color: hsl(0 84% 50%); }
+
+/* Acentos operacionais (identidade GLP) */
+.brand-theme-operacional-clean :where(.text-operational) { color: hsl(var(--operational)); }
+.brand-theme-operacional-clean :where(.bg-operational)   { background-color: hsl(var(--operational)); color: hsl(var(--operational-foreground)); }
+.brand-theme-operacional-clean :where(.ring-operational) { box-shadow: 0 0 0 3px hsl(var(--operational) / 0.18); }
+
+/* Fade discreto em overlays */
+.brand-theme-operacional-clean :where([data-slot="dialog-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"]) {
+  animation-duration: 200ms;
+}
+
+/* Scrollbar fina e neutra */
+.brand-theme-operacional-clean ::-webkit-scrollbar { width: 10px; height: 10px; }
+.brand-theme-operacional-clean ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 10px; }
+.brand-theme-operacional-clean ::-webkit-scrollbar-thumb:hover { background: hsl(220 13% 80%); }
+.brand-theme-operacional-clean ::-webkit-scrollbar-track { background: transparent; }
+
+/* =====================================================================
+   Operacional Clean Premium — Override do CHROME (header / sidebar / breadcrumbs)
+   Neutraliza efeitos pesados definidos em index.css (glow, shadow-2xl,
+   gradiente roxo no botão IA, etc.) sem editar componentes React.
+   ===================================================================== */
+
+/* Header — branco, borda fina, sem sombra pesada */
+.brand-theme-operacional-clean .app-header-premium,
+.brand-theme-operacional-clean .app-header-premium.app-header-clean {
+  background: hsl(var(--clean-header-bg));
+  color: hsl(var(--clean-header-fg));
+  border-color: hsl(var(--clean-header-border));
+  border-bottom-width: 1px;
+  box-shadow: 0 1px 0 hsl(var(--clean-header-border));
+  backdrop-filter: none;
+}
+.brand-theme-operacional-clean .app-header-premium :where(h1, h2, h3) {
+  color: hsl(var(--foreground));
+}
+.brand-theme-operacional-clean .app-header-premium .header-actions button:not(.header-unit-selector),
+.brand-theme-operacional-clean .app-header-premium .header-actions button:not(.header-unit-selector) svg {
+  color: hsl(var(--muted-foreground));
+}
+.brand-theme-operacional-clean .app-header-premium .header-actions button:not(.header-unit-selector):hover {
+  background: hsl(var(--muted));
+  color: hsl(var(--primary));
+}
+.brand-theme-operacional-clean .app-header-premium .header-actions button:not(.header-unit-selector):hover svg {
+  color: hsl(var(--primary));
+}
+.brand-theme-operacional-clean .app-header-premium .text-foreground\/65,
+.brand-theme-operacional-clean .app-header-premium .text-foreground\/80 {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Botão IA — primário sólido azul, sem gradiente */
+.brand-theme-operacional-clean .clean-ia-button {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  box-shadow: 0 1px 2px hsl(var(--primary) / 0.18);
+}
+.brand-theme-operacional-clean .clean-ia-button:hover {
+  background: hsl(var(--secondary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+.brand-theme-operacional-clean .clean-ia-button svg { color: hsl(var(--primary-foreground)) !important; }
+
+/* Seletor de unidade no header — branco, borda fina */
+.brand-theme-operacional-clean .header-unit-selector {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+  box-shadow: none;
+}
+.brand-theme-operacional-clean .header-unit-selector:hover,
+.brand-theme-operacional-clean .header-unit-selector[data-state="open"] {
+  background: hsl(var(--muted));
+  border-color: hsl(var(--border));
+}
+
+/* =====================================================================
+   Operacional Clean — força chrome branco mesmo quando o BRAND theme do
+   usuário é diferente (gasfacil, premium, etc.). Garante que o drawer
+   off-canvas e o header sejam sempre legíveis nesse preset.
+   ===================================================================== */
+html[data-theme-preset="operacional-clean"] .app-sidebar-premium {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: hsl(220 9% 25%) !important;
+  border-right: 1px solid hsl(220 13% 91%) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 10px 30px -10px rgba(17, 24, 39, 0.18) !important;
+}
+html[data-theme-preset="operacional-clean"] .app-sidebar-premium::after { display: none !important; }
+html[data-theme-preset="operacional-clean"] .app-sidebar-premium :where(a, button, span, p, h1, h2, h3) {
+  color: inherit;
+}
+html[data-theme-preset="operacional-clean"] .app-sidebar-premium :where(a, button):not([data-active="true"]):not([aria-current="page"]):hover {
+  background: hsl(220 14% 96%) !important;
+  color: hsl(220 39% 11%) !important;
+}
+html[data-theme-preset="operacional-clean"] .app-sidebar-premium :where(a, button)[data-active="true"],
+html[data-theme-preset="operacional-clean"] .app-sidebar-premium :where(a, button)[aria-current="page"] {
+  background: hsl(214 100% 97%) !important;
+  color: hsl(221 83% 53%) !important;
+  box-shadow: inset 3px 0 0 hsl(221 83% 53%) !important;
+}
+html[data-theme-preset="operacional-clean"] .app-header-premium {
+  background: #ffffff !important;
+  color: hsl(220 39% 11%) !important;
+  border-bottom: 1px solid hsl(220 13% 91%) !important;
+  box-shadow: 0 1px 0 hsl(220 13% 91%) !important;
+  backdrop-filter: none !important;
+}
+html[data-theme-preset="operacional-clean"] .app-header-premium :where(h1, h2, h3, span, button, svg) {
+  color: hsl(220 39% 11%);
+}
+html[data-theme-preset="operacional-clean"] .clean-page-subbar {
+  background: #ffffff;
+  border-bottom: 1px solid hsl(220 13% 91%);
+}
+
+/* Sidebar — fundo branco sólido, borda cinza, sem sombra/glow */
+.brand-theme-operacional-clean .app-sidebar-premium {
+  background: hsl(var(--sidebar-background)) !important;
+  background-image: none !important;
+  color: hsl(var(--sidebar-foreground));
+  border-right: 1px solid hsl(var(--sidebar-border));
+  border-radius: 0;
+  box-shadow: none;
+}
+.brand-theme-operacional-clean .app-sidebar-premium::after,
+.brand-theme-operacional-clean .app-mobile-sidebar-modern::before {
+  display: none !important;
+}
+
+/* Itens do menu (sidebar) — altura confortável, radius 10px, hover suave */
+.brand-theme-operacional-clean .app-sidebar-premium :where(a, button):not([data-active="true"]):not([aria-current="page"]) {
+  color: hsl(var(--sidebar-foreground));
+  background: transparent;
+  border-radius: 10px;
+}
+.brand-theme-operacional-clean .app-sidebar-premium :where(a, button):not([data-active="true"]):not([aria-current="page"]):hover {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  box-shadow: none;
+  ring: 0;
+}
+.brand-theme-operacional-clean .app-sidebar-premium :where(a, button):not([data-active="true"]):not([aria-current="page"]) svg {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Item ativo do sidebar — barra azul à esquerda + bg azul claro */
+.brand-theme-operacional-clean .app-sidebar-premium :where(a, button)[data-active="true"],
+.brand-theme-operacional-clean .app-sidebar-premium :where(a, button)[aria-current="page"],
+.brand-theme-operacional-clean .app-sidebar-premium :where(.bg-sidebar-accent),
+.brand-theme-operacional-clean .app-sidebar-premium :where([class*="bg-sidebar-accent"]) {
+  background: hsl(var(--sidebar-accent)) !important;
+  color: hsl(var(--sidebar-accent-foreground)) !important;
+  box-shadow: inset 3px 0 0 hsl(var(--sidebar-accent-foreground)) !important;
+  border-radius: 10px;
+  ring: 0;
+}
+.brand-theme-operacional-clean .app-sidebar-premium :where(a, button)[data-active="true"] svg,
+.brand-theme-operacional-clean .app-sidebar-premium :where(a, button)[aria-current="page"] svg {
+  color: hsl(var(--sidebar-accent-foreground)) !important;
+}
+
+/* Breadcrumbs (componente shadcn renderiza <nav aria-label> + <ol>) */
+.brand-theme-operacional-clean :where(nav[aria-label]) :where(ol) {
+  color: hsl(var(--muted-foreground));
+  font-size: 13px;
+}
+.brand-theme-operacional-clean :where(nav[aria-label]) :where(a) {
+  color: hsl(var(--muted-foreground));
+  transition: color 150ms ease;
+}
+.brand-theme-operacional-clean :where(nav[aria-label]) :where(a:hover) {
+  color: hsl(var(--primary));
+}
+.brand-theme-operacional-clean :where(nav[aria-label]) :where([aria-current="page"]) {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Bottom bar mobile — branco, borda fina, sem sombra forte */
+.brand-theme-operacional-clean .mobile-bottom-bar {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+  box-shadow: 0 -1px 0 hsl(var(--border));
+  backdrop-filter: none;
+}
+
 .brand-theme-gasfacil,
 .brand-theme-saas,
 .brand-theme-pastel-dashboard,
 .brand-theme-signature,
 .brand-theme-gasmais,
-.brand-theme-executive {
+.brand-theme-executive,
+.brand-theme-classic,
+.brand-theme-premium,
+.brand-theme-operacional-clean {
   font-family: var(--brand-font);
 }
 
@@ -177,3 +653,42 @@
 ) {
   border-color: hsl(var(--border));
 }
+
+/* ============================================================
+   Operacional Clean — Dashboard hero flatten
+   Remove o card verde gradiente e padroniza os KPIs internos.
+   ============================================================ */
+[data-brand-preset="operacional-clean"] .dashboard-hero {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  color: hsl(var(--foreground)) !important;
+}
+[data-brand-preset="operacional-clean"] .dashboard-hero > [class~="absolute"] {
+  display: none !important;
+}
+[data-brand-preset="operacional-clean"] .dashboard-hero > [class~="relative"]:first-of-type {
+  display: none !important;
+}
+/* KPIs internos voltam ao padrão clean (sem fundo translúcido nem cantos exagerados) */
+[data-brand-preset="operacional-clean"] .dashboard-hero .stat-card-on-hero,
+[data-brand-preset="operacional-clean"] .dashboard-hero [class*="bg-white/"],
+[data-brand-preset="operacional-clean"] .dashboard-hero [class*="bg-primary-foreground/"] {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+[data-brand-preset="operacional-clean"] .dashboard-hero .stat-card-on-hero * {
+  color: inherit;
+}
+/* Padroniza raio de cards aninhados no tema clean */
+[data-brand-preset="operacional-clean"] .dashboard-hero [class*="rounded-"] {
+  border-radius: var(--radius) !important;
+}
+

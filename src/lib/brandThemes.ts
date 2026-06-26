@@ -1,7 +1,7 @@
 import logoMark from "@/assets/gasfacil-logo-mark.png";
 import logoFull from "@/assets/logo.png";
 
-export type BrandThemeId = "gasfacil" | "gasmais" | "signature" | "executive" | "saas" | "pastel-dashboard";
+export type BrandThemeId = "gasfacil" | "gasmais" | "signature" | "executive" | "saas" | "pastel-dashboard" | "classic" | "premium" | "operacional-clean";
 
 export type BrandLogoVariant = "markText" | "full" | "compact";
 
@@ -19,6 +19,26 @@ export interface BrandThemePreset {
 export const BRAND_THEME_STORAGE_KEY = "brandTheme";
 
 export const brandThemes: BrandThemePreset[] = [
+  {
+    id: "premium",
+    name: "Premium (padrão)",
+    description: "Midnight Indigo — menu, cards, KPIs e tabelas com cara de ERP premium.",
+    className: "brand-theme-premium",
+    logoVariant: "markText",
+    logoMark,
+    logoFull,
+    fontLabel: "Plus Jakarta Sans",
+  },
+  {
+    id: "classic",
+    name: "Clássico (preset)",
+    description: "Modo neutro — deixa o preset visual aplicar 100% das cores.",
+    className: "brand-theme-classic",
+    logoVariant: "markText",
+    logoMark,
+    logoFull,
+    fontLabel: "Plus Jakarta Sans",
+  },
   {
     id: "gasfacil",
     name: "Gás Fácil Pro",
@@ -79,9 +99,19 @@ export const brandThemes: BrandThemePreset[] = [
     logoFull,
     fontLabel: "IBM Plex Sans",
   },
+  {
+    id: "operacional-clean",
+    name: "Operacional Clean",
+    description: "Visual ERP clean — header escuro, menu claro com seletor de loja no topo.",
+    className: "brand-theme-operacional-clean",
+    logoVariant: "markText",
+    logoMark,
+    logoFull,
+    fontLabel: "Plus Jakarta Sans",
+  },
 ];
 
-export const defaultBrandTheme = brandThemes[0];
+export const defaultBrandTheme = brandThemes.find((t) => t.id === "premium") || brandThemes[0];
 
 export function getBrandTheme(id?: string | null) {
   return brandThemes.find((theme) => theme.id === id) || defaultBrandTheme;

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/ui/empty-state";
 import { 
   DollarSign, ShoppingCart, TrendingUp, Store, Plus, List, Clock, 
   Calendar, FileBarChart, CreditCard, Megaphone, Package
@@ -280,7 +281,12 @@ export default function Vendas() {
             </CardHeader>
             <CardContent>
               {topProducts.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">Sem dados</p>
+                <EmptyState
+                  compact
+                  icon={Package}
+                  title="Sem produtos vendidos"
+                  description="As vendas do período aparecerão aqui por produto."
+                />
               ) : (
                 <div className="space-y-3">
                   {topProducts.map((p, i) => (
@@ -309,7 +315,12 @@ export default function Vendas() {
             </CardHeader>
             <CardContent>
               {salesByChannel.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">Sem dados</p>
+                <EmptyState
+                  compact
+                  icon={Megaphone}
+                  title="Sem canais registrados"
+                  description="Quando houver vendas, o sistema separa os valores por canal."
+                />
               ) : (
                 <div className="flex flex-col items-center">
                   <ResponsiveContainer width="100%" height={140}>
@@ -342,7 +353,12 @@ export default function Vendas() {
             </CardHeader>
             <CardContent>
               {salesByPayment.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">Sem dados</p>
+                <EmptyState
+                  compact
+                  icon={CreditCard}
+                  title="Sem pagamentos no período"
+                  description="As formas de pagamento serão exibidas após novas vendas."
+                />
               ) : (
                 <div className="flex flex-col items-center">
                   <ResponsiveContainer width="100%" height={140}>
@@ -381,7 +397,12 @@ export default function Vendas() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
               </div>
             ) : ultimosPedidos.length === 0 ? (
-              <p className="text-center py-8 text-muted-foreground">Nenhum pedido no período</p>
+              <EmptyState
+                icon={ShoppingCart}
+                title="Nenhum pedido no período"
+                description="Assim que uma venda for lançada, os pedidos recentes aparecerão nesta lista."
+                action={{ label: "Nova venda", onClick: () => navigate("/vendas/nova"), icon: Plus }}
+              />
             ) : (
               <Table>
                 <TableHeader>

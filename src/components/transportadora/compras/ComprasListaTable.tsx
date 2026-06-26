@@ -2,7 +2,17 @@ import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, AlertTriangle, X, Calendar, Check, Wallet } from "lucide-react";
+import { Search, AlertTriangle, X, Calendar, Check, Wallet, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -35,6 +45,7 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
   const [editingVenc, setEditingVenc] = useState<Record<string, string>>({});
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("todos");
   const [filtroConf, setFiltroConf] = useState<"todos" | "conferidas" | "nao_conferidas">("todos");
+  const [excluindo, setExcluindo] = useState<{ id: string; nf?: string; fornecedor?: string; escopo: "linha" | "nf" } | null>(null);
 
   const dupNFs = useMemo(() => {
     // Considera duplicado apenas quando NF + fornecedor + produto + quantidade + valor coincidem
@@ -118,6 +129,27 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["transp-compras"] }),
     onError: (e: any) => toast.error(e.message),
+  });
+
+  const excluirMut = useMutation({
+    mutationFn: async (alvo: { id: string; nf?: string; fornecedor?: string; escopo: "linha" | "nf" }) => {
+      const q: any = supabase.from("transp_compras").delete();
+      if (alvo.escopo === "nf" && alvo.nf) {
+        let del = q.eq("numero_nf", alvo.nf);
+        if (alvo.fornecedor) del = del.eq("fornecedor", alvo.fornecedor);
+        const { error } = await del;
+        if (error) throw error;
+      } else {
+        const { error } = await q.eq("id", alvo.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["transp-compras"] });
+      toast.success("Compra excluída");
+      setExcluindo(null);
+    },
+    onError: (e: any) => toast.error("Erro ao excluir", { description: e.message }),
   });
 
   const togglePago = (c: any) => {
@@ -250,8 +282,8 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
           <table className="w-full text-xs">
             <thead className="bg-muted/40">
               <tr className="text-left">
-                {["Conferida", "Data", "Loja", "Fornecedor", "NF", "Tipo", "CFOP", "Qtd", "Preço Unit.", "Desconto", "Total", "Vencimento", "Pago"].map((h) => (
-                  <th key={h} className="px-3 py-2.5 font-medium text-muted-foreground whitespace-nowrap">{h}</th>
+                {["Conferida", "Data", "Loja", "Fornecedor", "NF", "Tipo", "CFOP", "Qtd", "Preço Unit.", "Desconto", "Total", "Vencimento", "Pago", ""].map((h, i) => (
+                  <th key={`${h}-${i}`} className="px-3 py-2.5 font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -359,12 +391,28 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                         {c.pago && <Check className="h-3 w-3" />}
                       </button>
                     </td>
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={() =>
+                          setExcluindo({
+                            id: c.id,
+                            nf: c.numero_nf || undefined,
+                            fornecedor: c.fornecedor || undefined,
+                            escopo: c.numero_nf ? "nf" : "linha",
+                          })
+                        }
+                        className="inline-flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        title="Excluir esta NF"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
               {display.length === 0 && (
                 <tr>
-                  <td colSpan={13} className="text-center py-8 text-muted-foreground">Nenhuma compra encontrada</td>
+                  <td colSpan={14} className="text-center py-8 text-muted-foreground">Nenhuma compra encontrada</td>
                 </tr>
               )}
             </tbody>
@@ -376,7 +424,7 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                   <td className="px-3 py-2.5"></td>
                   <td className="px-3 py-2.5 text-success">{totaisFiltrados.desconto > 0 ? formatCurrency(totaisFiltrados.desconto) : "—"}</td>
                   <td className="px-3 py-2.5 text-foreground font-bold">{formatCurrency(totaisFiltrados.total)}</td>
-                  <td colSpan={2}></td>
+                  <td colSpan={3}></td>
                 </tr>
               </tfoot>
             )}
@@ -392,6 +440,28 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
           </div>
         )}
       </CardContent>
+
+      <AlertDialog open={!!excluindo} onOpenChange={(o) => !o && setExcluindo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir esta nota fiscal?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {excluindo?.escopo === "nf"
+                ? `Todos os itens da NF ${excluindo?.nf} (${excluindo?.fornecedor || "—"}) serão removidos permanentemente.`
+                : "Este registro será removido permanentemente. Esta ação não pode ser desfeita."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => excluindo && excluirMut.mutate(excluindo)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {excluirMut.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

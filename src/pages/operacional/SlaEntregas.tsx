@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, Timer, Trophy, Target, AlertTriangle, Loader2, Plus, Settings2 } from "lucide-react";
+import { PageSectionLoader } from "@/components/ui/page-loader";
+import { Clock, Timer, Trophy, Target, AlertTriangle, Plus, Settings2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
@@ -113,7 +114,7 @@ export default function SlaEntregas() {
           </div>
 
           <TabsContent value="indicadores">
-            {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div> : (
+            {isLoading ? <PageSectionLoader label="Carregando indicadores de SLA..." className="min-h-48" /> : (
               <Card><CardContent className="p-0">
                 <Table>
                   <TableHeader><TableRow>

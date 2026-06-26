@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MessageCircle, Send, X, ChevronLeft, Circle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { cn } from "@/lib/utils";
 
 interface ChatMessage {
@@ -44,6 +45,7 @@ export function ChatOperador({ externalOpen, onExternalClose, onUnreadChange }: 
   const [totalUnread, setTotalUnread] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { profile } = useAuth();
+  const { unidadeAtual } = useUnidade();
 
   useEffect(() => {
     if (externalOpen) setOpen(true);
@@ -56,9 +58,17 @@ export function ChatOperador({ externalOpen, onExternalClose, onUnreadChange }: 
   };
 
   const fetchEntregadores = async () => {
+    if (!unidadeAtual?.id) {
+      setEntregadores([]);
+      setTotalUnread(0);
+      onUnreadChange?.(0);
+      return;
+    }
+
     const { data: entregadoresData } = await supabase
       .from("entregadores")
       .select("id, nome, ativo")
+      .eq("unidade_id", unidadeAtual.id)
       .eq("ativo", true)
       .order("nome");
 
@@ -68,6 +78,8 @@ export function ChatOperador({ externalOpen, onExternalClose, onUnreadChange }: 
       .from("chat_mensagens")
       .select("remetente_id")
       .eq("remetente_tipo", "entregador")
+      .eq("destinatario_tipo", "base")
+      .eq("destinatario_id", unidadeAtual.id)
       .eq("lida", false);
 
     const unreadMap: Record<string, number> = {};
@@ -88,24 +100,33 @@ export function ChatOperador({ externalOpen, onExternalClose, onUnreadChange }: 
 
   useEffect(() => {
     fetchEntregadores();
-  }, []);
+  }, [unidadeAtual?.id]);
 
   useEffect(() => {
+    if (!unidadeAtual?.id) return;
+
     const channel = supabase
-      .channel("chat-operador-list")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_mensagens" }, () => {
+      .channel(`chat-operador-list-${unidadeAtual.id}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "chat_mensagens",
+        filter: `destinatario_id=eq.${unidadeAtual.id}`,
+      }, () => {
         fetchEntregadores();
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [unidadeAtual?.id]);
 
   const fetchMessages = async (entregadorId: string) => {
+    if (!unidadeAtual?.id) return;
+
     const { data } = await supabase
       .from("chat_mensagens")
       .select("*")
       .or(
-        `remetente_id.eq.${entregadorId},destinatario_id.eq.${entregadorId},and(destinatario_tipo.eq.entregador,destinatario_id.is.null)`
+        `and(remetente_id.eq.${entregadorId},destinatario_tipo.eq.base,destinatario_id.eq.${unidadeAtual.id}),and(remetente_tipo.eq.base,remetente_id.eq.${unidadeAtual.id},destinatario_id.eq.${entregadorId})`
       )
       .order("created_at", { ascending: true })
       .limit(200);
@@ -113,6 +134,8 @@ export function ChatOperador({ externalOpen, onExternalClose, onUnreadChange }: 
   };
 
   const markAsRead = async (entregadorIdToMark: string) => {
+    if (!unidadeAtual?.id) return;
+
     // Find the unidade_id for this entregador to use as destinatario_id
     const { data: entData } = await supabase
       .from("entregadores")
@@ -120,10 +143,10 @@ export function ChatOperador({ externalOpen, onExternalClose, onUnreadChange }: 
       .eq("id", entregadorIdToMark)
       .maybeSingle();
 
-    if (entData?.unidade_id) {
+    if (entData?.unidade_id === unidadeAtual.id) {
       const { error } = await supabase.rpc("marcar_chat_lido_base" as any, {
         _remetente_id: entregadorIdToMark,
-        _destinatario_id: entData.unidade_id,
+        _destinatario_id: unidadeAtual.id,
       });
       if (error) console.error("Erro ao marcar como lida:", error);
     }
@@ -148,15 +171,14 @@ export function ChatOperador({ externalOpen, onExternalClose, onUnreadChange }: 
   };
 
   useEffect(() => {
-    if (!selected) return;
+    if (!selected || !unidadeAtual?.id) return;
     const channel = supabase
-      .channel(`chat-operador-conv-${selected.id}`)
+      .channel(`chat-operador-conv-${unidadeAtual.id}-${selected.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_mensagens" }, (payload) => {
         const msg = payload.new as ChatMessage;
         const isRelevant =
-          msg.remetente_id === selected.id ||
-          msg.destinatario_id === selected.id ||
-          (msg.destinatario_tipo === "entregador" && !msg.destinatario_id);
+          (msg.remetente_id === selected.id && msg.destinatario_id === unidadeAtual.id) ||
+          (msg.remetente_id === unidadeAtual.id && msg.destinatario_id === selected.id);
         if (isRelevant) {
           setMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]);
           if (msg.remetente_tipo === "entregador") markAsRead(selected.id);
@@ -164,17 +186,17 @@ export function ChatOperador({ externalOpen, onExternalClose, onUnreadChange }: 
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [selected]);
+  }, [selected, unidadeAtual?.id]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!input.trim() || !selected || sending) return;
+    if (!input.trim() || !selected || !unidadeAtual?.id || sending) return;
     setSending(true);
     await supabase.from("chat_mensagens").insert({
-      remetente_id: selected.id,
+      remetente_id: unidadeAtual.id,
       remetente_tipo: "base",
       remetente_nome: profile?.full_name || "Base",
       destinatario_id: selected.id,

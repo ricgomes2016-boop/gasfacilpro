@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "150759290420",
+    "project_id": "gasfacil-12125",
+    "storage_bucket": "gasfacil-12125.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:150759290420:android:eb60718745ebbb02f0fc61",
+        "android_client_info": {
+          "package_name": "com.gasfacilpro.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgTahqnP1shOjaqRjjgDeHu1sZ_mrMfhw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -60,7 +60,8 @@ export default function Declaracoes() {
   const toggleUnidade = (id: string) => {
     setSelecionadas((atual) => {
       const novo = new Set(atual);
-      novo.has(id) ? novo.delete(id) : novo.add(id);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
       return novo;
     });
   };

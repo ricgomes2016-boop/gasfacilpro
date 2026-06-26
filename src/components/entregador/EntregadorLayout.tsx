@@ -25,8 +25,9 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationToggle } from "./NotificationToggle";
 import { useGeoTracking, GeoTrackingState } from "@/hooks/useGeoTracking";
+import { useNativePush } from "@/hooks/useNativePush";
 import { GpsPermissionBanner } from "./GpsPermissionBanner";
-import { TrackingStatusCard } from "./TrackingStatusCard";
+import { TrackingStatusHeader } from "./TrackingStatusHeader";
 import { PendingDeliveriesBanner } from "./PendingDeliveriesBanner";
 import { SystemFooter } from "@/components/layout/SystemFooter";
 import { ChatBase } from "./ChatBase";
@@ -57,6 +58,7 @@ const menuItems = [
   { path: "/entregador/despesas", icon: Receipt, label: "Despesas" },
   { path: "/entregador/combustivel", icon: Fuel, label: "Combustível" },
   { path: "/entregador/conquistas", icon: Trophy, label: "Conquistas" },
+  { path: "/entregador/bolao", icon: Trophy, label: "Bolão Copa 2026" },
   { path: "/entregador/historico", icon: History, label: "Histórico" },
   { path: "/entregador/perfil", icon: User, label: "Perfil" },
 ];
@@ -70,6 +72,7 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
 
   // Track driver GPS and update DB
   const trackingState = useGeoTracking();
+  useNativePush();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -78,16 +81,16 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-              <SheetContent side="left" className="w-72 p-0 border-none">
-                <div className="gradient-dark h-full flex flex-col">
-                  <div className="flex items-center gap-3 p-6 border-b border-white/10 flex-shrink-0">
-                    <div className="h-12 w-12 rounded-full overflow-hidden flex items-center justify-center shadow-glow">
+              <SheetContent side="left" className="w-72 p-0 border-none bg-sidebar text-sidebar-foreground">
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center gap-3 p-6 border-b border-sidebar-border flex-shrink-0">
+                    <div className="h-12 w-12 rounded-full overflow-hidden flex items-center justify-center shadow-glow bg-background">
                       <img src={logoImg} alt="Nacional Gás" className="h-12 w-12 object-contain" />
                     </div>
                     <div>
-                      <h2 className="font-bold text-white text-lg">App Entregador</h2>
-                      <p className="text-sm text-white/70">Revenda de Gás</p>
-                      <BuildVersionBadge tone="on-primary" prefix="Versão" className="mt-2 w-fit" />
+                      <h2 className="font-bold text-sidebar-foreground text-lg">App Entregador</h2>
+                      <p className="text-sm text-sidebar-foreground/70">Revenda de Gás</p>
+                      <BuildVersionBadge prefix="Versão" className="mt-2 w-fit" />
                     </div>
                   </div>
                   <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
@@ -102,8 +105,8 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
                           className={cn(
                             "flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
                             isActive
-                              ? "gradient-primary text-white shadow-glow"
-                              : "text-white/80 hover:bg-white/10"
+                              ? "gradient-primary text-primary-foreground shadow-glow"
+                              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                           )}
                         >
                           <div className="relative">
@@ -120,14 +123,14 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
                     })}
                   </nav>
                   {/* Botão Sair */}
-                  <div className="p-4 border-t border-white/10">
+                  <div className="p-4 border-t border-sidebar-border">
                     <button
                       onClick={async () => {
                         setMenuOpen(false);
                         await signOut();
                         navigate("/auth");
                       }}
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-white/80 hover:bg-red-500/20 hover:text-red-300 w-full"
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive w-full"
                     >
                       <LogOut className="h-5 w-5" />
                       <span className="font-medium">Sair</span>
@@ -146,17 +149,13 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
           </div>
           <NotificationToggle className="text-primary-foreground hover:bg-white/20" />
         </div>
+        <TrackingStatusHeader tracking={trackingState} />
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto pb-20">
+      <main className="flex-1 overflow-auto pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
         <GpsPermissionBanner />
         <PendingDeliveriesBanner />
-        {trackingState.isTracking && (
-          <div className="px-4 mt-3">
-            <TrackingStatusCard tracking={trackingState} />
-          </div>
-        )}
         {children}
       </main>
 

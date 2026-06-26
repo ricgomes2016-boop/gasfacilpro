@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { AiAssistantChat } from "./AiAssistantChat";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { PortalToId, FOOTER_ACTIONS_ID } from "@/components/layout/footerPortals";
 
 interface AiFloatingButtonProps {
   externalOpen?: boolean;
@@ -26,15 +27,30 @@ export function AiFloatingButton({ externalOpen, onExternalClose }: AiFloatingBu
 
   return (
     <>
-      {/* Desktop floating button */}
-      {/* Desktop floating button - hidden, now in bottom bar */}
+      {/* Desktop trigger lives inside the fixed SystemFooter (mobile uses bottom bar) */}
+      {!open && (
+        <PortalToId id={FOOTER_ACTIONS_ID}>
+          <Button
+            onClick={() => setOpen(true)}
+            size="icon"
+            className="h-8 w-8 rounded-full shadow-md bg-primary hover:bg-primary/90"
+            title="Abrir Assistente IA"
+          >
+            <Bot className="h-4 w-4" />
+          </Button>
+        </PortalToId>
+      )}
 
       {/* Chat panel */}
       {open && (
         <Card className={cn(
-          "fixed z-50 shadow-2xl border flex flex-col overflow-hidden",
-          "bottom-[52px] left-0 right-0 h-[calc(80vh-52px)] rounded-t-2xl rounded-b-none md:bottom-16 md:right-6 md:left-auto md:w-[380px] md:h-[520px] md:max-h-[calc(100vh-6rem)] md:rounded-lg"
+          "fixed z-50 shadow-2xl border flex flex-col overflow-hidden bg-background",
+          // Mobile: full width sheet above bottom bar
+          "left-2 right-2 bottom-[72px] h-[70svh] max-h-[calc(100svh-96px)] rounded-2xl",
+          // Desktop: fixed panel at bottom-right, above floating chat bubble
+          "md:left-auto md:right-4 md:bottom-36 md:w-[400px] md:h-[560px] md:max-h-[calc(100vh-10rem)] md:rounded-xl"
         )}>
+
           <div className="flex items-center justify-between px-4 py-3 border-b bg-primary/5 rounded-t-2xl md:rounded-t-lg">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-primary" />

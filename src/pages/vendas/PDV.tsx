@@ -26,7 +26,7 @@ import { rotearPagamentosVenda } from "@/services/paymentRoutingService";
 
 import { BarcodeScanner } from "@/components/pdv/BarcodeScanner";
 import { PDVProductList, PDVItem } from "@/components/pdv/PDVProductList";
-import { PDVPayment } from "@/components/pdv/PDVPayment";
+import { PDVPayment, PDVPagamento } from "@/components/pdv/PDVPayment";
 import { PDVQuickProducts } from "@/components/pdv/PDVQuickProducts";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
@@ -233,21 +233,27 @@ export default function PDV() {
   };
 
   // Finalize sale
-  const finalizeSale = async (formaPagamento: string, valorRecebido: number) => {
-    if (itens.length === 0) return;
+  const finalizeSale = async (pagamentos: PDVPagamento[], _valorRecebidoDinheiro: number) => {
+    if (itens.length === 0 || pagamentos.length === 0) return;
 
     setIsLoading(true);
 
     try {
+      const formaPagamentoLabel =
+        pagamentos.length === 1
+          ? pagamentos[0].forma
+          : `multiplo:${pagamentos.map((p) => p.forma).join("+")}`;
+
       // Create order
       const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert({
           valor_total: total,
-          forma_pagamento: formaPagamento,
-          canal_venda: "portaria",
+          forma_pagamento: formaPagamentoLabel,
+          canal_venda: null,
+          origem_pedido: "balcao_pdv",
           responsavel_acerto: "portaria",
-          status: "entregue", // PDV is immediate
+          status: "finalizado", // PDV: venda imediata, sem acerto com entregador
           endereco_entrega: "Retirada no local",
           unidade_id: unidadeAtual?.id || null,
         } as any)
@@ -276,26 +282,33 @@ export default function PDV() {
         unidadeAtual?.id
       );
 
-      // Get company config for receipt
+      // Receipt company config: prioriza dados da unidade/loja atual
       let empresaConfig: EmpresaConfig | undefined;
       try {
         let cfgQuery = supabase
           .from("configuracoes_empresa")
-          .select("nome_empresa, cnpj, telefone, endereco, mensagem_cupom")
+          .select("mensagem_cupom")
           .limit(1);
         if (empresa?.id) cfgQuery = cfgQuery.eq("empresa_id", empresa.id);
         const { data: configData } = await cfgQuery.maybeSingle();
 
+        const enderecoUnidade = [
+          unidadeAtual?.endereco,
+          unidadeAtual?.bairro,
+          [unidadeAtual?.cidade, unidadeAtual?.estado].filter(Boolean).join("/"),
+          unidadeAtual?.cep,
+        ].filter(Boolean).join(", ");
+
         empresaConfig = {
-          nome_empresa: empresa?.nome || configData?.nome_empresa || "Empresa",
-          cnpj: configData?.cnpj ?? null,
-          telefone: configData?.telefone ?? null,
-          endereco: configData?.endereco ?? null,
+          nome_empresa: unidadeAtual?.nome || empresa?.nome || "Empresa",
+          cnpj: unidadeAtual?.cnpj ?? null,
+          telefone: unidadeAtual?.telefone ?? null,
+          endereco: enderecoUnidade || null,
           mensagem_cupom: configData?.mensagem_cupom ?? null,
         };
       } catch {
         console.warn("Não foi possível carregar configurações da empresa");
-        if (empresa?.nome) empresaConfig = { nome_empresa: empresa.nome };
+        empresaConfig = { nome_empresa: unidadeAtual?.nome || empresa?.nome || "Empresa" };
       }
 
       // Generate receipt
@@ -309,19 +322,19 @@ export default function PDV() {
           endereco: "Retirada no local",
         },
         itens,
-        pagamentos: [{ id: "1", forma: formaPagamento, valor: total }],
+        pagamentos: pagamentos.map((p) => ({ id: p.id, forma: p.forma, valor: p.valor })),
         entregadorNome: null,
         canalVenda: "portaria",
         observacoes: "",
         empresa: empresaConfig,
       });
 
-      // Rotear pagamento para caixa/financeiro
+      // Rotear pagamentos para caixa/financeiro
       await rotearPagamentosVenda({
         pedidoId: pedido.id,
         pedidoNumero: (pedido as any).numero_sequencial ?? null,
         clienteNome: "Consumidor Final",
-        pagamentos: [{ forma: formaPagamento, valor: total }],
+        pagamentos: pagamentos.map((p) => ({ forma: p.forma, valor: p.valor })),
         unidadeId: unidadeAtual?.id,
       });
 
@@ -564,6 +577,7 @@ export default function PDV() {
           total={total}
           onConfirm={finalizeSale}
           isLoading={isLoading}
+          itens={itens.map((i) => ({ nome: i.nome, quantidade: i.quantidade }))}
         />
       </div>
     </MainLayout>

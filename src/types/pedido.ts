@@ -1,3 +1,5 @@
+import type { OrigemPedido } from "@/lib/pedidos/origem";
+
 export type PedidoStatus = "pendente" | "em_rota" | "entregue" | "cancelado" | "finalizado" | "aguardando_pagamento_cartao" | "pagamento_em_processamento" | "pago_cartao" | "pagamento_negado";
 
 export interface PedidoItem {
@@ -27,4 +29,8 @@ export interface PedidoFormatado {
   observacoes?: string;
   forma_pagamento?: string;
   canal_venda?: string;
+  origem_pedido?: OrigemPedido;
+  agendado?: boolean;
+  data_agendamento?: string | null;
+  data_entrega?: string | null;
 }

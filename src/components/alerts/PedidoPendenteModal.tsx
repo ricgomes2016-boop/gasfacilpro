@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bike, Clock, MapPin, Phone, User, Volume2, VolumeX, AlertTriangle } from "lucide-react";
@@ -86,6 +86,10 @@ export function PedidoPendenteModal({
           urgencia === "normal" && "border-primary"
         )}
       >
+        <DialogTitle className="sr-only">Novo pedido pendente</DialogTitle>
+        <DialogDescription className="sr-only">
+          Alerta operacional para atendimento de pedido recebido.
+        </DialogDescription>
         {/* Header */}
         <div className="flex items-start justify-between gap-2 -mt-2">
           <div className="flex items-center gap-2">

@@ -151,7 +151,10 @@ serve(async (req) => {
       });
     }
   } else {
-    console.warn("[TWILIO-VOICE] TWILIO_AUTH_TOKEN not set — skipping signature verification");
+    console.error("[TWILIO-VOICE] TWILIO_AUTH_TOKEN not set — rejecting request");
+    return new Response(twimlError("Autenticacao indisponivel."), {
+      status: 403, headers: { "Content-Type": "text/xml" },
+    });
   }
 
 

@@ -188,7 +188,7 @@ export class WhatsAppRealtimeService {
     
     let channel = this.channels.get(channelName);
     if (!channel) {
-      channel = supabase.channel(channelName);
+      channel = supabase.channel(channelName, { config: { private: true } });
       channel.subscribe();
       this.channels.set(channelName, channel);
     }
@@ -209,7 +209,7 @@ export class WhatsAppRealtimeService {
     if (this.channels.has(channelName)) return;
 
     const channel = supabase
-      .channel(channelName)
+      .channel(channelName, { config: { private: true } })
       .on("broadcast", { event: "typing" }, (payload) => {
         this.notifyTypingHandlers(payload.payload as TypingIndicator);
       })

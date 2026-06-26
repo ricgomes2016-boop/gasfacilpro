@@ -12,7 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import {
   Search, FileText, Image as ImageIcon, Video, Star, StarOff, Trash2, Copy, CalendarPlus,
-  Sparkles, Images, Link2, Eye, X, LayoutTemplate,
+  Sparkles, Images, Link2, Eye, X, LayoutTemplate, Send, CheckCircle2, Clock4, FileEdit, Archive,
 } from "lucide-react";
 import { TemplatesBiblioteca } from "@/components/marketing/TemplatesBiblioteca";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,15 @@ const tipoConfig: Record<string, { icon: any; label: string; color: string }> = 
   video: { icon: Video, label: "Vídeo/Roteiro", color: "bg-violet-500/10 text-violet-600" },
 };
 
+const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+  rascunho: { label: "Rascunho", color: "bg-slate-500/10 text-slate-600 border-slate-500/30", icon: FileEdit },
+  em_revisao: { label: "Em revisão", color: "bg-amber-500/10 text-amber-600 border-amber-500/30", icon: Clock4 },
+  aprovado: { label: "Aprovado", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30", icon: CheckCircle2 },
+  agendado: { label: "Agendado", color: "bg-blue-500/10 text-blue-600 border-blue-500/30", icon: CalendarPlus },
+  publicado: { label: "Publicado", color: "bg-violet-500/10 text-violet-600 border-violet-500/30", icon: Send },
+  arquivado: { label: "Arquivado", color: "bg-muted text-muted-foreground border-border", icon: Archive },
+};
+
 const plataformaEmoji: Record<string, string> = {
   instagram: "📸", facebook: "📘", tiktok: "🎵", youtube: "▶️", whatsapp: "💬",
   reels: "📸", shorts: "▶️",
@@ -45,6 +54,7 @@ export default function BibliotecaConteudos() {
   const [busca, setBusca] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroPlataforma, setFiltroPlataforma] = useState("todas");
+  const [filtroStatus, setFiltroStatus] = useState("todos");
   const [seletorParaId, setSeletorParaId] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<any | null>(null);
 
@@ -66,6 +76,25 @@ export default function BibliotecaConteudos() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["mkt-conteudos"] }),
   });
 
+  const setStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const patch: any = { status };
+      if (status === "aprovado") {
+        const { data: { user } } = await supabase.auth.getUser();
+        patch.aprovado_por = user?.id || null;
+        patch.aprovado_em = new Date().toISOString();
+      }
+      const { error } = await supabase.from("marketing_conteudos").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      queryClient.invalidateQueries({ queryKey: ["mkt-conteudos"] });
+      const lbl = (statusConfig as any)[v.status]?.label || v.status;
+      toast({ title: `Status: ${lbl}` });
+    },
+    onError: (e: any) => toast({ title: "Erro ao atualizar status", description: e.message, variant: "destructive" }),
+  });
+
   const deleteMut = useMutation({
     mutationFn: async (id: string) => {
       await supabase.from("marketing_conteudos").delete().eq("id", id);
@@ -85,6 +114,7 @@ export default function BibliotecaConteudos() {
   const filtered = conteudos.filter((c: any) => {
     if (filtroTipo !== "todos" && c.tipo !== filtroTipo) return false;
     if (filtroPlataforma !== "todas" && c.plataforma !== filtroPlataforma) return false;
+    if (filtroStatus !== "todos" && (c.status || "rascunho") !== filtroStatus) return false;
     if (busca) {
       const s = busca.toLowerCase();
       return c.titulo?.toLowerCase().includes(s) || c.conteudo?.toLowerCase().includes(s) || c.hashtags?.toLowerCase().includes(s);
@@ -134,6 +164,15 @@ export default function BibliotecaConteudos() {
                   <SelectItem value="whatsapp">WhatsApp</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Qualquer status</SelectItem>
+                  {Object.entries(statusConfig).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button onClick={() => navigate("/clientes/marketing")} size="sm"><Sparkles className="h-4 w-4 mr-1" /> Criar</Button>
             </div>
 
@@ -151,6 +190,9 @@ export default function BibliotecaConteudos() {
                 {filtered.map((c: any) => {
                   const tc = tipoConfig[c.tipo] || tipoConfig.texto;
                   const TipoIcon = tc.icon;
+                  const status = c.status || "rascunho";
+                  const sc = statusConfig[status] || statusConfig.rascunho;
+                  const SIcon = sc.icon;
                   return (
                     <Card key={c.id} className="border-border/50 overflow-hidden">
                       {c.midia_url && (
@@ -166,10 +208,13 @@ export default function BibliotecaConteudos() {
                         </div>
                       )}
                       <CardContent className="p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <Badge variant="outline" className={`text-[10px] gap-1 ${tc.color}`}>
                               <TipoIcon className="h-3 w-3" /> {tc.label}
+                            </Badge>
+                            <Badge variant="outline" className={`text-[10px] gap-1 ${sc.color}`}>
+                              <SIcon className="h-3 w-3" /> {sc.label}
                             </Badge>
                             {c.plataforma && <span className="text-sm">{plataformaEmoji[c.plataforma] || ""}</span>}
                           </div>
@@ -180,6 +225,36 @@ export default function BibliotecaConteudos() {
                         {c.titulo && <p className="font-medium text-sm line-clamp-2">{c.titulo}</p>}
                         {c.conteudo && <p className="text-sm text-muted-foreground line-clamp-4">{c.conteudo}</p>}
                         {c.hashtags && <p className="text-xs text-primary/70 truncate">{c.hashtags}</p>}
+
+                        {/* Workflow editorial */}
+                        <div className="flex items-center gap-1 flex-wrap pt-2 border-t border-border/30">
+                          {status === "rascunho" && (
+                            <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1" onClick={() => setStatus.mutate({ id: c.id, status: "em_revisao" })}>
+                              <Clock4 className="h-3 w-3" /> Enviar p/ revisão
+                            </Button>
+                          )}
+                          {status === "em_revisao" && (
+                            <>
+                              <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 border-emerald-500/40 text-emerald-600" onClick={() => setStatus.mutate({ id: c.id, status: "aprovado" })}>
+                                <CheckCircle2 className="h-3 w-3" /> Aprovar
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => setStatus.mutate({ id: c.id, status: "rascunho" })}>
+                                Voltar
+                              </Button>
+                            </>
+                          )}
+                          {status === "aprovado" && (
+                            <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1" onClick={() => navigate(c.midia_url ? `/marketing/agendamentos?imagem=${encodeURIComponent(c.midia_url)}` : "/marketing/agendamentos")}>
+                              <CalendarPlus className="h-3 w-3" /> Agendar
+                            </Button>
+                          )}
+                          {(status === "agendado" || status === "publicado") && (
+                            <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => setStatus.mutate({ id: c.id, status: "arquivado" })}>
+                              <Archive className="h-3 w-3 mr-1" /> Arquivar
+                            </Button>
+                          )}
+                        </div>
+
                         <div className="flex items-center gap-1 pt-1 border-t border-border/30">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleFav.mutate({ id: c.id, favorito: !c.favorito })} title="Favoritar">
                             {c.favorito ? <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" /> : <StarOff className="h-3.5 w-3.5" />}
@@ -193,9 +268,6 @@ export default function BibliotecaConteudos() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPreviewItem(c)} title="Preview">
                             <Eye className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(c.midia_url ? `/marketing/agendamentos?imagem=${encodeURIComponent(c.midia_url)}` : "/marketing/agendamentos")} title="Agendar">
-                            <CalendarPlus className="h-3.5 w-3.5" />
-                          </Button>
                           <div className="flex-1" />
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(c.id)} title="Excluir">
                             <Trash2 className="h-3.5 w-3.5" />
@@ -208,6 +280,7 @@ export default function BibliotecaConteudos() {
               </div>
             )}
           </TabsContent>
+
 
           <TabsContent value="galeria">
             <GaleriaImagens />

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import { Download, Printer } from "lucide-react";
+import { esc } from "@/lib/escapeHtml";
 
 interface TerminalQRCodeDialogProps {
   open: boolean;
@@ -28,11 +29,11 @@ export function TerminalQRCodeDialog({ open, onClose, terminalId }: TerminalQRCo
     const printWindow = window.open("", "_blank", "width=400,height=500");
     if (!printWindow) return;
     printWindow.document.write(`
-      <html><head><title>QR Code - ${terminal?.nome || "Terminal"}</title>
+      <html><head><title>QR Code - ${esc(terminal?.nome || "Terminal")}</title>
       <style>body{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;font-family:sans-serif;}
       h2{margin-bottom:8px;}p{color:#666;margin:4px 0;}</style></head><body>
-      <h2>${terminal?.nome || "Terminal"}</h2>
-      ${terminal?.numero_serie ? `<p>S/N: ${terminal.numero_serie}</p>` : ""}
+      <h2>${esc(terminal?.nome || "Terminal")}</h2>
+      ${terminal?.numero_serie ? `<p>S/N: ${esc(terminal.numero_serie)}</p>` : ""}
       <div style="margin:20px 0;">${document.getElementById("terminal-qr-svg")?.innerHTML || ""}</div>
       <p style="font-size:11px;color:#999;">Escaneie com o app do entregador</p>
       <script>setTimeout(()=>window.print(),300)</script></body></html>

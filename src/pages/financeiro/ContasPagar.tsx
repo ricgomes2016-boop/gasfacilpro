@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,20 +25,102 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   CreditCard, Search, Plus, AlertCircle, CheckCircle2, Clock, MoreHorizontal,
-  Pencil, Trash2, DollarSign, Download, Camera, Loader2, Layers, ChevronRight,
+  Pencil, Trash2, DollarSign, Download, Camera, Loader2, Layers,
   Building2, Filter, X, Mic, MicOff, AudioLines, FileText, Eye, FileUp, CalendarRange,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ParcelamentoDialog } from "@/components/financeiro/ParcelamentoDialog";
 import { CompromissosFuturos } from "@/components/financeiro/CompromissosFuturos";
-import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
 import { useContasPagar, FORMAS_PAGAMENTO } from "@/hooks/useContasPagar";
+import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
 
 export default function ContasPagar() {
   const cp = useContasPagar();
+  const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
+  const [showFutureCommitments, setShowFutureCommitments] = useState(false);
+  const [futureRange, setFutureRange] = useState("30");
+  const [valorMinimo, setValorMinimo] = useState("");
+  const [valorMaximo, setValorMaximo] = useState("");
+  const [selectedSummaryKey, setSelectedSummaryKey] = useState<string | null>(null);
+  const visibleContas = cp.filtered.filter(c => {
+    const valor = Number(c.valor);
+    const min = valorMinimo ? Number(valorMinimo) : null;
+    const max = valorMaximo ? Number(valorMaximo) : null;
+    return (min === null || valor >= min) && (max === null || valor <= max);
+  });
+  const totalPendenteVisivel = visibleContas.filter(c => c.status === "pendente" && c.vencimento >= cp.hoje).reduce((a, c) => a + Number(c.valor), 0);
+  const totalVencidoVisivel = visibleContas.filter(c => (c.status === "pendente" || c.status === "vencida") && c.vencimento < cp.hoje).reduce((a, c) => a + Number(c.valor), 0);
+  const totalPagoVisivel = visibleContas.filter(c => c.status === "paga").reduce((a, c) => a + Number(c.valor), 0);
+  const totalAbertoVisivel = totalPendenteVisivel + totalVencidoVisivel;
+  const contasVencemHoje = visibleContas.filter(c => c.status !== "paga" && c.vencimento === cp.hoje);
+  const summaryCards = [
+    {
+      key: "abertas",
+      title: "Total a pagar",
+      subtitle: "Contas pendentes e vencidas",
+      total: totalAbertoVisivel,
+      contas: visibleContas.filter(c => c.status !== "paga"),
+      icon: CreditCard,
+      cardClass: "kpi-card-primary",
+      iconClass: "status-card-icon-primary",
+      valueClass: "",
+    },
+    {
+      key: "a-vencer",
+      title: "A vencer",
+      subtitle: contasVencemHoje.length > 0 ? `${contasVencemHoje.length} vence${contasVencemHoje.length === 1 ? "" : "m"} hoje` : "Ainda dentro do prazo",
+      total: totalPendenteVisivel,
+      contas: visibleContas.filter(c => c.status === "pendente" && c.vencimento >= cp.hoje),
+      icon: Clock,
+      cardClass: "kpi-card-warning",
+      iconClass: "status-card-icon-warning",
+      valueClass: "text-warning",
+    },
+    {
+      key: "vencidas",
+      title: "Vencidas",
+      subtitle: "Exigem prioridade",
+      total: totalVencidoVisivel,
+      contas: visibleContas.filter(c => (c.status === "pendente" || c.status === "vencida") && c.vencimento < cp.hoje),
+      icon: AlertCircle,
+      cardClass: "kpi-card-destructive",
+      iconClass: "status-card-icon-destructive",
+      valueClass: "text-destructive",
+    },
+    {
+      key: "pagas",
+      title: "Pagas",
+      subtitle: "Quitadas no filtro atual",
+      total: totalPagoVisivel,
+      contas: visibleContas.filter(c => c.status === "paga"),
+      icon: CheckCircle2,
+      cardClass: "kpi-card-success",
+      iconClass: "status-card-icon-success",
+      valueClass: "text-success",
+    },
+  ];
+  const selectedSummary = summaryCards.find(card => card.key === selectedSummaryKey);
+  const groupedVisible = (() => {
+    if (!cp.agrupar) return null;
+    const groups: Record<string, typeof visibleContas> = {};
+    visibleContas.forEach(c => {
+      if (!groups[c.fornecedor]) groups[c.fornecedor] = [];
+      groups[c.fornecedor].push(c);
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  })();
+  const hasVisibleFilters = cp.hasActiveFilters || !!cp.search || !!valorMinimo || !!valorMaximo;
+
+  const applyDateShortcut = (days: number) => {
+    const start = new Date(`${cp.hoje}T12:00:00`);
+    const end = new Date(start);
+    end.setDate(start.getDate() + days);
+    cp.setDataInicial(cp.hoje);
+    cp.setDataFinal(end.toISOString().split("T")[0]);
+  };
 
   // Helper: determine display status label / variant
   const getStatus = (conta: ReturnType<typeof useContasPagar>["contas"][0]) => {
@@ -54,6 +137,12 @@ export default function ContasPagar() {
     return `${base} [&>td:first-child]:border-l-warning hover:[&>td]:bg-warning/5`;
   };
 
+  const runSummaryAction = (action: () => void) => {
+    setSelectedSummaryKey(null);
+    action();
+  };
+  const SelectedSummaryIcon = selectedSummary?.icon;
+
   return (
     <MainLayout>
       <Header title="Contas a Pagar" subtitle="Gerencie todas as contas, parcelamentos e empréstimos" />
@@ -64,151 +153,176 @@ export default function ContasPagar() {
         <input ref={cp.boletoInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => cp.handleBoletoCapture(e, false)} />
         <input ref={cp.boletoPdfInputRef} type="file" accept="application/pdf" className="hidden" onChange={(e) => cp.handleBoletoCapture(e, true)} />
 
-        <Tabs defaultValue="contas">
-          <TabsList>
-            <TabsTrigger value="contas"><CreditCard className="h-4 w-4 mr-1" />Contas</TabsTrigger>
-            <TabsTrigger value="compromissos"><CalendarRange className="h-4 w-4 mr-1" />Compromissos Futuros</TabsTrigger>
-          </TabsList>
+        <div className="space-y-4 md:space-y-6">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {summaryCards.map(card => {
+                const Icon = card.icon;
+                return (
+                  <button
+                    key={card.key}
+                    type="button"
+                    onClick={() => setSelectedSummaryKey(card.key)}
+                    className="rounded-xl text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                    aria-label={`Abrir detalhes de ${card.title}`}
+                  >
+                    <Card className={`kpi-card ${card.cardClass} h-full transition hover:-translate-y-0.5 hover:shadow-lg`}>
+                      <CardContent className="flex items-center gap-3 p-3">
+                        <div className={`status-card-icon ${card.iconClass} h-10 w-10`}>
+                          <Icon />
+                        </div>
+                        <div className="min-w-0">
+                          <div className={`text-lg font-bold leading-tight ${card.valueClass}`}>
+                            R$ {card.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </div>
+                          <p className="kpi-label">{card.title}</p>
+                          <p className="truncate text-[11px] text-muted-foreground">{card.contas.length} conta{card.contas.length === 1 ? "" : "s"}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </button>
+                );
+              })}
+            </div>
 
-          <TabsContent value="contas" className="mt-4 space-y-4 md:space-y-6">
             {/* Action Toolbar */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="rounded-xl border bg-card/90 p-3 shadow-sm">
+              <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">{visibleContas.length}</span>
+                  conta{visibleContas.length === 1 ? "" : "s"} no filtro atual
+                  {contasVencemHoje.length > 0 && (
+                    <Badge variant="outline" className="border-warning/30 bg-warning/10 text-warning">
+                      {contasVencemHoje.length} vence{contasVencemHoje.length === 1 ? "" : "m"} hoje
+                    </Badge>
+                  )}
+                  {hasVisibleFilters && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => { cp.clearAllFilters(); cp.setSearch(""); setValorMinimo(""); setValorMaximo(""); }}
+                      className="h-8 gap-1 px-2 text-xs"
+                    >
+                      <X className="h-3.5 w-3.5" /> Limpar filtros
+                    </Button>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
               <Dialog open={cp.dialogOpen} onOpenChange={(open) => { cp.setDialogOpen(open); if (!open) { cp.setEditId(null); cp.resetForm(); } }}>
                 <DialogTrigger asChild>
-                  <Button className="gap-2 flex-1 sm:flex-none"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Nova Conta</span><span className="sm:hidden">Nova</span></Button>
+                  <Button className="order-last h-10 w-full gap-2 sm:w-auto"><Plus className="h-4 w-4" />Nova Conta</Button>
                 </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader><DialogTitle>{cp.editId ? "Editar Conta" : "Nova Conta a Pagar"}</DialogTitle></DialogHeader>
-                  <div className="space-y-4 pt-4">
-                    <div><Label>Fornecedor *</Label><Input value={cp.form.fornecedor} onChange={e => cp.setForm({ ...cp.form, fornecedor: e.target.value })} /></div>
-                    <div><Label>Descrição *</Label><Input value={cp.form.descricao} onChange={e => cp.setForm({ ...cp.form, descricao: e.target.value })} /></div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div><Label>Valor *</Label><Input type="number" step="0.01" value={cp.form.valor} onChange={e => cp.setForm({ ...cp.form, valor: e.target.value })} /></div>
-                      <div><Label>Vencimento *</Label><Input type="date" value={cp.form.vencimento} onChange={e => cp.setForm({ ...cp.form, vencimento: e.target.value })} /></div>
-                    </div>
-                    <div>
-                      <Label>Categoria</Label>
-                      <Select value={cp.form.categoria} onValueChange={v => cp.setForm({ ...cp.form, categoria: v })}>
-                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                        <SelectContent>{cp.categoriasNomes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
+                  <DialogHeader><DialogTitle>{cp.editId ? "Editar Conta" : "Informacoes da conta"}</DialogTitle></DialogHeader>
+                  <div className="space-y-5 pt-3">
+                    <div className="rounded-xl border border-success/25 bg-success/10 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <Label className="text-xs font-semibold uppercase tracking-wide text-success">Fornecedor *</Label>
+                        <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                          <Link to="/operacional/fornecedores">Cadastrar</Link>
+                        </Button>
+                      </div>
+                      <Select value={cp.form.fornecedor} onValueChange={v => cp.setForm({ ...cp.form, fornecedor: v })}>
+                        <SelectTrigger className="mt-2 border-success/25 bg-background/90">
+                          <SelectValue placeholder={cp.fornecedoresCadastro.length > 0 ? "Selecione um fornecedor" : "Cadastre um fornecedor primeiro"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cp.fornecedoresCadastro.length === 0 && (
+                            <SelectItem value="sem-fornecedor" disabled>Nenhum fornecedor ativo</SelectItem>
+                          )}
+                          {cp.fornecedoresCadastro.map(f => (
+                            <SelectItem key={f.id} value={f.razao_social}>
+                              {f.razao_social}{f.nome_fantasia ? ` - ${f.nome_fantasia}` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                     </div>
-                    <div><Label>Observações</Label><Textarea value={cp.form.observacoes} onChange={e => cp.setForm({ ...cp.form, observacoes: e.target.value })} rows={2} /></div>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+                      <div className="space-y-2 lg:col-span-2">
+                        <Label>Conta despesa</Label>
+                        <Select value={cp.form.categoria} onValueChange={v => cp.setForm({ ...cp.form, categoria: v })}>
+                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectContent>{cp.categoriasNomes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Valor da conta R$ *</Label>
+                        <Input type="number" step="0.01" value={cp.form.valor} onChange={e => cp.setForm({ ...cp.form, valor: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Data de vencimento *</Label>
+                        <Input type="date" value={cp.form.vencimento} onChange={e => cp.setForm({ ...cp.form, vencimento: e.target.value })} />
+                      </div>
+                      <div className="space-y-2 lg:col-span-4">
+                        <Label>Descricao *</Label>
+                        <Input value={cp.form.descricao} onChange={e => cp.setForm({ ...cp.form, descricao: e.target.value })} placeholder="Ex.: Compra NF 1603, aluguel, energia..." />
+                      </div>
+                      <div className="space-y-2 lg:col-span-4">
+                        <Label>Observacoes</Label>
+                        <Textarea value={cp.form.observacoes} onChange={e => cp.setForm({ ...cp.form, observacoes: e.target.value })} rows={4} />
+                      </div>
+                    </div>
                     <div className="flex justify-end gap-2 pt-2">
                       <Button variant="outline" onClick={() => { cp.setDialogOpen(false); cp.setEditId(null); cp.resetForm(); }}>Cancelar</Button>
-                      <Button onClick={cp.handleSubmit}>{cp.editId ? "Atualizar" : "Salvar"}</Button>
+                      <Button onClick={cp.handleSubmit}>{cp.editId ? "Atualizar" : "Cadastrar"}</Button>
                     </div>
                   </div>
                 </DialogContent>
               </Dialog>
 
-              <Button variant="photo" className="gap-2 flex-1 sm:flex-none" onClick={() => cp.fileInputRef.current?.click()}>
-                <Camera className="h-4 w-4" /><span className="hidden sm:inline">Foto com IA</span><span className="sm:hidden">Foto IA</span>
+              <Button variant="outline" className="h-10 w-full gap-2 sm:w-auto" onClick={() => setAdvancedSearchOpen(true)}>
+                <Search className="h-4 w-4" />Busca avançada
               </Button>
-              <Button variant={cp.voiceListening ? "destructive" : "microphone"} className="gap-2 flex-1 sm:flex-none" onClick={cp.voiceListening ? cp.stopVoiceListening : cp.startVoiceListening}>
-                {cp.voiceListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                <span className="hidden sm:inline">{cp.voiceListening ? "Parar" : "Voz"}</span><span className="sm:hidden">{cp.voiceListening ? "Parar" : "Voz"}</span>
-              </Button>
-              <Button variant="outline" className="gap-2 flex-1 sm:flex-none" onClick={() => cp.boletoInputRef.current?.click()}>
-                <FileText className="h-4 w-4" /><span className="hidden sm:inline">Ler Boleto</span><span className="sm:hidden">Boleto</span>
-              </Button>
-              <Button variant="pdf" className="gap-2 flex-1 sm:flex-none" onClick={() => cp.boletoPdfInputRef.current?.click()}>
-                <FileUp className="h-4 w-4" /><span className="hidden sm:inline">Importar PDF</span><span className="sm:hidden">PDF</span>
-              </Button>
-              {cp.fornecedoresComMultiplas.length > 0 && (
-                <Button variant="outline" className="gap-2 flex-1 sm:flex-none" onClick={cp.openUnificarDialog}>
-                  <Layers className="h-4 w-4" /><span className="hidden sm:inline">Unificar Fornecedor</span><span className="sm:hidden">Unificar</span>
-                </Button>
-              )}
-              <Button variant="outline" className="gap-2 flex-1 sm:flex-none" onClick={() => cp.setParcelamentoOpen(true)}>
-                <CalendarRange className="h-4 w-4" /><span className="hidden sm:inline">Parcelar / Empréstimo</span><span className="sm:hidden">Parcelar</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="h-10 w-full gap-2 sm:w-auto">
+                    <MoreHorizontal className="h-4 w-4" />Mais ações
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onClick={() => cp.fileInputRef.current?.click()}><Camera className="h-4 w-4 mr-2" />Foto com IA</DropdownMenuItem>
+                  <DropdownMenuItem onClick={cp.voiceListening ? cp.stopVoiceListening : cp.startVoiceListening}>{cp.voiceListening ? <MicOff className="h-4 w-4 mr-2" /> : <Mic className="h-4 w-4 mr-2" />}{cp.voiceListening ? "Parar voz" : "Lançamento por voz"}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => cp.boletoInputRef.current?.click()}><FileText className="h-4 w-4 mr-2" />Ler boleto</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => cp.boletoPdfInputRef.current?.click()}><FileUp className="h-4 w-4 mr-2" />Importar PDF</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => cp.setParcelamentoOpen(true)}><CalendarRange className="h-4 w-4 mr-2" />Parcelar / Empréstimo</DropdownMenuItem>
+                  {cp.fornecedoresComMultiplas.length > 0 && <DropdownMenuItem onClick={cp.openUnificarDialog}><Layers className="h-4 w-4 mr-2" />Unificar fornecedor</DropdownMenuItem>}
+                  <DropdownMenuItem onClick={cp.exportToExcel}><Download className="h-4 w-4 mr-2" />Exportar Excel</DropdownMenuItem>
+                  <DropdownMenuItem onClick={cp.exportToPDF}><Download className="h-4 w-4 mr-2" />Exportar PDF</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              </div>
+            </div>
             </div>
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-              <Card className="kpi-card kpi-card-primary"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-primary"><CreditCard /></div><div className="min-w-0"><div className="kpi-value">R$ {cp.totalAberto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Total a Pagar</p></div></CardContent></Card>
-              <Card className="kpi-card kpi-card-destructive"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-destructive"><AlertCircle /></div><div className="min-w-0"><div className="kpi-value text-destructive">R$ {cp.totalVencido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Vencidas</p></div></CardContent></Card>
-              <Card className="kpi-card kpi-card-warning"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-warning"><Clock /></div><div className="min-w-0"><div className="kpi-value text-warning">R$ {cp.totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Pendentes</p></div></CardContent></Card>
-              <Card className="kpi-card kpi-card-success"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-success"><CheckCircle2 /></div><div className="min-w-0"><div className="kpi-value text-success">R$ {cp.totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Pagas</p></div></CardContent></Card>
-            </div>
-
-            {/* Resumo por Fornecedor */}
-            {cp.resumoPorFornecedor.length > 0 && (
-              <Collapsible open={cp.resumoOpen} onOpenChange={cp.setResumoOpen}>
-                <Card>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <CardTitle className="text-sm">Resumo por Fornecedor</CardTitle>
-                          <Badge variant="secondary" className="text-xs">{cp.resumoPorFornecedor.length}</Badge>
-                        </div>
-                        <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${cp.resumoOpen ? "rotate-90" : ""}`} />
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="pt-0">
-                      <div className="space-y-3">
-                        {cp.resumoPorFornecedor.map(item => {
-                          const percent = cp.totalAberto > 0 ? (item.total / cp.totalAberto) * 100 : 0;
-                          return (
-                            <button key={item.fornecedor} className="w-full text-left" onClick={() => { cp.setFiltroFornecedor(item.fornecedor); cp.setFiltroStatus("todos"); cp.setResumoOpen(false); }}>
-                              <div className="flex items-center justify-between mb-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium">{item.fornecedor}</span>
-                                  <span className="text-xs text-muted-foreground">{item.count} conta{item.count > 1 ? "s" : ""}</span>
-                                  {item.vencidas > 0 && <Badge variant="destructive" className="text-xs py-0">{item.vencidas} vencida{item.vencidas > 1 ? "s" : ""}</Badge>}
-                                </div>
-                                <span className="text-sm font-bold">R$ {item.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-                              </div>
-                              <Progress value={percent} className="h-1.5" />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
-            )}
-
-            {/* Main table/card list */}
-              <Card className="modern-panel">
-              <CardHeader className="px-3 sm:px-6">
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-3 rounded-lg bg-success px-3 py-3 text-success-foreground shadow-sm shadow-success/20 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-                    <CardTitle className="flex min-w-0 items-center gap-2 text-base text-success-foreground sm:text-lg">
-                      <CreditCard className="h-5 w-5 shrink-0" />
-                      <span className="truncate">Lista de Contas</span>
-                    </CardTitle>
-                    <div className="relative w-full sm:w-auto">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-success" />
-                      <Input placeholder="Buscar conta..." className="w-full border-success-foreground/25 bg-success-foreground pl-10 text-foreground placeholder:text-muted-foreground sm:w-[250px]" value={cp.search} onChange={e => cp.setSearch(e.target.value)} />
-                    </div>
+            <Dialog open={advancedSearchOpen} onOpenChange={setAdvancedSearchOpen}>
+              <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+                <DialogHeader><DialogTitle>Busca avançada</DialogTitle></DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-2">
+                    <Label>Busca geral</Label>
+                    <Input placeholder="Fornecedor, descricao ou observacao..." value={cp.search} onChange={e => cp.setSearch(e.target.value)} />
                   </div>
-                  <div className="semantic-filter-panel grid grid-cols-2 sm:flex sm:flex-wrap items-end gap-2 sm:gap-3">
-                    <div className="col-span-1">
-                      <Label className="text-xs text-muted-foreground">Fornecedor</Label>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Fornecedor</Label>
                       <Select value={cp.filtroFornecedor} onValueChange={cp.setFiltroFornecedor}>
-                        <SelectTrigger className="w-full sm:w-[180px]"><SelectValue /></SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent><SelectItem value="todos">Todos</SelectItem>{cp.fornecedoresUnicos.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-1">
-                      <Label className="text-xs text-muted-foreground">Categoria</Label>
+                    <div className="space-y-2">
+                      <Label>Conta despesa</Label>
                       <Select value={cp.filtroCategoria} onValueChange={cp.setFiltroCategoria}>
-                        <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent><SelectItem value="todos">Todas</SelectItem>{cp.categoriasUnicas.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-1">
-                      <Label className="text-xs text-muted-foreground">Status</Label>
+                    <div className="space-y-2">
+                      <Label>Status</Label>
                       <Select value={cp.filtroStatus} onValueChange={cp.setFiltroStatus}>
-                        <SelectTrigger className="w-full sm:w-[140px]"><SelectValue /></SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="abertas">A vencer / vencidas</SelectItem>
                           <SelectItem value="todos">Todos</SelectItem>
                           <SelectItem value="pendente">Pendentes</SelectItem>
                           <SelectItem value="vencida">Vencidas</SelectItem>
@@ -216,32 +330,191 @@ export default function ContasPagar() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-1 flex items-end gap-2">
-                      <div className="flex items-center gap-2 h-10">
-                        <Checkbox id="agrupar" checked={cp.agrupar} onCheckedChange={(v) => cp.setAgrupar(!!v)} />
-                        <Label htmlFor="agrupar" className="text-xs cursor-pointer">Agrupar</Label>
+                    <div className="space-y-2">
+                      <Label>Vencimento inicial</Label>
+                      <Input type="date" value={cp.dataInicial} onChange={e => cp.setDataInicial(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Vencimento final</Label>
+                      <Input type="date" value={cp.dataFinal} onChange={e => cp.setDataFinal(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Valor minimo</Label>
+                      <Input type="number" step="0.01" placeholder="0,00" value={valorMinimo} onChange={e => setValorMinimo(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Valor maximo</Label>
+                      <Input type="number" step="0.01" placeholder="0,00" value={valorMaximo} onChange={e => setValorMaximo(e.target.value)} />
+                    </div>
+                    <div className="flex items-end">
+                      <div className="flex h-10 items-center gap-2">
+                        <Checkbox id="agrupar-avancado" checked={cp.agrupar} onCheckedChange={(v) => cp.setAgrupar(!!v)} />
+                        <Label htmlFor="agrupar-avancado" className="cursor-pointer text-sm">Agrupar por fornecedor</Label>
                       </div>
-                      {cp.hasActiveFilters && <Button variant="ghost" size="sm" className="gap-1 text-xs h-10" onClick={cp.clearAllFilters}><X className="h-3 w-3" />Limpar</Button>}
-                    </div>
-                    <div className="col-span-1">
-                      <Label className="text-xs text-muted-foreground">De</Label>
-                      <Input type="date" className="w-full sm:w-[145px]" value={cp.dataInicial} onChange={e => cp.setDataInicial(e.target.value)} />
-                    </div>
-                    <div className="col-span-1">
-                      <Label className="text-xs text-muted-foreground">Até</Label>
-                      <Input type="date" className="w-full sm:w-[145px]" value={cp.dataFinal} onChange={e => cp.setDataFinal(e.target.value)} />
-                    </div>
-                    <div className="col-span-2 sm:col-span-1 flex gap-2 sm:ml-auto">
-                      <Button variant="outline" size="sm" onClick={cp.exportToExcel} className="gap-2 flex-1 sm:flex-none"><Download className="h-4 w-4" /><span className="hidden sm:inline">Excel</span><span className="sm:hidden">XLS</span></Button>
-                      <Button variant="outline" size="sm" onClick={cp.exportToPDF} className="gap-2 flex-1 sm:flex-none"><Download className="h-4 w-4" />PDF</Button>
                     </div>
                   </div>
-                  {cp.hasActiveFilters && (
+                  <div className="space-y-2">
+                    <Label>Atalhos de periodo</Label>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => { cp.setDataInicial(cp.hoje); cp.setDataFinal(cp.hoje); }}>Hoje</Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => applyDateShortcut(7)}>Proximos 7 dias</Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => applyDateShortcut(15)}>Proximos 15 dias</Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => applyDateShortcut(30)}>Proximos 30 dias</Button>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border bg-muted/30 p-3 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <Label className="text-sm font-medium">Mostrar compromissos futuros</Label>
+                        <p className="text-xs text-muted-foreground">Consulta a previsao de compromissos sem transformar isso em aba principal.</p>
+                      </div>
+                      <Switch checked={showFutureCommitments} onCheckedChange={setShowFutureCommitments} />
+                    </div>
+                    {showFutureCommitments && (
+                      <div className="space-y-3">
+                        <Select value={futureRange} onValueChange={setFutureRange}>
+                          <SelectTrigger><SelectValue placeholder="Periodo" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="7">Proximos 7 dias</SelectItem>
+                            <SelectItem value="15">Proximos 15 dias</SelectItem>
+                            <SelectItem value="30">Proximos 30 dias</SelectItem>
+                            <SelectItem value="60">Proximos 60 dias</SelectItem>
+                            <SelectItem value="personalizado">Personalizado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="max-h-[360px] overflow-y-auto rounded-lg border bg-background">
+                          <CompromissosFuturos />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button variant="outline" onClick={() => { cp.clearAllFilters(); cp.setSearch(""); setValorMinimo(""); setValorMaximo(""); }}>Limpar</Button>
+                    <Button onClick={() => setAdvancedSearchOpen(false)}><Search className="h-4 w-4 mr-2" />Aplicar busca</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!selectedSummary} onOpenChange={(open) => !open && setSelectedSummaryKey(null)}>
+              <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
+                {selectedSummary && SelectedSummaryIcon && (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <SelectedSummaryIcon className="h-5 w-5 text-primary" />
+                        {selectedSummary.title}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-2">
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <Card className={`kpi-card ${selectedSummary.cardClass}`}>
+                          <CardContent className="p-4">
+                            <p className="text-xs font-medium uppercase text-muted-foreground">Total</p>
+                            <p className={`mt-1 text-2xl font-bold ${selectedSummary.valueClass}`}>
+                              R$ {selectedSummary.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card className="kpi-card">
+                          <CardContent className="p-4">
+                            <p className="text-xs font-medium uppercase text-muted-foreground">Quantidade</p>
+                            <p className="mt-1 text-2xl font-bold">{selectedSummary.contas.length}</p>
+                          </CardContent>
+                        </Card>
+                        <Card className="kpi-card">
+                          <CardContent className="p-4">
+                            <p className="text-xs font-medium uppercase text-muted-foreground">Contexto</p>
+                            <p className="mt-2 text-sm text-muted-foreground">{selectedSummary.subtitle}</p>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {selectedSummary.contas.length === 0 ? (
+                        <EmptyState
+                          icon={selectedSummary.icon}
+                          title="Nenhuma conta neste resumo"
+                          description="Quando houver contas neste status, elas aparecem aqui com informacoes e acoes rapidas."
+                        />
+                      ) : (
+                        <div className="space-y-2">
+                          {selectedSummary.contas.map(conta => {
+                            const { label, variant } = getStatus(conta);
+                            return (
+                              <div key={conta.id} className="rounded-xl border bg-card p-3 shadow-sm">
+                                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                  <div className="min-w-0 space-y-2">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <Badge variant={variant}>{label}</Badge>
+                                      {conta.categoria && <Badge variant="outline">{conta.categoria}</Badge>}
+                                      <span className="text-xs text-muted-foreground">
+                                        Venc. {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold leading-snug">{conta.descricao}</p>
+                                      <p className="text-sm text-muted-foreground">{conta.fornecedor}</p>
+                                    </div>
+                                    {conta.observacoes && (
+                                      <p className="rounded-lg bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                                        {conta.observacoes}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col gap-3 lg:items-end">
+                                    <p className="text-xl font-bold">
+                                      R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {conta.status !== "paga" && (
+                                        <Button size="sm" className="gap-2" onClick={() => runSummaryAction(() => cp.openPagarDialog(conta))}>
+                                          <DollarSign className="h-4 w-4" />Pagar
+                                        </Button>
+                                      )}
+                                      <Button size="sm" variant="outline" className="gap-2" onClick={() => runSummaryAction(() => cp.handleEdit(conta))}>
+                                        <Pencil className="h-4 w-4" />Editar
+                                      </Button>
+                                      {(conta.boleto_url || conta.boleto_linha_digitavel) && (
+                                        <Button size="sm" variant="outline" className="gap-2" onClick={() => runSummaryAction(() => cp.handleViewBoleto(conta))}>
+                                          <Eye className="h-4 w-4" />Boleto
+                                        </Button>
+                                      )}
+                                      <Button size="sm" variant="outline" className="gap-2 text-destructive hover:text-destructive" onClick={() => runSummaryAction(() => cp.setDeleteId(conta.id))}>
+                                        <Trash2 className="h-4 w-4" />Excluir
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* Main table/card list */}
+              <Card className="modern-panel">
+              <CardHeader className="px-3 sm:px-6">
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-2 border-b pb-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                    <span>{visibleContas.length} conta{visibleContas.length === 1 ? "" : "s"} no filtro atual</span>
+                    <span className="font-semibold text-foreground">
+                      Total em aberto: R$ {totalAbertoVisivel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  {hasVisibleFilters && (
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <Filter className="h-3 w-3" /><span>{cp.filtered.length} de {cp.contas.length} contas</span>
+                      <Filter className="h-3 w-3" /><span>{visibleContas.length} de {cp.contas.length} contas</span>
                       {cp.filtroFornecedor !== "todos" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroFornecedor}<button onClick={() => cp.setFiltroFornecedor("todos")}><X className="h-3 w-3" /></button></Badge>}
                       {cp.filtroCategoria !== "todos" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroCategoria}<button onClick={() => cp.setFiltroCategoria("todos")}><X className="h-3 w-3" /></button></Badge>}
-                      {cp.filtroStatus !== "todos" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroStatus}<button onClick={() => cp.setFiltroStatus("todos")}><X className="h-3 w-3" /></button></Badge>}
+                      {cp.filtroStatus !== "abertas" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroStatus}<button onClick={() => cp.setFiltroStatus("abertas")}><X className="h-3 w-3" /></button></Badge>}
+                      {cp.search && <Badge variant="secondary" className="text-xs gap-1 py-0">Busca: {cp.search}<button onClick={() => cp.setSearch("")}><X className="h-3 w-3" /></button></Badge>}
+                      {valorMinimo && <Badge variant="secondary" className="text-xs gap-1 py-0">Min: R$ {valorMinimo}<button onClick={() => setValorMinimo("")}><X className="h-3 w-3" /></button></Badge>}
+                      {valorMaximo && <Badge variant="secondary" className="text-xs gap-1 py-0">Max: R$ {valorMaximo}<button onClick={() => setValorMaximo("")}><X className="h-3 w-3" /></button></Badge>}
                     </div>
                   )}
                   {cp.selecionadasPagamentoIds.size > 0 && (
@@ -260,23 +533,28 @@ export default function ContasPagar() {
               <CardContent className="px-3 sm:px-6">
                 {cp.loading ? (
                   <p className="text-center py-8 text-muted-foreground">Carregando...</p>
-                ) : cp.filtered.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">Nenhuma conta encontrada</p>
+                ) : visibleContas.length === 0 ? (
+                  <EmptyState
+                    icon={CreditCard}
+                    title="Nenhuma conta encontrada"
+                    description="Ajuste os filtros ou registre uma nova conta a pagar para controlar seus compromissos."
+                    action={{ label: "Nova conta", onClick: () => cp.setDialogOpen(true), icon: Plus }}
+                  />
                 ) : (
                   <>
                     {/* Desktop table */}
-                    <div className="hidden sm:block">
-                      <Table className="border-separate border-spacing-y-2">
+                    <div className="hidden table-card-shell sm:block">
+                      <Table>
                         <TableHeader>
-                          <TableRow className="border-success bg-success hover:bg-success [&_th]:text-success-foreground">
-                            <TableHead className="w-10"><Checkbox checked={cp.todasPagaveisSelecionadas} onCheckedChange={cp.toggleAllPagamentoSelection} aria-label="Selecionar contas" /></TableHead><TableHead>Fornecedor</TableHead><TableHead>Descrição</TableHead>
+                          <TableRow className="rounded-xl border-0 bg-muted/75 hover:bg-muted/75 [&_th]:h-11 [&_th]:border-0 [&_th]:text-[11px] [&_th]:font-extrabold [&_th]:uppercase [&_th]:tracking-[0.02em] [&_th]:text-foreground">
+                            <TableHead className="w-10 rounded-l-xl"><Checkbox checked={cp.todasPagaveisSelecionadas} onCheckedChange={cp.toggleAllPagamentoSelection} aria-label="Selecionar contas" /></TableHead><TableHead>Fornecedor</TableHead><TableHead>Descrição</TableHead>
                             <TableHead>Categoria</TableHead><TableHead>Vencimento</TableHead>
                             <TableHead>Valor</TableHead><TableHead>Status</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
+                            <TableHead className="rounded-r-xl text-right">Ações</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {(cp.agrupar && cp.groupedFiltered ? cp.groupedFiltered.flatMap(([fornecedor, items]) => {
+                          {(cp.agrupar && groupedVisible ? groupedVisible.flatMap(([fornecedor, items]) => {
                             const groupTotal = items.reduce((s, c) => s + Number(c.valor), 0);
                             return [
                               <TableRow key={`grp-${fornecedor}`} className="border-0 [&>td]:border-y [&>td]:border-success/25 [&>td]:bg-success/10 [&>td:first-child]:rounded-l-lg [&>td:first-child]:border-l [&>td:last-child]:rounded-r-lg [&>td:last-child]:border-r">
@@ -310,7 +588,7 @@ export default function ContasPagar() {
                                 );
                               })
                             ];
-                          }) : cp.filtered).map((conta: any) => {
+                          }) : visibleContas).map((conta: any) => {
                             if (!conta.id) return conta; // group header row already rendered
                             const { label, variant } = getStatus(conta);
                             return (
@@ -341,16 +619,16 @@ export default function ContasPagar() {
                     </div>
 
                     {/* Mobile cards */}
-                    <div className="sm:hidden space-y-3">
-                      {cp.filtered.map(conta => {
+                    <div className="space-y-3 sm:hidden">
+                      {visibleContas.map(conta => {
                         const { label, variant } = getStatus(conta);
                         return (
-                          <div key={conta.id} className="border rounded-lg p-3">
-                            <div className="flex items-start justify-between gap-2">
+                          <div key={conta.id} className="mobile-record-card">
+                            <div className="mobile-record-card-header">
                               <Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={conta.status === "paga"} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} className="mt-1 shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{conta.descricao}</p>
-                                <p className="text-xs text-muted-foreground">{conta.fornecedor}</p>
+                                <p className="mobile-record-card-title line-clamp-2">{conta.descricao}</p>
+                                <p className="mobile-record-card-meta truncate">{conta.fornecedor}</p>
                               </div>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
@@ -362,14 +640,14 @@ export default function ContasPagar() {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
-                            <div className="flex items-center justify-between mt-2">
-                              <div className="flex items-center gap-2">
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
                                 <Badge variant={variant} className="text-xs">{label}</Badge>
                                 {conta.categoria && <Badge variant="outline" className="text-xs">{conta.categoria}</Badge>}
-                              </div>
+                            </div>
+                            <div className="mobile-record-card-footer">
+                              <p className="text-xs text-muted-foreground">Venc: {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</p>
                               <span className="font-bold text-sm">R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1">Venc: {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</p>
                           </div>
                         );
                       })}
@@ -378,12 +656,7 @@ export default function ContasPagar() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="compromissos" className="mt-4">
-            <CompromissosFuturos />
-          </TabsContent>
-        </Tabs>
+        </div>
 
         {/* ===== DIALOGS ===== */}
 

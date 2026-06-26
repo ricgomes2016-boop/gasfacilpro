@@ -61,7 +61,16 @@ serve(async (req) => {
       }
     }
 
-    const unidadeFilter = unidade_id ? `AND unidade_id = '${unidade_id}'` : "";
+    const unidadeFilter = unidade_id
+      ? `AND unidade_id = '${unidade_id}'`
+      : `AND unidade_id IN (SELECT id FROM unidades WHERE empresa_id = '${empresaId}')`;
+    const pedidoAliasFilter = unidade_id
+      ? `AND p.unidade_id = '${unidade_id}'`
+      : `AND p.unidade_id IN (SELECT id FROM unidades WHERE empresa_id = '${empresaId}')`;
+    const entregadorAliasFilter = unidade_id
+      ? `AND e.unidade_id = '${unidade_id}'`
+      : `AND e.unidade_id IN (SELECT id FROM unidades WHERE empresa_id = '${empresaId}')`;
+    const clienteFilter = `AND empresa_id = '${empresaId}'`;
     const intervalo = periodo === "semanal" ? "7 days" : "30 days";
 
     const queries = [
@@ -79,7 +88,7 @@ serve(async (req) => {
       // Top produtos
       `SELECT pi.produto_nome, SUM(pi.quantidade) as qtd, SUM(pi.subtotal) as receita
        FROM pedido_itens pi JOIN pedidos p ON p.id = pi.pedido_id
-       WHERE p.status != 'cancelado' ${unidadeFilter}
+       WHERE p.status != 'cancelado' ${pedidoAliasFilter}
         AND p.created_at >= NOW() - interval '${intervalo}'
        GROUP BY pi.produto_nome ORDER BY receita DESC LIMIT 10`,
       // Formas de pagamento
@@ -91,10 +100,10 @@ serve(async (req) => {
       `SELECT e.nome, COUNT(p.id) as entregas, COALESCE(SUM(p.valor_total), 0) as faturamento
        FROM entregadores e LEFT JOIN pedidos p ON p.entregador_id = e.id
         AND p.status = 'entregue' AND p.created_at >= NOW() - interval '${intervalo}'
-       WHERE e.ativo = true GROUP BY e.id, e.nome ORDER BY entregas DESC LIMIT 10`,
+       WHERE e.ativo = true ${entregadorAliasFilter} GROUP BY e.id, e.nome ORDER BY entregas DESC LIMIT 10`,
       // Novos clientes
       `SELECT COUNT(*) as novos_clientes FROM clientes
-       WHERE created_at >= NOW() - interval '${intervalo}'`,
+       WHERE created_at >= NOW() - interval '${intervalo}' ${clienteFilter}`,
       // Estoque crítico
       `SELECT nome, estoque, estoque_minimo FROM produtos
        WHERE ativo = true AND estoque <= estoque_minimo ${unidadeFilter}`,

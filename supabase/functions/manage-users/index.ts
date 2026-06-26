@@ -53,6 +53,67 @@ Deno.serve(async (req) => {
     const isSuperAdmin = roleData.some((r: any) => r.role === "super_admin");
     const isGestor = roleData.some((r: any) => r.role === "gestor");
 
+    const jsonError = (message: string, status = 403) =>
+      new Response(JSON.stringify({ error: message }), {
+        status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    const getUserEmpresaId = async (userId: string): Promise<string | null> => {
+      const { data } = await supabaseAdmin
+        .from("profiles")
+        .select("empresa_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      return data?.empresa_id ?? null;
+    };
+
+    const validateRoleAssignment = (role?: string): Response | null => {
+      if (!role) return null;
+      if (!isSuperAdmin && (role === "super_admin" || role === "admin")) {
+        return jsonError("Permissao insuficiente para atribuir este papel");
+      }
+      if (isGestor && !isSuperAdmin && (role === "admin" || role === "super_admin")) {
+        return jsonError("Gestor nao pode atribuir usuarios administradores");
+      }
+      return null;
+    };
+
+    const validateUnidadesForEmpresa = async (
+      unidadeIds: unknown,
+      empresaId: string | null,
+    ): Promise<Response | null> => {
+      if (unidadeIds === undefined) return null;
+      if (!Array.isArray(unidadeIds)) {
+        return jsonError("Lista de unidades invalida", 400);
+      }
+      if (unidadeIds.length === 0) return null;
+      if (!empresaId) {
+        return jsonError("Empresa obrigatoria para vincular unidades", 400);
+      }
+
+      const uniqueIds: string[] = [
+        ...new Set(unidadeIds.filter((uid): uid is string => typeof uid === "string" && uid.trim().length > 0)),
+      ];
+      if (uniqueIds.length !== unidadeIds.length) {
+        return jsonError("Lista de unidades contem valores invalidos", 400);
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from("unidades")
+        .select("id")
+        .eq("empresa_id", empresaId)
+        .in("id", uniqueIds);
+
+      if (error) throw error;
+      if ((data?.length || 0) !== uniqueIds.length) {
+        return jsonError("Uma ou mais unidades nao pertencem a empresa informada");
+      }
+
+      return null;
+    };
+
     const { action, ...params } = await req.json();
 
     // LIST users
@@ -63,6 +124,10 @@ Deno.serve(async (req) => {
         .select("empresa_id")
         .eq("user_id", caller.id)
         .single();
+
+      if (!isSuperAdmin && !callerProfile?.empresa_id) {
+        return jsonError("Usuario administrador sem empresa vinculada", 403);
+      }
 
       let profilesQuery = supabaseAdmin
         .from("profiles")
@@ -99,6 +164,9 @@ Deno.serve(async (req) => {
     if (action === "create") {
       const { email, password, full_name, phone, role, unidade_ids, empresa_id: targetEmpresaId } = params;
 
+      const roleDenied = validateRoleAssignment(role);
+      if (roleDenied) return roleDenied;
+
       if (!email || !password || !full_name || !role) {
         return new Response(JSON.stringify({ error: "Campos obrigatórios: email, password, full_name, role" }), {
           status: 400,
@@ -119,13 +187,15 @@ Deno.serve(async (req) => {
       if (isSuperAdmin && targetEmpresaId) {
         empresaId = targetEmpresaId;
       } else {
-        const { data: callerProfile } = await supabaseAdmin
-          .from("profiles")
-          .select("empresa_id")
-          .eq("user_id", caller.id)
-          .single();
-        empresaId = callerProfile?.empresa_id;
+        empresaId = await getUserEmpresaId(caller.id);
       }
+
+      if (!isSuperAdmin && !empresaId) {
+        return jsonError("Usuario administrador sem empresa vinculada", 403);
+      }
+
+      const unidadesDenied = await validateUnidadesForEmpresa(unidade_ids, empresaId);
+      if (unidadesDenied) return unidadesDenied;
 
       // Check plan user limit
       if (empresaId) {
@@ -167,10 +237,16 @@ Deno.serve(async (req) => {
           // Instead, look up the user via profiles table
           const { data: existingProfile } = await supabaseAdmin
             .from("profiles")
-            .select("user_id")
+            .select("user_id, empresa_id")
             .eq("email", email)
             .maybeSingle();
           if (existingProfile) {
+            if (existingProfile.empresa_id && empresaId && existingProfile.empresa_id !== empresaId) {
+              return jsonError("Usuario ja pertence a outra empresa", 409);
+            }
+            if (!isSuperAdmin && existingProfile.empresa_id !== empresaId) {
+              return jsonError("Usuario existente nao pertence a sua empresa", 403);
+            }
             newUser = { user: { id: existingProfile.user_id } };
           } else {
             throw new Error("Usuário com este email já existe mas não foi encontrado no sistema.");
@@ -224,6 +300,11 @@ Deno.serve(async (req) => {
     // Helper: ensure target user belongs to the same empresa as caller (unless super_admin)
     const assertSameEmpresa = async (targetUserId: string): Promise<Response | null> => {
       if (isSuperAdmin) return null;
+      const checkedCallerEmpresaId = await getUserEmpresaId(caller.id);
+      const checkedTargetEmpresaId = await getUserEmpresaId(targetUserId);
+      if (!checkedCallerEmpresaId || !checkedTargetEmpresaId || checkedCallerEmpresaId !== checkedTargetEmpresaId) {
+        return jsonError("Acesso negado: usuario nao pertence a sua empresa");
+      }
       const { data: callerProfile } = await supabaseAdmin
         .from("profiles").select("empresa_id").eq("user_id", caller.id).maybeSingle();
       const { data: targetProfile } = await supabaseAdmin
@@ -271,6 +352,9 @@ Deno.serve(async (req) => {
       }
 
       if (role) {
+        const roleDenied = validateRoleAssignment(role);
+        if (roleDenied) return roleDenied;
+
         // Prevent non-super-admin from elevating to admin/super_admin
         if (!isSuperAdmin && (role === "super_admin" || (isGestor && role === "admin"))) {
           return new Response(JSON.stringify({ error: "Permissão insuficiente para atribuir este papel" }), {
@@ -286,7 +370,11 @@ Deno.serve(async (req) => {
       }
 
       // Update unidades assignment
-      if (unidade_ids !== undefined && Array.isArray(unidade_ids)) {
+      if (unidade_ids !== undefined) {
+        const targetEmpresaId = await getUserEmpresaId(user_id);
+        const unidadesDenied = await validateUnidadesForEmpresa(unidade_ids, targetEmpresaId);
+        if (unidadesDenied) return unidadesDenied;
+
         // Delete existing assignments
         await supabaseAdmin
           .from("user_unidades")
@@ -309,8 +397,54 @@ Deno.serve(async (req) => {
     }
 
     // UPDATE role (kept for backward compatibility)
+    if (action === "add_role") {
+      const { user_id, role } = params;
+
+      const roleDenied = validateRoleAssignment(role);
+      if (roleDenied) return roleDenied;
+
+      if (!user_id || !role) {
+        return new Response(JSON.stringify({ error: "user_id e role são obrigatórios" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const denied = await assertSameEmpresa(user_id);
+      if (denied) return denied;
+
+      if (!isSuperAdmin && (role === "super_admin" || (isGestor && role === "admin"))) {
+        return new Response(JSON.stringify({ error: "Permissão insuficiente para atribuir este papel" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Verifica se já existe esse papel — evita duplicidade
+      const { data: existing } = await supabaseAdmin
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("role", role)
+        .maybeSingle();
+
+      if (!existing) {
+        const { error } = await supabaseAdmin
+          .from("user_roles")
+          .insert({ user_id, role });
+        if (error) throw error;
+      }
+
+      return new Response(JSON.stringify({ success: true, added: !existing }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "update_role") {
       const { user_id, role } = params;
+
+      const roleDenied = validateRoleAssignment(role);
+      if (roleDenied) return roleDenied;
 
       if (!user_id || !role) {
         return new Response(JSON.stringify({ error: "user_id e role são obrigatórios" }), {

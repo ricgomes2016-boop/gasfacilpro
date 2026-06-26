@@ -10,7 +10,7 @@
  * Em ambiente de desenvolvimento (localhost, preview), usa rotas normais.
  */
 
-export type SubdomainApp = "cliente" | "entregador" | "parceiro" | "erp" | "painel" | "api" | "transportadora" | "contador" | "landing" | null;
+export type SubdomainApp = "cliente" | "entregador" | "parceiro" | "erp" | "painel" | "api" | "transportadora" | "contador" | "vendedor" | "landing" | null;
 
 const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   clientes: "cliente",
@@ -30,7 +30,11 @@ const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   contabil: "contador",
   contador: "contador",
   contabilidade: "contador",
+  vendas: "vendedor",
+  vendedor: "vendedor",
+  vendedores: "vendedor",
 };
+
 
 // Known base domains for the SaaS
 const BASE_DOMAINS = [
@@ -123,12 +127,15 @@ export function getCanonicalHostnameForApp(
       return `api.${baseDomain}`;
     case "contador":
       return `contabil.${baseDomain}`;
+    case "vendedor":
+      return `vendas.${baseDomain}`;
     case "landing":
       return baseDomain;
     default:
       return `app.${baseDomain}`;
   }
 }
+
 
 /**
  * Checks whether pathname matches a route segment exactly ("/foo" or "/foo/...").
@@ -150,10 +157,12 @@ export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> 
   if (matchesRouteSegment(pathname, "/clientes")) return "erp";
   if (matchesRouteSegment(pathname, "/cliente")) return "cliente";
   if (matchesRouteSegment(pathname, "/entregador")) return "entregador";
+  if (matchesRouteSegment(pathname, "/vendedor")) return "vendedor";
   if (matchesRouteSegment(pathname, "/parceiro")) return "parceiro";
   if (matchesRouteSegment(pathname, "/transportadora")) return "transportadora";
   // /integracoes é usado no ERP e no portal API; evita redirecionamento cruzado automático
   if (matchesRouteSegment(pathname, "/integracoes")) return null;
+
 
   const erpPrefixes = [
     "/dashboard",
@@ -194,6 +203,7 @@ export function getSubdomainDefaultRoute(app: SubdomainApp): string {
   switch (app) {
     case "cliente": return "/cliente";
     case "entregador": return "/entregador";
+    case "vendedor": return "/vendedor";
     case "parceiro": return "/parceiro";
     case "erp": return "/dashboard";
     case "transportadora": return "/transportadora";
@@ -204,6 +214,7 @@ export function getSubdomainDefaultRoute(app: SubdomainApp): string {
     default: return "/dashboard";
   }
 }
+
 
 /**
  * Checks if a given route path is allowed for the detected subdomain app.
@@ -219,8 +230,11 @@ export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string):
       return matchesRouteSegment(pathname, "/cliente") || matchesRouteSegment(pathname, "/vale-gas");
     case "entregador":
       return matchesRouteSegment(pathname, "/entregador");
+    case "vendedor":
+      return matchesRouteSegment(pathname, "/vendedor");
     case "parceiro":
       return matchesRouteSegment(pathname, "/parceiro");
+
     case "transportadora":
       return matchesRouteSegment(pathname, "/transportadora");
     case "erp":

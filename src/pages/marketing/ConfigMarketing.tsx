@@ -14,8 +14,9 @@ import { toast } from "@/hooks/use-toast";
 import {
   Plus, Trash2, Share2, Instagram, Facebook, Youtube, Music2, Check, X,
   Bot, MessageSquare, Phone, ShoppingCart, HelpCircle, AlertTriangle, Megaphone,
-  Settings2, Users,
+  Settings2, Users, Sparkles,
 } from "lucide-react";
+import { BrandKitTab } from "@/components/marketing/BrandKitTab";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
@@ -58,7 +59,7 @@ export default function ConfigMarketing() {
   const { data: accounts = [] } = useQuery({
     queryKey: ["social-accounts", empresaId],
     queryFn: async () => {
-      const { data } = await supabase.from("social_accounts").select("*").eq("empresa_id", empresaId!).order("created_at", { ascending: false });
+      const { data } = await supabase.from("social_accounts").select("id, empresa_id, unidade_id, plataforma, nome_conta, username, token_expires_at, avatar_url, ativo, created_at, updated_at, page_id, ig_business_id, scopes, conectado_via, profile_picture_url, external_id").eq("empresa_id", empresaId!).order("created_at", { ascending: false });
       return data || [];
     },
     enabled: !!empresaId,
@@ -134,13 +135,17 @@ export default function ConfigMarketing() {
 
   return (
     <MainLayout>
-      <Header title="Configurações de Marketing" subtitle="Contas de redes sociais e fluxos de atendimento" />
+      <Header title="Configurações de Marketing" subtitle="Brand Kit, contas de redes sociais e fluxos de atendimento" />
       <div className="p-4 md:p-6 max-w-5xl mx-auto">
-        <Tabs defaultValue="contas" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="brand" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="brand" className="gap-2"><Sparkles className="h-4 w-4" /> Brand Kit</TabsTrigger>
             <TabsTrigger value="contas" className="gap-2"><Share2 className="h-4 w-4" /> Contas</TabsTrigger>
-            <TabsTrigger value="fluxos" className="gap-2"><Bot className="h-4 w-4" /> Fluxos de Atendimento</TabsTrigger>
+            <TabsTrigger value="fluxos" className="gap-2"><Bot className="h-4 w-4" /> Fluxos</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="brand"><BrandKitTab /></TabsContent>
+
 
           {/* ─── Contas ─── */}
           <TabsContent value="contas" className="space-y-4">

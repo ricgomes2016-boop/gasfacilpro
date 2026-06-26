@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Package, Users, Target, Calendar, Loader2 } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageSectionLoader } from "@/components/ui/page-loader";
+import { DollarSign, Package, Users, Target, Calendar } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { getBrasiliaDate } from "@/lib/utils";
 
-const COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))"];
+const COLORS = ["hsl(var(--success))", "hsl(var(--info))", "hsl(var(--warning))", "hsl(var(--secondary))", "hsl(var(--destructive))"];
 
 export default function ExecutivoContent() {
   const { unidadeAtual } = useUnidade();
@@ -63,7 +65,7 @@ export default function ExecutivoContent() {
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+  if (loading) return <PageSectionLoader label="Carregando visão executiva..." />;
 
   return (
     <div className="space-y-6">
@@ -75,7 +77,7 @@ export default function ExecutivoContent() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Faturamento Mensal</p><p className="text-2xl font-bold">R$ {faturamento.toLocaleString("pt-BR")}</p></div><div className="p-3 rounded-lg bg-primary/10"><DollarSign className="h-6 w-6 text-primary" /></div></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Vendas Realizadas</p><p className="text-2xl font-bold">{totalVendas}</p></div><div className="p-3 rounded-lg bg-chart-2/10"><Package className="h-6 w-6 text-chart-2" /></div></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Clientes Ativos</p><p className="text-2xl font-bold">{clientesAtivos}</p></div><div className="p-3 rounded-lg bg-chart-3/10"><Users className="h-6 w-6 text-chart-3" /></div></div></CardContent></Card>
@@ -87,11 +89,16 @@ export default function ExecutivoContent() {
           <CardHeader><CardTitle>Vendas da Semana</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={vendasSemana}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="dia" /><YAxis />
-                <Tooltip formatter={(value) => [`R$ ${Number(value).toLocaleString("pt-BR")}`, "Vendas"]} />
-                <Line type="monotone" dataKey="valor" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ fill: "hsl(var(--primary))" }} />
+              <LineChart data={vendasSemana} margin={{ top: 12, right: 18, left: 0, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="4 8" vertical={false} stroke="hsl(var(--border) / 0.5)" />
+                <XAxis dataKey="dia" axisLine={false} tickLine={false} tickMargin={10} />
+                <YAxis axisLine={false} tickLine={false} tickMargin={10} width={58} tickFormatter={(value) => `R$ ${(Number(value) / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  cursor={{ stroke: "hsl(var(--success))", strokeWidth: 1, strokeDasharray: "4 4" }}
+                  contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
+                  formatter={(value) => [`R$ ${Number(value).toLocaleString("pt-BR")}`, "Vendas"]}
+                />
+                <Line type="monotone" dataKey="valor" stroke="hsl(var(--success))" strokeWidth={3} dot={{ fill: "hsl(var(--success))", strokeWidth: 2, r: 4 }} activeDot={{ r: 7 }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -101,11 +108,25 @@ export default function ExecutivoContent() {
           <CardContent>
             {produtosVendidos.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <PieChart><Pie data={produtosVendidos} cx="50%" cy="50%" labelLine={false} label={({ nome, valor }) => `${nome}: ${valor}%`} outerRadius={100} dataKey="valor">
+                <PieChart>
+                  <Pie data={produtosVendidos} cx="50%" cy="48%" innerRadius={58} outerRadius={96} paddingAngle={3} label={false} dataKey="valor">
                   {produtosVendidos.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie><Tooltip /></PieChart>
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
+                    formatter={(value, name, item) => [`${value}%`, item.payload.nome]}
+                  />
+                  <Legend iconType="circle" verticalAlign="bottom" height={42} formatter={(value) => <span className="text-xs text-muted-foreground">{value}</span>} />
+                </PieChart>
               </ResponsiveContainer>
-            ) : <p className="text-center text-muted-foreground py-8">Sem dados de produtos</p>}
+            ) : (
+              <EmptyState
+                compact
+                icon={Package}
+                title="Sem produtos vendidos"
+                description="Os produtos mais vendidos aparecerão aqui quando houver itens em pedidos."
+              />
+            )}
           </CardContent>
         </Card>
       </div>

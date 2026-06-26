@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface Insight {
   emoji: string;
@@ -92,13 +93,13 @@ export function AiInsightsWidget() {
             <Skeleton className="h-16 w-full rounded-lg" />
           </>
         ) : insights.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground">
-            <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Nenhum insight disponível</p>
-            <Button variant="link" size="sm" onClick={() => refetch()}>
-              Gerar insights
-            </Button>
-          </div>
+          <EmptyState
+            compact
+            icon={Sparkles}
+            title="Nenhum insight disponível"
+            description="Gere uma nova leitura para encontrar oportunidades e alertas do dia."
+            action={{ label: "Gerar insights", onClick: () => refetch(), icon: RefreshCw }}
+          />
         ) : (
           insights.map((insight, i) => {
             const PrioIcon = prioridadeIcones[insight.prioridade] || Lightbulb;

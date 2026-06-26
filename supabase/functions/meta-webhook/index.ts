@@ -9,7 +9,8 @@ import {
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
   getOffHoursMessage,
   downloadAudio, transcribeAudio, getEntregadorLocation, collectBufferedMessages,
-  identifyContact,
+  identifyContact, buildLocalSalesFallbackReply,
+  stripPedidoConfirmadoBlock, processCancelTagInReply,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -17,6 +18,45 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 const OK = (data: any) => new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+const lastDigits = (value?: string | null, size = 10) => (value || "").replace(/\D/g, "").slice(-size);
+
+async function saveAndSendAssistant(
+  supabase: any,
+  config: any,
+  phone: string,
+  conversationId: string,
+  content: string,
+  metadata: Record<string, any> = {},
+) {
+  const saved = await saveMessage(supabase, conversationId, "assistant", content, metadata);
+  const result = await sendMessage(config, phone, content);
+  const deliveryMetadata = {
+    ...metadata,
+    whatsapp_send_ok: result.ok,
+    whatsapp_provider: config.provedor,
+    ...(result.waMessageId ? { wa_message_id: result.waMessageId } : {}),
+    ...(result.error ? { whatsapp_send_error: result.error } : {}),
+  };
+  if (saved?.id) {
+    await supabase
+      .from("ai_mensagens")
+      .update({
+        metadata: deliveryMetadata,
+        status: result.ok ? "sent" : "failed",
+        error_message: result.ok ? null : result.error || "whatsapp_send_failed",
+        ...(result.waMessageId ? { wa_message_id: result.waMessageId } : {}),
+      })
+      .eq("id", saved.id);
+  }
+  if (!result.ok) {
+    console.error("Meta webhook sendMessage failed:", {
+      conversationId,
+      phoneSuffix: lastDigits(phone, 4),
+      error: result.error,
+    });
+  }
+  return result;
+}
 
 serve(async (req) => {
   // Meta webhook verification (GET with hub.challenge)
@@ -84,7 +124,10 @@ serve(async (req) => {
         });
       }
     } else {
-      console.warn("Meta webhook: META_APP_SECRET not configured — skipping signature verification");
+      console.error("Meta webhook: META_APP_SECRET not configured — rejecting request");
+      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const body = JSON.parse(rawBody);
@@ -187,11 +230,9 @@ serve(async (req) => {
             console.log("Meta: skipping system/internal message (coexistence)");
             continue;
           }
-          // Known business phone number digits (last 10 of +55 43 3524-1094)
-          const BUSINESS_PHONE_LAST10 = "4335241094";
-          const senderLast10 = (msg.from || "").replace(/\D/g, "").slice(-10);
-          if (senderLast10 === BUSINESS_PHONE_LAST10) {
-            console.log("Meta: skipping echo from business number (coexistence protection):", msg.from);
+          const displayPhoneLast10 = lastDigits(metadata?.display_phone_number);
+          if (displayPhoneLast10 && lastDigits(msg.from) === displayPhoneLast10) {
+            console.log("Meta: skipping echo from business display number (coexistence protection):", msg.from);
             continue;
           }
           // ─── END COEXISTENCE LOOP PROTECTION ───────────────────────────────
@@ -274,15 +315,15 @@ serve(async (req) => {
             getOrderStatus(supabase, cliente.id, normalized),
           ]);
 
-          // Save inbound
-          await saveMessage(supabase, conversationId, "user", messageText, { source: "meta-webhook", message_id: messageId, tipo_contato: contact.tipo, contato_id: contact.id || null });
+          // Keep the conversation scoped before the message insert so realtime
+          // notification triggers can resolve empresa/unidade on the first message.
           await upsertConversation(supabase, conversationId, `${cliente.nome || senderName || normalized}`, normalized, config?.unidadeId || null);
+          await saveMessage(supabase, conversationId, "user", messageText, { source: "meta-webhook", message_id: messageId, tipo_contato: contact.tipo, contato_id: contact.id || null });
 
           // Hard block: off-hours → fixed message, no AI
           if (bh.isOffHours) {
             const reply = getOffHoursMessage(cliente.nome, bh.horarioInfo);
-            await saveMessage(supabase, conversationId, "assistant", reply, { source: "meta-webhook", off_hours: true });
-            await sendMessage(config, phone, reply);
+            await saveAndSendAssistant(supabase, config, phone, conversationId, reply, { source: "meta-webhook", off_hours: true });
             continue;
           }
 
@@ -298,14 +339,12 @@ serve(async (req) => {
           const postOrderResult = await isPostOrderFollowUp(supabase, normalized, finalMessageText);
           if (postOrderResult === "rating") {
             const reply = "Obrigado pela avaliação! ⭐ Sua opinião é muito importante para nós. Até a próxima! 😊";
-            await saveMessage(supabase, conversationId, "assistant", reply, { source: "meta-webhook", rating_response: true });
-            await sendMessage(config, phone, reply);
+            await saveAndSendAssistant(supabase, config, phone, conversationId, reply, { source: "meta-webhook", rating_response: true });
             continue;
           }
           if (postOrderResult === true) {
             const reply = "Perfeito! Seu pedido já está confirmado ✅\nA entrega segue em andamento (prazo de 20 a 40 minutos).";
-            await saveMessage(supabase, conversationId, "assistant", reply, { source: "meta-webhook", post_order_followup: true });
-            await sendMessage(config, phone, reply);
+            await saveAndSendAssistant(supabase, config, phone, conversationId, reply, { source: "meta-webhook", post_order_followup: true });
             continue;
           }
 
@@ -321,10 +360,11 @@ serve(async (req) => {
               { role: "user", content: finalMessageText },
             ]);
           } catch (e: any) {
+            console.error("Meta webhook callAI failed:", e?.message || e);
             const fallback = e.message === "RATE_LIMIT"
               ? "Desculpe, estamos com muitas mensagens. Tente novamente! 😊"
-              : "Desculpe, tive um problema técnico. Ligue para nós! 📞";
-            await sendMessage(config, phone, fallback);
+              : buildLocalSalesFallbackReply(finalMessageText, history, cliente, products);
+            await saveAndSendAssistant(supabase, config, phone, conversationId, fallback, { source: "meta-webhook", ai_error: e?.message || "unknown" });
             continue;
           }
 
@@ -334,8 +374,6 @@ serve(async (req) => {
 
           // Strip internal tag before saving / sending
           reply = stripPedidoConfirmadoBlock(reply);
-
-          await saveMessage(supabase, conversationId, "assistant", reply);
 
           // Process cancellation tag
           { const cancelRes = await processCancelTagInReply(supabase, reply, cliente.id); reply = cancelRes.reply; }
@@ -369,7 +407,7 @@ serve(async (req) => {
             const loc = await getEntregadorLocation(supabase, cliente.id);
             if (loc) {
               const cleanReply = reply.replace(/\[STATE\][\s\S]*?\[\/STATE\]/gi, "").trim();
-              await sendMessage(config, phone, cleanReply);
+              await saveAndSendAssistant(supabase, config, phone, conversationId, cleanReply, { source: "meta-webhook", location_reply: true });
               await sendLocation(config, phone, loc.lat, loc.lng, loc.nome);
               continue;
             }
@@ -385,7 +423,7 @@ serve(async (req) => {
           } catch (_) {}
 
           const finalCleanReply = reply.replace(/\[STATE\][\s\S]*?\[\/STATE\]/gi, "").trim();
-          await sendMessage(config, phone, finalCleanReply);
+          await saveAndSendAssistant(supabase, config, phone, conversationId, finalCleanReply, { source: "meta-webhook" });
         }
       }
     }

@@ -60,7 +60,15 @@ serve(async (req) => {
       }
     }
 
-    const unidadeFilter = unidade_id ? `AND unidade_id = '${unidade_id}'` : "";
+    const unidadeFilter = unidade_id
+      ? `AND unidade_id = '${unidade_id}'`
+      : `AND unidade_id IN (SELECT id FROM unidades WHERE empresa_id = '${empresaId}')`;
+    const pedidoAliasFilter = unidade_id
+      ? `AND p.unidade_id = '${unidade_id}'`
+      : `AND p.unidade_id IN (SELECT id FROM unidades WHERE empresa_id = '${empresaId}')`;
+    const entregadorAliasFilter = unidade_id
+      ? `AND e.unidade_id = '${unidade_id}'`
+      : `AND e.unidade_id IN (SELECT id FROM unidades WHERE empresa_id = '${empresaId}')`;
 
     const queries = [
       // Vendas por dia da semana (últimas 8 semanas)
@@ -72,7 +80,7 @@ serve(async (req) => {
       // Top produtos vendidos (últimos 30 dias)
       `SELECT pi.produto_nome, SUM(pi.quantidade) as qtd
        FROM pedido_itens pi JOIN pedidos p ON p.id = pi.pedido_id
-       WHERE p.status != 'cancelado' ${unidadeFilter}
+       WHERE p.status != 'cancelado' ${pedidoAliasFilter}
         AND p.created_at >= NOW() - interval '30 days'
        GROUP BY pi.produto_nome ORDER BY qtd DESC LIMIT 10`,
       // Estoque atual dos top produtos
@@ -83,7 +91,7 @@ serve(async (req) => {
         COUNT(DISTINCT p.created_at::date) as dias_ativos
        FROM entregadores e LEFT JOIN pedidos p ON p.entregador_id = e.id
         AND p.status = 'entregue' AND p.created_at >= NOW() - interval '30 days'
-       WHERE e.ativo = true
+       WHERE e.ativo = true ${entregadorAliasFilter}
        GROUP BY e.id, e.nome ORDER BY total_entregas DESC LIMIT 10`,
       // Tendência semanal (últimas 4 semanas)
       `SELECT date_trunc('week', created_at AT TIME ZONE 'America/Sao_Paulo')::date as semana,

@@ -6,6 +6,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Copy, Download, Share2, QrCode, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRef } from "react";
+import { esc } from "@/lib/escapeHtml";
 
 export default function ParceiroQRCode() {
   const { parceiro, isLoading, disponiveis } = useParceiroDados();
@@ -74,7 +75,7 @@ export default function ParceiroQRCode() {
       <div class="card">
         <div class="logo">🔥 Gas Express25</div>
         <div class="qr">${svg}</div>
-        <div class="name">${parceiro?.nome || "Parceiro"}</div>
+        <div class="name">${esc(parceiro?.nome || "Parceiro")}</div>
         <div class="sub">Escaneie o QR Code para adquirir seu Vale Gás</div>
         <div class="info">Aponte a câmera do celular para o QR Code acima</div>
       </div>

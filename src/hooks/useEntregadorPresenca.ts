@@ -12,9 +12,9 @@ export interface EntregadorPresenca {
   label: string; // texto humano: "Online há 12s", "Em rota · 3 entregas"
 }
 
-const ONLINE_MS = 2 * 60 * 1000;      // <2min = online
-const INSTAVEL_MS = 15 * 60 * 1000;   // 2-15min = instável
-// >15min ou nunca = offline
+const ONLINE_MS = 5 * 60 * 1000;      // <5min = online
+const INSTAVEL_MS = 30 * 60 * 1000;   // 5-30min = instável
+// >30min ou nunca = offline
 
 function humanizeAgo(ms: number): string {
   if (!isFinite(ms)) return "nunca";

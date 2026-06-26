@@ -4,7 +4,8 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calendar, DollarSign, TrendingUp, Save, Loader2 } from "lucide-react";
+import { PageSectionLoader } from "@/components/ui/page-loader";
+import { Calendar, DollarSign, TrendingUp, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 
@@ -59,7 +60,7 @@ export default function PlanejamentoMensal({ embedded = false }: { embedded?: bo
   };
 
   if (loading) {
-    const loader = <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+    const loader = <PageSectionLoader label="Carregando planejamento mensal..." />;
     if (embedded) return loader;
     return (
       <MainLayout>

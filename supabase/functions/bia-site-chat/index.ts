@@ -32,25 +32,24 @@ serve(async (req) => {
     const body = await req.json();
     const { messages = [], unidadeSlug = "fortegas" } = body;
 
-    const empresaSlug = SLUG_TO_EMPRESA[unidadeSlug] ?? unidadeSlug;
+    // SECURITY: enforce strict slug allowlist. Public endpoint must not allow
+    // arbitrary tenant enumeration via guessed slugs.
+    if (!Object.prototype.hasOwnProperty.call(SLUG_TO_EMPRESA, unidadeSlug)) {
+      return new Response(
+        JSON.stringify({ error: "Slug não autorizado" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const empresaSlug = SLUG_TO_EMPRESA[unidadeSlug];
     const nomeLoja = NOME_LOJA[unidadeSlug] ?? "nossa loja";
 
     // Resolve empresa + unidade
-    let { data: empresa } = await supabase
+    const { data: empresa } = await supabase
       .from("empresas")
       .select("id, nome")
       .eq("slug", empresaSlug)
       .maybeSingle();
-
-    // fallback: tenta achar por nome aproximado
-    if (!empresa) {
-      const { data: alt } = await supabase
-        .from("empresas")
-        .select("id, nome")
-        .ilike("nome", `%${nomeLoja}%`)
-        .maybeSingle();
-      empresa = alt;
-    }
 
     if (!empresa) {
       return new Response(
@@ -371,7 +370,14 @@ async function criarPedido(
   if (!prod) return { error: `Produto ${nomeProduto} não cadastrado` };
 
   const qty = Number(quantidade) || 1;
-  const valorTotal = (prod.preco || 0) * qty;
+  const precoUnit = Number(prod.preco) || 0;
+  const valorTotal = precoUnit * qty;
+
+  if (precoUnit <= 0) {
+    return {
+      error: `O produto ${nomeProduto} ainda não tem preço cadastrado nesta loja. Avise o atendente para configurar o preço antes de finalizar o pedido.`,
+    };
+  }
 
   const { data: pedido, error: pedidoErr } = await supabase
     .from("pedidos")
@@ -382,20 +388,28 @@ async function criarPedido(
       canal_venda: "site_ia",
       forma_pagamento: forma_pagamento || "a_definir",
       valor_total: valorTotal,
-      observacoes: `Pedido pela Bia (site). ${referencia ? "Ref: " + referencia : ""}`,
+      endereco_entrega: endereco ?? null,
+      numero_entrega: numero ?? null,
+      bairro_entrega: bairro ?? null,
+      observacoes: `Pedido pela Bia (site).${referencia ? " Ref: " + referencia : ""}${telefone ? " Tel: " + telefone : ""}`,
     })
     .select("id, numero_sequencial")
     .single();
 
   if (pedidoErr) return { error: "Erro ao criar pedido: " + pedidoErr.message };
 
-  await supabase.from("pedido_itens").insert({
+  const { error: itemErr } = await supabase.from("pedido_itens").insert({
     pedido_id: pedido.id,
     produto_id: prod.id,
     quantidade: qty,
-    preco_unitario: prod.preco || 0,
-    subtotal: valorTotal,
+    preco_unitario: precoUnit,
   });
+
+  if (itemErr) {
+    // rollback do pedido para não deixar lixo sem itens
+    await supabase.from("pedidos").delete().eq("id", pedido.id);
+    return { error: "Erro ao gravar item do pedido: " + itemErr.message };
+  }
 
   return {
     sucesso: true,

@@ -13,13 +13,44 @@ export const COLOR_OPTIONS = [
 
 export const THEME_PRESETS = [
   {
-    id: "gas-classico",
-    label: "Gás Clássico",
-    description: "Azul confiança com cards limpos e sidebar gradiente",
-    cor: "210 80% 50%",
-    hex: "#1a6fcc",
+    id: "premium-light",
+    label: "Premium · Padrão",
+    description: "Midnight Indigo · menu escuro, cards limpos, KPI com filete indigo",
+    cor: "238 75% 58%",
+    hex: "#4f46e5",
     dark: false,
-    gradient: "linear-gradient(135deg, #1a6fcc 0%, #143d80 100%)",
+    gradient: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #4f46e5 100%)",
+    brandThemeId: "premium",
+    recommended: true,
+  },
+  {
+    id: "premium-night",
+    label: "Premium · Escuro",
+    description: "Midnight Indigo dark · acento dourado, cards grafite, premium SaaS",
+    cor: "238 90% 70%",
+    hex: "#818cf8",
+    dark: true,
+    gradient: "linear-gradient(135deg, #050816 0%, #1e1b4b 55%, #c9a84c 100%)",
+    brandThemeId: "premium",
+    recommended: true,
+  },
+  {
+    id: "gas-classico",
+    label: "Gás Clássico Pro",
+    description: "Tema profissional para revenda: azul petróleo, chama âmbar e superfícies nítidas",
+    cor: "210 80% 50%",
+    hex: "#145184",
+    dark: false,
+    gradient: "linear-gradient(135deg, #0b2440 0%, #145184 48%, #f59e0b 100%)",
+  },
+  {
+    id: "operacional-clean",
+    label: "Operacional Clean",
+    description: "ERP administrativo: topo escuro, menu claro, cards objetivos e tabelas em grade",
+    cor: "151 39% 48%",
+    hex: "#55a460",
+    dark: false,
+    gradient: "linear-gradient(135deg, #101820 0%, #273746 52%, #55a460 100%)",
   },
   {
     id: "eco-verde",
@@ -31,7 +62,7 @@ export const THEME_PRESETS = [
     gradient: "linear-gradient(135deg, #1f9e5c 0%, #0f6b3f 100%)",
   },
   {
-    id: "premium-dark",
+    id: "premium-dark-legacy",
     label: "Premium Dark",
     description: "Escuro sofisticado com destaque roxo e cards grafite",
     cor: "260 60% 50%",
@@ -125,36 +156,156 @@ export const THEME_PRESETS = [
  * (.system-surface) — preservam branding próprio mesmo após troca de tema.
  */
 export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
-  "gas-classico": {
-    "--background": "210 40% 98%",
+  "premium-light": {
+    "--background": "220 25% 98%",
     "--foreground": "222 47% 11%",
     "--card": "0 0% 100%",
     "--card-foreground": "222 47% 11%",
     "--popover": "0 0% 100%",
     "--popover-foreground": "222 47% 11%",
-    "--primary": "210 80% 50%",
+    "--primary": "238 75% 58%",
     "--primary-foreground": "0 0% 100%",
-    "--secondary": "210 40% 94%",
-    "--secondary-foreground": "222 47% 11%",
-    "--muted": "210 40% 96%",
-    "--muted-foreground": "215 16% 47%",
-    "--accent": "210 80% 50%",
+    "--secondary": "220 22% 94%",
+    "--secondary-foreground": "222 47% 14%",
+    "--muted": "220 20% 95%",
+    "--muted-foreground": "222 16% 38%",
+    "--accent": "43 78% 52%",
+    "--accent-foreground": "222 47% 11%",
+    "--border": "220 18% 88%",
+    "--input": "220 18% 88%",
+    "--ring": "238 75% 58%",
+    "--sidebar-background": "222 47% 11%",
+    "--sidebar-gradient-from": "222 47% 11%",
+    "--sidebar-gradient-to": "235 50% 16%",
+    "--sidebar-foreground": "220 18% 92%",
+    "--sidebar-primary": "238 80% 64%",
+    "--sidebar-primary-foreground": "0 0% 100%",
+    "--sidebar-accent": "238 75% 58%",
+    "--sidebar-accent-foreground": "0 0% 100%",
+    "--sidebar-border": "222 30% 20%",
+    "--sidebar-ring": "238 80% 64%",
+    "--kpi-accent": "238 75% 58%",
+    "--gradient-primary": "linear-gradient(135deg, hsl(238 75% 58%) 0%, hsl(222 47% 22%) 100%)",
+    "--shadow-glow": "0 0 28px hsl(238 75% 58% / 0.28)",
+  },
+  "premium-night": {
+    "--background": "222 47% 6%",
+    "--foreground": "220 18% 96%",
+    "--card": "222 40% 10%",
+    "--card-foreground": "220 18% 96%",
+    "--popover": "222 40% 10%",
+    "--popover-foreground": "220 18% 96%",
+    "--primary": "238 90% 70%",
+    "--primary-foreground": "222 47% 6%",
+    "--secondary": "222 30% 16%",
+    "--secondary-foreground": "220 18% 96%",
+    "--muted": "222 28% 14%",
+    "--muted-foreground": "220 14% 70%",
+    "--accent": "43 85% 62%",
+    "--accent-foreground": "222 47% 6%",
+    "--border": "222 25% 18%",
+    "--input": "222 25% 18%",
+    "--ring": "238 90% 70%",
+    "--sidebar-background": "222 50% 4%",
+    "--sidebar-gradient-from": "222 50% 4%",
+    "--sidebar-gradient-to": "235 55% 10%",
+    "--sidebar-foreground": "220 18% 92%",
+    "--sidebar-primary": "238 90% 70%",
+    "--sidebar-primary-foreground": "222 47% 6%",
+    "--sidebar-accent": "238 60% 22%",
+    "--sidebar-accent-foreground": "220 18% 96%",
+    "--sidebar-border": "222 25% 14%",
+    "--sidebar-ring": "238 90% 70%",
+    "--kpi-accent": "43 85% 62%",
+    "--gradient-primary": "linear-gradient(135deg, hsl(222 50% 8%) 0%, hsl(238 60% 28%) 100%)",
+    "--shadow-glow": "0 0 30px hsl(238 90% 70% / 0.4)",
+  },
+  "operacional-clean": {
+    "--background": "0 0% 96%",
+    "--foreground": "210 22% 12%",
+    "--card": "0 0% 100%",
+    "--card-foreground": "210 22% 12%",
+    "--popover": "0 0% 100%",
+    "--popover-foreground": "210 22% 12%",
+    "--primary": "151 39% 48%",
+    "--primary-foreground": "0 0% 100%",
+    "--secondary": "210 18% 15%",
+    "--secondary-foreground": "0 0% 100%",
+    "--muted": "210 10% 92%",
+    "--muted-foreground": "210 8% 38%",
+    "--accent": "213 43% 49%",
     "--accent-foreground": "0 0% 100%",
-    "--border": "214 32% 91%",
-    "--input": "214 32% 91%",
-    "--ring": "210 80% 50%",
-    "--sidebar-background": "210 80% 50%",
-    "--sidebar-gradient-from": "210 80% 50%",
-    "--sidebar-gradient-to": "218 80% 32%",
-    "--sidebar-foreground": "0 0% 100%",
-    "--sidebar-primary": "0 0% 100%",
-    "--sidebar-primary-foreground": "210 80% 20%",
+    "--border": "210 10% 82%",
+    "--input": "210 10% 82%",
+    "--ring": "151 39% 48%",
+    "--success": "126 32% 49%",
+    "--success-foreground": "0 0% 100%",
+    "--warning": "36 70% 53%",
+    "--warning-foreground": "0 0% 100%",
+    "--info": "213 43% 49%",
+    "--info-foreground": "0 0% 100%",
+    "--destructive": "7 62% 60%",
+    "--destructive-foreground": "0 0% 100%",
+    "--sidebar-background": "0 0% 94%",
+    "--sidebar-gradient-from": "0 0% 96%",
+    "--sidebar-gradient-to": "0 0% 92%",
+    "--sidebar-foreground": "210 10% 26%",
+    "--sidebar-primary": "210 22% 12%",
+    "--sidebar-primary-foreground": "0 0% 100%",
     "--sidebar-accent": "0 0% 100%",
-    "--sidebar-accent-foreground": "210 80% 24%",
-    "--sidebar-border": "210 50% 70%",
-    "--sidebar-ring": "0 0% 100%",
-    "--gradient-primary": "linear-gradient(135deg, hsl(210 80% 50%) 0%, hsl(218 80% 32%) 100%)",
-    "--shadow-glow": "0 0 24px hsl(210 80% 50% / 0.3)",
+    "--sidebar-accent-foreground": "210 22% 12%",
+    "--sidebar-border": "210 9% 82%",
+    "--sidebar-ring": "151 39% 48%",
+    "--kpi-accent": "151 39% 48%",
+    "--clean-header-bg": "0 0% 100%",
+    "--clean-sidebar-unit-bg": "210 22% 12%",
+    "--clean-action-green": "151 39% 48%",
+    "--clean-table-grid": "210 10% 82%",
+    "--gradient-primary": "linear-gradient(135deg, hsl(210 22% 12%) 0%, hsl(151 39% 48%) 100%)",
+    "--gradient-dark": "linear-gradient(135deg, hsl(210 22% 12%) 0%, hsl(210 18% 18%) 100%)",
+    "--gradient-card": "linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 100%)",
+    "--shadow-glow": "0 10px 26px -18px hsl(210 22% 12% / 0.28)",
+  },
+  "gas-classico": {
+    "--background": "210 32% 97%",
+    "--foreground": "216 42% 12%",
+    "--card": "0 0% 100%",
+    "--card-foreground": "216 42% 12%",
+    "--popover": "0 0% 100%",
+    "--popover-foreground": "216 42% 12%",
+    "--primary": "207 76% 32%",
+    "--primary-foreground": "0 0% 100%",
+    "--secondary": "36 92% 54%",
+    "--secondary-foreground": "24 68% 12%",
+    "--muted": "210 30% 94%",
+    "--muted-foreground": "215 16% 39%",
+    "--accent": "36 92% 54%",
+    "--accent-foreground": "24 68% 12%",
+    "--border": "212 28% 86%",
+    "--input": "212 28% 86%",
+    "--ring": "207 76% 32%",
+    "--success": "151 56% 38%",
+    "--success-foreground": "0 0% 100%",
+    "--warning": "36 92% 54%",
+    "--warning-foreground": "24 68% 12%",
+    "--info": "199 88% 38%",
+    "--info-foreground": "0 0% 100%",
+    "--destructive": "0 72% 51%",
+    "--destructive-foreground": "0 0% 100%",
+    "--sidebar-background": "211 69% 13%",
+    "--sidebar-gradient-from": "212 72% 10%",
+    "--sidebar-gradient-to": "207 76% 22%",
+    "--sidebar-foreground": "210 36% 94%",
+    "--sidebar-primary": "36 92% 54%",
+    "--sidebar-primary-foreground": "24 68% 12%",
+    "--sidebar-accent": "207 70% 24%",
+    "--sidebar-accent-foreground": "0 0% 100%",
+    "--sidebar-border": "207 52% 28%",
+    "--sidebar-ring": "36 92% 54%",
+    "--gradient-primary": "linear-gradient(135deg, hsl(211 69% 13%) 0%, hsl(207 76% 32%) 58%, hsl(36 92% 54%) 100%)",
+    "--gradient-dark": "linear-gradient(135deg, hsl(212 72% 10%) 0%, hsl(207 76% 22%) 100%)",
+    "--gradient-card": "linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(210 38% 98%) 100%)",
+    "--shadow-glow": "0 14px 34px -18px hsl(207 76% 32% / 0.35)",
   },
   "eco-verde": {
     "--background": "150 25% 97%",
@@ -187,7 +338,7 @@ export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
     "--gradient-primary": "linear-gradient(135deg, hsl(152 69% 40%) 0%, hsl(160 60% 26%) 100%)",
     "--shadow-glow": "0 0 24px hsl(152 69% 40% / 0.3)",
   },
-  "premium-dark": {
+  "premium-dark-legacy": {
     "--background": "240 12% 6%",
     "--foreground": "260 15% 96%",
     "--card": "240 12% 11%",
@@ -441,7 +592,566 @@ export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
   },
 };
 
+/* =====================================================================
+   PREMIUM — efeitos finos: KPIs com faixa indigo/dourado, tabelas com
+   header limpo, sidebar com item ativo destacado, sem "card dentro de card".
+   ===================================================================== */
+const PREMIUM_BASE_CSS = (presetId: string, accent: string, surfaceBorder: string) => `
+  html[data-theme-preset="${presetId}"] .app-card {
+    border-radius: 0.875rem;
+    box-shadow:
+      0 1px 2px hsl(222 47% 11% / 0.05),
+      0 8px 24px -14px hsl(222 47% 11% / 0.14);
+  }
+  html[data-theme-preset="${presetId}"] .app-card.kpi {
+    background-image: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted) / 0.55) 100%);
+    border-left: 2px solid hsl(${accent});
+  }
+  html[data-theme-preset="${presetId}"] .app-card .app-card {
+    border-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+  html[data-theme-preset="${presetId}"] .saas-table thead {
+    background-color: hsl(var(--muted) / 0.6);
+  }
+  html[data-theme-preset="${presetId}"] .saas-table thead th {
+    color: hsl(var(--muted-foreground));
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  html[data-theme-preset="${presetId}"] .saas-table tbody tr {
+    border-bottom: 1px solid hsl(${surfaceBorder});
+  }
+  html[data-theme-preset="${presetId}"] .saas-table tbody tr:hover {
+    background-color: hsl(var(--muted) / 0.45);
+  }
+  html[data-theme-preset="${presetId}"] [data-sidebar="menu-button"][data-active="true"] {
+    background-color: hsl(${accent} / 0.18) !important;
+    color: hsl(var(--sidebar-foreground)) !important;
+    box-shadow: inset 2px 0 0 hsl(${accent});
+    font-weight: 600;
+  }
+  html[data-theme-preset="${presetId}"] [data-sidebar="menu-button"]:hover {
+    background-color: hsl(${accent} / 0.10);
+  }
+  html[data-theme-preset="${presetId}"] [data-sidebar="group-label"] {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 10.5px;
+    opacity: 0.7;
+  }
+  @media (max-width: 640px) {
+    html[data-theme-preset="${presetId}"] .app-card { border-radius: 0.75rem; }
+    html[data-theme-preset="${presetId}"] .app-card-content { padding: 1rem; }
+    html[data-theme-preset="${presetId}"] .app-card-header { padding: 1rem 1rem 0.5rem; }
+    html[data-theme-preset="${presetId}"] [data-sidebar="menu-button"] { min-height: 44px; }
+  }
+`;
+
 export const PRESET_EXTRA_CSS: Record<string, string> = {
+  "operacional-clean": `
+    html[data-theme-preset="operacional-clean"] body,
+    html[data-theme-preset="operacional-clean"] .system-surface {
+      background: hsl(0 0% 96%) !important;
+      color: hsl(210 22% 12%);
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-header-premium {
+      background: hsl(var(--clean-header-bg)) !important;
+      border-color: hsl(220 13% 88%) !important;
+      color: hsl(220 39% 11%) !important;
+      box-shadow: 0 1px 0 hsl(220 13% 91%) !important;
+      backdrop-filter: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .clean-header {
+      min-height: 3.5rem !important;
+      height: 3.5rem !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      z-index: 50 !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .clean-header-brand,
+    html[data-theme-preset="operacional-clean"] .clean-header-menu,
+    html[data-theme-preset="operacional-clean"] .clean-header-ai {
+      color: hsl(220 39% 11%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .clean-header-brand:hover,
+    html[data-theme-preset="operacional-clean"] .clean-header-menu:hover,
+    html[data-theme-preset="operacional-clean"] .clean-header-ai:hover {
+      background: hsl(220 14% 94%) !important;
+      color: hsl(220 39% 11%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-header-premium h1,
+    html[data-theme-preset="operacional-clean"] .app-header-premium .text-primary {
+      color: hsl(220 39% 11%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-header-premium .text-foreground\\/65,
+    html[data-theme-preset="operacional-clean"] .app-header-premium .text-foreground\\/70,
+    html[data-theme-preset="operacional-clean"] .app-header-premium .text-foreground\\/80 {
+      color: hsl(220 14% 35%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .header-unit-selector {
+      background: hsl(0 0% 100%) !important;
+      border-color: hsl(220 13% 85%) !important;
+      color: hsl(220 39% 11%) !important;
+      border-radius: 4px !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .header-actions button:not(.header-unit-selector) {
+      color: hsl(220 39% 11%) !important;
+      border-radius: 4px !important;
+      min-height: 2.25rem;
+      min-width: 2.25rem;
+    }
+
+    html[data-theme-preset="operacional-clean"] .header-actions button:not(.header-unit-selector):hover {
+      background: hsl(220 14% 94%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-header-premium .bg-primary {
+      background: hsl(151 39% 48%) !important;
+      color: hsl(0 0% 100%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern {
+      background: linear-gradient(180deg, hsl(0 0% 96%) 0%, hsl(0 0% 92%) 100%) !important;
+      color: hsl(210 10% 26%) !important;
+      border-color: hsl(210 9% 82%) !important;
+      box-shadow: 10px 0 26px -22px hsl(210 22% 12% / 0.34) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .clean-sidebar {
+      z-index: 60 !important;
+      border-radius: 0 !important;
+      pointer-events: auto;
+    }
+
+    html[data-theme-preset="operacional-clean"] .sidebar-unit-selector {
+      background: hsl(var(--clean-sidebar-unit-bg)) !important;
+      border-color: hsl(210 12% 20%) !important;
+      color: hsl(0 0% 98%) !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .sidebar-unit-selector * {
+      color: inherit !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .sidebar-unit-selector .bg-background\\/70 {
+      background: hsl(0 0% 100% / 0.14) !important;
+      border-color: hsl(0 0% 100% / 0.28) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium::before,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern::before {
+      display: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium [class*="rounded-3xl"],
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern [class*="rounded-3xl"] {
+      border-radius: 6px !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium a,
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium button,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern a,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern button {
+      color: hsl(210 10% 26%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium .bg-sidebar-accent,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern .bg-sidebar-accent,
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium .gradient-primary,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern .gradient-primary {
+      background: hsl(0 0% 100%) !important;
+      color: hsl(210 22% 12%) !important;
+      box-shadow: inset 3px 0 0 hsl(151 39% 48%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav > div > *,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav > div > * {
+      border-bottom: 1px solid hsl(220 13% 88%);
+      border-radius: 0 !important;
+      margin: 0 !important;
+      padding-top: 2px;
+      padding-bottom: 2px;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav > div > *:last-child,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav > div > *:last-child {
+      border-bottom: none;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav > div > * > a,
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav > div > * > button,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav > div > * > a,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav > div > * > button {
+      border-radius: 0 !important;
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav a,
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav button,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav a,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav button {
+      border-radius: 0 !important;
+    }
+
+    /* Submenu: remove pill background, animate only the text */
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav a[class*="rounded-full"],
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav a[class*="rounded-full"] {
+      background: transparent !important;
+      box-shadow: none !important;
+      --tw-ring-shadow: 0 0 #0000 !important;
+      --tw-ring-offset-shadow: 0 0 #0000 !important;
+      ring-width: 0 !important;
+      transition: color 0.2s ease, transform 0.2s ease !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav a[class*="rounded-full"]:hover,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav a[class*="rounded-full"]:hover {
+      background: transparent !important;
+      color: hsl(151 39% 38%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav a[class*="rounded-full"] > span,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav a[class*="rounded-full"] > span {
+      transition: transform 0.2s ease, color 0.2s ease, font-weight 0.2s ease;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav a[class*="rounded-full"]:hover > span,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav a[class*="rounded-full"]:hover > span {
+      transform: translateX(3px);
+      color: hsl(151 39% 38%);
+      font-weight: 700;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav a[class*="bg-sidebar-accent"],
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav a[class*="bg-sidebar-accent"] {
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-sidebar-premium nav a[class*="bg-sidebar-accent"] > span,
+    html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern nav a[class*="bg-sidebar-accent"] > span {
+      color: hsl(151 39% 38%) !important;
+      font-weight: 700 !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-card,
+    html[data-theme-preset="operacional-clean"] .modern-panel,
+    html[data-theme-preset="operacional-clean"] .modern-status-card,
+    html[data-theme-preset="operacional-clean"] .table-card-shell,
+    html[data-theme-preset="operacional-clean"] .mobile-record-card {
+      background: hsl(0 0% 100%) !important;
+      border: 1px solid hsl(210 10% 80% / 0.95) !important;
+      border-radius: 4px !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-card::before,
+    html[data-theme-preset="operacional-clean"] .modern-panel::before,
+    html[data-theme-preset="operacional-clean"] .modern-status-card::before,
+    html[data-theme-preset="operacional-clean"] .table-card-shell::before,
+    html[data-theme-preset="operacional-clean"] .mobile-record-card::before {
+      display: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .app-card-header,
+    html[data-theme-preset="operacional-clean"] .modern-panel-header {
+      background: hsl(0 0% 100%) !important;
+      border-bottom: 1px solid hsl(210 10% 84%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .system-surface input,
+    html[data-theme-preset="operacional-clean"] .system-surface textarea,
+    html[data-theme-preset="operacional-clean"] .system-surface select,
+    html[data-theme-preset="operacional-clean"] .system-surface [role="combobox"] {
+      background: hsl(0 0% 100%) !important;
+      border-color: hsl(210 10% 78%) !important;
+      border-radius: 4px !important;
+      color: hsl(210 22% 12%) !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .system-surface input:focus,
+    html[data-theme-preset="operacional-clean"] .system-surface textarea:focus,
+    html[data-theme-preset="operacional-clean"] .system-surface [role="combobox"]:focus-visible {
+      border-color: hsl(var(--clean-action-green)) !important;
+      box-shadow: 0 0 0 2px hsl(var(--clean-action-green) / 0.18) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] [role="dialog"],
+    html[data-theme-preset="operacional-clean"] [data-radix-popper-content-wrapper] [role="menu"],
+    html[data-theme-preset="operacional-clean"] [data-radix-popper-content-wrapper] [role="listbox"] {
+      border-color: hsl(210 10% 80%) !important;
+      border-radius: 6px !important;
+      box-shadow: 0 18px 48px -30px hsl(210 22% 12% / 0.45) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .system-surface button.bg-primary,
+    html[data-theme-preset="operacional-clean"] .system-surface .bg-primary.text-primary-foreground {
+      background: hsl(var(--clean-action-green)) !important;
+      color: hsl(0 0% 100%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .kpi-card,
+    html[data-theme-preset="operacional-clean"] .highlight-card-primary,
+    html[data-theme-preset="operacional-clean"] .highlight-card-success,
+    html[data-theme-preset="operacional-clean"] .highlight-card-warning,
+    html[data-theme-preset="operacional-clean"] .highlight-card-danger {
+      border-radius: 4px !important;
+      border-color: transparent !important;
+      color: hsl(0 0% 100%) !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .kpi-card-primary,
+    html[data-theme-preset="operacional-clean"] .highlight-card-primary {
+      background: hsl(213 43% 49%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .kpi-card-success,
+    html[data-theme-preset="operacional-clean"] .highlight-card-success {
+      background: hsl(126 32% 49%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .kpi-card-warning,
+    html[data-theme-preset="operacional-clean"] .highlight-card-warning {
+      background: hsl(36 70% 53%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .kpi-card-destructive,
+    html[data-theme-preset="operacional-clean"] .highlight-card-danger {
+      background: hsl(7 62% 60%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .kpi-card *,
+    html[data-theme-preset="operacional-clean"] .highlight-card-primary *,
+    html[data-theme-preset="operacional-clean"] .highlight-card-success *,
+    html[data-theme-preset="operacional-clean"] .highlight-card-warning *,
+    html[data-theme-preset="operacional-clean"] .highlight-card-danger * {
+      color: currentColor !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .saas-table {
+      border-collapse: separate !important;
+      border-spacing: 0 !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .saas-table thead tr,
+    html[data-theme-preset="operacional-clean"] .system-surface table thead tr {
+      background: hsl(0 0% 98%) !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .saas-table th,
+    html[data-theme-preset="operacional-clean"] .system-surface table th {
+      background: hsl(0 0% 98%) !important;
+      color: hsl(210 22% 12%) !important;
+      border-top: 1px solid hsl(210 10% 82%) !important;
+      border-bottom: 1px solid hsl(210 10% 82%) !important;
+      border-right: 1px solid hsl(210 10% 84%) !important;
+      border-radius: 0 !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      letter-spacing: 0 !important;
+      text-transform: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .saas-table th:first-child,
+    html[data-theme-preset="operacional-clean"] .system-surface table th:first-child {
+      border-left: 1px solid hsl(210 10% 82%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .saas-table td,
+    html[data-theme-preset="operacional-clean"] .system-surface table td {
+      background: hsl(210 8% 97%) !important;
+      border-bottom: 1px solid hsl(210 10% 82%) !important;
+      border-right: 1px solid hsl(210 10% 84%) !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      color: hsl(210 22% 12%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .saas-table td:first-child,
+    html[data-theme-preset="operacional-clean"] .system-surface table td:first-child {
+      border-left: 1px solid hsl(210 10% 82%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .saas-table tbody tr:hover td,
+    html[data-theme-preset="operacional-clean"] .system-surface table tbody tr:hover td {
+      background: hsl(210 10% 93%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .btn-primary,
+    html[data-theme-preset="operacional-clean"] button.bg-primary {
+      border-radius: 4px !important;
+      box-shadow: none !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .quick-action-tile {
+      border-radius: 4px !important;
+      box-shadow: none !important;
+      border: 1px solid hsl(210 10% 82%) !important;
+    }
+    html[data-theme-preset="operacional-clean"] .quick-action-tile:hover {
+      box-shadow: 0 2px 6px hsl(210 22% 12% / 0.08) !important;
+      transform: none !important;
+    }
+
+    @media (max-width: 768px) {
+      html[data-theme-preset="operacional-clean"] .app-header-premium {
+        min-height: 72px;
+      }
+
+      html[data-theme-preset="operacional-clean"] .mobile-record-card {
+        border-radius: 6px !important;
+      }
+
+      html[data-theme-preset="operacional-clean"] .kpi-card,
+      html[data-theme-preset="operacional-clean"] .modern-status-card {
+        min-height: 104px;
+      }
+    }
+  `,
+  "premium-light": PREMIUM_BASE_CSS("premium-light", "238 75% 58%", "220 18% 90%"),
+  "premium-night": PREMIUM_BASE_CSS("premium-night", "43 85% 62%", "222 25% 18%") + `
+    html[data-theme-preset="premium-night"] body {
+      background-image:
+        radial-gradient(ellipse 80% 40% at 50% -10%, hsl(238 80% 30% / 0.25), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, hsl(43 80% 40% / 0.10), transparent);
+      background-attachment: fixed;
+    }
+  `,
+  "gas-classico": `
+    html[data-theme-preset="gas-classico"] body {
+      background:
+        radial-gradient(circle at 12% 4%, hsl(207 76% 32% / 0.10), transparent 24rem),
+        radial-gradient(circle at 92% 0%, hsl(36 92% 54% / 0.10), transparent 22rem),
+        linear-gradient(180deg, hsl(210 32% 97%) 0%, hsl(204 32% 96%) 100%);
+      background-attachment: fixed;
+    }
+
+    html[data-theme-preset="gas-classico"] .system-surface {
+      background:
+        radial-gradient(circle at 16% 8%, hsl(207 76% 32% / 0.08), transparent 28rem),
+        radial-gradient(circle at 90% 12%, hsl(36 92% 54% / 0.08), transparent 24rem),
+        linear-gradient(180deg, hsl(var(--background)) 0%, hsl(210 32% 95%) 100%);
+    }
+
+    html[data-theme-preset="gas-classico"] .app-sidebar-premium {
+      background:
+        linear-gradient(180deg, hsl(212 72% 10%) 0%, hsl(211 69% 13%) 46%, hsl(207 76% 20%) 100%) !important;
+      box-shadow: 18px 0 42px -30px hsl(211 69% 13% / 0.85);
+    }
+
+    html[data-theme-preset="gas-classico"] .app-sidebar-premium::before {
+      background:
+        radial-gradient(circle at 50% 0%, hsl(36 92% 54% / 0.22), transparent 13rem),
+        linear-gradient(180deg, hsl(36 92% 54% / 0.16), transparent 32%);
+      opacity: 1;
+    }
+
+    html[data-theme-preset="gas-classico"] .app-mobile-sidebar-modern {
+      background:
+        linear-gradient(180deg, hsl(212 72% 10%) 0%, hsl(207 76% 20%) 100%) !important;
+    }
+
+    html[data-theme-preset="gas-classico"] .app-card,
+    html[data-theme-preset="gas-classico"] .modern-panel,
+    html[data-theme-preset="gas-classico"] .modern-status-card,
+    html[data-theme-preset="gas-classico"] .table-card-shell,
+    html[data-theme-preset="gas-classico"] .mobile-record-card {
+      background-image: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(210 38% 98.5%) 100%);
+      border-color: hsl(212 28% 84% / 0.85);
+      box-shadow:
+        0 1px 2px hsl(216 42% 12% / 0.04),
+        0 14px 34px -24px hsl(207 76% 32% / 0.34);
+    }
+
+    html[data-theme-preset="gas-classico"] .app-card::before,
+    html[data-theme-preset="gas-classico"] .modern-panel::before,
+    html[data-theme-preset="gas-classico"] .modern-status-card::before {
+      height: 3px;
+      background: linear-gradient(90deg, hsl(207 76% 32%) 0%, hsl(199 88% 38%) 45%, hsl(36 92% 54%) 100%);
+      opacity: 0.9;
+    }
+
+    html[data-theme-preset="gas-classico"] .app-card-header {
+      background: linear-gradient(90deg, hsl(207 76% 32% / 0.08), hsl(0 0% 100%) 58%, hsl(36 92% 54% / 0.08));
+      border-color: hsl(212 28% 86%);
+    }
+
+    html[data-theme-preset="gas-classico"] .kpi-card {
+      border-left-width: 4px;
+      border-left-color: hsl(var(--primary));
+    }
+
+    html[data-theme-preset="gas-classico"] .kpi-card:nth-of-type(4n + 2) {
+      border-left-color: hsl(var(--success));
+    }
+
+    html[data-theme-preset="gas-classico"] .kpi-card:nth-of-type(4n + 3) {
+      border-left-color: hsl(var(--warning));
+    }
+
+    html[data-theme-preset="gas-classico"] .kpi-card:nth-of-type(4n + 4) {
+      border-left-color: hsl(var(--info));
+    }
+
+    html[data-theme-preset="gas-classico"] .saas-table thead tr {
+      background: linear-gradient(90deg, hsl(211 34% 91%) 0%, hsl(210 32% 94%) 100%) !important;
+      color: hsl(216 42% 12%) !important;
+    }
+
+    html[data-theme-preset="gas-classico"] .saas-table th {
+      color: hsl(216 42% 12%) !important;
+      letter-spacing: 0.02em;
+    }
+
+    html[data-theme-preset="gas-classico"] .saas-table tbody td {
+      border-color: hsl(212 28% 86% / 0.9);
+      background: hsl(0 0% 100%);
+    }
+
+    html[data-theme-preset="gas-classico"] .saas-table tbody tr:hover td {
+      background: hsl(207 76% 32% / 0.055);
+    }
+
+    html[data-theme-preset="gas-classico"] .mobile-record-card {
+      border-radius: 18px;
+      padding: 0.875rem;
+    }
+
+    html[data-theme-preset="gas-classico"] .mobile-record-card-footer {
+      border-color: hsl(212 28% 86%);
+    }
+
+    @media (max-width: 768px) {
+      html[data-theme-preset="gas-classico"] .app-card,
+      html[data-theme-preset="gas-classico"] .modern-panel,
+      html[data-theme-preset="gas-classico"] .mobile-record-card {
+        box-shadow:
+          0 1px 2px hsl(216 42% 12% / 0.04),
+          0 10px 26px -22px hsl(207 76% 32% / 0.38);
+      }
+
+      html[data-theme-preset="gas-classico"] .saas-table {
+        min-width: 680px;
+      }
+    }
+  `,
   "forte-gas-light": `
     html[data-theme-preset="forte-gas-light"] .bg-card {
       background-image: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(210 50% 99.5%) 100%);
@@ -567,6 +1277,8 @@ const BRAND_THEME_SELECTORS = [
   ".brand-theme-signature",
   ".brand-theme-gasmais",
   ".brand-theme-executive",
+  ".brand-theme-classic",
+  ".brand-theme-premium",
 ];
 
 function buildPresetVarsCss(presetId: string, overrides: Record<string, string>): string {

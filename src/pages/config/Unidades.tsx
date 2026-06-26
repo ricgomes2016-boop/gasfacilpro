@@ -35,6 +35,9 @@ const PROVEDORES = [
   { v: "nfe_io", l: "NFe.io" },
 ];
 
+const UNIDADES_CONFIG_COLUMNS =
+  "id, nome, tipo, ativo, razao_social, nome_fantasia, cnpj, inscricao_estadual, inscricao_estadual_st, inscricao_municipal, cnae_principal, regime_tributario, telefone, email, endereco, bairro, cidade, estado, cep, chave_pix, horario_abertura, horario_fechamento, certificado_a1_validade, certificado_a1_titular, nfe_ambiente, nfe_serie, nfe_proximo_numero, nfce_serie, nfce_proximo_numero, nfce_csc_id, cte_serie, cte_proximo_numero, cfop_padrao_venda, cfop_padrao_devolucao, natureza_operacao_padrao, aliquota_icms_padrao, aliquota_pis_padrao, aliquota_cofins_padrao, cst_csosn_padrao, contador_nome, contador_crc, contador_telefone, provedor_nfe, provedor_nfe_url, empresa_id, created_at, updated_at, gas_do_povo_habilitado, gas_do_povo_valor, whatsapp_notificacao_pedido";
+
 export default function UnidadesConfig() {
   const { toast } = useToast();
   const [unidades, setUnidades] = useState<AnyUnidade[]>([]);
@@ -58,9 +61,7 @@ export default function UnidadesConfig() {
       // They are loaded on demand via the get_unidade_credenciais RPC.
       const { data, error } = await supabase
         .from("unidades")
-        .select(
-          "id, nome, tipo, ativo, razao_social, nome_fantasia, cnpj, inscricao_estadual, inscricao_estadual_st, inscricao_municipal, cnae_principal, regime_tributario, telefone, email, endereco, bairro, cidade, estado, cep, chave_pix, bairros_atendidos, horario_abertura, horario_fechamento, certificado_a1_path, certificado_a1_validade, certificado_a1_titular, nfe_ambiente, nfe_serie, nfe_proximo_numero, nfce_serie, nfce_proximo_numero, nfce_csc_id, cte_serie, cte_proximo_numero, cfop_padrao_venda, cfop_padrao_devolucao, natureza_operacao_padrao, aliquota_icms_padrao, aliquota_pis_padrao, aliquota_cofins_padrao, cst_csosn_padrao, contador_nome, contador_crc, contador_telefone, provedor_nfe, provedor_nfe_url, empresa_id, created_at, updated_at"
-        )
+        .select(UNIDADES_CONFIG_COLUMNS)
         .eq("ativo", true)
         .order("tipo")
         .order("nome");
@@ -84,12 +85,15 @@ export default function UnidadesConfig() {
     const errs: string[] = [];
     const has = (v: any) => v !== null && v !== undefined && String(v).trim() !== "";
 
-    const certAny = has(u.certificado_a1_path) || has(u.certificado_a1_senha) || has(u.certificado_a1_validade) || has(u.certificado_a1_titular);
+    const certConfigured = Boolean(u.certificado_a1_configurado || u.certificado_a1_path);
+    // Só valida certificado quando o usuário está efetivamente configurando agora
+    // (enviou arquivo novo ou digitou senha). Apenas validade/titular preenchidos
+    // não devem disparar exigência — são metadados informativos.
+    const certAny = Boolean(u.certificado_a1_path) || has(u.certificado_a1_senha);
     if (certAny) {
-      if (!has(u.certificado_a1_path)) errs.push("Certificado A1: envie o arquivo .pfx ou .p12.");
+      if (!certConfigured) errs.push("Certificado A1: envie o arquivo .pfx ou .p12.");
       if (!has(u.certificado_a1_senha)) errs.push("Certificado A1: informe a senha.");
-      if (!has(u.certificado_a1_validade)) errs.push("Certificado A1: informe a data de validade.");
-      else {
+      if (has(u.certificado_a1_validade)) {
         const d = new Date(u.certificado_a1_validade);
         if (isNaN(d.getTime())) errs.push("Certificado A1: data de validade inválida.");
         else if (d < new Date(new Date().toDateString())) errs.push("Certificado A1 está vencido — substitua antes de emitir notas.");
@@ -112,7 +116,7 @@ export default function UnidadesConfig() {
     }
 
     if (u.nfe_ambiente === "producao") {
-      if (!has(u.certificado_a1_path) || !has(u.certificado_a1_senha)) {
+      if (!certConfigured || !has(u.certificado_a1_senha)) {
         errs.push("Ambiente Produção exige Certificado A1 e senha cadastrados.");
       }
       if (!has(u.cnpj)) errs.push("Ambiente Produção exige CNPJ da unidade.");
@@ -165,6 +169,7 @@ export default function UnidadesConfig() {
         regime_tributario: u.regime_tributario || null,
         telefone: u.telefone || null,
         email: u.email || null,
+        whatsapp_notificacao_pedido: (u as any).whatsapp_notificacao_pedido?.replace(/\D/g, "") || null,
         // Endereço
         endereco: u.endereco || null,
         bairro: u.bairro || null,
@@ -176,8 +181,7 @@ export default function UnidadesConfig() {
         bairros_atendidos: u.bairros_atendidos || null,
         horario_abertura: u.horario_abertura || "07:00",
         horario_fechamento: u.horario_fechamento || "18:00",
-        // Certificado (senha tratada via RPC)
-        certificado_a1_path: u.certificado_a1_path || null,
+        // Certificado (path e senha tratados de forma restrita)
         certificado_a1_validade: u.certificado_a1_validade || null,
         certificado_a1_titular: u.certificado_a1_titular || null,
         // NFe / NFC-e / CT-e (tokens tratados via RPC)
@@ -204,7 +208,13 @@ export default function UnidadesConfig() {
         // Provedor (token tratado via RPC)
         provedor_nfe: u.provedor_nfe || null,
         provedor_nfe_url: u.provedor_nfe_url || null,
+        // Gás do Povo
+        gas_do_povo_habilitado: !!u.gas_do_povo_habilitado,
+        gas_do_povo_valor: numOrNull(u.gas_do_povo_valor) ?? 101.08,
       };
+      if (u.certificado_a1_path) {
+        payload.certificado_a1_path = u.certificado_a1_path;
+      }
 
       const { error } = await supabase.from("unidades").update(payload).eq("id", u.id);
       if (error) throw error;
@@ -260,6 +270,7 @@ export default function UnidadesConfig() {
         .upload(path, file, { upsert: true, contentType: "application/x-pkcs12" });
       if (error) throw error;
       setField("certificado_a1_path", path);
+      setField("certificado_a1_configurado", true);
       toast({ title: "Certificado enviado", description: "Arquivo armazenado com segurança." });
     } catch (e: any) {
       toast({ title: "Falha no upload", description: e.message, variant: "destructive" });
@@ -300,7 +311,7 @@ export default function UnidadesConfig() {
                       </Badge>
                       <Button size="icon" variant="ghost" onClick={async () => {
                         setActiveTab("geral");
-                        const { data: cred } = await supabase.rpc("get_unidade_credenciais", { _unidade_id: unidade.id });
+                        const { data: cred } = await (supabase as any).rpc("get_unidade_credenciais", { _unidade_id: unidade.id });
                         const c = Array.isArray(cred) ? cred[0] : cred;
                         setEditingUnidade({
                           ...unidade,
@@ -309,6 +320,7 @@ export default function UnidadesConfig() {
                           nfce_csc_token: c?.nfce_csc_token ?? "",
                           contador_email: c?.contador_email ?? "",
                           contador_cpf_cnpj: c?.contador_cpf_cnpj ?? "",
+                          certificado_a1_configurado: Boolean(c?.certificado_a1_configurado),
                         });
                       }}>
                         <Edit className="h-4 w-4" />
@@ -344,7 +356,7 @@ export default function UnidadesConfig() {
                     </div>
                   )}
                   <div className="flex flex-wrap gap-1 pt-1">
-                    {unidade.certificado_a1_path && (
+                    {unidade.certificado_a1_validade && (
                       <Badge variant="outline" className="gap-1">
                         <ShieldCheck className="h-3 w-3" /> Certificado A1
                       </Badge>
@@ -444,6 +456,17 @@ export default function UnidadesConfig() {
                       <Input value={editingUnidade.email || ""} onChange={(e) => setField("email", e.target.value)} placeholder="email@exemplo.com" />
                     </div>
                   </div>
+                  <div className="grid gap-2">
+                    <Label>WhatsApp para notificação de pedidos confirmados</Label>
+                    <Input
+                      value={(editingUnidade as any).whatsapp_notificacao_pedido || ""}
+                      onChange={(e) => setField("whatsapp_notificacao_pedido" as any, e.target.value)}
+                      placeholder="5543999692765 (com DDI 55 + DDD)"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Sempre que a Bia confirmar um pedido nesta unidade, será enviado um WhatsApp para este número. Deixe vazio para não notificar.
+                    </p>
+                  </div>
                 </TabsContent>
 
                 {/* ENDEREÇO */}
@@ -505,6 +528,43 @@ export default function UnidadesConfig() {
                       placeholder="Centro, Jardim América, Vila Nova"
                     />
                   </div>
+
+                  {/* Gás do Povo */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Receipt className="h-4 w-4 text-primary" /> Gás do Povo (forma de pagamento)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <input
+                          id="gas_do_povo_habilitado"
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-input accent-primary"
+                          checked={!!editingUnidade.gas_do_povo_habilitado}
+                          onChange={(e) => setField("gas_do_povo_habilitado", e.target.checked)}
+                        />
+                        <Label htmlFor="gas_do_povo_habilitado" className="cursor-pointer">
+                          Habilitar Gás do Povo no PDV (recebível D+2, taxa 0%)
+                        </Label>
+                      </div>
+                      <div className="grid gap-2 max-w-xs">
+                        <Label>Valor unitário (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={editingUnidade.gas_do_povo_valor ?? 101.08}
+                          onChange={(e) => setField("gas_do_povo_valor", e.target.value)}
+                          disabled={!editingUnidade.gas_do_povo_habilitado}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Valor definido pelo governo estadual (ex: PR R$ 101,08). Aceito apenas para 1× Gás P13.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
 
                 {/* FISCAL */}
@@ -528,9 +588,10 @@ export default function UnidadesConfig() {
                           />
                           {uploadingCert && <Loader2 className="h-5 w-5 animate-spin self-center" />}
                         </div>
-                        {editingUnidade.certificado_a1_path && (
+                        {(editingUnidade.certificado_a1_configurado || editingUnidade.certificado_a1_path) && (
                           <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Upload className="h-3 w-3" /> {editingUnidade.certificado_a1_path}
+                            <Upload className="h-3 w-3" />
+                            {editingUnidade.certificado_a1_path ? "Novo certificado pronto para salvar" : "Certificado A1 configurado"}
                           </p>
                         )}
                       </div>

@@ -44,7 +44,6 @@ let connectedDevice: PlugPagDevice | null = null;
  * Verifica se o ambiente nativo (Capacitor) está disponível
  */
 export function isPlugPagAvailable(): boolean {
-  // @ts-ignore - Capacitor global
   return typeof window !== 'undefined' && !!(window as any).Capacitor?.isNativePlatform?.();
 }
 
@@ -60,7 +59,7 @@ export async function initPlugPag(): Promise<boolean> {
   }
 
   try {
-    // @ts-ignore - Plugin Capacitor customizado
+    // @ts-expect-error Plugin Capacitor customizado
     const { PlugPagPlugin } = await import('@capacitor-community/plugpag');
     await PlugPagPlugin.initialize();
     isNativeAvailable = true;
@@ -83,7 +82,7 @@ export async function discoverDevices(): Promise<PlugPagDevice[]> {
   }
 
   try {
-    // @ts-ignore
+    // @ts-expect-error Plugin Capacitor customizado
     const { PlugPagPlugin } = await import('@capacitor-community/plugpag');
     const result = await PlugPagPlugin.discoverDevices();
     return result.devices || [];
@@ -104,7 +103,7 @@ export async function connectDevice(device: PlugPagDevice): Promise<boolean> {
   }
 
   try {
-    // @ts-ignore
+    // @ts-expect-error Plugin Capacitor customizado
     const { PlugPagPlugin } = await import('@capacitor-community/plugpag');
     await PlugPagPlugin.connect({ address: device.address });
     connectedDevice = device;
@@ -122,7 +121,7 @@ export async function connectDevice(device: PlugPagDevice): Promise<boolean> {
 export async function disconnectDevice(): Promise<void> {
   if (isNativeAvailable && connectedDevice) {
     try {
-      // @ts-ignore
+      // @ts-expect-error Plugin Capacitor customizado
       const { PlugPagPlugin } = await import('@capacitor-community/plugpag');
       await PlugPagPlugin.disconnect();
     } catch (err) {
@@ -149,7 +148,7 @@ export async function executePayment(transaction: PlugPagTransaction): Promise<P
   }
 
   try {
-    // @ts-ignore
+    // @ts-expect-error Plugin Capacitor customizado
     const { PlugPagPlugin } = await import('@capacitor-community/plugpag');
     const result = await PlugPagPlugin.doPayment({
       amount: transaction.amount,

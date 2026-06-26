@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Package } from "lucide-react";
 
 export function StockOverview() {
   const { unidadeAtual } = useUnidade();
@@ -42,7 +44,12 @@ export function StockOverview() {
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
           </div>
         ) : products.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">Nenhum produto cadastrado</p>
+          <EmptyState
+            compact
+            icon={Package}
+            title="Nenhum produto cadastrado"
+            description="Cadastre produtos para acompanhar níveis de estoque nesta visão."
+          />
         ) : (
           <div className="space-y-6">
             {products.slice(0, 6).map((item) => {

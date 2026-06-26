@@ -149,7 +149,6 @@ export function exportarPDF(opts: ExportPDFOptions) {
         }, {}),
         margin: { left: 14, right: 14 },
       });
-      // @ts-ignore
       startY = (doc as any).lastAutoTable.finalY + 6;
     });
   } else {
@@ -171,7 +170,6 @@ export function exportarPDF(opts: ExportPDFOptions) {
       }, {}),
       margin: { left: 14, right: 14 },
     });
-    // @ts-ignore
     startY = (doc as any).lastAutoTable.finalY + 6;
   }
 

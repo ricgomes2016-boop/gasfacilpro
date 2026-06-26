@@ -24,6 +24,7 @@ interface ChamadaRecebida {
   created_at: string;
   pedido_gerado_id: string | null;
   observacoes: string | null;
+  unidade_id?: string | null;
 }
 
 interface UltimoPedidoInfo {
@@ -118,6 +119,8 @@ export function CallerIdPopup() {
   }, []);
 
   useEffect(() => {
+    if (!unidadeAtual?.id) return;
+
     let lastSeenId: string | null = null;
 
     const checkRecentCalls = async () => {
@@ -126,6 +129,7 @@ export function CallerIdPopup() {
         .from("chamadas_recebidas")
         .select("*")
         .eq("status", "recebida")
+        .eq("unidade_id", unidadeAtual.id)
         .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(1);
@@ -140,10 +144,15 @@ export function CallerIdPopup() {
     const pollInterval = setInterval(checkRecentCalls, 5000);
 
     const channel = supabase
-      .channel("caller-id-realtime")
+      .channel(`caller-id-${unidadeAtual.id}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "chamadas_recebidas" },
+        {
+          event: "*",
+          schema: "public",
+          table: "chamadas_recebidas",
+          filter: `unidade_id=eq.${unidadeAtual.id}`,
+        },
         async (payload) => {
           const nova = (payload.new || payload.old) as ChamadaRecebida;
           if (!nova?.id) return;
@@ -166,7 +175,7 @@ export function CallerIdPopup() {
       clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
-  }, [handleNovaChamada]);
+  }, [handleNovaChamada, unidadeAtual?.id]);
 
   if (!chamada) {
     return null;
@@ -238,7 +247,7 @@ export function CallerIdPopup() {
             <div className="bg-muted/50 rounded-lg p-3 border border-border/50 space-y-2">
               <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> Detalhes do Pedido</span>
-                <span>{format(new Date(ultimoPedido.created_at), "HH:mm", { locale: ptBR })}</span>
+                <span>{format(new Date(ultimoPedido.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
               </div>
               
               <div className="space-y-1">

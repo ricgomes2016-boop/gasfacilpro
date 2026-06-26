@@ -10,14 +10,14 @@
 
 @layer base {
   :root {
-    --background: 225 24% 97%;
-    --foreground: 0 0% 18%;
+    --background: 220 20% 98%;
+    --foreground: 222 30% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 18%;
+    --card-foreground: 222 22% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 18%;
+    --popover-foreground: 222 22% 13%;
 
     --primary: 174 61% 47%;
     --primary-foreground: 0 0% 100%;
@@ -25,8 +25,8 @@
     --secondary: 243 100% 69%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 225 24% 94%;
-    --muted-foreground: 231 10% 59%;
+    --muted: 220 18% 94%;
+    --muted-foreground: 225 14% 38%;
 
     --accent: 31 100% 63%;
     --accent-foreground: 0 0% 100%;
@@ -43,8 +43,8 @@
     --info: 216 100% 62%;
     --info-foreground: 0 0% 100%;
 
-    --border: 225 20% 91%;
-    --input: 225 20% 91%;
+    --border: 225 18% 87%;
+    --input: 225 18% 87%;
     --ring: 174 61% 47%;
 
     --radius: 1rem;
@@ -65,9 +65,9 @@
     --gradient-dark: linear-gradient(135deg, hsl(var(--sidebar-gradient-from)) 0%, hsl(var(--sidebar-gradient-to)) 100%);
 
     /* Shadows */
-    --shadow-sm: 0 4px 14px hsl(231 20% 30% / 0.05);
-    --shadow-md: 0 16px 42px -30px hsl(231 20% 30% / 0.22), 0 8px 20px -18px hsl(231 20% 30% / 0.13);
-    --shadow-lg: 0 26px 66px -38px hsl(231 20% 30% / 0.28), 0 16px 34px -26px hsl(231 20% 30% / 0.15);
+    --shadow-sm: 0 1px 2px hsl(222 28% 14% / 0.06), 0 8px 18px -16px hsl(222 28% 14% / 0.18);
+    --shadow-md: 0 1px 2px hsl(222 28% 14% / 0.07), 0 14px 30px -24px hsl(222 28% 14% / 0.28);
+    --shadow-lg: 0 2px 4px hsl(222 28% 14% / 0.08), 0 22px 48px -30px hsl(222 28% 14% / 0.34);
     --shadow-glow: 0 0 22px hsl(var(--primary) / 0.22);
   }
 
@@ -129,6 +129,44 @@
     box-shadow: 0 14px 34px -28px hsl(220 35% 10% / 0.28);
   }
 
+  .brand-theme-operacional-clean .app-header-premium,
+  .app-header-premium.app-header-clean {
+    background: hsl(var(--clean-header-bg, 222 47% 11%));
+    color: hsl(var(--clean-header-fg, 0 0% 100%));
+    border-color: hsl(0 0% 100% / 0.06);
+    box-shadow: 0 8px 24px -18px hsl(0 0% 0% / 0.45);
+    backdrop-filter: none;
+  }
+  .brand-theme-operacional-clean .app-header-premium h1,
+  .brand-theme-operacional-clean .app-header-premium .header-actions button:not(.header-unit-selector),
+  .brand-theme-operacional-clean .app-header-premium .header-actions button:not(.header-unit-selector) svg {
+    color: hsl(var(--clean-header-fg, 0 0% 100%));
+  }
+  .brand-theme-operacional-clean .app-header-premium .header-actions button:not(.header-unit-selector):hover {
+    background: hsl(0 0% 100% / 0.08);
+    color: hsl(var(--clean-header-fg, 0 0% 100%));
+  }
+  .brand-theme-operacional-clean .app-header-premium .text-foreground\/65,
+  .brand-theme-operacional-clean .app-header-premium .text-foreground\/80 {
+    color: hsl(0 0% 100% / 0.75);
+  }
+
+  .clean-ia-button {
+    background: linear-gradient(135deg, hsl(258 80% 62%), hsl(238 75% 58%));
+    color: #fff !important;
+    box-shadow: 0 6px 18px -10px hsl(250 78% 60% / 0.7);
+  }
+  .clean-ia-button:hover {
+    background: linear-gradient(135deg, hsl(258 80% 66%), hsl(238 75% 62%));
+    color: #fff !important;
+  }
+
+  .clean-page-banner {
+    background: hsl(var(--card));
+    border-bottom: 1px solid hsl(var(--border) / 0.7);
+  }
+
+
   .header-unit-selector {
     border-color: hsl(var(--primary) / 0.22);
     background: hsl(var(--primary) / 0.08);
@@ -153,6 +191,15 @@
 
   .header-actions button:not(.header-unit-selector) svg {
     color: hsl(var(--primary));
+  }
+
+  .mobile-bottom-bar {
+    border-color: hsl(var(--border) / 0.82);
+    background:
+      linear-gradient(180deg, hsl(var(--card) / 0.96) 0%, hsl(var(--card)) 100%);
+    color: hsl(var(--foreground));
+    box-shadow: 0 -12px 30px -24px hsl(222 28% 14% / 0.42), inset 0 1px 0 hsl(var(--card) / 0.9);
+    backdrop-filter: blur(16px);
   }
 
   .app-sidebar-premium {
@@ -243,20 +290,26 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: var(--brand-font, 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: var(--brand-font, 'Inter', 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
     font-optical-sizing: auto;
+    font-weight: 450;
     font-synthesis: none;
     letter-spacing: 0;
     text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: subpixel-antialiased;
-    -moz-osx-font-smoothing: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
     max-width: 100vw;
     background:
       radial-gradient(circle at top right, hsl(var(--secondary) / 0.06), transparent 30rem),
       linear-gradient(180deg, hsl(var(--background)) 0%, hsl(225 24% 98%) 100%);
     background-attachment: fixed;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.18);
+    color: hsl(var(--foreground));
   }
 
   h1,
@@ -270,7 +323,25 @@
     color: hsl(var(--foreground));
     text-wrap: balance;
     text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: subpixel-antialiased;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-weight: 700;
+    line-height: 1.15;
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-weight: 650;
+    line-height: 1.2;
+  }
+
+  p {
+    line-height: 1.55;
   }
 
   p,
@@ -284,8 +355,8 @@
   th {
     font-family: inherit;
     text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: subpixel-antialiased;
-    -moz-osx-font-smoothing: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   table {
@@ -297,11 +368,33 @@
     line-height: 1.35;
   }
 
+  th {
+    font-weight: 700;
+    color: hsl(var(--foreground));
+  }
+
+  td {
+    font-weight: 400;
+    color: hsl(var(--foreground));
+  }
+
   button,
   input,
   textarea,
   select {
     line-height: 1.25;
+    font-weight: 500;
+  }
+
+  input,
+  textarea,
+  select {
+    color: hsl(var(--foreground));
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(var(--muted-foreground) / 0.78);
   }
 
   button:focus-visible,
@@ -346,13 +439,6 @@
   svg[fill="#ffffff"],
   svg[fill="#FFFFFF"] {
     fill: currentColor !important;
-  }
-
-  svg.text-white,
-  svg[class*="text-white"],
-  .lucide.text-white,
-  .lucide[class*="text-white"] {
-    color: inherit !important;
   }
 
   /* Prevent iOS/Android auto-zoom on input focus by forcing >=16px font on mobile */
@@ -449,7 +535,7 @@
   .section-header-finance,
   .section-header-critical,
   .section-header-muted {
-    @apply border-b px-4 py-4 md:px-5;
+    @apply border-b px-4 py-4 text-foreground md:px-5;
   }
 
   .section-header-title {
@@ -477,51 +563,59 @@
   }
 
   .section-header-primary {
-    @apply border-primary/30 bg-primary text-primary-foreground;
+    @apply border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-card;
   }
 
   .section-header-primary .section-header-icon-frame {
-    @apply bg-primary-foreground/15 text-primary-foreground ring-primary-foreground/25;
+    @apply bg-primary/10 text-primary ring-primary/20;
   }
 
   .section-header-catalog {
-    @apply border-secondary/30 bg-secondary text-secondary-foreground;
+    @apply border-secondary/25 bg-gradient-to-r from-secondary/10 via-secondary/5 to-card;
   }
 
   .section-header-catalog .section-header-icon-frame {
-    @apply bg-secondary-foreground/15 text-secondary-foreground ring-secondary-foreground/25;
+    @apply bg-secondary/10 text-secondary ring-secondary/20;
   }
 
   .section-header-stock {
-    @apply border-warning/40 bg-warning text-warning-foreground;
+    @apply border-warning/30 bg-gradient-to-r from-warning/10 via-warning/5 to-card;
   }
 
   .section-header-stock .section-header-icon-frame {
-    @apply bg-warning-foreground/10 text-warning-foreground ring-warning-foreground/20;
+    @apply bg-warning/10 text-warning ring-warning/25;
   }
 
   .section-header-finance {
-    @apply border-success/30 bg-success text-success-foreground;
+    @apply border-success/25 bg-gradient-to-r from-success/10 via-success/5 to-card;
   }
 
   .section-header-finance .section-header-icon-frame {
-    @apply bg-success-foreground/15 text-success-foreground ring-success-foreground/25;
+    @apply bg-success/10 text-success ring-success/20;
   }
 
   .section-header-critical {
-    @apply border-destructive/30 bg-destructive text-destructive-foreground;
+    @apply border-destructive/25 bg-gradient-to-r from-destructive/10 via-destructive/5 to-card;
   }
 
   .section-header-critical .section-header-icon-frame {
-    @apply bg-destructive-foreground/15 text-destructive-foreground ring-destructive-foreground/25;
+    @apply bg-destructive/10 text-destructive ring-destructive/20;
   }
 
   .section-header-muted {
-    @apply border-border/70 bg-muted text-foreground;
+    @apply border-border/70 bg-gradient-to-r from-muted/70 via-muted/35 to-card;
   }
 
   .section-header-muted .section-header-icon-frame {
     @apply bg-card text-foreground ring-border;
+  }
+
+  .section-header-primary :where(.text-primary-foreground, .text-primary-foreground\/80),
+  .section-header-catalog :where(.text-secondary-foreground, .text-secondary-foreground\/80),
+  .section-header-stock :where(.text-warning-foreground, .text-warning-foreground\/80),
+  .section-header-finance :where(.text-success-foreground, .text-success-foreground\/80),
+  .section-header-critical :where(.text-destructive-foreground, .text-destructive-foreground\/80) {
+    color: hsl(var(--muted-foreground)) !important;
   }
 
   .status-card-icon {
@@ -533,7 +627,7 @@
   }
 
   .grid > .rounded-lg.border {
-    @apply min-w-0;
+    min-width: 0;
   }
 
   .rounded-lg.border [class*="CardContent"],
@@ -586,16 +680,66 @@
     @apply border border-primary/25 bg-primary/10 text-primary shadow-sm shadow-primary/10 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/45 hover:bg-primary hover:text-primary-foreground hover:shadow-md hover:shadow-primary/25 active:translate-y-0 active:scale-[0.98];
   }
 
+  .app-card {
+    @apply relative bg-gradient-to-br from-card via-card to-muted/25;
+    box-shadow: var(--shadow-md);
+  }
+
+  .app-card::before,
+  .modern-panel::before,
+  .modern-status-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    pointer-events: none;
+    background: linear-gradient(90deg, hsl(var(--primary) / 0.45), hsl(var(--secondary) / 0.28), transparent);
+  }
+
+  .app-card-header {
+    @apply bg-gradient-to-r from-muted/45 via-card to-card;
+  }
+
+  .app-card-title {
+    @apply text-foreground;
+  }
+
+  .app-card-title:is(.text-primary, .text-secondary, .text-success, .text-warning, .text-info, .text-destructive, .text-muted-foreground) {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .app-card-title :where(svg),
+  .app-card-header :where(svg) {
+    @apply text-primary;
+  }
+
+  .app-card :where(.app-card, .modern-panel),
+  .modern-panel :where(.app-card, .modern-panel) {
+    @apply bg-gradient-to-br from-card via-card to-muted/15 shadow-sm shadow-foreground/5;
+  }
+
+  .app-card :where(.app-card, .modern-panel)::before,
+  .modern-panel :where(.app-card, .modern-panel)::before {
+    opacity: 0.35;
+  }
+
+  .table-card-shell {
+    @apply overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm shadow-foreground/5;
+  }
+
   .modern-panel {
-    @apply rounded-2xl border border-border/45 bg-card shadow-md shadow-foreground/5;
+    @apply relative overflow-hidden rounded-2xl border border-border/45 bg-gradient-to-br from-card via-card to-muted/25 shadow-md shadow-foreground/5;
+    box-shadow: var(--shadow-md);
   }
 
   .modern-soft-panel {
-    @apply rounded-2xl border border-border/40 bg-card shadow-sm shadow-foreground/5;
+    @apply rounded-2xl border border-border/40 bg-gradient-to-br from-card via-card to-muted/20 shadow-sm shadow-foreground/5;
+    box-shadow: var(--shadow-sm);
   }
 
   .modern-status-card {
-    @apply overflow-hidden rounded-2xl border border-border/45 bg-card shadow-md shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/10;
+    @apply relative overflow-hidden rounded-2xl border border-border/45 bg-gradient-to-br from-card via-card to-muted/25 shadow-md shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/10;
+    box-shadow: var(--shadow-md);
   }
 
   .dashboard-shell {
@@ -622,24 +766,42 @@
   }
 
   .saas-table {
-    @apply w-full border-separate border-spacing-y-2;
+    @apply w-full border-separate border-spacing-y-0;
   }
 
   .saas-table thead tr,
   .saas-table-header {
-    @apply bg-muted text-foreground shadow-sm;
+    @apply bg-muted/75 text-foreground shadow-sm;
   }
 
   .saas-table th {
-    @apply border-0 px-4 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground first:rounded-l-2xl last:rounded-r-2xl;
+    @apply border-0 px-4 py-3 text-[11px] font-extrabold uppercase tracking-[0.02em] text-foreground;
+    border-radius: 0 !important;
+  }
+
+  .system-surface :where(table thead tr) {
+    background-color: hsl(var(--muted) / 0.65) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .system-surface :where(table thead th) {
+    color: hsl(var(--foreground)) !important;
+    font-weight: 800;
+    opacity: 1;
+  }
+
+  .system-surface :where(table thead th .lucide, table thead th svg) {
+    color: hsl(var(--foreground)) !important;
+    stroke: hsl(var(--foreground)) !important;
   }
 
   .saas-table tbody tr {
-    @apply transition-all duration-200 hover:-translate-y-0.5;
+    @apply transition-colors duration-150;
   }
 
   .saas-table tbody td {
-    @apply border-y border-border/35 bg-card px-4 py-4 shadow-sm first:rounded-l-2xl first:border-l last:rounded-r-2xl last:border-r;
+    @apply border-y border-border/45 bg-card px-3 py-3 shadow-sm first:border-l last:border-r md:px-4 md:py-3.5;
+    border-radius: 0 !important;
   }
 
   .saas-table tbody tr:hover td {
@@ -648,8 +810,10 @@
 
   .status-pill,
   [class*="badge-status"] {
-    @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold shadow-sm;
+    @apply inline-flex items-center border px-2.5 py-1 text-xs font-bold shadow-sm;
+    border-radius: var(--radius);
   }
+
 
   .status-pendente,
   .badge-status-pendente { @apply border-warning/30 bg-warning/15 text-warning-foreground; }
@@ -668,7 +832,7 @@
   .saas-table-scope thead tr { @apply saas-table-header; }
 
   .kpi-card {
-    @apply modern-status-card bg-card text-card-foreground;
+    @apply modern-status-card text-card-foreground;
   }
 
   .kpi-card-content {
@@ -685,12 +849,42 @@
     opacity: 0.82;
   }
 
-  .kpi-card-primary { @apply border-l-4 border-l-primary bg-card text-card-foreground shadow-primary/10; }
-  .kpi-card-info { @apply border-l-4 border-l-info bg-card text-card-foreground shadow-info/10; }
-  .kpi-card-success { @apply border-l-4 border-l-success bg-card text-card-foreground shadow-success/10; }
-  .kpi-card-warning { @apply border-l-4 border-l-warning bg-card text-card-foreground shadow-warning/10; }
-  .kpi-card-destructive { @apply border-l-4 border-l-destructive bg-card text-card-foreground shadow-destructive/10; }
-  .kpi-card-muted { @apply border-border/70 bg-card; }
+  /* Solid tile treatment for legacy .kpi-card-* variants — mirrors .app-card.kpi */
+  .kpi-card[class*="kpi-card-"] {
+    background: hsl(var(--tile-tone, var(--tile-blue))) !important;
+    background-image: none !important;
+    color: hsl(var(--tile-tone-fg, var(--tile-blue-fg))) !important;
+    border: 0 !important;
+    border-left: 0 !important;
+    border-radius: var(--radius) !important;
+    box-shadow:
+      0 1px 0 0 hsl(var(--tile-tone, var(--tile-blue)) / 0.0),
+      0 10px 24px -14px hsl(var(--tile-tone, var(--tile-blue)) / 0.55),
+      0 2px 6px -2px hsl(var(--tile-tone, var(--tile-blue)) / 0.35) !important;
+  }
+  .kpi-card[class*="kpi-card-"] .kpi-value,
+  .kpi-card[class*="kpi-card-"] .kpi-label,
+  .kpi-card[class*="kpi-card-"] [class*="text-success"],
+  .kpi-card[class*="kpi-card-"] [class*="text-warning"],
+  .kpi-card[class*="kpi-card-"] [class*="text-info"],
+  .kpi-card[class*="kpi-card-"] [class*="text-primary"],
+  .kpi-card[class*="kpi-card-"] [class*="text-destructive"],
+  .kpi-card[class*="kpi-card-"] [class*="text-muted-foreground"] {
+    color: hsl(var(--tile-tone-fg, var(--tile-blue-fg))) !important;
+  }
+  .kpi-card[class*="kpi-card-"] .status-card-icon,
+  .kpi-card[class*="kpi-card-"] [class*="status-card-icon-"] {
+    background: hsl(var(--tile-tone-fg, var(--tile-blue-fg)) / 0.18) !important;
+    color: hsl(var(--tile-tone-fg, var(--tile-blue-fg))) !important;
+    border: 0 !important;
+  }
+
+  .kpi-card-primary     { --tile-tone: var(--tile-violet); --tile-tone-fg: var(--tile-violet-fg); }
+  .kpi-card-info        { --tile-tone: var(--tile-blue);   --tile-tone-fg: var(--tile-blue-fg); }
+  .kpi-card-success     { --tile-tone: var(--tile-green);  --tile-tone-fg: var(--tile-green-fg); }
+  .kpi-card-warning     { --tile-tone: var(--tile-amber);  --tile-tone-fg: var(--tile-amber-fg); }
+  .kpi-card-destructive { --tile-tone: var(--tile-red);    --tile-tone-fg: var(--tile-red-fg); }
+  .kpi-card-muted       { --tile-tone: var(--tile-sky);    --tile-tone-fg: var(--tile-sky-fg); }
 
   .semantic-filter-panel {
     @apply rounded-xl border border-border/70 bg-muted/30 p-3 shadow-sm shadow-foreground/5 sm:p-4;
@@ -698,6 +892,26 @@
 
   .semantic-mobile-card {
     @apply modern-panel space-y-3 p-3 sm:p-4;
+  }
+
+  .mobile-record-card {
+    @apply rounded-2xl border border-border/55 bg-card p-3 shadow-sm shadow-foreground/5;
+  }
+
+  .mobile-record-card-header {
+    @apply flex min-w-0 items-start justify-between gap-2;
+  }
+
+  .mobile-record-card-title {
+    @apply min-w-0 break-words text-sm font-semibold leading-snug text-foreground;
+  }
+
+  .mobile-record-card-meta {
+    @apply text-xs font-medium leading-snug text-muted-foreground;
+  }
+
+  .mobile-record-card-footer {
+    @apply mt-3 flex items-center justify-between gap-2 border-t border-border/45 pt-3;
   }
 
   .highlight-card-primary { @apply rounded-2xl border-transparent bg-primary text-primary-foreground shadow-md shadow-primary/20; }
@@ -712,6 +926,284 @@
   .highlight-card-info *,
   .highlight-card-accent * {
     color: currentColor !important;
+  }
+
+  .intelligence-workspace {
+    @apply rounded-3xl;
+    background:
+      radial-gradient(circle at 10% 6%, hsl(var(--primary) / 0.12), transparent 28rem),
+      radial-gradient(circle at 96% 12%, hsl(var(--success) / 0.10), transparent 24rem),
+      radial-gradient(circle at 62% 92%, hsl(var(--warning) / 0.09), transparent 26rem);
+  }
+
+  .intelligence-tabs {
+    @apply border border-border/45 bg-card/90 p-1 shadow-md shadow-foreground/5 backdrop-blur;
+  }
+
+  .intelligence-tabs [role="tab"] {
+    @apply min-w-0 justify-center whitespace-nowrap px-2 text-xs sm:px-3 sm:text-sm;
+  }
+
+  .intelligence-tabs [data-state="active"] {
+    @apply bg-primary text-primary-foreground shadow-md shadow-primary/20;
+  }
+
+  .intelligence-workspace .grid > .rounded-2xl:nth-child(5n+1) {
+    @apply border-l-4 border-l-success bg-gradient-to-br from-success/10 to-card shadow-success/10;
+  }
+
+  .intelligence-workspace .grid > .rounded-2xl:nth-child(5n+2) {
+    @apply border-l-4 border-l-info bg-gradient-to-br from-info/10 to-card shadow-info/10;
+  }
+
+  .intelligence-workspace .grid > .rounded-2xl:nth-child(5n+3) {
+    @apply border-l-4 border-l-primary bg-gradient-to-br from-primary/10 to-card shadow-primary/10;
+  }
+
+  .intelligence-workspace .grid > .rounded-2xl:nth-child(5n+4) {
+    @apply border-l-4 border-l-warning bg-gradient-to-br from-warning/10 to-card shadow-warning/10;
+  }
+
+  .intelligence-workspace .grid > .rounded-2xl:nth-child(5n+5) {
+    @apply border-l-4 border-l-secondary bg-gradient-to-br from-secondary/10 to-card shadow-secondary/10;
+  }
+
+  .intelligence-workspace .grid > .rounded-2xl {
+    @apply min-h-28;
+  }
+
+  .intelligence-workspace .grid > .rounded-2xl .text-2xl {
+    @apply leading-tight tracking-normal;
+  }
+
+  .intelligence-workspace .grid > .rounded-2xl [class*="rounded-lg"][class*="p-3"] {
+    border-width: 1px;
+    border-color: currentColor;
+    box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.05);
+    opacity: 0.96;
+  }
+
+  .intelligence-summary-card {
+    @apply modern-status-card min-h-24 text-center;
+  }
+
+  .intelligence-summary-card .summary-value {
+    @apply text-3xl font-bold leading-none;
+  }
+
+  .intelligence-summary-card .summary-label {
+    @apply mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground;
+  }
+
+  .intelligence-metric-tile {
+    @apply rounded-xl border border-border/45 bg-gradient-to-br from-card to-muted/35 p-4 shadow-sm shadow-foreground/5;
+  }
+
+  .intelligence-list-item {
+    @apply rounded-xl border border-border/45 bg-card/80 shadow-sm shadow-foreground/5 transition-colors hover:bg-muted/35;
+  }
+
+  .intelligence-alert-item {
+    @apply shadow-sm shadow-foreground/5 transition-colors;
+  }
+
+  .intelligence-alert-item:hover {
+    @apply bg-card/80;
+  }
+
+  .intelligence-workspace .rounded-lg.border {
+    @apply border-border/45 bg-gradient-to-br from-card to-muted/35 shadow-sm shadow-foreground/5;
+  }
+
+  .intelligence-workspace .rounded-lg.border .text-2xl {
+    @apply text-primary;
+  }
+
+  .intelligence-workspace .rounded-2xl > [class*="border-b"] {
+    @apply bg-muted/25;
+  }
+
+  .intelligence-workspace .recharts-cartesian-grid line {
+    stroke: hsl(var(--border) / 0.48);
+  }
+
+  .intelligence-workspace .recharts-text {
+    fill: hsl(var(--muted-foreground));
+  }
+
+  .intelligence-workspace .recharts-default-tooltip {
+    border: 1px solid hsl(var(--border) / 0.55) !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 18px 45px hsl(var(--foreground) / 0.10) !important;
+  }
+
+  .intelligence-workspace .recharts-wrapper,
+  .intelligence-workspace .recharts-responsive-container {
+    max-width: 100%;
+  }
+
+  @media (min-width: 768px) {
+    body {
+      background:
+        radial-gradient(circle at top right, hsl(var(--secondary) / 0.045), transparent 32rem),
+        linear-gradient(180deg, hsl(225 26% 98%) 0%, hsl(var(--background)) 100%);
+    }
+
+    :where(.text-muted-foreground) {
+      color: hsl(var(--muted-foreground)) !important;
+    }
+
+    .app-card,
+    .modern-panel,
+    .modern-status-card {
+      border-color: hsl(var(--border) / 0.72);
+      background:
+        linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card)) 56%, hsl(var(--muted) / 0.22) 100%);
+      box-shadow: var(--shadow-md);
+    }
+
+    .app-card:hover,
+    .modern-panel:hover,
+    .modern-status-card:hover {
+      border-color: hsl(var(--primary) / 0.24);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .app-card::before,
+    .modern-panel::before,
+    .modern-status-card::before {
+      height: 2px;
+      opacity: 0.78;
+    }
+
+    .app-card-header,
+    .section-header-primary,
+    .section-header-catalog,
+    .section-header-stock,
+    .section-header-finance,
+    .section-header-critical,
+    .section-header-muted {
+      border-color: hsl(var(--border) / 0.62);
+      background:
+        linear-gradient(90deg, hsl(var(--muted) / 0.52), hsl(var(--card)) 72%);
+    }
+
+    .app-card-title,
+    .section-header-title,
+    .saas-table th {
+      color: hsl(var(--foreground)) !important;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .app-card-content,
+    .modern-panel,
+    .modern-status-card,
+    .saas-table tbody td {
+      color: hsl(var(--foreground));
+    }
+
+    .saas-table th {
+      background: hsl(var(--muted) / 0.62);
+      color: hsl(var(--foreground)) !important;
+    }
+
+    .saas-table tbody td {
+      border-color: hsl(var(--border) / 0.58);
+      background: hsl(var(--card));
+      box-shadow: 0 1px 2px hsl(222 28% 14% / 0.035);
+    }
+
+    .saas-table tbody tr:hover td {
+      background: hsl(var(--muted) / 0.42);
+    }
+
+    input,
+    textarea,
+    select,
+    [role="combobox"] {
+      border-color: hsl(var(--border) / 0.82);
+      background-color: hsl(var(--card));
+      color: hsl(var(--foreground));
+      box-shadow: inset 0 1px 0 hsl(var(--card) / 0.75);
+    }
+
+    .status-card-icon {
+      box-shadow: inset 0 1px 0 hsl(var(--card) / 0.72);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .app-card,
+    .modern-panel,
+    .modern-soft-panel,
+    .modern-status-card {
+      @apply rounded-xl;
+      border-color: hsl(var(--border) / 0.78);
+      background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted) / 0.18) 100%);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .app-card::before,
+    .modern-panel::before,
+    .modern-status-card::before {
+      height: 2px;
+      opacity: 0.72;
+    }
+
+    .app-card-header,
+    .section-header-primary,
+    .section-header-catalog,
+    .section-header-stock,
+    .section-header-finance,
+    .section-header-critical,
+    .section-header-muted {
+      @apply rounded-t-xl px-3 py-3;
+    }
+
+    .app-card-content {
+      @apply p-3;
+    }
+
+    .app-card-title,
+    .section-header-title {
+      @apply text-base leading-snug;
+      color: hsl(var(--foreground)) !important;
+    }
+
+    .status-card-icon,
+    .section-header-icon-frame {
+      @apply h-9 w-9 rounded-xl;
+    }
+
+    .kpi-card-content {
+      @apply min-h-20 gap-2.5 p-3;
+    }
+
+    .kpi-value {
+      @apply text-xl;
+    }
+
+    .intelligence-workspace {
+      border-radius: 1rem;
+    }
+
+    .intelligence-workspace .grid > .rounded-2xl,
+    .intelligence-workspace .modern-status-card,
+    .intelligence-summary-card {
+      min-height: auto;
+    }
+
+    .intelligence-workspace .grid > .rounded-2xl .text-2xl,
+    .intelligence-workspace .modern-status-card .text-2xl,
+    .intelligence-summary-card .summary-value {
+      font-size: 1.375rem;
+      line-height: 1.2;
+    }
+
+    .intelligence-workspace .recharts-legend-wrapper {
+      font-size: 0.75rem;
+    }
   }
 
   :where(.bg-green-50,.bg-green-100,.bg-green-500\/5,.bg-green-500\/10,.bg-emerald-50,.bg-emerald-100,.bg-emerald-500\/5,.bg-emerald-500\/10) { background-color: hsl(var(--success) / 0.12) !important; }
@@ -780,15 +1272,10 @@
   :where(.bg-info) :where(.text-white,.text-primary-foreground,.text-info-foreground) { color: hsl(var(--info-foreground)) !important; }
   :where(.bg-destructive):where(.text-white,.text-primary-foreground,.text-destructive-foreground),
   :where(.bg-destructive) :where(.text-white,.text-primary-foreground,.text-destructive-foreground) { color: hsl(var(--destructive-foreground)) !important; }
-  :where(.text-white) > svg,
   :where(.text-white) .lucide,
-  :where(.text-white\/50) > svg,
   :where(.text-white\/50) .lucide,
-  :where(.text-white\/70) > svg,
   :where(.text-white\/70) .lucide,
-  :where(.text-white\/80) > svg,
   :where(.text-white\/80) .lucide,
-  :where(.text-white\/90) > svg,
   :where(.text-white\/90) .lucide {
     color: currentColor !important;
     stroke: currentColor !important;
@@ -929,3 +1416,189 @@
   max-width: none !important;
   max-height: none !important;
 }
+
+/* Premium ERP: neutralize visual weight of nested cards to eliminate card-in-card effect */
+@layer components {
+  .app-card .app-card,
+  .app-card [data-card],
+  [data-card] [data-card] {
+    @apply border-transparent bg-transparent shadow-none;
+    background-image: none !important;
+  }
+  .app-card .app-card > .app-card-header,
+  .app-card .app-card > .app-card-content,
+  .app-card .app-card > .app-card-footer,
+  .app-card .app-card > * {
+    @apply px-0 py-0;
+  }
+  .app-card .app-card > .app-card-header + .app-card-content,
+  .app-card .app-card > .app-card-content + .app-card-footer {
+    @apply pt-3;
+  }
+  /* Tables inside cards should be flush — no double border/radius */
+  .app-card > table,
+  .app-card .app-card-content > table {
+    @apply border-0;
+  }
+  .app-card .app-table-wrap,
+  .app-card .app-card-content > .app-table-wrap {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+  /* Square out interactive elements inside data tables so cells look flat.
+     Applies globally: any table inside an .app-card (and the legacy
+     .saas-table-scope wrapper) gets flat cells/inputs/badges. */
+  .saas-table-scope input,
+  .saas-table-scope .badge,
+  .saas-table-scope [data-slot="badge"],
+  .saas-table-scope th,
+  .saas-table-scope td,
+  .saas-table-scope tr,
+  .saas-table-scope button:not([role="checkbox"]):not(.rounded-full),
+  .app-card table th,
+  .app-card table td,
+  .app-card table tr,
+  .app-card table input,
+  .app-card table .badge,
+  .app-card table [data-slot="badge"],
+  .app-card table button:not([role="checkbox"]):not(.rounded-full) {
+    border-radius: 0 !important;
+  }
+  /* Remove the gap between the card edge and the table when a table is
+     the direct/main child of a card content area. */
+  .app-card > [data-slot="card-content"]:has(> table),
+  .app-card > [data-slot="card-content"]:has(> .app-table-wrap),
+  .app-card > [data-slot="card-content"]:has(> div > table) {
+    padding: 0 !important;
+  }
+
+  /* Mobile list (md:hidden) inside a card should match the flat table:
+     zero side padding on the container, hairline divided rows, no rounded
+     wrappers. Applies system-wide to any mobile list rendered inside an
+     .app-card on small viewports. */
+  @media (max-width: 767px) {
+    .app-card > [data-slot="card-content"]:has(> .md\:hidden) {
+      padding: 0 !important;
+    }
+    .app-card .md\:hidden > div[class*="rounded"] {
+      border-radius: 0 !important;
+      border-left: 0 !important;
+      border-right: 0 !important;
+      box-shadow: none !important;
+    }
+  }
+}
+
+
+/* Force nested rounded boxes to inherit the active theme radius
+   (preserve rounded-full for avatars/badges/pills). Use attribute selectors
+   so Tailwind does not flag this as a circular @apply on utility classes. */
+.app-card [class*="rounded-xl"]:not([class*="rounded-full"]),
+.app-card [class*="rounded-2xl"]:not([class*="rounded-full"]),
+.app-card [class*="rounded-lg"]:not([class*="rounded-full"]),
+.app-card [class*="rounded-md"]:not([class*="rounded-full"]) {
+  border-radius: var(--radius) !important;
+}
+
+/* ============================================================
+   Colored KPI / tile tokens (Acesso Rápido palette)
+   ============================================================ */
+@layer base {
+  :root {
+    --tile-green: 142 71% 42%;
+    --tile-green-fg: 0 0% 100%;
+    --tile-blue: 217 39% 60%;
+    --tile-blue-fg: 0 0% 100%;
+    --tile-violet: 248 95% 68%;
+    --tile-violet-fg: 0 0% 100%;
+    --tile-amber: 28 75% 52%;
+    --tile-amber-fg: 0 0% 100%;
+    --tile-red: 0 84% 62%;
+    --tile-red-fg: 0 0% 100%;
+    --tile-sky: 220 60% 95%;
+    --tile-sky-fg: 222 35% 18%;
+  }
+  .dark {
+    --tile-green: 142 65% 38%;
+    --tile-blue: 217 45% 52%;
+    --tile-violet: 248 85% 62%;
+    --tile-amber: 28 75% 48%;
+    --tile-red: 0 75% 55%;
+    --tile-sky: 220 25% 22%;
+    --tile-sky-fg: 220 18% 96%;
+  }
+}
+
+@layer components {
+  /* Base styling for any KPI card — solid color with crisp text */
+  .app-card.kpi {
+    border-color: transparent !important;
+    background: hsl(var(--tile-tone, var(--tile-blue))) !important;
+    background-image: none !important;
+    color: hsl(var(--tile-tone-fg, var(--tile-blue-fg))) !important;
+    box-shadow:
+      0 1px 0 hsl(0 0% 100% / 0.12) inset,
+      0 10px 24px -14px hsl(var(--tile-tone, var(--tile-blue)) / 0.55),
+      0 2px 6px -2px hsl(220 25% 10% / 0.12) !important;
+  }
+  .app-card.kpi *,
+  .app-card.kpi .text-muted-foreground,
+  .app-card.kpi .text-foreground,
+  .app-card.kpi .app-card-title,
+  .app-card.kpi svg {
+    color: hsl(var(--tile-tone-fg, var(--tile-blue-fg))) !important;
+    stroke: currentColor;
+  }
+  .app-card.kpi .text-muted-foreground { opacity: 0.85; }
+
+  /* Auto rotation by sibling index — covers all KPI grids without per-page edits */
+  .app-card.kpi:nth-child(6n+1) { --tile-tone: var(--tile-green); --tile-tone-fg: var(--tile-green-fg); }
+  .app-card.kpi:nth-child(6n+2) { --tile-tone: var(--tile-blue);  --tile-tone-fg: var(--tile-blue-fg); }
+  .app-card.kpi:nth-child(6n+3) { --tile-tone: var(--tile-violet);--tile-tone-fg: var(--tile-violet-fg); }
+  .app-card.kpi:nth-child(6n+4) { --tile-tone: var(--tile-amber); --tile-tone-fg: var(--tile-amber-fg); }
+  .app-card.kpi:nth-child(6n+5) { --tile-tone: var(--tile-red);   --tile-tone-fg: var(--tile-red-fg); }
+  .app-card.kpi:nth-child(6n)   { --tile-tone: var(--tile-sky);   --tile-tone-fg: var(--tile-sky-fg); }
+
+  /* Explicit override via data-tone */
+  .app-card.kpi[data-tone="green"]  { --tile-tone: var(--tile-green);  --tile-tone-fg: var(--tile-green-fg); }
+  .app-card.kpi[data-tone="blue"]   { --tile-tone: var(--tile-blue);   --tile-tone-fg: var(--tile-blue-fg); }
+  .app-card.kpi[data-tone="violet"] { --tile-tone: var(--tile-violet); --tile-tone-fg: var(--tile-violet-fg); }
+  .app-card.kpi[data-tone="amber"]  { --tile-tone: var(--tile-amber);  --tile-tone-fg: var(--tile-amber-fg); }
+  .app-card.kpi[data-tone="red"]    { --tile-tone: var(--tile-red);    --tile-tone-fg: var(--tile-red-fg); }
+  .app-card.kpi[data-tone="sky"]    { --tile-tone: var(--tile-sky);    --tile-tone-fg: var(--tile-sky-fg); }
+}
+
+/* ============================================================
+   Typography polish — sharper rendering, balanced line-heights
+   ============================================================ */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    letter-spacing: -0.005em;
+    line-height: 1.55;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.018em;
+  }
+  h1 { line-height: 1.15; }
+  h2 { line-height: 1.18; }
+  h3, h4 { line-height: 1.22; }
+  .tabular-nums,
+  table td,
+  table th,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "cv02" 1, "cv03" 1, "cv04" 1, "ss01" 1;
+  }
+  input, select, textarea, button {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.003em;
+  }
+}
+

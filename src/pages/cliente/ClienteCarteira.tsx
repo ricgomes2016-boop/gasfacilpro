@@ -33,8 +33,8 @@ export default function ClienteCarteira() {
         <h1 className="text-2xl font-bold">Minha Carteira</h1>
 
         {/* Balance Card */}
-        <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
-          <CardContent className="p-6">
+        <div className="rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md">
+          <div className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 bg-white/20 rounded-full">
                 <Wallet className="h-6 w-6" />
@@ -47,8 +47,8 @@ export default function ClienteCarteira() {
             <p className="text-sm text-primary-foreground/70 mt-2">
               Use para abater em suas compras
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4">

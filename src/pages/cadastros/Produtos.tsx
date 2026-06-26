@@ -162,9 +162,8 @@ function buildFiscalPayload(dados: ProdutoForm) {
     ncm: dados.ncm || null,
     cest: dados.cest || null,
     codigo_anp: dados.codigo_anp || null,
-    descricao_anp: dados.descricao_anp || null,
     unidade_tributavel: dados.unidade_tributavel || null,
-    cfop_saida: dados.cfop_saida || null,
+    cfop_saida_padrao: dados.cfop_saida || null,
     cfop_entrada_padrao: dados.cfop_entrada_padrao || null,
     cst_icms: dados.cst_icms || null,
     csosn_icms: dados.csosn_icms || null,
@@ -174,10 +173,6 @@ function buildFiscalPayload(dados: ProdutoForm) {
     aliquota_cofins: parseNumOrNull(dados.aliquota_cofins),
     aliquota_icms: parseNumOrNull(dados.aliquota_icms),
     monofasico: !!dados.monofasico,
-    fator_conversao_anp: parseNumOrNull(dados.fator_conversao_anp),
-    produto_vasilhame_id: dados.produto_vasilhame_id && dados.produto_vasilhame_id !== "nenhum" ? dados.produto_vasilhame_id : null,
-    origem_mercadoria: dados.origem_mercadoria || null,
-    unidade_comercial: dados.unidade_comercial || null,
   };
 }
 
@@ -298,7 +293,7 @@ export default function Produtos() {
           ativo: true,
           unidade_id: unidadeAtual?.id || null,
           ...fiscalPayload,
-        })
+        } as any)
         .select()
         .single();
 
@@ -318,7 +313,7 @@ export default function Produtos() {
             botijao_par_id: produtoCheio.id,
             ativo: true,
             unidade_id: unidadeAtual?.id || null,
-          })
+          } as any)
           .select()
           .single();
 
@@ -369,7 +364,7 @@ export default function Produtos() {
           image_url: dados.image_url || null,
           estoque_unico: dados.estoque_unico,
           ...buildFiscalPayload(dados),
-        })
+        } as any)
         .eq("id", id)
         .select()
         .single();
@@ -451,7 +446,7 @@ export default function Produtos() {
       codigo_anp: produto.codigo_anp || "",
       descricao_anp: produto.descricao_anp || "",
       unidade_tributavel: produto.unidade_tributavel || "KG",
-      cfop_saida: produto.cfop_saida || "",
+      cfop_saida: (produto as any).cfop_saida_padrao || produto.cfop_saida || "",
       cfop_entrada_padrao: produto.cfop_entrada_padrao || "",
       cst_icms: produto.cst_icms || "",
       csosn_icms: produto.csosn_icms || "",

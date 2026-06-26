@@ -14,6 +14,10 @@ export interface PagamentoRoteamento {
   vale_gas_parceiro_nome?: string;
   vale_gas_numero?: number;
   vale_gas_codigo?: string;
+  // Cartão / PIX Maquininha — escolha do atendente/entregador
+  operadora_id?: string;
+  terminal_id?: string;
+  conta_bancaria_id?: string;
 }
 
 interface RotearPagamentosParams {
@@ -43,17 +47,23 @@ async function getContaPrincipal(unidadeId?: string | null): Promise<string | nu
 }
 
 /**
- * Busca operadora ativa da unidade e calcula taxa/prazo
+ * Busca operadora ativa da unidade e calcula taxa/prazo.
+ * Se operadoraId for fornecido (escolha do atendente/entregador), usa essa.
+ * Caso contrário, cai na primeira ativa da unidade.
  */
-async function getOperadoraConfig(unidadeId: string | null, tipo: string) {
-  if (!unidadeId) return null;
-  const { data } = await supabase
+async function getOperadoraConfig(unidadeId: string | null, tipo: string, operadoraId?: string | null) {
+  let query = supabase
     .from("operadoras_cartao")
-    .select("id, nome, taxa_debito, taxa_credito_vista, taxa_credito_parcelado, prazo_debito, prazo_credito, taxa_pix, prazo_pix")
-    .or(`unidade_id.eq.${unidadeId},unidade_id.is.null`)
-    .eq("ativo", true)
-    .limit(1)
-    .maybeSingle();
+    .select("id, nome, taxa_debito, taxa_credito_vista, taxa_credito_parcelado, prazo_debito, prazo_credito, taxa_pix, prazo_pix, conta_bancaria_id");
+
+  if (operadoraId) {
+    query = query.eq("id", operadoraId);
+  } else {
+    if (!unidadeId) return null;
+    query = query.or(`unidade_id.eq.${unidadeId},unidade_id.is.null`).eq("ativo", true);
+  }
+
+  const { data } = await query.limit(1).maybeSingle();
   if (!data) return null;
 
   let taxa = 0;
@@ -69,7 +79,24 @@ async function getOperadoraConfig(unidadeId: string | null, tipo: string) {
     prazo = Number(data.prazo_credito) || 30;
   }
 
-  return { id: data.id, nome: data.nome, taxa, prazo };
+  return { id: data.id, nome: data.nome, taxa, prazo, conta_bancaria_id: (data as any).conta_bancaria_id as string | null };
+}
+
+/**
+ * Resolve a conta bancária de destino para um pagamento de cartão/PIX maq.
+ * Precedência: pag.conta_bancaria_id > terminal.conta_bancaria_id > operadora.conta_bancaria_id.
+ */
+async function resolveContaDestinoCartao(pag: PagamentoRoteamento, opContaId: string | null): Promise<string | null> {
+  if (pag.conta_bancaria_id) return pag.conta_bancaria_id;
+  if (pag.terminal_id) {
+    const { data } = await supabase
+      .from("terminais_cartao")
+      .select("conta_bancaria_id")
+      .eq("id", pag.terminal_id)
+      .maybeSingle();
+    if ((data as any)?.conta_bancaria_id) return (data as any).conta_bancaria_id as string;
+  }
+  return opContaId || null;
 }
 
 /**
@@ -194,7 +221,7 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
         // Cartões e PIX Maquininha → contas_receber com operadora + taxa + prazo
         promises.push(
           (async () => {
-            const op = await getOperadoraConfig(unidadeId || null, pag.forma);
+            const op = await getOperadoraConfig(unidadeId || null, pag.forma, pag.operadora_id);
             const taxa = op ? op.taxa : 0;
             const prazo = op ? op.prazo : (pag.forma.includes("debito") ? 1 : 30);
             const valorTaxa = pag.valor * (taxa / 100);
@@ -202,6 +229,8 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
 
             const tipoLabel = pag.forma.includes("debito") || pag.forma === "debito"
               ? "Débito" : pag.forma === "pix_maquininha" ? "PIX Maq." : "Crédito";
+
+            const contaDestino = await resolveContaDestinoCartao(pag, op?.conta_bancaria_id || null);
 
             await insertContasReceber({
               cliente: op?.nome || clienteNome || "Operadora Cartão",
@@ -217,6 +246,7 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
               valor_taxa: valorTaxa,
               valor_liquido: valorLiquido,
               cliente_id: clienteId || null,
+              conta_bancaria_destino_id: contaDestino,
             });
           })()
         );
@@ -300,6 +330,47 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
         })());
         break;
       }
+
+      case "gas_do_povo": {
+        // Programa Gás do Povo (governo): recebível D+2, taxa 0%.
+        // Tratado como recebível tipo cartão para aparecer na Conciliação Cartão.
+        const dataPrevista = format(addDays(new Date(), 2), "yyyy-MM-dd");
+        promises.push(insertContasReceber({
+          cliente: "Programa Gás do Povo",
+          descricao: `Gás do Povo - Venda #${pedidoRef}`,
+          valor: pag.valor,
+          vencimento: dataPrevista,
+          status: "pendente",
+          forma_pagamento: "gas_do_povo",
+          pedido_id: pedidoId,
+          unidade_id: unidadeId || null,
+          taxa_percentual: 0,
+          valor_taxa: 0,
+          valor_liquido: pag.valor,
+          cliente_id: clienteId || null,
+        }));
+        // Também aparece em Gestão de Cartões (Conferência) como "maquininha azulzinha"
+        promises.push((async () => {
+          const { error } = await supabase.from("conferencia_cartao").insert({
+            pedido_id: pedidoId,
+            operadora_id: null,
+            tipo: "gas_do_povo",
+            bandeira: "Gás do Povo",
+            valor_bruto: pag.valor,
+            taxa_percentual: 0,
+            valor_taxa: 0,
+            valor_liquido_esperado: pag.valor,
+            data_venda: hoje,
+            data_prevista_deposito: dataPrevista,
+            parcelas: 1,
+            status: "pendente",
+            unidade_id: unidadeId || null,
+          });
+          if (error) throw error;
+        })());
+        break;
+      }
+
 
     }
   }

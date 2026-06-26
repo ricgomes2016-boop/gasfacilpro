@@ -333,6 +333,69 @@ export function getOffHoursMessage(clienteNome: string | null, horarioInfo: stri
   return `${saudacao} 😊\nNo momento estamos *fechados*.\nNosso horário de funcionamento é *${horarioInfo}*.\n\nSe quiser, posso *agendar seu pedido* para quando abrirmos! Basta me dizer o que precisa. 📋`;
 }
 
+// ========== LOCAL FALLBACK REPLY ==========
+export function buildLocalSalesFallbackReply(
+  messageText: string,
+  history: any[],
+  cliente: ClienteInfo,
+  productList: string,
+): string {
+  const text = messageText || "";
+  const lower = text.toLowerCase();
+  const nome = cliente.nome ? cliente.nome.split(" ")[0] : "";
+  const prefix = nome ? `${nome}, ` : "";
+
+  const hasProductIntent = /\b(g[aá]s|gas|botij|p\s*13|p13|p\s*20|p20|p\s*45|p45|[aá]gua|agua|gal[aã]o)\b/i.test(text);
+  const asksPrice = /\b(valor|pre[cç]o|quanto|custa|sai|fica)\b/i.test(text);
+  const hasGreetingOnly = /^(oi|ol[aá]|bom dia|boa tarde|boa noite|tudo bem|td bem)[\s!.?]*$/i.test(text.trim());
+  const hasAddressHint = /\b(rua|avenida|av\.?|travessa|alameda|rodovia|estrada|numero|n[úu]mero|bairro|casa|apto|apartamento|\d{1,5})\b/i.test(text);
+  const hasPaymentHint = /\b(pix|dinheiro|cart[aã]o|cartao|d[eé]bito|credito|cr[eé]dito|fiado|vale)\b/i.test(text);
+
+  const p13Match = productList.match(/P13[^\d]*R\$\s*([\d.,]+)/i);
+  const p20Match = productList.match(/P20[^\d]*R\$\s*([\d.,]+)/i);
+  const p45Match = productList.match(/P45[^\d]*R\$\s*([\d.,]+)/i);
+  const aguaMatch = productList.match(/(?:agua|gal[aã]o)[^\d]*R\$\s*([\d.,]+)/i);
+
+  const priceForText = () => {
+    if (/\bp\s*20|p20\b/i.test(lower) && p20Match) return `O P20 esta R$ ${p20Match[1]}.`;
+    if (/\bp\s*45|p45\b/i.test(lower) && p45Match) return `O P45 esta R$ ${p45Match[1]}.`;
+    if (/\b[aá]gua|agua|gal[aã]o\b/i.test(lower) && aguaMatch) return `A agua 20L esta R$ ${aguaMatch[1]}.`;
+    if (p13Match) return `O P13 esta R$ ${p13Match[1]}.`;
+    return "Consigo verificar o valor certinho para voce.";
+  };
+
+  const recentUserText = history
+    .filter((m: any) => m.role === "user")
+    .map((m: any) => m.content || "")
+    .join("\n");
+  const combined = `${recentUserText}\n${text}`;
+  const alreadyHasProduct = /\b(g[aá]s|gas|botij|p\s*13|p13|p\s*20|p20|p\s*45|p45|[aá]gua|agua|gal[aã]o)\b/i.test(combined);
+  const alreadyHasAddress = /\b(rua|avenida|av\.?|travessa|alameda|rodovia|estrada|numero|n[úu]mero|bairro|casa|apto|apartamento|\d{1,5})\b/i.test(combined);
+  const alreadyHasPayment = /\b(pix|dinheiro|cart[aã]o|cartao|d[eé]bito|credito|cr[eé]dito|fiado|vale)\b/i.test(combined);
+
+  if (asksPrice) {
+    return `${prefix}${priceForText()} Para entrega, me envie o endereco, por favor.`;
+  }
+  if (hasGreetingOnly) {
+    return nome ? `Oi ${nome}! Tudo bem?` : "Ola! Tudo bem?";
+  }
+  if (hasProductIntent && !alreadyHasAddress) {
+    return `${prefix}claro! Qual o endereco para entrega?`;
+  }
+  if ((hasAddressHint || alreadyHasAddress) && alreadyHasProduct && !alreadyHasPayment) {
+    return "Perfeito. Qual sera a forma de pagamento: pix, dinheiro ou cartao?";
+  }
+  if (hasPaymentHint && alreadyHasProduct && alreadyHasAddress) {
+    return "Combinado! Vou encaminhar seu pedido para a equipe confirmar e sair para entrega.";
+  }
+  if (hasProductIntent) {
+    return `${prefix}certo! Me envie o endereco para entrega, por favor.`;
+  }
+  return nome
+    ? `Oi ${nome}! Posso ajudar com seu pedido de gas ou agua.`
+    : "Ola! Posso ajudar com seu pedido de gas ou agua.";
+}
+
 // ========== IDENTIFY CONTACT ==========
 export interface ContactIdentity {
   tipo: "cliente" | "entregador" | "parceiro";
@@ -418,17 +481,35 @@ export async function collectBufferedMessages(supabase: any, conversationId: str
 
   // Fetch all user messages from the last 5 seconds
   const fiveSecsAgo = new Date(Date.now() - 6000).toISOString();
-  const { data: recentMsgs } = await supabase.from("ai_mensagens")
+  const { data: recentMsgs, error } = await supabase.from("ai_mensagens")
     .select("content, created_at, metadata")
     .eq("conversa_id", conversationId)
     .eq("role", "user")
     .gte("created_at", fiveSecsAgo)
     .order("created_at", { ascending: true });
 
+  if (error) {
+    console.error("Debounce: failed to load recent messages; replying with current text.", {
+      conversationId,
+      currentMessageId,
+      code: error.code,
+      message: error.message,
+    });
+    return { text: currentText, isLatest: true };
+  }
+
   if (recentMsgs && recentMsgs.length > 0) {
-    // Check if the CURRENT message is the LAST one in the window
-    const lastMsg = recentMsgs[recentMsgs.length - 1];
-    const isLatest = lastMsg.metadata?.message_id === currentMessageId;
+    // Check if the CURRENT message is the LAST one in the window. If the
+    // current message is not returned by the recent window, do not silence BIA:
+    // clock drift, slow inserts, or metadata inconsistencies should not make
+    // the assistant miss an actual customer request.
+    const currentIndex = recentMsgs.findIndex((m: any) => m.metadata?.message_id === currentMessageId);
+    if (currentIndex === -1) {
+      console.warn("Debounce: current message not found in recent window; replying with current text.", currentMessageId);
+      return { text: currentText, isLatest: true };
+    }
+
+    const isLatest = currentIndex === recentMsgs.length - 1;
 
     if (recentMsgs.length > 1) {
       const combined = recentMsgs.map((m: any) => m.content).join("\n");
@@ -950,7 +1031,8 @@ CANCELAMENTO DE PEDIDO (CRÍTICO — NUNCA MANDE LIGAR PARA A EMPRESA):
 PRODUTOS E PREÇOS DISPONÍVEIS:
 ${productList}
 
-DADOS TÉCNICOS (SÓ GERE APÓS O PASSO 5):
+DADOS TÉCNICOS — OBRIGATÓRIO no Passo 5 (REGRA ABSOLUTA):
+⚠️ Toda vez que você confirmar o pedido (qualquer frase como "Combinado", "pedido confirmado", "vou passar para a entrega", "vou passar para o entregador"), você DEVE incluir IMEDIATAMENTE APÓS sua resposta o bloco abaixo, EXATAMENTE neste formato. SEM o bloco, o pedido NÃO é registrado e o cliente fica sem entrega. NUNCA omita.
 [PEDIDO_CONFIRMADO]
 nome: ${cliente.nome || "Cliente"}
 produto: (Nome EXATO: "Gás P13", "Gás P20", "Gás P45" ou "Água Mineral 20L")
@@ -1026,10 +1108,43 @@ export async function saveMessage(supabase: any, conversationId: string, role: s
   const wa_message_id = metadata?.message_id || metadata?.wa_message_id || null;
   const row: any = { conversa_id: conversationId, role, content, metadata };
   if (wa_message_id) row.wa_message_id = wa_message_id;
-  // Status default: inbound = 'sent' (já chegou); assistant/system = 'sent' (BIA enviou via sendMessage do webhook); human = pending (operador)
   if (role === "user") row.status = "sent";
   else if (role === "assistant" || role === "system") row.status = "sent";
-  await supabase.from("ai_mensagens").insert(row);
+
+  // Set tenant fields explicitly so RLS/Realtime can deliver the message to
+  // the right company/unit even if the DB trigger is delayed or unavailable.
+  try {
+    const { data: conv } = await supabase
+      .from("ai_conversas")
+      .select("empresa_id, unidade_id")
+      .eq("id", conversationId)
+      .maybeSingle();
+    if (conv?.empresa_id) row.empresa_id = conv.empresa_id;
+    if (conv?.unidade_id) row.unidade_id = conv.unidade_id;
+  } catch (_) { /* DB trigger remains as fallback */ }
+
+  const { data, error } = await supabase.from("ai_mensagens").insert(row).select("id").single();
+  if (error) {
+    console.error("[bia-core] saveMessage failed", {
+      conversationId,
+      role,
+      wa_message_id,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+    });
+    throw error;
+  }
+
+  try {
+    await supabase
+      .from("ai_conversas")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", conversationId);
+  } catch (e) {
+    console.warn("[bia-core] failed to touch conversation after message insert", conversationId, e);
+  }
+  return data;
 }
 
 export async function upsertConversation(supabase: any, conversationId: string, title: string, telefone?: string, unidadeId?: string | null) {
@@ -1051,7 +1166,24 @@ export async function upsertConversation(supabase: any, conversationId: string, 
     updated_at: new Date().toISOString(),
   };
   if (telefone) payload.telefone = telefone;
-  await supabase.from("ai_conversas").upsert(payload, { onConflict: "id" });
+  if (unidadeId) {
+    payload.unidade_id = unidadeId;
+    try {
+      const { data: unidade } = await supabase.from("unidades").select("empresa_id").eq("id", unidadeId).maybeSingle();
+      if (unidade?.empresa_id) payload.empresa_id = unidade.empresa_id;
+    } catch {}
+  }
+  const { error } = await supabase.from("ai_conversas").upsert(payload, { onConflict: "id" });
+  if (error) {
+    console.error("[bia-core] upsertConversation failed", {
+      conversationId,
+      unidadeId,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+    });
+    throw error;
+  }
 }
 
 // ========== IDEMPOTENCY ==========
@@ -1148,7 +1280,7 @@ export async function callAI(messages: any[]): Promise<string> {
       payload.system_instruction = { parts: [{ text: systemInstruction }] };
     }
 
-    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -1179,10 +1311,12 @@ export async function callAI(messages: any[]): Promise<string> {
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "google/gemini-2.0-flash-exp", messages }),
+      body: JSON.stringify({ model: "google/gemini-2.5-flash", messages }),
     });
 
     if (!resp.ok) {
+      const errBody = await resp.text().catch(() => "");
+      console.error(`Lovable AI Gateway error ${resp.status}:`, errBody.substring(0, 300));
       if (resp.status === 429) throw new Error("RATE_LIMIT");
       if (resp.status === 402) throw new Error("CREDITS_EXHAUSTED");
       throw new Error(`AI_ERROR_${resp.status}`);
@@ -1250,7 +1384,7 @@ export async function transcribeAudio(audioBase64: string, mimeType: string): Pr
   try {
     // 1. Tenta via Gemini Direto (Suporta áudio nativamente)
     if (GEMINI_API_KEY) {
-      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1276,7 +1410,7 @@ export async function transcribeAudio(audioBase64: string, mimeType: string): Pr
       ? "https://ai.gateway.lovable.dev/v1/chat/completions"
       : "https://api.openai.com/v1/chat/completions";
 
-    const model = LOVABLE_API_KEY ? "google/gemini-2.0-flash-exp" : "gpt-4o-audio-preview";
+    const model = LOVABLE_API_KEY ? "google/gemini-2.5-flash" : "gpt-4o-audio-preview";
 
     const resp = await fetch(baseUrl, {
       method: "POST",
@@ -1328,6 +1462,75 @@ export function parseOrderData(raw: string): Record<string, string> | null {
     if (key && parts.length) data[key.trim().toLowerCase()] = parts.join(":").trim();
   }
   return data.produto && data.quantidade ? data : null;
+}
+
+// ========== ORDER RECOVERY ==========
+/**
+ * Quando a Bia escreve uma frase de confirmação ("Combinado!", "pedido confirmado"...)
+ * mas esquece de emitir o bloco [PEDIDO_CONFIRMADO], chamamos novamente o LLM apenas
+ * para extrair o bloco estruturado a partir do histórico.
+ */
+export const ORDER_CONFIRMATION_REGEX =
+  /(combinado!|pedido (?:foi )?confirmado|j[áa] vou passar (?:para|pra) (?:a )?entrega|j[áa] vou passar (?:para|pro) entregador|vou (?:passar|enviar|repassar) (?:para|pro|pra) (?:o )?entregador|repassar (?:para|pro|pra) (?:o )?entregador|seu pedido foi confirmado|j[áa] estou (?:passando|enviando) para (?:a )?entrega)/i;
+
+export async function recoverOrderBlock(
+  history: any[],
+  lastUserMessage: string,
+  assistantReply: string,
+  telefoneNormalizado: string,
+  clienteNome: string | null,
+): Promise<Record<string, string> | null> {
+  try {
+    const compactHistory = (history || []).slice(-20).map((m) => ({
+      role: m.role,
+      content: typeof m.content === "string" ? m.content.slice(0, 800) : "",
+    }));
+
+    const extractorPrompt = `Você é um EXTRATOR. Recebe o histórico de uma conversa de WhatsApp em que uma atendente confirmou um pedido de gás/água, mas esqueceu de emitir o bloco técnico.
+
+Sua tarefa: retornar APENAS o bloco a seguir, com os dados que aparecem no histórico, e NADA MAIS (sem explicação, sem saudação, sem markdown):
+
+[PEDIDO_CONFIRMADO]
+nome: ${clienteNome || "Cliente"}
+produto: (escolha EXATAMENTE um: "Gás P13", "Gás P20", "Gás P45" ou "Água Mineral 20L")
+quantidade: 1
+endereco: endereço completo (rua, número, bairro, cidade)
+pagamento: dinheiro|pix|cartão|crédito|débito|institucional|vale gás
+valor: número total em reais (ex.: 125). Use 0 SOMENTE se o pagamento for "institucional" ou "vale gás".
+telefone: ${telefoneNormalizado}
+[/PEDIDO_CONFIRMADO]
+
+Regras:
+- Use exatamente os dados que aparecem na conversa.
+- Se algum campo essencial (produto, endereço ou pagamento) estiver realmente ausente, retorne a string vazia.
+- NÃO invente endereço nem pagamento.
+- NÃO escreva nada fora do bloco.
+
+A última resposta da atendente foi: "${assistantReply.slice(0, 400)}"
+A última mensagem do cliente foi: "${lastUserMessage.slice(0, 400)}"`;
+
+    const messages = [
+      { role: "system", content: extractorPrompt },
+      ...compactHistory,
+    ];
+
+    const reply = await callAI(messages);
+    const match = reply?.match(/\[PEDIDO_CONFIRMADO\]([\s\S]*?)\[\/PEDIDO_CONFIRMADO\]/);
+    if (!match) {
+      console.warn("[order-recovery] LLM não devolveu bloco. reply=", (reply || "").slice(0, 200));
+      return null;
+    }
+    const data = parseOrderData(match[1]);
+    if (!data?.produto || !data?.endereco) {
+      console.warn("[order-recovery] bloco incompleto:", data);
+      return null;
+    }
+    if (!data.telefone) data.telefone = telefoneNormalizado;
+    return data;
+  } catch (e) {
+    console.error("[order-recovery] erro:", (e as Error).message);
+    return null;
+  }
 }
 
 // ========== EXTRACT DISCOUNT ==========
@@ -1531,6 +1734,25 @@ export async function createOrder(
     }
 
     console.log("Order created:", ped.id);
+
+    // Notificar gestor da unidade via WhatsApp
+    try {
+      await notifyOrderConfirmed(supabase, config, {
+        pedidoId: ped.id,
+        unidadeId,
+        clienteNome: orderData.nome || clienteNome || senderName,
+        clienteTelefone: phone,
+        produtoNome: produto?.nome || "Produto",
+        quantidade: qty,
+        total,
+        formaPagamento: payMap[orderData.pagamento?.toLowerCase()] || (orderData.pagamento || "—"),
+        endereco: orderData.endereco || "",
+        agendado: !!isAgendado,
+      });
+    } catch (notifyErr) {
+      console.error("[notifyOrderConfirmed] erro (não bloqueante):", notifyErr);
+    }
+
     return { pedidoId: ped.id as string, entregadorId: (ped as any).entregador_id as string | null };
   } catch (e) {
     console.error("Create order error:", e);
@@ -1798,6 +2020,60 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
     }
   } catch (e) { console.error("Send message error:", e); return { ok: false, error: (e as Error).message }; }
 }
+
+// ========== NOTIFY ORDER CONFIRMED (gestor da unidade) ==========
+const FALLBACK_NOTIFY_NUMBER = "5543999692765";
+export async function notifyOrderConfirmed(
+  supabase: any,
+  config: BiaConfig,
+  data: {
+    pedidoId: string;
+    unidadeId: string | null;
+    clienteNome: string;
+    clienteTelefone: string;
+    produtoNome: string;
+    quantidade: number;
+    total: number;
+    formaPagamento: string;
+    endereco: string;
+    agendado: boolean;
+  }
+) {
+  let destino = FALLBACK_NOTIFY_NUMBER;
+  let unidadeNome = "—";
+  if (data.unidadeId) {
+    const { data: uni } = await supabase
+      .from("unidades")
+      .select("nome, whatsapp_notificacao_pedido")
+      .eq("id", data.unidadeId)
+      .maybeSingle();
+    if (uni?.nome) unidadeNome = uni.nome;
+    const configurado = (uni?.whatsapp_notificacao_pedido || "").replace(/\D/g, "");
+    if (configurado.length >= 12) destino = configurado;
+  }
+  if (!destino || destino.replace(/\D/g, "").length < 12) {
+    console.log("[notifyOrderConfirmed] sem número de notificação configurado, ignorando.");
+    return;
+  }
+
+  const totalFmt = `R$ ${Number(data.total || 0).toFixed(2).replace(".", ",")}`;
+  const msg = [
+    `✅ *Novo pedido confirmado* #${data.pedidoId.slice(0, 8)}${data.agendado ? " (AGENDADO)" : ""}`,
+    `🏢 Unidade: ${unidadeNome}`,
+    `👤 Cliente: ${data.clienteNome} (${data.clienteTelefone})`,
+    `📦 ${data.quantidade}x ${data.produtoNome}`,
+    `💰 ${totalFmt} — ${data.formaPagamento}`,
+    data.endereco ? `📍 ${data.endereco}` : null,
+  ].filter(Boolean).join("\n");
+
+  console.log("[notifyOrderConfirmed] enviando para", destino);
+  const result = await sendMessage(config, destino.replace(/\D/g, ""), msg);
+  if (!result.ok) {
+    console.error("[notifyOrderConfirmed] falha:", result.error);
+  }
+}
+
+
 
 // ========== SEND LOCATION (WHATSAPP) ==========
 export async function sendLocation(config: BiaConfig, phone: string, lat: number, lng: number, name: string) {

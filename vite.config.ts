@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
@@ -7,10 +7,36 @@ import { VitePWA } from "vite-plugin-pwa";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const buildVersion = new Date().toISOString();
+  const env = loadEnv(mode, process.cwd(), "");
+  // Backend ativo do Lovable Cloud — NÃO inverter. O projeto antigo (gcrdftnnbgsogoqcmcxo)
+  // não possui o schema atual e quebra produção (Invalid API key, colunas inexistentes, 404).
+  const currentSupabaseProjectId = "scqenurznkatvrqxqjmt";
+  const currentSupabaseUrl = `https://${currentSupabaseProjectId}.supabase.co`;
+  const legacySupabaseProjectId = "gcrdftnnbgsogoqcmcxo";
+  const viteSupabaseUrl =
+    env.VITE_SUPABASE_URL?.includes(legacySupabaseProjectId) ? undefined : env.VITE_SUPABASE_URL;
+  const supabaseUrl = env.SUPABASE_URL || viteSupabaseUrl || currentSupabaseUrl;
+  const vitePublishableKey =
+    env.VITE_SUPABASE_PUBLISHABLE_KEY?.includes("gcrdftnnbgsogoqcmcxo") ? undefined : env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const supabasePublishableKey =
+    env.SUPABASE_PUBLISHABLE_KEY ||
+    vitePublishableKey ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjcWVudXJ6bmthdHZycXhxam10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzNzIxMDMsImV4cCI6MjA4NTk0ODEwM30.JfjppsJiUB4AbL4NqImbvZtp65taUQmeQ3Ikzkz6mGk";
+  const projectIdFromUrl = supabaseUrl.match(/^https:\/\/([^.]+)\.supabase\.co/)?.[1];
+  const viteProjectId =
+    env.VITE_SUPABASE_PROJECT_ID === legacySupabaseProjectId ? undefined : env.VITE_SUPABASE_PROJECT_ID;
+  const supabaseProjectId =
+    env.SUPABASE_PROJECT_ID ||
+    projectIdFromUrl ||
+    viteProjectId ||
+    currentSupabaseProjectId;
 
   return {
     define: {
       __APP_BUILD_ID__: JSON.stringify(buildVersion),
+      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(supabaseUrl),
+      "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(supabasePublishableKey),
+      "import.meta.env.VITE_SUPABASE_PROJECT_ID": JSON.stringify(supabaseProjectId),
     },
     server: {
       host: "::",
@@ -19,11 +45,17 @@ export default defineConfig(({ mode }) => {
         overlay: false,
       },
     },
+    build: {
+      chunkSizeWarningLimit: 2000,
+    },
     plugins: [
       react(),
       mode === "development" && componentTagger(),
       VitePWA({
         strategies: "injectManifest",
+        injectManifest: {
+          rollupFormat: "iife",
+        },
         srcDir: "src",
         filename: "sw.js",
         registerType: "autoUpdate",

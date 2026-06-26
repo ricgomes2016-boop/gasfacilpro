@@ -34,6 +34,10 @@ function isWindowVisibleAndFocused(): boolean {
   return visible && focused;
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 async function requestNotificationPermission(): Promise<NotificationPermission | "unsupported"> {
   if (!supportsBrowserNotifications()) return "unsupported";
   if (Notification.permission === "granted" || Notification.permission === "denied") {
@@ -123,11 +127,11 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
   useEffect(() => { selectedRef.current = selectedConversaId; }, [selectedConversaId]);
   useEffect(() => { openRef.current = isWidgetOpen; }, [isWidgetOpen]);
 
-  // Helper: a conversa pertence ao escopo atual (mesma empresa + unidade atual ou legado sem unidade)?
+  // Helper: a conversa/mensagem pertence ao escopo atual (mesma empresa + unidade atual ou legado sem unidade)?
   const conversaNoEscopo = useCallback((conv: { empresa_id?: string | null; unidade_id?: string | null } | null | undefined) => {
     if (!conv) return false;
     const emp = empresaRef.current;
-    if (emp && conv.empresa_id && conv.empresa_id !== emp) return false;
+    if (emp && conv.empresa_id !== emp) return false;
     const uni = unidadeRef.current;
     if (uni && conv.unidade_id && conv.unidade_id !== uni) return false;
     return true;
@@ -171,8 +175,10 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
 
   // Realtime listener for new incoming messages
   useEffect(() => {
+    if (!empresaId) return;
+
     const channel = supabase
-      .channel("wa-global-notifications")
+      .channel(`wa-notifications-${empresaId}-${unidadeId || "all"}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "ai_mensagens" },
@@ -188,13 +194,27 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
 
           const convId = msg.conversa_id as string;
 
-          // Valida escopo antes de incrementar/notificar
-          const { data: conv } = await supabase
-            .from("ai_conversas")
-            .select("titulo, telefone, empresa_id, unidade_id")
-            .eq("id", convId)
-            .maybeSingle();
-          if (!conversaNoEscopo(conv)) return;
+          // Valida escopo antes de incrementar/notificar. Algumas integracoes
+          // criam/atualizam a conversa quase junto com a mensagem, entao damos
+          // uma pequena margem para nao perder a primeira mensagem do cliente.
+          let conv: { titulo?: string | null; telefone?: string | null; empresa_id?: string | null; unidade_id?: string | null } | null = null;
+          for (let attempt = 0; attempt < 6; attempt++) {
+            const { data } = await supabase
+              .from("ai_conversas")
+              .select("titulo, telefone, empresa_id, unidade_id")
+              .eq("id", convId)
+              .maybeSingle();
+            if (data) {
+              conv = data;
+              break;
+            }
+            await wait(250);
+          }
+          const scope = {
+            empresa_id: conv?.empresa_id || msg.empresa_id || null,
+            unidade_id: conv?.unidade_id || msg.unidade_id || null,
+          };
+          if (!conversaNoEscopo(scope)) return;
 
           try { localStorage.setItem(notifiedKey, "1"); } catch {}
 
@@ -223,7 +243,7 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [conversaNoEscopo]);
+  }, [conversaNoEscopo, empresaId, unidadeId]);
 
   const markAsRead = useCallback((conversaId: string) => {
     localStorage.setItem(LS_PREFIX + conversaId, new Date().toISOString());

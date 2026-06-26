@@ -1,10 +1,8 @@
 import { lazy } from "react";
 import { RouteConfig } from "./helpers";
 
-// CockpitGestor removed - unified into ConselhosIA (Central de Inteligência)
-const CentralIndicadores = lazy(() => import("@/pages/operacional/CentralIndicadores"));
+// Indicadores and alerts are unified into ConselhosIA (Central de Inteligência)
 const MapaOperacional = lazy(() => import("@/pages/operacional/MapaOperacional"));
-const AlertasInteligentes = lazy(() => import("@/pages/operacional/AlertasInteligentes"));
 const AnaliseConcorrencia = lazy(() => import("@/pages/operacional/AnaliseConcorrencia"));
 const ConselhosIA = lazy(() => import("@/pages/operacional/ConselhosIA"));
 const DashboardExecutivo = lazy(() => import("@/pages/operacional/DashboardExecutivo"));
@@ -30,14 +28,16 @@ const Licitacoes = lazy(() => import("@/pages/operacional/Licitacoes"));
 const RelatorioGerencial = lazy(() => import("@/pages/operacional/RelatorioGerencial"));
 const CategoriasDespesa = lazy(() => import("@/pages/config/CategoriasDespesa"));
 const Declaracoes = lazy(() => import("@/pages/config/Declaracoes"));
+const Fornecedores = lazy(() => import("@/pages/cadastros/Fornecedores"));
+const BolaoAdmin = lazy(() => import("@/pages/operacional/BolaoAdmin"));
+const Vendedores = lazy(() => import("@/pages/operacional/Vendedores"));
 
 export const operacionalRoutes: RouteConfig[] = [
   { path: "/operacional/ia", component: ConselhosIA, roles: ["admin", "gestor"] },
-  { path: "/operacional/indicadores", component: CentralIndicadores, roles: ["admin", "gestor"] },
+  { path: "/operacional/indicadores", component: ConselhosIA, roles: ["admin", "gestor"] },
   { path: "/operacional/centro", component: MapaOperacional, roles: ["admin", "gestor", "operacional"] },
-  { path: "/operacional/alertas", component: AlertasInteligentes, roles: ["admin", "gestor"] },
+  { path: "/operacional/alertas", component: ConselhosIA, roles: ["admin", "gestor"] },
   { path: "/operacional/concorrencia", component: AnaliseConcorrencia, roles: ["admin", "gestor"] },
-  { path: "/operacional/ia", component: ConselhosIA, roles: ["admin", "gestor"] },
   { path: "/operacional/executivo", component: DashboardExecutivo, roles: ["admin", "gestor"] },
   { path: "/operacional/avancado", component: DashboardAvancado, roles: ["admin", "gestor"] },
   { path: "/operacional/trabalhista", component: DashboardTrabalhista, roles: ["admin", "gestor"] },
@@ -50,6 +50,7 @@ export const operacionalRoutes: RouteConfig[] = [
   { path: "/operacional/planejamento", component: Planejamento, roles: ["admin", "gestor"] },
   { path: "/operacional/analise-resultados", component: AnaliseResultados, roles: ["admin", "gestor", "financeiro"] },
   { path: "/operacional/canais-venda", component: CanaisVenda, roles: ["admin", "gestor", "operacional"] },
+  { path: "/operacional/fornecedores", component: Fornecedores, roles: ["admin", "gestor"] },
   { path: "/config/canais-venda", component: CanaisVenda, roles: ["admin", "gestor", "operacional"] },
   { path: "/operacional/aprovacoes", component: WorkflowAprovacoes, roles: ["admin", "gestor"] },
   { path: "/operacional/sla", component: SlaEntregas, roles: ["admin", "gestor", "operacional"] },
@@ -62,4 +63,6 @@ export const operacionalRoutes: RouteConfig[] = [
   { path: "/operacional/gerencial", component: RelatorioGerencial, roles: ["admin", "gestor"] },
   { path: "/operacional/declaracoes", component: Declaracoes, roles: ["admin", "gestor", "financeiro"] },
   { path: "/config/categorias-despesa", component: CategoriasDespesa, roles: ["admin", "gestor"] },
+  { path: "/operacional/bolao-admin", component: BolaoAdmin, roles: ["admin", "gestor"] },
+  { path: "/operacional/vendedores", component: Vendedores, roles: ["admin", "gestor"] },
 ];

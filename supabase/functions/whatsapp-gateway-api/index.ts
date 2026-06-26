@@ -1,6 +1,7 @@
 // WhatsApp Gateway API — REST proxy to WhatsApp engine (Baileys/Evolution API)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +30,68 @@ async function resolveInstance(supabase: any, instanceName: string) {
     .single();
   if (error || !data) return null;
   return data;
+}
+
+function safeInstance(instance: any) {
+  if (!instance) return null;
+  const {
+    api_key: _apiKey,
+    webhook_secret: _webhookSecret,
+    session_data: _sessionData,
+    ...safe
+  } = instance;
+  return safe;
+}
+
+async function getCallerContext(req: Request, supabase: any) {
+  const auth = await requireAuth(req, corsHeaders);
+  if (!auth.ok) return { ok: false as const, response: auth.response };
+
+  if (auth.isServiceRole) {
+    return {
+      ok: true as const,
+      isServiceRole: true,
+      userId: null as string | null,
+      empresaId: null as string | null,
+      roles: ["service_role"],
+      superAdmin: true,
+    };
+  }
+
+  const [{ data: profile }, { data: rolesData }] = await Promise.all([
+    supabase.from("profiles").select("empresa_id").eq("user_id", auth.userId).maybeSingle(),
+    supabase.from("user_roles").select("role").eq("user_id", auth.userId),
+  ]);
+
+  const roles = (rolesData || []).map((r: any) => r.role);
+  const superAdmin = roles.includes("super_admin");
+
+  return {
+    ok: true as const,
+    isServiceRole: false,
+    userId: auth.userId,
+    empresaId: profile?.empresa_id ?? null,
+    roles,
+    superAdmin,
+  };
+}
+
+function hasAnyRole(ctx: any, allowed: string[]) {
+  return ctx.superAdmin || allowed.some((role) => ctx.roles.includes(role));
+}
+
+function canAccessInstance(ctx: any, instance: any) {
+  return ctx.superAdmin || (!!ctx.empresaId && instance?.empresa_id === ctx.empresaId);
+}
+
+function forbidden(message = "Forbidden") {
+  return json({ error: message }, 403);
+}
+
+async function validateAdminApiKey(req: Request, url: URL) {
+  const expected = Deno.env.get("WHATSAPP_GATEWAY_ADMIN_API_KEY");
+  const provided = req.headers.get("x-api-key") || url.searchParams.get("apikey");
+  return !!expected && !!provided && provided === expected;
 }
 
 async function forwardToEngine(
@@ -91,13 +154,24 @@ serve(async (req) => {
   
   const supabase = createSupabase(true);
 
-  // API Key authentication for external callers
-  const apiKey = req.headers.get("x-api-key") || url.searchParams.get("apikey");
-
   try {
+    const body = req.method === "GET" || req.method === "DELETE"
+      ? null
+      : await req.json().catch(() => null);
+
     // Parse path: remove empty segments
     // Filter out internal Supabase path segments
     let segments = pathParts.filter(p => !["functions", "v1", "whatsapp-gateway-api"].includes(p));
+
+    // Compatibility with supabase.functions.invoke("whatsapp-gateway-api", { body: { action, instance_name } })
+    if (segments.length === 0 && body?.action) {
+      const instanceName = body.instance_name || body.instance_id || body.name;
+      if (instanceName) {
+        segments = ["instances", instanceName, body.action === "qrcode" ? "qrcode" : body.action];
+      } else if (body.action === "instances" || body.action === "list") {
+        segments = ["instances"];
+      }
+    }
 
     // ===== WEBHOOK RECEIVER (POST /webhook/{instance_name}) =====
     if (segments[0] === "webhook" && segments[1] && req.method === "POST") {
@@ -105,7 +179,13 @@ serve(async (req) => {
       const instance = await resolveInstance(supabase, instanceName);
       if (!instance) return json({ error: "Instance not found" }, 404);
 
-      const body = await req.json();
+      const incomingSecret = req.headers.get("x-webhook-secret") || "";
+      const expectedSecret = instance.webhook_secret || "";
+      if (!expectedSecret || incomingSecret !== expectedSecret) {
+        return json({ error: "Unauthorized" }, 401);
+      }
+
+      if (!body || typeof body !== "object") return json({ error: "Invalid body" }, 400);
       console.log(`[GATEWAY] Webhook received for ${instanceName}:`, JSON.stringify(body).substring(0, 300));
 
       // Log inbound message
@@ -147,11 +227,26 @@ serve(async (req) => {
     }
 
     // ===== INSTANCE MANAGEMENT (authenticated via Supabase JWT or API key) =====
+    const adminApiKeyOk = await validateAdminApiKey(req, url);
+    let ctx: any = null;
+    if (adminApiKeyOk) {
+      ctx = { superAdmin: true, empresaId: null, roles: ["admin_api_key"], isServiceRole: true };
+    } else {
+      const authCtx = await getCallerContext(req, supabase);
+      if (!authCtx.ok) return authCtx.response;
+      ctx = authCtx;
+    }
+
+    if (!hasAnyRole(ctx, ["admin", "gestor", "operacional", "financeiro"])) {
+      return forbidden("Usuário sem permissão para gerenciar o gateway WhatsApp");
+    }
     
     // ===== LIST INSTANCES (GET /instances) =====
     if (segments[0] === "instances" && !segments[1] && req.method === "GET") {
-      const empresaId = url.searchParams.get("empresa_id");
-      let query = supabase.from("whatsapp_gateway_instances").select("*, unidades(nome)");
+      const empresaId = ctx.superAdmin ? url.searchParams.get("empresa_id") : ctx.empresaId;
+      let query = supabase
+        .from("whatsapp_gateway_instances")
+        .select("id, empresa_id, unidade_id, instance_name, phone, status, qr_code, webhook_url, engine_url, auto_reconnect, created_at, updated_at, unidades(nome)");
       if (empresaId) query = query.eq("empresa_id", empresaId);
       const { data, error } = await query.order("created_at");
       if (error) return json({ error: error.message }, 500);
@@ -166,7 +261,21 @@ serve(async (req) => {
 
       // ===== CREATE INSTANCE (POST /instances/{name}/create) =====
       if (action === "create" && req.method === "POST") {
-        const body = await req.json();
+        if (!hasAnyRole(ctx, ["admin", "gestor"])) return forbidden();
+        if (!body || typeof body !== "object") return json({ error: "Invalid body" }, 400);
+        if (!ctx.superAdmin && body.empresa_id !== ctx.empresaId) {
+          return forbidden("Empresa inválida para o usuário");
+        }
+        if (body.unidade_id) {
+          const { data: unidade } = await supabase
+            .from("unidades")
+            .select("id, empresa_id")
+            .eq("id", body.unidade_id)
+            .maybeSingle();
+          if (!unidade || (!ctx.superAdmin && unidade.empresa_id !== ctx.empresaId) || unidade.empresa_id !== body.empresa_id) {
+            return forbidden("Unidade inválida para a empresa");
+          }
+        }
         const { data, error } = await supabase.from("whatsapp_gateway_instances").insert({
           empresa_id: body.empresa_id,
           unidade_id: body.unidade_id,
@@ -192,13 +301,14 @@ serve(async (req) => {
           }
         }
 
-        return json({ instance: data }, 201);
+        return json({ instance: safeInstance(data) }, 201);
       }
 
       if (!instance) return json({ error: "Instance not found" }, 404);
+      if (!canAccessInstance(ctx, instance)) return forbidden("Instância pertence a outra empresa");
 
       // ===== GET STATUS (GET /instances/{name}/status) =====
-      if (action === "status" && req.method === "GET") {
+      if (action === "status" && (req.method === "GET" || req.method === "POST")) {
         // Try to get real-time status from engine
         try {
           const resp = await forwardToEngine(instance, `/instance/connectionState/${instanceName}`, "GET");
@@ -228,7 +338,7 @@ serve(async (req) => {
       }
 
       // ===== GET QR CODE (GET /instances/{name}/qrcode) =====
-      if (action === "qrcode" && req.method === "GET") {
+      if (action === "qrcode" && (req.method === "GET" || req.method === "POST")) {
         try {
           const resp = await forwardToEngine(instance, `/instance/connect/${instanceName}`, "GET");
           const qrCode = resp.data?.qrcode?.base64 || resp.data?.base64 || resp.data?.qrcode || null;
@@ -247,7 +357,7 @@ serve(async (req) => {
 
       // ===== SEND TEXT (POST /instances/{name}/send-text) =====
       if (action === "send-text" && req.method === "POST") {
-        const body = await req.json();
+        if (!body || typeof body !== "object") return json({ error: "Invalid body" }, 400);
         if (!body.phone || !body.message) {
           return json({ error: "phone and message are required" }, 400);
         }
@@ -266,7 +376,7 @@ serve(async (req) => {
 
       // ===== SEND IMAGE (POST /instances/{name}/send-image) =====
       if (action === "send-image" && req.method === "POST") {
-        const body = await req.json();
+        if (!body || typeof body !== "object") return json({ error: "Invalid body" }, 400);
         if (!body.phone || !body.image) {
           return json({ error: "phone and image are required" }, 400);
         }
@@ -287,7 +397,7 @@ serve(async (req) => {
 
       // ===== SEND DOCUMENT (POST /instances/{name}/send-document) =====
       if (action === "send-document" && req.method === "POST") {
-        const body = await req.json();
+        if (!body || typeof body !== "object") return json({ error: "Invalid body" }, 400);
         if (!body.phone || !body.document) {
           return json({ error: "phone and document are required" }, 400);
         }
@@ -308,7 +418,7 @@ serve(async (req) => {
 
       // ===== SEND LOCATION (POST /instances/{name}/send-location) =====
       if (action === "send-location" && req.method === "POST") {
-        const body = await req.json();
+        if (!body || typeof body !== "object") return json({ error: "Invalid body" }, 400);
         if (!body.phone || !body.latitude || !body.longitude) {
           return json({ error: "phone, latitude and longitude are required" }, 400);
         }
@@ -330,6 +440,7 @@ serve(async (req) => {
 
       // ===== DISCONNECT (POST /instances/{name}/disconnect) =====
       if (action === "disconnect" && req.method === "POST") {
+        if (!hasAnyRole(ctx, ["admin", "gestor"])) return forbidden();
         try {
           await forwardToEngine(instance, `/instance/logout/${instanceName}`, "DELETE");
         } catch {}
@@ -341,6 +452,7 @@ serve(async (req) => {
 
       // ===== RESTART (POST /instances/{name}/restart) =====
       if (action === "restart" && req.method === "POST") {
+        if (!hasAnyRole(ctx, ["admin", "gestor"])) return forbidden();
         try {
           await forwardToEngine(instance, `/instance/restart/${instanceName}`, "PUT");
         } catch {}
@@ -352,6 +464,7 @@ serve(async (req) => {
 
       // ===== DELETE (DELETE /instances/{name}/delete) =====
       if (action === "delete" && req.method === "DELETE") {
+        if (!hasAnyRole(ctx, ["admin", "gestor"])) return forbidden();
         try {
           await forwardToEngine(instance, `/instance/delete/${instanceName}`, "DELETE");
         } catch {}
@@ -361,7 +474,8 @@ serve(async (req) => {
 
       // ===== UPDATE CONFIG (PATCH /instances/{name}/config) =====
       if (action === "config" && (req.method === "PATCH" || req.method === "PUT")) {
-        const body = await req.json();
+        if (!hasAnyRole(ctx, ["admin", "gestor"])) return forbidden();
+        if (!body || typeof body !== "object") return json({ error: "Invalid body" }, 400);
         const allowed = ["webhook_url", "webhook_secret", "engine_url", "api_key", "auto_reconnect"];
         const updates: Record<string, any> = {};
         for (const key of allowed) {

@@ -12,6 +12,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -104,7 +105,7 @@ function PipelineIndicator({ conciliado, liquidado, divergente }: {
   );
 }
 
-export function RecebiveisPipeline() {
+export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {}) {
   const { unidadeAtual } = useUnidade();
   const [rows, setRows] = useState<RecebiveisRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -188,6 +189,7 @@ export function RecebiveisPipeline() {
 
   const filtered = useMemo(() => {
     return rows.filter(r => {
+      if (operadoraId && r.operadora_id !== operadoraId) return false;
       if (filtroEtapa === "nao_conciliado") return r.conciliacao_status === "nao_conciliado" && r.status === "pendente";
       if (filtroEtapa === "conciliado") return r.conciliacao_status === "confirmado" && r.status === "pendente";
       if (filtroEtapa === "liquidado") return r.status === "recebida";
@@ -195,7 +197,7 @@ export function RecebiveisPipeline() {
       if (filtroEtapa === "vencido") return r.status === "pendente" && r.vencimento < hoje;
       return true;
     });
-  }, [rows, filtroEtapa, hoje]);
+  }, [rows, filtroEtapa, hoje, operadoraId]);
 
   const getFormaLabel = (f: string | null) => {
     if (!f) return "—";
@@ -442,7 +444,12 @@ export function RecebiveisPipeline() {
           {loading ? (
             <p className="text-center py-8 text-muted-foreground">Carregando...</p>
           ) : filtered.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">Nenhum recebível encontrado</p>
+            <EmptyState
+              icon={Banknote}
+              title="Nenhum recebível encontrado"
+              description="Ajuste o filtro de etapa ou aguarde novas vendas por cartão e PIX maquininha."
+              action={{ label: "Atualizar", onClick: fetchData, icon: RefreshCw }}
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>

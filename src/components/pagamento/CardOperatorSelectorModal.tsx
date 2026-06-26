@@ -22,6 +22,8 @@ interface Operadora {
   prazo_credito: number;
   taxa_pix: number | null;
   prazo_pix: number | null;
+  conta_bancaria_id: string | null;
+  conta_bancaria?: { id: string; nome: string; banco: string } | null;
 }
 
 interface CardOperatorSelectorModalProps {
@@ -30,7 +32,7 @@ interface CardOperatorSelectorModalProps {
   valor: number;
   tipoCartao: "debito" | "credito" | "pix_maquininha";
   unidadeId?: string;
-  onSelect: (operadora: { id: string; nome: string; taxa: number; prazo: number; valorLiquido: number }) => void;
+  onSelect: (operadora: { id: string; nome: string; taxa: number; prazo: number; valorLiquido: number; conta_bancaria_id?: string | null }) => void;
 }
 
 export function CardOperatorSelectorModal({
@@ -53,11 +55,11 @@ export function CardOperatorSelectorModal({
     setLoading(true);
     supabase
       .from("operadoras_cartao")
-      .select("*")
+      .select("*, conta_bancaria:contas_bancarias(id,nome,banco)")
       .eq("unidade_id", resolvedUnidadeId)
       .eq("ativo", true)
       .then(({ data }) => {
-        const items = (data || []) as Operadora[];
+        const items = (data || []) as any as Operadora[];
         setOperadoras(items);
         if (items.length === 1) setSelected(items[0].id);
         else setSelected(null);
@@ -96,6 +98,7 @@ export function CardOperatorSelectorModal({
       taxa,
       prazo,
       valorLiquido,
+      conta_bancaria_id: selectedOp.conta_bancaria_id || null,
     });
     onClose();
   };
@@ -143,9 +146,9 @@ export function CardOperatorSelectorModal({
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-semibold text-sm">{op.nome}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <CreditCard className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="font-semibold text-sm truncate">{op.nome}</span>
                         {op.bandeira && (
                           <Badge variant="secondary" className="text-[10px]">
                             {op.bandeira}
@@ -156,6 +159,13 @@ export function CardOperatorSelectorModal({
                         <CheckCircle className="h-5 w-5 text-primary" />
                       )}
                     </div>
+                    {op.conta_bancaria ? (
+                      <p className="text-[11px] text-muted-foreground mb-2">
+                        💰 Recebe em: <span className="font-medium text-foreground">{op.conta_bancaria.nome}</span> ({op.conta_bancaria.banco})
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-amber-600 mb-2">⚠ Sem conta vinculada — defina em Operadora › Configuração</p>
+                    )}
 
                     <div className="grid grid-cols-3 gap-2 text-center">
                       <div className="p-2 bg-muted/50 rounded">

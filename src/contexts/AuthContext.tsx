@@ -3,7 +3,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export type AppRole = "admin" | "gestor" | "financeiro" | "operacional" | "entregador" | "cliente" | "parceiro" | "contador" | "super_admin" | "transportadora";
+export type AppRole = "admin" | "gestor" | "financeiro" | "operacional" | "entregador" | "cliente" | "parceiro" | "contador" | "super_admin" | "transportadora" | "vendedor";
 
 interface Profile {
   id: string;
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Fetch profile and roles in parallel
       const [profileResult, rolesResult] = await Promise.all([
-        supabase.from("profiles").select("*").eq("user_id", userId).single(),
+        supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", userId),
       ]);
 

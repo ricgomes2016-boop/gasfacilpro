@@ -15,7 +15,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -55,6 +55,7 @@ const paymentLabels: Record<string, string> = {
   vale_gas: "Vale Gás",
   cheque: "Cheque",
   boleto: "Boleto",
+  gas_do_povo: "Gás do Povo",
   Dinheiro: "Dinheiro",
   PIX: "PIX",
   "PIX Maquininha": "PIX Maquininha",
@@ -63,16 +64,17 @@ const paymentLabels: Record<string, string> = {
   "Vale Gás": "Vale Gás",
   Cheque: "Cheque",
   Boleto: "Boleto",
+  "Gás do Povo": "Gás do Povo",
 };
 
 const formasPagamento = [
-  "Dinheiro", "PIX", "PIX Maquininha", "Cartão Crédito", "Cartão Débito", "Cheque", "Vale Gás", "Fiado", "Boleto",
+  "Dinheiro", "PIX", "PIX Maquininha", "Cartão Crédito", "Cartão Débito", "Cheque", "Vale Gás", "Fiado", "Boleto", "Gás do Povo",
 ];
 
 // Normaliza qualquer variação de forma de pagamento para uma chave canônica.
 // Retorna "__invalido__" para valores ambíguos (cartao puro), desconhecidos (outros) ou vazios.
 const FORMAS_CANONICAS = new Set([
-  "dinheiro", "pix", "pix_maquininha", "cartao_credito", "cartao_debito", "cheque", "vale_gas", "fiado", "boleto",
+  "dinheiro", "pix", "pix_maquininha", "cartao_credito", "cartao_debito", "cheque", "vale_gas", "fiado", "boleto", "gas_do_povo",
 ]);
 
 function canonicalForma(raw: string): string {
@@ -116,9 +118,29 @@ function canonicalForma(raw: string): string {
   return "__invalido__";
 }
 
+// Parse robusto de valores monetários (aceita "R$ 1.234,56", "1234.56", "50.00", "1,234.56")
+function parseValorBR(raw: string): number {
+  if (!raw) return 0;
+  let s = raw.toString().replace(/r\$/gi, "").replace(/\s/g, "").trim();
+  if (!s) return 0;
+  const hasComma = s.includes(",");
+  const hasDot = s.includes(".");
+  if (hasComma && hasDot) {
+    // pt-BR: "1.234,56" — ponto é milhar, vírgula é decimal
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else if (hasComma) {
+    // "1234,56" — só vírgula decimal
+    s = s.replace(",", ".");
+  }
+  // só ponto: trata como decimal padrão ("50.00", "1234.56")
+  const n = parseFloat(s);
+  return isFinite(n) ? n : 0;
+}
+
 const CANAIS_VIRTUAIS = [
   { id: "__portaria__", nome: "🏪 Portaria", canal: "Portaria" },
   { id: "__pdv__", nome: "🖥️ PDV", canal: "PDV" },
+  { id: "__gas_do_povo__", nome: "🔥 Gás do Povo", canal: "Gas_do_Povo" },
 ];
 
 type FiltroStatus = "pendentes" | "acertados" | "todos";
@@ -183,20 +205,18 @@ export default function AcertoEntregador() {
   const { data: entregadores = [] } = useQuery({
     queryKey: ["entregadores-ativos", unidadeAtual?.id],
     queryFn: async () => {
-      let query = supabase
+      if (!unidadeAtual?.id) return [];
+      const { data, error } = await supabase
         .from("entregadores")
         .select("id, nome")
         .eq("ativo", true)
+        .eq("unidade_id", unidadeAtual.id)
         .order("nome");
 
-      if (unidadeAtual?.id) {
-        query = query.eq("unidade_id", unidadeAtual.id);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
+    enabled: !!unidadeAtual?.id,
   });
 
   const canalVirtual = CANAIS_VIRTUAIS.find(c => c.id === selectedId);
@@ -218,7 +238,7 @@ export default function AcertoEntregador() {
   const { data: entregas = [], isLoading: loadingEntregas } = useQuery({
     queryKey: ["acerto-entregas", selectedId, dataInicio, dataFim, unidadeAtual?.id, filtroStatus],
     queryFn: async () => {
-      if (!selectedId) return [];
+      if (!selectedId || !unidadeAtual?.id) return [];
       const statusList = getStatusFilter();
       let query = supabase
         .from("pedidos")
@@ -227,6 +247,7 @@ export default function AcertoEntregador() {
           clientes (nome),
           pedido_itens (id, quantidade, preco_unitario, produtos (nome))
         `)
+        .eq("unidade_id", unidadeAtual.id)
         .gte("data_entrega", dataInicio)
         .lte("data_entrega", dataFim)
         .in("status", statusList)
@@ -234,32 +255,47 @@ export default function AcertoEntregador() {
         .order("created_at", { ascending: true });
 
       if (canalVirtual) {
-        query = query.eq("responsavel_acerto", canalVirtual.canal.toLowerCase());
+        if (canalVirtual.id === "__gas_do_povo__") {
+          // Aceita variações: gas_do_povo, Gás do Povo, Gas Do Povo, etc.
+          query = query.or(
+            [
+              "forma_pagamento.eq.gas_do_povo",
+              "forma_pagamento.ilike.%gas%povo%",
+              "forma_pagamento.ilike.%gás%povo%",
+              "responsavel_acerto.eq.gas_do_povo",
+            ].join(",")
+          );
+        } else {
+          // Portaria/PDV: exclui pedidos do programa Gás do Povo (vão no canal próprio)
+          query = query
+            .eq("responsavel_acerto", canalVirtual.canal.toLowerCase())
+            .not("forma_pagamento", "ilike", "%gas%povo%")
+            .not("forma_pagamento", "ilike", "%gás%povo%");
+        }
       } else {
         query = query.eq("entregador_id", selectedId);
       }
 
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as any[];
     },
-    enabled: buscar && !!selectedId,
+    enabled: buscar && !!selectedId && !!unidadeAtual?.id,
   });
 
   const { data: entregadoresPendentes = [], isLoading: loadingPendentes } = useQuery({
     queryKey: ["acerto-entregadores-pendentes", dataInicio, dataFim, unidadeAtual?.id],
     queryFn: async () => {
-      let query = supabase
+      if (!unidadeAtual?.id) return [];
+      const { data, error } = await supabase
         .from("pedidos")
         .select("id, valor_total, data_entrega, entregador_id, entregadores (id, nome)")
+        .eq("unidade_id", unidadeAtual.id)
         .gte("data_entrega", dataInicio)
         .lte("data_entrega", dataFim)
         .in("status", ["entregue", "pago"])
         .not("entregador_id", "is", null);
 
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
-      const { data, error } = await query;
       if (error) throw error;
 
       const map = new Map<string, { id: string; nome: string; pedidos: number; total: number }>();
@@ -278,28 +314,28 @@ export default function AcertoEntregador() {
 
       return Array.from(map.values()).sort((a, b) => b.total - a.total);
     },
+    enabled: !!unidadeAtual?.id,
   });
 
   // Despesas do entregador no período (não se aplica a canais virtuais)
   const { data: despesas = [], isLoading: loadingDespesas } = useQuery({
     queryKey: ["acerto-despesas", selectedId, dataInicio, dataFim, unidadeAtual?.id],
     queryFn: async () => {
-      if (!selectedId || canalVirtual) return [];
-      let query = supabase
+      if (!selectedId || canalVirtual || !unidadeAtual?.id) return [];
+      const { data, error } = await supabase
         .from("movimentacoes_caixa")
         .select("id, descricao, valor, categoria, created_at")
+        .eq("unidade_id", unidadeAtual.id)
         .eq("entregador_id", selectedId)
         .eq("tipo", "saida")
         .gte("created_at", `${dataInicio}T00:00:00-03:00`)
         .lte("created_at", `${dataFim}T23:59:59-03:00`)
         .order("created_at", { ascending: true });
 
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
-      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as any[];
     },
-    enabled: buscar && !!selectedId,
+    enabled: buscar && !!selectedId && !canalVirtual && !!unidadeAtual?.id,
   });
 
   const handleBuscar = () => {
@@ -406,6 +442,10 @@ export default function AcertoEntregador() {
 
   const salvarEdicao = async () => {
     if (!editingEntrega) return;
+    if (!unidadeAtual?.id) {
+      toast.error("Selecione uma unidade antes de editar a entrega");
+      return;
+    }
     setIsSavingEdit(true);
 
     try {
@@ -447,7 +487,8 @@ export default function AcertoEntregador() {
       const { error } = await supabase
         .from("pedidos")
         .update({ forma_pagamento: formaPgtoSalvar, valor_total: novoTotal })
-        .eq("id", editingEntrega.id);
+        .eq("id", editingEntrega.id)
+        .eq("unidade_id", unidadeAtual.id);
       if (error) throw error;
 
       if (valeGasValidado?.valido && (valeGasValidado as any)?.valeId) {
@@ -455,6 +496,7 @@ export default function AcertoEntregador() {
           .from("pedidos")
           .select("cliente_id, clientes(nome, telefone, endereco, bairro)")
           .eq("id", editingEntrega.id)
+          .eq("unidade_id", unidadeAtual.id)
           .single();
 
         const clienteInfo = pedidoData?.clientes as any;
@@ -513,23 +555,24 @@ export default function AcertoEntregador() {
     const entregasInvalidas: { id: string; forma_original: string; valor: number }[] = [];
 
     const parseMultiplos = (fp: string, total: number): { forma: string; valor: number }[] => {
-      const clean = fp.replace(/^Múltiplos:\s*/i, "");
+      // Remove prefixos "Múltiplos:" e "multiplo:" (sem acento)
+      const clean = fp.replace(/^m[uú]ltiplos?:\s*/i, "");
       const parts = clean.split(/\s*\+\s*|,\s*/).filter(Boolean);
       const out: { forma: string; valor: number }[] = [];
       let restante = total;
-      let semValor: string[] = [];
+      const semValor: string[] = [];
       parts.forEach((part) => {
-        const m = part.trim().match(/^(.+?)\s+R\$\s*([\d\.,]+)$/);
+        const m = part.trim().match(/^(.+?)\s+R?\$?\s*([\d.,]+)$/);
         if (m) {
-          const v = parseFloat(m[2].replace(/\./g, "").replace(",", "."));
-          out.push({ forma: m[1].trim(), valor: isFinite(v) ? v : 0 });
-          restante -= isFinite(v) ? v : 0;
+          const v = parseValorBR(m[2]);
+          out.push({ forma: m[1].trim(), valor: v });
+          restante -= v;
         } else {
           semValor.push(part.trim());
         }
       });
       if (semValor.length > 0) {
-        const dividido = semValor.length > 0 ? restante / semValor.length : 0;
+        const dividido = restante / semValor.length;
         semValor.forEach((forma) => out.push({ forma, valor: dividido }));
       }
       return out;
@@ -538,7 +581,8 @@ export default function AcertoEntregador() {
     entregas.forEach((e) => {
       const fp = (e.forma_pagamento || "").trim();
       const total = Number(e.valor_total || 0);
-      const items = (fp.includes(",") || /\+/.test(fp) || /^Múltiplos:/i.test(fp))
+      const isMultiplo = /^m[uú]ltiplos?:/i.test(fp) || fp.includes(",") || /\+/.test(fp);
+      const items = isMultiplo
         ? parseMultiplos(fp, total)
         : [{ forma: fp, valor: total }];
 
@@ -586,6 +630,9 @@ export default function AcertoEntregador() {
   const nomeEntregador = canalVirtual?.canal || entregadores.find((e) => e.id === selectedId)?.nome || "";
 
   const normalizarFormaPagamento = (forma: string): string => {
+    const canon = canonicalForma(forma);
+    if (canon !== "__invalido__") return canon;
+    // Fallback para variações conhecidas
     const map: Record<string, string> = {
       "Dinheiro": "dinheiro",
       "PIX": "pix",
@@ -596,12 +643,17 @@ export default function AcertoEntregador() {
       "Vale Gás": "vale_gas",
       "Fiado": "fiado",
       "Boleto": "boleto",
+      "Gás do Povo": "gas_do_povo",
     };
     return map[forma] || forma.toLowerCase().replace(/\s+/g, "_");
   };
 
   // Confirmar acerto
   const confirmarAcerto = async () => {
+    if (!unidadeAtual?.id) {
+      toast.error("Selecione uma unidade antes de confirmar o acerto");
+      return;
+    }
     const pendentes = entregas.filter(e => e.status === "entregue" || e.status === "pago");
     if (pendentes.length === 0) {
       toast.error("Nenhuma entrega pendente para confirmar");
@@ -612,78 +664,118 @@ export default function AcertoEntregador() {
       return;
     }
     setIsConfirmingAcerto(true);
+    const falhas: { numero: string; motivo: string }[] = [];
+    let sucessos = 0;
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       for (const entrega of pendentes) {
-        const fp = entrega.forma_pagamento || "";
-        let pagamentos: PagamentoRoteamento[] = [];
+        const numeroLabel = (entrega as any).numero_sequencial
+          ? `#${(entrega as any).numero_sequencial}`
+          : entrega.id.slice(-6);
+        try {
+          const fp = entrega.forma_pagamento || "";
+          const totalEntrega = Number(entrega.valor_total) || 0;
+          let pagamentos: PagamentoRoteamento[] = [];
 
-        if (fp.includes(", ") || fp.startsWith("Múltiplos: ")) {
-          const cleanFp = fp.replace("Múltiplos: ", "");
-          const parts = cleanFp.split(/,\s*|\s*\+\s*/);
-        pagamentos = parts.map((part: string) => {
-            const match = part.trim().match(/^(.+?)\s+R\$(\d+[\.,]?\d*)$/);
-            if (match) {
-              return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseFloat(match[2].replace(",", ".")) };
-            }
-            return { forma: normalizarFormaPagamento(part.trim()), valor: Number(entrega.valor_total) };
-          });
-        } else if (fp) {
-          pagamentos = [{ forma: normalizarFormaPagamento(fp), valor: Number(entrega.valor_total) }];
-        } else {
-          pagamentos = [{ forma: "dinheiro", valor: Number(entrega.valor_total) }];
-        }
-
-        if (pagamentos.some(p => p.forma === "vale_gas")) {
-          const { data: valeUsado } = await (supabase as any)
-            .from("vale_gas")
-            .select("id, numero, codigo, parceiro_id, valor, vale_gas_parceiros:parceiro_id(nome)")
-            .eq("venda_id", entrega.id)
-            .maybeSingle();
-          if (valeUsado) {
-            pagamentos = pagamentos.map((p) => p.forma === "vale_gas" ? {
-              ...p,
-              vale_gas_id: valeUsado.id,
-              vale_gas_parceiro_id: valeUsado.parceiro_id,
-              vale_gas_parceiro_nome: valeUsado.vale_gas_parceiros?.nome,
-              vale_gas_numero: valeUsado.numero,
-              vale_gas_codigo: valeUsado.codigo,
-              valor: Number(valeUsado.valor || p.valor),
-            } : p);
+          const isMultiplo = /^m[uú]ltiplos?:/i.test(fp) || fp.includes(", ") || /\+/.test(fp);
+          if (isMultiplo) {
+            const cleanFp = fp.replace(/^m[uú]ltiplos?:\s*/i, "");
+            const parts = cleanFp.split(/,\s*|\s*\+\s*/).filter(Boolean);
+            const parsed: { forma: string; valor: number | null }[] = parts.map((part: string) => {
+              const match = part.trim().match(/^(.+?)\s+R?\$?\s*([\d.,]+)$/);
+              if (match) {
+                return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseValorBR(match[2]) };
+              }
+              return { forma: normalizarFormaPagamento(part.trim()), valor: null };
+            });
+            const somaExplicita = parsed.reduce((a, p) => a + (p.valor ?? 0), 0);
+            const semValor = parsed.filter((p) => p.valor === null);
+            const restante = Math.max(0, totalEntrega - somaExplicita);
+            const divididoEntreSemValor = semValor.length > 0 ? restante / semValor.length : 0;
+            pagamentos = parsed.map((p) => ({
+              forma: p.forma,
+              valor: p.valor !== null ? p.valor : divididoEntreSemValor,
+            }));
+          } else if (fp) {
+            pagamentos = [{ forma: normalizarFormaPagamento(fp), valor: totalEntrega }];
+          } else {
+            pagamentos = [{ forma: "dinheiro", valor: totalEntrega }];
           }
+
+          if (pagamentos.some(p => p.forma === "vale_gas")) {
+            const { data: valeUsado } = await (supabase as any)
+              .from("vale_gas")
+              .select("id, numero, codigo, parceiro_id, valor, vale_gas_parceiros:parceiro_id(nome)")
+              .eq("venda_id", entrega.id)
+              .maybeSingle();
+            if (valeUsado) {
+              pagamentos = pagamentos.map((p) => p.forma === "vale_gas" ? {
+                ...p,
+                vale_gas_id: valeUsado.id,
+                vale_gas_parceiro_id: valeUsado.parceiro_id,
+                vale_gas_parceiro_nome: valeUsado.vale_gas_parceiros?.nome,
+                vale_gas_numero: valeUsado.numero,
+                vale_gas_codigo: valeUsado.codigo,
+                valor: Number(valeUsado.valor || p.valor),
+              } : p);
+            }
+          }
+
+          const temValeGasSemVinculo = pagamentos.some(p => p.forma === "vale_gas" && !(p as any).vale_gas_id);
+          if (temValeGasSemVinculo) {
+            throw new Error("Vale Gás sem parceiro/número validado");
+          }
+
+          await rotearPagamentosVenda({
+            pedidoId: entrega.id,
+            pedidoNumero: (entrega as any).numero_sequencial ?? null,
+            clienteId: entrega.cliente_id || null,
+            clienteNome: entrega.clientes?.nome || "Cliente",
+            pagamentos,
+            unidadeId: unidadeAtual?.id || null,
+            entregadorId: canalVirtual ? null : selectedId,
+            userId: user?.id,
+          });
+
+          const { data: updated, error: updErr } = await supabase
+            .from("pedidos")
+            .update({ status: "finalizado" })
+            .eq("id", entrega.id)
+            .eq("unidade_id", unidadeAtual.id)
+            .select("id")
+            .maybeSingle();
+          if (updErr) throw updErr;
+          if (!updated) throw new Error("Status não atualizado (sem permissão ou linha não encontrada)");
+
+          sucessos += 1;
+        } catch (err: any) {
+          console.error(`[Acerto] Falha pedido ${numeroLabel}:`, err);
+          falhas.push({ numero: numeroLabel, motivo: err?.message || "erro desconhecido" });
         }
-
-        const temValeGasSemVinculo = pagamentos.some(p => p.forma === "vale_gas" && !(p as any).vale_gas_id);
-        if (temValeGasSemVinculo) {
-          throw new Error("Existe pedido com Vale Gás sem parceiro/número validado. Abra a edição do pedido e valide o vale antes de confirmar o acerto.");
-        }
-
-        await rotearPagamentosVenda({
-          pedidoId: entrega.id,
-          pedidoNumero: (entrega as any).numero_sequencial ?? null,
-          clienteId: entrega.cliente_id || null,
-          clienteNome: entrega.clientes?.nome || "Cliente",
-          pagamentos,
-          unidadeId: unidadeAtual?.id || null,
-          entregadorId: canalVirtual ? null : selectedId,
-          userId: user?.id,
-        });
-
-        await supabase.from("pedidos").update({ status: "finalizado" }).eq("id", entrega.id);
       }
 
-      setAcertoConfirmado(true);
-      toast.success(`Acerto confirmado! ${pendentes.length} entrega(s) roteadas financeiramente.`);
       queryClient.invalidateQueries({ queryKey: ["acerto-entregas"] });
-      // Switch to "acertados" to show the settled orders
-      setFiltroStatus("acertados");
+
+      if (falhas.length === 0) {
+        setAcertoConfirmado(true);
+        toast.success(`Acerto confirmado! ${sucessos} entrega(s) roteadas financeiramente.`);
+        setFiltroStatus("acertados");
+      } else {
+        const listaFalhas = falhas.map(f => f.numero).join(", ");
+        toast.error(
+          `${sucessos} de ${pendentes.length} pedido(s) finalizados. ${falhas.length} falharam: ${listaFalhas}`,
+          { duration: 10000 }
+        );
+        if (sucessos > 0) setAcertoConfirmado(true);
+      }
     } catch (err: any) {
       toast.error("Erro ao confirmar acerto: " + err.message);
     } finally {
       setIsConfirmingAcerto(false);
     }
   };
+
 
   // Exportar PDF do acerto
   const exportarPDF = () => {
@@ -733,9 +825,10 @@ export default function AcertoEntregador() {
     doc.setFontSize(12);
     doc.text("Entregas Detalhadas", 14, y + 10);
     autoTable(doc, {
-      head: [["Hora", "Cliente", "Itens", "Pagamento", "Status", "Valor"]],
+      head: [["Nº", "Data", "Cliente", "Itens", "Pagamento", "Status", "Valor"]],
       body: entregas.map((e) => [
-        e.data_entrega ? format(parseISO(`${e.data_entrega}T12:00:00`), "dd/MM/yyyy") : format(parseISO(e.created_at), "dd/MM/yyyy HH:mm"),
+        e.numero_sequencial ? `#${e.numero_sequencial}` : `#${String(e.id).slice(-6)}`,
+        e.data_entrega ? format(parseISO(`${e.data_entrega}T12:00:00`), "dd/MM/yyyy") : format(parseISO(e.created_at), "dd/MM/yyyy"),
         e.clientes?.nome || "—",
         (e.pedido_itens || []).map((i: any) => `${i.quantidade}x ${i.produtos?.nome || "?"}`).join(", ") || "—",
         paymentLabels[e.forma_pagamento || ""] || e.forma_pagamento || "—",
@@ -746,6 +839,7 @@ export default function AcertoEntregador() {
       styles: { fontSize: 8 },
       headStyles: { fillColor: [51, 65, 85] },
     });
+
 
     if (despesas.length > 0) {
       y = (doc as any).lastAutoTable?.finalY || 180;
@@ -1116,7 +1210,18 @@ export default function AcertoEntregador() {
                           {Object.entries(metricas.porForma)
                             .sort(([, a], [, b]) => b - a)
                             .map(([forma, valor]) => {
-                              const qtd = entregas.filter((e) => (e.forma_pagamento || "outros") === forma).length;
+                              const qtd = entregas.filter((e) => {
+                                const fp = (e.forma_pagamento || "").trim();
+                                const isMulti = /^m[uú]ltiplos?:/i.test(fp) || fp.includes(",") || /\+/.test(fp);
+                                if (isMulti) {
+                                  const clean = fp.replace(/^m[uú]ltiplos?:\s*/i, "");
+                                  return clean.split(/\s*\+\s*|,\s*/).some((p) => {
+                                    const m = p.trim().match(/^(.+?)(?:\s+R?\$?\s*[\d.,]+)?$/);
+                                    return canonicalForma(m ? m[1] : p) === forma;
+                                  });
+                                }
+                                return canonicalForma(fp) === forma;
+                              }).length;
                               const pct = metricas.totalVendas > 0 ? ((valor / metricas.totalVendas) * 100).toFixed(1) : "0";
                               return (
                                 <TableRow key={forma}>
@@ -1258,10 +1363,11 @@ export default function AcertoEntregador() {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <Table className="min-w-[520px]">
+                    <Table className="min-w-[560px]">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-14">Hora</TableHead>
+                          <TableHead className="w-16">Nº</TableHead>
+                          <TableHead className="w-20">Data</TableHead>
                           <TableHead>Cliente</TableHead>
                           <TableHead className="hidden md:table-cell">Produtos</TableHead>
                           <TableHead>Pagamento</TableHead>
@@ -1276,11 +1382,16 @@ export default function AcertoEntregador() {
                             .map((i: any) => `${i.quantidade}x ${i.produtos?.nome || "?"}`)
                             .join(", ") || "—";
                           const isAcertado = e.status === "finalizado";
+                          const numeroStr = e.numero_sequencial
+                            ? `#${e.numero_sequencial}`
+                            : `#${String(e.id).slice(-6)}`;
+                          const dataStr = e.data_entrega
+                            ? format(parseISO(`${e.data_entrega}T12:00:00`), "dd/MM/yyyy")
+                            : format(parseISO(e.created_at), "dd/MM/yyyy");
                           return (
                             <TableRow key={e.id} className={isAcertado ? "opacity-75" : ""}>
-                              <TableCell className="text-xs">
-                                {e.data_entrega ? format(parseISO(`${e.data_entrega}T12:00:00`), "dd/MM") : format(parseISO(e.created_at), "dd/MM HH:mm")}
-                              </TableCell>
+                              <TableCell className="text-xs font-mono whitespace-nowrap">{numeroStr}</TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">{dataStr}</TableCell>
                               <TableCell className="text-sm font-medium">
                                 <div>{e.clientes?.nome || "—"}</div>
                                 <div className="md:hidden text-xs text-muted-foreground mt-0.5 max-w-[140px] truncate">{itensStr}</div>
@@ -1313,6 +1424,7 @@ export default function AcertoEntregador() {
                         })}
                       </TableBody>
                     </Table>
+
                   </div>
                 )}
               </CardContent>
@@ -1326,6 +1438,7 @@ export default function AcertoEntregador() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Editar Entrega</DialogTitle>
+            <DialogDescription>Ajuste itens, valores e formas de pagamento desta entrega.</DialogDescription>
           </DialogHeader>
           {editingEntrega && (
             <div className="space-y-4">

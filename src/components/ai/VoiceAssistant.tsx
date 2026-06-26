@@ -25,7 +25,9 @@ export function VoiceAssistant({ userName = "Gestor" }: VoiceAssistantProps) {
   const [response, setResponse] = useState("");
   const [open, setOpen] = useState(false);
   const recognitionRef = useRef<any>(null);
-  const synthRef = useRef(window.speechSynthesis);
+  const synthRef = useRef<SpeechSynthesis | null>(
+    typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis : null
+  );
   const [voicesLoaded, setVoicesLoaded] = useState(false);
 
   const isSupported = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
@@ -33,6 +35,7 @@ export function VoiceAssistant({ userName = "Gestor" }: VoiceAssistantProps) {
   // Ensure voices are loaded before trying to speak
   useEffect(() => {
     const synth = synthRef.current;
+    if (!synth) return;
     const loadVoices = () => {
       const voices = synth.getVoices();
       if (voices.length > 0) setVoicesLoaded(true);
@@ -47,12 +50,12 @@ export function VoiceAssistant({ userName = "Gestor" }: VoiceAssistantProps) {
   }, []);
 
   const stopSpeaking = useCallback(() => {
-    synthRef.current.cancel();
+    synthRef.current?.cancel();
     setSpeaking(false);
   }, []);
 
   const speak = useCallback((text: string) => {
-    // Strip markdown for speech
+    if (!synthRef.current) return;
     const clean = text
       .replace(/[#*_`~\[\]()>|]/g, "")
       .replace(/\n+/g, ". ")
@@ -70,7 +73,6 @@ export function VoiceAssistant({ userName = "Gestor" }: VoiceAssistantProps) {
     utterance.onend = () => setSpeaking(false);
     utterance.onerror = () => setSpeaking(false);
 
-    // Pick a PT-BR voice if available
     const voices = synthRef.current.getVoices();
     const ptVoice = voices.find((v: SpeechSynthesisVoice) => v.lang.startsWith("pt"));
     if (ptVoice) utterance.voice = ptVoice;
@@ -82,10 +84,18 @@ export function VoiceAssistant({ userName = "Gestor" }: VoiceAssistantProps) {
     setProcessing(true);
     setResponse("");
 
+    if (!unidadeAtual?.id) {
+      const msg = "Selecione uma unidade antes de usar a IA.";
+      setResponse(msg);
+      speak(msg);
+      setProcessing(false);
+      return;
+    }
+
     // ETAPA 1: Tentar interpretar como comando de venda / consulta de fiado
     try {
       const { data: parsed, error: parseErr } = await supabase.functions.invoke("parse-sales-command", {
-        body: { comando: text, unidade_id: unidadeAtual?.id || null },
+        body: { comando: text, unidade_id: unidadeAtual.id },
       });
 
       if (!parseErr && parsed) {
@@ -118,15 +128,20 @@ export function VoiceAssistant({ userName = "Gestor" }: VoiceAssistantProps) {
     // ETAPA 2: Cai no fluxo de chat genérico
 
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        throw new Error("Sessão expirada. Entre novamente para usar a IA.");
+      }
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           messages: [{ role: "user", content: text }],
-          unidade_id: unidadeAtual?.id || null,
+          unidade_id: unidadeAtual.id,
         }),
       });
 

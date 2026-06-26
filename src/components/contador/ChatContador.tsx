@@ -59,7 +59,7 @@ export function ChatContador() {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel("chat-contador")
+      .channel(`chat-contador-${user.id}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_mensagens" },

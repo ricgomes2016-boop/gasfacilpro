@@ -812,6 +812,110 @@ export type Database = {
           },
         ]
       }
+      bolao_jogos: {
+        Row: {
+          codigo_casa: string | null
+          codigo_fora: string | null
+          created_at: string
+          data_jogo: string
+          empresa_id: string | null
+          fase: Database["public"]["Enums"]["bolao_fase"]
+          finalizado: boolean
+          gols_casa_real: number | null
+          gols_fora_real: number | null
+          grupo: string | null
+          id: string
+          numero_jogo: number
+          time_casa: string
+          time_fora: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          codigo_casa?: string | null
+          codigo_fora?: string | null
+          created_at?: string
+          data_jogo: string
+          empresa_id?: string | null
+          fase: Database["public"]["Enums"]["bolao_fase"]
+          finalizado?: boolean
+          gols_casa_real?: number | null
+          gols_fora_real?: number | null
+          grupo?: string | null
+          id?: string
+          numero_jogo: number
+          time_casa: string
+          time_fora: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          codigo_casa?: string | null
+          codigo_fora?: string | null
+          created_at?: string
+          data_jogo?: string
+          empresa_id?: string | null
+          fase?: Database["public"]["Enums"]["bolao_fase"]
+          finalizado?: boolean
+          gols_casa_real?: number | null
+          gols_fora_real?: number | null
+          grupo?: string | null
+          id?: string
+          numero_jogo?: number
+          time_casa?: string
+          time_fora?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bolao_palpites: {
+        Row: {
+          created_at: string
+          empresa_id: string | null
+          gols_casa_palpite: number
+          gols_fora_palpite: number
+          id: string
+          jogo_id: string
+          pontos: number
+          unidade_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id?: string | null
+          gols_casa_palpite: number
+          gols_fora_palpite: number
+          id?: string
+          jogo_id: string
+          pontos?: number
+          unidade_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string | null
+          gols_casa_palpite?: number
+          gols_fora_palpite?: number
+          id?: string
+          jogo_id?: string
+          pontos?: number
+          unidade_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bolao_palpites_jogo_id_fkey"
+            columns: ["jogo_id"]
+            isOneToOne: false
+            referencedRelation: "bolao_jogos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       boletos_emitidos: {
         Row: {
           conta_receber_id: string | null
@@ -3392,6 +3496,44 @@ export type Database = {
           },
         ]
       }
+      contas_pix_chaves: {
+        Row: {
+          chave: string
+          conta_bancaria_id: string
+          created_at: string
+          id: string
+          tipo: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          chave: string
+          conta_bancaria_id: string
+          created_at?: string
+          id?: string
+          tipo: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          chave?: string
+          conta_bancaria_id?: string
+          created_at?: string
+          id?: string
+          tipo?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pix_chaves_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contas_receber: {
         Row: {
           asaas_charge_id: string | null
@@ -3399,6 +3541,7 @@ export type Database = {
           boleto_url: string | null
           cliente: string
           cliente_id: string | null
+          conta_bancaria_destino_id: string | null
           created_at: string
           data_recebimento: string | null
           descricao: string
@@ -3414,6 +3557,7 @@ export type Database = {
           pix_copia_cola: string | null
           pix_qrcode: string | null
           plano_contas_id: string | null
+          seu_numero: string | null
           status: string
           taxa_percentual: number | null
           total_parcelas: number | null
@@ -3432,6 +3576,7 @@ export type Database = {
           boleto_url?: string | null
           cliente: string
           cliente_id?: string | null
+          conta_bancaria_destino_id?: string | null
           created_at?: string
           data_recebimento?: string | null
           descricao: string
@@ -3447,6 +3592,7 @@ export type Database = {
           pix_copia_cola?: string | null
           pix_qrcode?: string | null
           plano_contas_id?: string | null
+          seu_numero?: string | null
           status?: string
           taxa_percentual?: number | null
           total_parcelas?: number | null
@@ -3465,6 +3611,7 @@ export type Database = {
           boleto_url?: string | null
           cliente?: string
           cliente_id?: string | null
+          conta_bancaria_destino_id?: string | null
           created_at?: string
           data_recebimento?: string | null
           descricao?: string
@@ -3480,6 +3627,7 @@ export type Database = {
           pix_copia_cola?: string | null
           pix_qrcode?: string | null
           plano_contas_id?: string | null
+          seu_numero?: string | null
           status?: string
           taxa_percentual?: number | null
           total_parcelas?: number | null
@@ -3498,6 +3646,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_receber_conta_bancaria_destino_id_fkey"
+            columns: ["conta_bancaria_destino_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
@@ -5274,6 +5429,7 @@ export type Database = {
           entra_na_escala: boolean
           id: string
           is_transporte: boolean
+          is_vendedor: boolean
           nome: string
           regime_pagamento: string
           salario: number | null
@@ -5298,6 +5454,7 @@ export type Database = {
           entra_na_escala?: boolean
           id?: string
           is_transporte?: boolean
+          is_vendedor?: boolean
           nome: string
           regime_pagamento?: string
           salario?: number | null
@@ -5322,6 +5479,7 @@ export type Database = {
           entra_na_escala?: boolean
           id?: string
           is_transporte?: boolean
+          is_vendedor?: boolean
           nome?: string
           regime_pagamento?: string
           salario?: number | null
@@ -6116,8 +6274,95 @@ export type Database = {
           },
         ]
       }
+      marketing_brand_kit: {
+        Row: {
+          bairros_atendidos: string | null
+          created_at: string
+          descricao_curta: string | null
+          empresa_id: string
+          facebook: string | null
+          faixa_preco_max: number | null
+          faixa_preco_min: number | null
+          frases_proibidas: string | null
+          hashtags_fixas: string | null
+          id: string
+          instagram: string | null
+          link_app: string | null
+          observacoes: string | null
+          paleta_cores: Json | null
+          slogan: string | null
+          tiktok: string | null
+          tom_voz: string | null
+          unidade_id: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          bairros_atendidos?: string | null
+          created_at?: string
+          descricao_curta?: string | null
+          empresa_id: string
+          facebook?: string | null
+          faixa_preco_max?: number | null
+          faixa_preco_min?: number | null
+          frases_proibidas?: string | null
+          hashtags_fixas?: string | null
+          id?: string
+          instagram?: string | null
+          link_app?: string | null
+          observacoes?: string | null
+          paleta_cores?: Json | null
+          slogan?: string | null
+          tiktok?: string | null
+          tom_voz?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          bairros_atendidos?: string | null
+          created_at?: string
+          descricao_curta?: string | null
+          empresa_id?: string
+          facebook?: string | null
+          faixa_preco_max?: number | null
+          faixa_preco_min?: number | null
+          frases_proibidas?: string | null
+          hashtags_fixas?: string | null
+          id?: string
+          instagram?: string | null
+          link_app?: string | null
+          observacoes?: string | null
+          paleta_cores?: Json | null
+          slogan?: string | null
+          tiktok?: string | null
+          tom_voz?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_brand_kit_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_brand_kit_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_conteudos: {
         Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          comentario_revisao: string | null
           conteudo: string | null
           created_at: string
           criado_por: string | null
@@ -6127,6 +6372,7 @@ export type Database = {
           id: string
           midia_url: string | null
           plataforma: string | null
+          status: string
           tipo: string
           titulo: string | null
           tom: string | null
@@ -6134,6 +6380,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          comentario_revisao?: string | null
           conteudo?: string | null
           created_at?: string
           criado_por?: string | null
@@ -6143,6 +6392,7 @@ export type Database = {
           id?: string
           midia_url?: string | null
           plataforma?: string | null
+          status?: string
           tipo?: string
           titulo?: string | null
           tom?: string | null
@@ -6150,6 +6400,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          comentario_revisao?: string | null
           conteudo?: string | null
           created_at?: string
           criado_por?: string | null
@@ -6159,6 +6412,7 @@ export type Database = {
           id?: string
           midia_url?: string | null
           plataforma?: string | null
+          status?: string
           tipo?: string
           titulo?: string | null
           tom?: string | null
@@ -7392,6 +7646,7 @@ export type Database = {
         Row: {
           ativo: boolean
           bandeira: string | null
+          conta_bancaria_id: string | null
           created_at: string
           id: string
           nome: string
@@ -7408,6 +7663,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           bandeira?: string | null
+          conta_bancaria_id?: string | null
           created_at?: string
           id?: string
           nome: string
@@ -7424,6 +7680,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           bandeira?: string | null
+          conta_bancaria_id?: string | null
           created_at?: string
           id?: string
           nome?: string
@@ -7438,6 +7695,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "operadoras_cartao_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "operadoras_cartao_unidade_id_fkey"
             columns: ["unidade_id"]
@@ -7759,9 +8023,36 @@ export type Database = {
           },
         ]
       }
+      pedido_sequencias_unidade: {
+        Row: {
+          ultimo_numero: number
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          ultimo_numero?: number
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          ultimo_numero?: number
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_sequencias_unidade_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: true
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedidos: {
         Row: {
           agendado: boolean
+          alerta_atraso_enviado_em: string | null
           bairro_entrega: string | null
           canal_venda: string | null
           cep_entrega: string | null
@@ -7785,22 +8076,28 @@ export type Database = {
           forma_pagamento: string | null
           id: string
           latitude: number | null
+          lembrete_enviado_em: string | null
           longitude: number | null
           numero_entrega: string | null
           numero_sequencial: number | null
           observacoes: string | null
+          origem_pedido: Database["public"]["Enums"]["origem_pedido_enum"]
           responsavel_acerto: string | null
           sla_cumprido: boolean | null
           sla_minutos: number | null
           status: string | null
+          status_atualizado_em: string | null
           tempo_entrega_minutos: number | null
+          tipo_venda: string | null
           troco_para: number | null
           unidade_id: string | null
           updated_at: string
           valor_total: number | null
+          vendedor_id: string | null
         }
         Insert: {
           agendado?: boolean
+          alerta_atraso_enviado_em?: string | null
           bairro_entrega?: string | null
           canal_venda?: string | null
           cep_entrega?: string | null
@@ -7824,22 +8121,28 @@ export type Database = {
           forma_pagamento?: string | null
           id?: string
           latitude?: number | null
+          lembrete_enviado_em?: string | null
           longitude?: number | null
           numero_entrega?: string | null
           numero_sequencial?: number | null
           observacoes?: string | null
+          origem_pedido?: Database["public"]["Enums"]["origem_pedido_enum"]
           responsavel_acerto?: string | null
           sla_cumprido?: boolean | null
           sla_minutos?: number | null
           status?: string | null
+          status_atualizado_em?: string | null
           tempo_entrega_minutos?: number | null
+          tipo_venda?: string | null
           troco_para?: number | null
           unidade_id?: string | null
           updated_at?: string
           valor_total?: number | null
+          vendedor_id?: string | null
         }
         Update: {
           agendado?: boolean
+          alerta_atraso_enviado_em?: string | null
           bairro_entrega?: string | null
           canal_venda?: string | null
           cep_entrega?: string | null
@@ -7863,19 +8166,24 @@ export type Database = {
           forma_pagamento?: string | null
           id?: string
           latitude?: number | null
+          lembrete_enviado_em?: string | null
           longitude?: number | null
           numero_entrega?: string | null
           numero_sequencial?: number | null
           observacoes?: string | null
+          origem_pedido?: Database["public"]["Enums"]["origem_pedido_enum"]
           responsavel_acerto?: string | null
           sla_cumprido?: boolean | null
           sla_minutos?: number | null
           status?: string | null
+          status_atualizado_em?: string | null
           tempo_entrega_minutos?: number | null
+          tipo_venda?: string | null
           troco_para?: number | null
           unidade_id?: string | null
           updated_at?: string
           valor_total?: number | null
+          vendedor_id?: string | null
         }
         Relationships: [
           {
@@ -7961,6 +8269,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plano_modulos: {
+        Row: {
+          id: string
+          modulo_grupo: string
+          modulo_key: string
+          modulo_label: string
+          path: string | null
+          planos: string[]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          modulo_grupo: string
+          modulo_key: string
+          modulo_label: string
+          path?: string | null
+          planos?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          modulo_grupo?: string
+          modulo_key?: string
+          modulo_label?: string
+          path?: string | null
+          planos?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       politicas_cobranca: {
         Row: {
@@ -8389,36 +8730,42 @@ export type Database = {
       }
       push_subscriptions: {
         Row: {
-          auth: string
+          auth: string | null
           created_at: string
           empresa_id: string | null
-          endpoint: string
+          endpoint: string | null
+          fcm_token: string | null
           id: string
-          p256dh: string
+          p256dh: string | null
+          provider: string
           unidade_id: string | null
           updated_at: string
           user_agent: string | null
           user_id: string
         }
         Insert: {
-          auth: string
+          auth?: string | null
           created_at?: string
           empresa_id?: string | null
-          endpoint: string
+          endpoint?: string | null
+          fcm_token?: string | null
           id?: string
-          p256dh: string
+          p256dh?: string | null
+          provider?: string
           unidade_id?: string | null
           updated_at?: string
           user_agent?: string | null
           user_id: string
         }
         Update: {
-          auth?: string
+          auth?: string | null
           created_at?: string
           empresa_id?: string | null
-          endpoint?: string
+          endpoint?: string | null
+          fcm_token?: string | null
           id?: string
-          p256dh?: string
+          p256dh?: string | null
+          provider?: string
           unidade_id?: string | null
           updated_at?: string
           user_agent?: string | null
@@ -8988,6 +9335,7 @@ export type Database = {
       }
       terminais_cartao: {
         Row: {
+          conta_bancaria_id: string | null
           created_at: string
           entregador_id: string | null
           id: string
@@ -9002,6 +9350,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          conta_bancaria_id?: string | null
           created_at?: string
           entregador_id?: string | null
           id?: string
@@ -9016,6 +9365,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          conta_bancaria_id?: string | null
           created_at?: string
           entregador_id?: string | null
           id?: string
@@ -9030,6 +9380,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "terminais_cartao_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "terminais_cartao_entregador_id_fkey"
             columns: ["entregador_id"]
@@ -10176,6 +10533,7 @@ export type Database = {
           contador_email: string | null
           contador_nome: string | null
           contador_telefone: string | null
+          cor_primaria: string | null
           created_at: string
           cst_csosn_padrao: string | null
           cte_proximo_numero: number | null
@@ -10184,6 +10542,8 @@ export type Database = {
           empresa_id: string | null
           endereco: string | null
           estado: string | null
+          gas_do_povo_habilitado: boolean
+          gas_do_povo_valor: number
           horario_abertura: string | null
           horario_fechamento: string | null
           id: string
@@ -10191,6 +10551,7 @@ export type Database = {
           inscricao_estadual_st: string | null
           inscricao_municipal: string | null
           latitude: number | null
+          logo_url: string | null
           longitude: number | null
           natureza_operacao_padrao: string | null
           nfce_csc_id: string | null
@@ -10207,9 +10568,11 @@ export type Database = {
           provedor_nfe_url: string | null
           razao_social: string | null
           regime_tributario: string | null
+          slug: string | null
           telefone: string | null
           tipo: string
           updated_at: string
+          whatsapp_notificacao_pedido: string | null
         }
         Insert: {
           aliquota_cofins_padrao?: number | null
@@ -10234,6 +10597,7 @@ export type Database = {
           contador_email?: string | null
           contador_nome?: string | null
           contador_telefone?: string | null
+          cor_primaria?: string | null
           created_at?: string
           cst_csosn_padrao?: string | null
           cte_proximo_numero?: number | null
@@ -10242,6 +10606,8 @@ export type Database = {
           empresa_id?: string | null
           endereco?: string | null
           estado?: string | null
+          gas_do_povo_habilitado?: boolean
+          gas_do_povo_valor?: number
           horario_abertura?: string | null
           horario_fechamento?: string | null
           id?: string
@@ -10249,6 +10615,7 @@ export type Database = {
           inscricao_estadual_st?: string | null
           inscricao_municipal?: string | null
           latitude?: number | null
+          logo_url?: string | null
           longitude?: number | null
           natureza_operacao_padrao?: string | null
           nfce_csc_id?: string | null
@@ -10265,9 +10632,11 @@ export type Database = {
           provedor_nfe_url?: string | null
           razao_social?: string | null
           regime_tributario?: string | null
+          slug?: string | null
           telefone?: string | null
           tipo?: string
           updated_at?: string
+          whatsapp_notificacao_pedido?: string | null
         }
         Update: {
           aliquota_cofins_padrao?: number | null
@@ -10292,6 +10661,7 @@ export type Database = {
           contador_email?: string | null
           contador_nome?: string | null
           contador_telefone?: string | null
+          cor_primaria?: string | null
           created_at?: string
           cst_csosn_padrao?: string | null
           cte_proximo_numero?: number | null
@@ -10300,6 +10670,8 @@ export type Database = {
           empresa_id?: string | null
           endereco?: string | null
           estado?: string | null
+          gas_do_povo_habilitado?: boolean
+          gas_do_povo_valor?: number
           horario_abertura?: string | null
           horario_fechamento?: string | null
           id?: string
@@ -10307,6 +10679,7 @@ export type Database = {
           inscricao_estadual_st?: string | null
           inscricao_municipal?: string | null
           latitude?: number | null
+          logo_url?: string | null
           longitude?: number | null
           natureza_operacao_padrao?: string | null
           nfce_csc_id?: string | null
@@ -10323,9 +10696,11 @@ export type Database = {
           provedor_nfe_url?: string | null
           razao_social?: string | null
           regime_tributario?: string | null
+          slug?: string | null
           telefone?: string | null
           tipo?: string
           updated_at?: string
+          whatsapp_notificacao_pedido?: string | null
         }
         Relationships: [
           {
@@ -11269,6 +11644,62 @@ export type Database = {
           },
         ]
       }
+      vendedor_metas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string | null
+          funcionario_id: string | null
+          id: string
+          meta_mensal: number
+          percentual: number
+          tipo_comissao: string
+          tipo_venda_permitido: string
+          unidade_id: string | null
+          updated_at: string
+          user_id: string
+          valor_fixo_comissao: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string | null
+          funcionario_id?: string | null
+          id?: string
+          meta_mensal?: number
+          percentual?: number
+          tipo_comissao?: string
+          tipo_venda_permitido?: string
+          unidade_id?: string | null
+          updated_at?: string
+          user_id: string
+          valor_fixo_comissao?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string | null
+          funcionario_id?: string | null
+          id?: string
+          meta_mensal?: number
+          percentual?: number
+          tipo_comissao?: string
+          tipo_venda_permitido?: string
+          unidade_id?: string | null
+          updated_at?: string
+          user_id?: string
+          valor_fixo_comissao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedor_metas_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_eventos: {
         Row: {
           contato_wa_id: string | null
@@ -11704,6 +12135,15 @@ export type Database = {
         Args: { _data: string; _unidade_id: string }
         Returns: boolean
       }
+      calcular_pontos_palpite: {
+        Args: {
+          _p_casa: number
+          _p_fora: number
+          _r_casa: number
+          _r_fora: number
+        }
+        Returns: number
+      }
       consumir_vale_empenho: {
         Args: {
           _cliente_final_id: string
@@ -11738,6 +12178,7 @@ export type Database = {
           total_unidades: number
         }[]
       }
+      get_current_user_cliente_ids: { Args: never; Returns: string[] }
       get_empresa_by_slug: {
         Args: { _slug: string }
         Returns: {
@@ -11745,6 +12186,28 @@ export type Database = {
           logo_url: string
           nome: string
           slug: string
+        }[]
+      }
+      get_unidade_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          cor_primaria: string
+          empresa_id: string
+          empresa_logo_url: string
+          empresa_nome: string
+          empresa_slug: string
+          id: string
+          logo_url: string
+          nome: string
+          slug: string
+        }[]
+      }
+      get_unidade_certificado_status: {
+        Args: { _unidade_id: string }
+        Returns: {
+          certificado_a1_configurado: boolean
+          certificado_a1_titular: string
+          certificado_a1_validade: string
         }[]
       }
       get_unidade_credenciais: {
@@ -11810,6 +12273,10 @@ export type Database = {
         Returns: undefined
       }
       proximo_numero_pedido: { Args: { _empresa_id: string }; Returns: number }
+      proximo_numero_pedido_unidade: {
+        Args: { _unidade_id: string }
+        Returns: number
+      }
       registrar_pagamento_conta_pagar: {
         Args: { p_conta_id: string; p_pagamentos: Json; p_quitar?: boolean }
         Returns: Json
@@ -11877,6 +12344,28 @@ export type Database = {
         | "contador"
         | "super_admin"
         | "transportadora"
+        | "vendedor"
+      bolao_fase:
+        | "grupos"
+        | "oitavas_32"
+        | "oitavas"
+        | "quartas"
+        | "semi"
+        | "terceiro"
+        | "final"
+      origem_pedido_enum:
+        | "telefone_ia"
+        | "erp"
+        | "whatsapp"
+        | "site"
+        | "app_entregador"
+        | "app_cliente"
+        | "portal_parceiro"
+        | "balcao_pdv"
+        | "telefone"
+        | "portaria"
+        | "assistente_bia"
+        | "autoatendimento"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -12015,6 +12504,30 @@ export const Constants = {
         "contador",
         "super_admin",
         "transportadora",
+        "vendedor",
+      ],
+      bolao_fase: [
+        "grupos",
+        "oitavas_32",
+        "oitavas",
+        "quartas",
+        "semi",
+        "terceiro",
+        "final",
+      ],
+      origem_pedido_enum: [
+        "telefone_ia",
+        "erp",
+        "whatsapp",
+        "site",
+        "app_entregador",
+        "app_cliente",
+        "portal_parceiro",
+        "balcao_pdv",
+        "telefone",
+        "portaria",
+        "assistente_bia",
+        "autoatendimento",
       ],
     },
   },

@@ -20,7 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { LojaSelector } from "@/components/cliente/LojaSelector";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import logoImg from "@/assets/logo.png";
 import { SystemFooter } from "@/components/layout/SystemFooter";
@@ -49,46 +49,58 @@ const bottomNavItems = [
   { icon: ShoppingCart, label: "Carrinho", path: "/cliente/carrinho", showBadge: true },
   { icon: Gift, label: "Indicar", path: "/cliente/indicacao" },
   { icon: Wallet, label: "Carteira", path: "/cliente/carteira" },
-  { icon: User, label: "Perfil", path: "/cliente/perfil" },
+  { icon: Menu, label: "Menu", path: "__menu__" as const },
 ];
+
 
 export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: ClienteLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { cartItemsCount: ctxCount, empresaInfo } = useCliente();
+  const { cartItemsCount: ctxCount, empresaInfo, lojas, lojaSelecionadaId } = useCliente();
   const cartItemsCount = cartItemsCountProp ?? ctxCount;
   const isCarrinhoPage = location.pathname === "/cliente/carrinho";
   const isCheckoutPage = location.pathname === "/cliente/checkout";
   const isHomeOrCategoria = location.pathname === "/cliente";
 
   const empresaNome = empresaInfo?.nome || "Gás Fácil";
+  const lojaSelecionada = lojas.find(l => l.id === lojaSelecionadaId);
+  const tituloPrincipal = lojaSelecionada?.nome || empresaNome;
+
+  const showFloatingCart = cartItemsCount > 0 && !isCarrinhoPage && !isCheckoutPage;
+  const hasMultipleLojas = lojas.length > 1;
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-md">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
+      {/* Header — minimal premium */}
+      <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-sm border-b border-primary/20">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="h-9 w-9 rounded-xl bg-primary-foreground/10 flex items-center justify-center shrink-0">
               {empresaInfo?.logo_url ? (
-                <img src={empresaInfo.logo_url} alt={empresaNome} className="h-7 w-7 object-contain rounded" />
+                <img src={empresaInfo.logo_url} alt={tituloPrincipal} className="h-7 w-7 object-contain rounded-lg" />
               ) : (
-                <img src={logoImg} alt={empresaNome} className="h-7 w-7 object-contain" />
+                <img src={logoImg} alt={tituloPrincipal} className="h-6 w-6 object-contain" />
               )}
-              <span className="font-bold text-lg">{empresaNome}</span>
             </div>
-            <LojaSelector />
+            <div className="flex flex-col min-w-0 leading-tight">
+              <span className="text-[10px] uppercase tracking-[0.14em] opacity-70 font-medium">Sua loja</span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-semibold text-base tracking-tight truncate">
+                  {tituloPrincipal}
+                </span>
+                {hasMultipleLojas && (
+                  <div className="shrink-0 [&>*]:!text-primary-foreground [&_button]:!h-6 [&_button]:!px-1.5 [&_button]:!bg-primary-foreground/10 [&_button]:!border-primary-foreground/20">
+                    <LojaSelector />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-          
+
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary/80">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
             <SheetContent side="right" className="w-80 p-0">
-              <div className="bg-primary text-primary-foreground p-6">
+              <div className="bg-gradient-to-b from-primary via-primary to-primary/85 text-primary-foreground p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     {empresaInfo?.logo_url ? (
@@ -98,18 +110,18 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
                     )}
                     <span className="font-bold text-lg">{empresaNome}</span>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setMenuOpen(false)}
-                    className="text-primary-foreground hover:bg-primary/80"
+                    className="text-primary-foreground hover:bg-white/15"
                   >
                     <X className="h-5 w-5" />
                   </Button>
                 </div>
                 <p className="text-primary-foreground/80 text-sm">Bem-vindo ao app do cliente</p>
               </div>
-              
+
               <nav className="p-4">
                 {menuItems.map((item) => (
                   <Link
@@ -133,59 +145,85 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
               </nav>
             </SheetContent>
           </Sheet>
+
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="px-4 py-4">
+      <main
+        className={cn(
+          "px-4 py-4 scroll-pb-28",
+          showFloatingCart ? "pb-32" : "pb-20"
+        )}
+      >
         {children}
       </main>
 
-      {/* Floating Cart Button - visible on home when cart has items, not on cart page */}
-      {cartItemsCount > 0 && !isCarrinhoPage && !isCheckoutPage && (
-        <div className="fixed bottom-[72px] left-0 right-0 px-4 z-40">
+      {/* Floating Cart Button - global, único */}
+      {showFloatingCart && (
+        <div className="fixed bottom-[76px] left-0 right-0 px-4 z-40 pointer-events-none animate-in slide-in-from-bottom-4 fade-in duration-300">
           <Button
-            className="w-full h-12 shadow-lg gap-2 text-base font-semibold"
+            className="w-full h-13 py-3 rounded-2xl shadow-xl shadow-primary/40 gap-3 text-base font-semibold pointer-events-auto"
             onClick={() => navigate("/cliente/carrinho")}
           >
             <ShoppingCart className="h-5 w-5" />
-            Ver carrinho
-            <Badge className="bg-primary-foreground text-primary ml-1 text-xs h-5 px-1.5">
-              {cartItemsCount}
+            <span className="flex-1 text-left">Ver carrinho</span>
+            <Badge className="bg-primary-foreground/20 text-primary-foreground border-0 text-xs h-6 px-2">
+              {cartItemsCount} {cartItemsCount === 1 ? "item" : "itens"}
             </Badge>
-            <ArrowRight className="h-4 w-4 ml-auto" />
+            <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       )}
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
-        <div className="flex justify-around items-center py-2">
+      {/* Bottom Navigation — premium pill indicator */}
+      <nav className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-background/90 border-t border-border z-50 pb-[env(safe-area-inset-bottom)]">
+        <div className="flex justify-around items-center py-1.5">
           {bottomNavItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex flex-col items-center py-1 px-3 rounded-lg transition-colors relative",
-                  isActive ? "text-primary" : "text-muted-foreground"
+            const isMenu = item.path === "__menu__";
+            const isActive = !isMenu && location.pathname === item.path;
+            const baseCls = cn(
+              "flex flex-col items-center justify-center pt-1.5 pb-1 px-3 rounded-xl transition-all duration-200 relative min-w-[56px]",
+              isActive ? "text-primary" : "text-muted-foreground hover:text-foreground active:scale-95"
+            );
+            const inner = (
+              <>
+                {isActive && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 h-1 w-8 rounded-full bg-primary animate-fade-in" />
                 )}
-              >
                 <div className="relative">
-                  <item.icon className="h-5 w-5" />
+                  <item.icon className={cn("h-5 w-5 transition-transform", isActive && "scale-110")} />
                   {item.showBadge && cartItemsCount > 0 && (
-                    <Badge 
-                      className="absolute -top-2 -right-2 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-destructive"
+                    <Badge
+                      className="absolute -top-2 -right-2 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] bg-destructive animate-bounce"
                     >
                       {cartItemsCount}
                     </Badge>
                   )}
                 </div>
-                <span className="text-xs mt-1">{item.label}</span>
+                <span className={cn("text-[10px] mt-0.5 font-medium", isActive && "font-semibold")}>{item.label}</span>
+              </>
+            );
+            if (isMenu) {
+              return (
+                <button
+                  key="menu"
+                  type="button"
+                  onClick={() => setMenuOpen(true)}
+                  className={baseCls}
+                  aria-label="Abrir menu"
+                >
+                  {inner}
+                </button>
+              );
+            }
+            return (
+              <Link key={item.path} to={item.path} className={baseCls}>
+                {inner}
               </Link>
             );
           })}
+
         </div>
       </nav>
       <SystemFooter portalKey="cliente" />

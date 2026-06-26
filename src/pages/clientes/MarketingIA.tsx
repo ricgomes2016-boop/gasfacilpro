@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,19 +50,101 @@ const videoPlatformConfig: Record<VideoPlatform, { label: string; emoji: string 
   shorts: { label: "Shorts", emoji: "▶️" },
 };
 
-const suggestedTopics = [
-  "Promoção de gás P13 para o fim de semana",
-  "Entrega rápida e segura em toda a cidade",
-  "Dicas de segurança com botijão de gás",
-  "Promoção para novos clientes",
-  "Programa de fidelidade e indicação",
-  "Atendimento 24h por WhatsApp",
+const topicCategories: { label: string; emoji: string; topics: string[] }[] = [
+  {
+    label: "Promoções",
+    emoji: "🔥",
+    topics: [
+      "Promoção de gás P13 para o fim de semana",
+      "Combo gás P13 + galão de água 20L com desconto",
+      "Desconto especial para a primeira compra",
+      "Compre 1 botijão e ganhe recarga de água",
+      "Promoção relâmpago: troca de gás com R$ 5 OFF",
+    ],
+  },
+  {
+    label: "Datas comemorativas",
+    emoji: "📅",
+    topics: [
+      "Dia das Mães: chame a mãe da casa",
+      "Festa Junina: gás para a fogueira e quentão",
+      "Dia do Cliente (15/09) — agradecimento especial",
+      "Black Friday do gás: melhor preço do ano",
+      "Natal e Ano Novo: ceia sem ficar sem gás",
+      "Inverno chegando: estoque seu gás antes do frio",
+    ],
+  },
+  {
+    label: "Educacional / segurança",
+    emoji: "🛡️",
+    topics: [
+      "Dicas de segurança com botijão de gás",
+      "Como identificar vazamento de gás",
+      "Validade e durabilidade do botijão P13",
+      "Como economizar gás na cozinha",
+      "Por que comprar gás de revenda autorizada",
+    ],
+  },
+  {
+    label: "Diferenciais",
+    emoji: "🚚",
+    topics: [
+      "Entrega em até 20 minutos na sua casa",
+      "Atendimento 24h pelo WhatsApp",
+      "Pague no PIX, cartão ou na entrega",
+      "Baixe nosso app e peça em 1 clique",
+      "Cobertura de bairros: atendemos toda a região",
+    ],
+  },
+  {
+    label: "Fidelidade",
+    emoji: "💚",
+    topics: [
+      "Programa de pontos: cada compra vira desconto",
+      "Indique um amigo e ganhe vale-gás",
+      "Cashback em todas as compras",
+      "Vale-gás digital: presenteie quem você ama",
+      "Clube do cliente: vantagens exclusivas",
+    ],
+  },
 ];
+
+const suggestedTopics = topicCategories.flatMap((c) => c.topics);
+
+// Sugestões "para hoje" rotativas por mês
+const monthlyIdeas: Record<number, { topic: string; tone: Tone; platform: Platform; emoji: string }[]> = {
+  0: [{ emoji: "🎆", topic: "Comece o ano com gás cheio em casa", tone: "promocional", platform: "instagram" }],
+  1: [{ emoji: "🎭", topic: "Carnaval: não fique sem gás na folia", tone: "informal", platform: "instagram" }],
+  2: [{ emoji: "👩", topic: "Dia Internacional da Mulher: homenagem às clientes", tone: "profissional", platform: "facebook" }],
+  3: [{ emoji: "🐰", topic: "Páscoa: chocolate quente combina com gás cheio", tone: "informal", platform: "instagram" }],
+  4: [{ emoji: "💐", topic: "Dia das Mães: presenteie com vale-gás", tone: "promocional", platform: "whatsapp" }],
+  5: [
+    { emoji: "🔥", topic: "Festa Junina: gás para o quentão e fogueira", tone: "informal", platform: "instagram" },
+    { emoji: "❄️", topic: "Inverno chegando: garanta seu gás antes do frio", tone: "promocional", platform: "facebook" },
+  ],
+  6: [{ emoji: "❄️", topic: "Inverno: banho quente todo dia sem ficar sem gás", tone: "promocional", platform: "instagram" }],
+  7: [{ emoji: "🧒", topic: "Dia dos Pais: vale-gás como presente útil", tone: "promocional", platform: "whatsapp" }],
+  8: [{ emoji: "🎉", topic: "Dia do Cliente (15/09): desconto especial", tone: "promocional", platform: "instagram" }],
+  9: [{ emoji: "🎃", topic: "Outubro: prepare a cozinha para as festas de fim de ano", tone: "informal", platform: "tiktok" }],
+  10: [{ emoji: "🛒", topic: "Black Friday do gás: melhor preço do ano", tone: "promocional", platform: "instagram" }],
+  11: [{ emoji: "🎄", topic: "Ceia de Natal sem perrengue: gás garantido", tone: "promocional", platform: "whatsapp" }],
+};
+
 
 export default function MarketingIA() {
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
   const empresaId = empresa?.id;
+  const [searchParams] = useSearchParams();
+
+  const brandContext = useMemo(() => ({
+    brandName: unidadeAtual?.nome || (empresa as any)?.nome || "",
+    cidade: unidadeAtual?.cidade || "",
+    whatsapp: unidadeAtual?.telefone || "",
+    instagram: "",
+    empresa_id: empresaId,
+    unidade_id: unidadeAtual?.id,
+  }), [empresa, unidadeAtual, empresaId]);
 
   // Post state
   const [platform, setPlatform] = useState<Platform>("instagram");
@@ -70,10 +153,28 @@ export default function MarketingIA() {
   const [generatedContent, setGeneratedContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Aplicar query params (vindos do Dashboard "Sugestões")
+  useEffect(() => {
+    const t = searchParams.get("topic");
+    const to = searchParams.get("tone") as Tone | null;
+    const p = searchParams.get("platform") as Platform | null;
+    if (t) setTopic(t);
+    if (to && toneConfig[to]) setTone(to);
+    if (p && platformConfig[p]) setPlatform(p);
+  }, [searchParams]);
+
+
   // Image state
   const [imagePrompt, setImagePrompt] = useState("");
   const [generatedImage, setGeneratedImage] = useState("");
   const [isImageLoading, setIsImageLoading] = useState(false);
+  const [imageVariations, setImageVariations] = useState<string[]>([]);
+  const [isVariationsLoading, setIsVariationsLoading] = useState(false);
+
+  // Multicanal batch state
+  const [batchPlatforms, setBatchPlatforms] = useState<Platform[]>(["instagram", "facebook", "whatsapp"]);
+  const [batchResults, setBatchResults] = useState<Record<Platform, string>>({} as any);
+  const [batchLoading, setBatchLoading] = useState<Record<Platform, boolean>>({} as any);
 
   // Video state
   const [videoPlatform, setVideoPlatform] = useState<VideoPlatform>("reels");
@@ -83,6 +184,13 @@ export default function MarketingIA() {
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [sceneImages, setSceneImages] = useState<Record<number, string>>({});
   const [loadingSceneImages, setLoadingSceneImages] = useState<Record<number, boolean>>({});
+  const [voiceoverUrl, setVoiceoverUrl] = useState("");
+  const [voiceoverLoading, setVoiceoverLoading] = useState(false);
+  const [voice, setVoice] = useState<string>("alloy");
+
+  // Concorrentes
+  const [competitorContent, setCompetitorContent] = useState("");
+  const [isCompetitorLoading, setIsCompetitorLoading] = useState(false);
 
   // Calendar state
   const [calendarContent, setCalendarContent] = useState("");
@@ -138,7 +246,7 @@ export default function MarketingIA() {
     setIsLoading(true); setGeneratedContent("");
     let acc = "";
     try {
-      await streamContent({ type: "post", platform, topic, tone }, (c) => { acc += c; setGeneratedContent(acc); }, () => setIsLoading(false));
+      await streamContent({ type: "post", platform, topic, tone, ...brandContext }, (c) => { acc += c; setGeneratedContent(acc); }, () => setIsLoading(false));
     } catch (e: any) { toast.error(e.message); setIsLoading(false); }
   };
 
@@ -166,7 +274,7 @@ export default function MarketingIA() {
       const resp = await fetch(FUNCTION_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ type: "image", imagePrompt: `Imagem para vídeo de marketing de revenda de gás. Cena: ${prompt}. Estilo: fotografia profissional, formato vertical 9:16, cores vibrantes, adequado para Reels/TikTok.` }),
+        body: JSON.stringify({ type: "image", imagePrompt: `Imagem para vídeo de marketing de revenda de gás. Cena: ${prompt}. Estilo: fotografia profissional, formato vertical 9:16, cores vibrantes, adequado para Reels/TikTok.`, ...brandContext }),
       });
       if (!resp.ok) throw new Error("Erro ao gerar imagem");
       const data = await resp.json();
@@ -182,7 +290,7 @@ export default function MarketingIA() {
     let acc = "";
     try {
       await streamContent(
-        { type: "video_script", platform: videoPlatform, topic: videoTopic, tone: videoTone },
+        { type: "video_script", platform: videoPlatform, topic: videoTopic, tone: videoTone, ...brandContext },
         (c) => { acc += c; setVideoContent(acc); },
         () => {
           setIsVideoLoading(false);
@@ -201,7 +309,7 @@ export default function MarketingIA() {
     setIsCalendarLoading(true); setCalendarContent("");
     let acc = "";
     try {
-      await streamContent({ type: "calendar" }, (c) => { acc += c; setCalendarContent(acc); }, () => setIsCalendarLoading(false));
+      await streamContent({ type: "calendar", ...brandContext }, (c) => { acc += c; setCalendarContent(acc); }, () => setIsCalendarLoading(false));
     } catch (e: any) { toast.error(e.message); setIsCalendarLoading(false); }
   };
 
@@ -212,7 +320,7 @@ export default function MarketingIA() {
       const resp = await fetch(FUNCTION_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ type: "image", imagePrompt: `Crie uma imagem profissional para marketing de revenda de gás: ${imagePrompt}. Estilo: moderno, cores vibrantes, adequado para redes sociais.` }),
+        body: JSON.stringify({ type: "image", imagePrompt: `Crie uma imagem profissional para marketing de revenda de gás: ${imagePrompt}. Estilo: moderno, cores vibrantes, adequado para redes sociais.`, ...brandContext }),
       });
       if (!resp.ok) { const err = await resp.json().catch(() => ({ error: "Erro" })); throw new Error(err.error || `Erro ${resp.status}`); }
       const data = await resp.json();
@@ -222,6 +330,112 @@ export default function MarketingIA() {
     } catch (e: any) { toast.error(e.message); }
     finally { setIsImageLoading(false); }
   };
+
+  const generateVariations = async () => {
+    if (!imagePrompt.trim()) { toast.error("Descreva a imagem"); return; }
+    setIsVariationsLoading(true); setImageVariations([]);
+    const styles = [
+      "estilo fotografia profissional realista, iluminação natural",
+      "estilo ilustração flat moderna, cores vibrantes, minimalista",
+      "estilo banner promocional com elementos gráficos chamativos e tipografia em destaque",
+    ];
+    try {
+      const results = await Promise.all(styles.map(async (style) => {
+        const resp = await fetch(FUNCTION_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          body: JSON.stringify({ type: "image", imagePrompt: `Imagem para marketing de revenda de gás: ${imagePrompt}. ${style}.`, ...brandContext }),
+        });
+        if (!resp.ok) return "";
+        const data = await resp.json();
+        return data.choices?.[0]?.message?.images?.[0]?.image_url?.url || "";
+      }));
+      const ok = results.filter(Boolean);
+      setImageVariations(ok);
+      if (ok.length) toast.success(`${ok.length} variações geradas!`);
+      else toast.error("Não foi possível gerar variações");
+    } catch (e: any) { toast.error(e.message); }
+    finally { setIsVariationsLoading(false); }
+  };
+
+  const generateBatch = async () => {
+    if (!topic.trim()) { toast.error("Digite um tema"); return; }
+    if (batchPlatforms.length === 0) { toast.error("Selecione ao menos 1 plataforma"); return; }
+    setBatchResults({} as any);
+    const loadingState: any = {};
+    batchPlatforms.forEach(p => { loadingState[p] = true; });
+    setBatchLoading(loadingState);
+
+    await Promise.all(batchPlatforms.map(async (p) => {
+      let acc = "";
+      try {
+        await streamContent(
+          { type: "post", platform: p, topic, tone, ...brandContext },
+          (c) => { acc += c; setBatchResults(prev => ({ ...prev, [p]: acc })); },
+          () => { setBatchLoading(prev => ({ ...prev, [p]: false })); }
+        );
+        // Auto-save as draft
+        if (empresaId && acc) {
+          await supabase.from("marketing_conteudos").insert({
+            empresa_id: empresaId, unidade_id: unidadeAtual?.id || null,
+            titulo: `[${p}] ${topic.slice(0, 50)}`, conteudo: acc, tipo: "texto", plataforma: p, status: "rascunho",
+          });
+        }
+      } catch (e: any) {
+        toast.error(`Erro em ${p}: ${e.message}`);
+        setBatchLoading(prev => ({ ...prev, [p]: false }));
+      }
+    }));
+    toast.success(`Posts gerados e salvos como rascunho para ${batchPlatforms.length} plataformas!`);
+  };
+
+  // Extrai apenas as falas do roteiro (linhas após "Fala/Texto:")
+  const extractNarration = (script: string): string => {
+    const lines = script.split("\n");
+    const falas: string[] = [];
+    for (const ln of lines) {
+      const m = ln.match(/(?:Fala\/Texto|Fala|Narração)[:\s]*(.+)/i);
+      if (m && m[1]) falas.push(m[1].replace(/[*_`"]/g, "").trim());
+    }
+    return falas.join(". ").replace(/\.\s*\./g, ".").trim();
+  };
+
+  const generateVoiceover = async () => {
+    const narration = extractNarration(videoContent);
+    if (!narration) { toast.error("Gere o roteiro primeiro"); return; }
+    setVoiceoverLoading(true); setVoiceoverUrl("");
+    try {
+      const resp = await fetch(FUNCTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ type: "tts", text: narration, voice, ...brandContext }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Erro" }));
+        throw new Error(err.error || `Erro ${resp.status}`);
+      }
+      const data = await resp.json();
+      if (data.audio_url) {
+        setVoiceoverUrl(data.audio_url);
+        toast.success("Narração gerada!");
+      } else throw new Error("Sem áudio retornado");
+    } catch (e: any) { toast.error(e.message); }
+    finally { setVoiceoverLoading(false); }
+  };
+
+  const generateCompetitorAnalysis = async () => {
+    setIsCompetitorLoading(true); setCompetitorContent("");
+    let acc = "";
+    try {
+      await streamContent(
+        { type: "competitor_analysis", ...brandContext },
+        (c) => { acc += c; setCompetitorContent(acc); },
+        () => setIsCompetitorLoading(false),
+      );
+    } catch (e: any) { toast.error(e.message); setIsCompetitorLoading(false); }
+  };
+
+
 
   const copyToClipboard = (text: string) => { navigator.clipboard.writeText(text); toast.success("Copiado!"); };
 
@@ -240,11 +454,13 @@ export default function MarketingIA() {
       const { error } = await supabase.from("marketing_conteudos").insert({
         empresa_id: empresaId, unidade_id: unidadeAtual?.id || null,
         titulo: content.slice(0, 60), conteudo: content, tipo, plataforma: platform,
+        status: "rascunho",
       });
       if (error) throw error;
-      toast.success("Salvo na biblioteca!");
+      toast.success("Salvo como rascunho na biblioteca!");
     } catch { toast.error("Erro ao salvar"); }
   };
+
 
   const openWhatsappDialog = (content: string, image?: string) => { setDispatchContent(content); setDispatchImage(image || ""); setWhatsappDialogOpen(true); };
   const openWebhookDialog = (content: string, image?: string) => { setDispatchContent(content); setDispatchImage(image || ""); setWebhookDialogOpen(true); };
@@ -312,15 +528,43 @@ export default function MarketingIA() {
       <Header title="Criar Conteúdo" subtitle="Gere posts, imagens, roteiros de vídeo e campanhas com IA" />
       <div className="space-y-4 p-4 md:p-6">
         <Tabs defaultValue="posts" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="posts" className="gap-1.5 text-xs sm:text-sm"><MessageSquare className="h-4 w-4" /> <span className="hidden sm:inline">Post</span></TabsTrigger>
             <TabsTrigger value="image" className="gap-1.5 text-xs sm:text-sm"><ImageIcon className="h-4 w-4" /> <span className="hidden sm:inline">Imagem</span></TabsTrigger>
             <TabsTrigger value="video" className="gap-1.5 text-xs sm:text-sm"><Film className="h-4 w-4" /> <span className="hidden sm:inline">Vídeo</span></TabsTrigger>
+            <TabsTrigger value="competitor" className="gap-1.5 text-xs sm:text-sm"><Sparkles className="h-4 w-4" /> <span className="hidden sm:inline">Concorrência</span></TabsTrigger>
             <TabsTrigger value="calendar" className="gap-1.5 text-xs sm:text-sm"><Calendar className="h-4 w-4" /> <span className="hidden sm:inline">Calendário</span></TabsTrigger>
           </TabsList>
 
           {/* ═══ POST ═══ */}
           <TabsContent value="posts" className="space-y-4">
+            {/* Sugestões para hoje */}
+            {(monthlyIdeas[new Date().getMonth()] || []).length > 0 && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" /> Ideias para hoje
+                    {brandContext.brandName && <span className="text-xs font-normal text-muted-foreground">· {brandContext.brandName}</span>}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {(monthlyIdeas[new Date().getMonth()] || []).map((idea, i) => (
+                      <button
+                        key={i}
+                        onClick={() => { setTopic(idea.topic); setTone(idea.tone); setPlatform(idea.platform); }}
+                        className="text-left p-3 rounded-lg bg-background border border-primary/20 hover:border-primary hover:shadow-sm transition-all"
+                      >
+                        <div className="text-sm font-medium flex items-center gap-1.5">{idea.emoji} {idea.topic}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {toneConfig[idea.tone].emoji} {toneConfig[idea.tone].label} · {platformConfig[idea.platform].label}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             <Card>
               <CardContent className="p-4 space-y-4">
                 <div>
@@ -342,17 +586,78 @@ export default function MarketingIA() {
                   <label className="text-sm font-medium mb-2 block">Tema do post</label>
                   <Textarea placeholder="Ex: Promoção de gás P13 para o fim de semana" value={topic} onChange={(e) => setTopic(e.target.value)} rows={3} />
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {suggestedTopics.map((t) => (
-                    <Badge key={t} variant="outline" className="cursor-pointer hover:bg-primary/10 text-xs" onClick={() => setTopic(t)}>{t}</Badge>
+                <div className="space-y-3">
+                  {topicCategories.map((cat) => (
+                    <div key={cat.label}>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1.5">{cat.emoji} {cat.label}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cat.topics.map((t) => (
+                          <Badge key={t} variant="outline" className="cursor-pointer hover:bg-primary/10 text-xs font-normal" onClick={() => setTopic(t)}>{t}</Badge>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
                 <Button onClick={generatePost} disabled={isLoading} className="w-full gap-2">
                   {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                   {isLoading ? "Gerando..." : "Gerar Post"}
                 </Button>
+
+                {/* Multicanal batch */}
+                <div className="border-t pt-4 space-y-3">
+                  <div>
+                    <label className="text-sm font-medium mb-2 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" /> Gerar para várias plataformas (1 clique)
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {(Object.entries(platformConfig) as [Platform, typeof platformConfig[Platform]][]).map(([key, cfg]) => {
+                        const Icon = cfg.icon;
+                        const checked = batchPlatforms.includes(key);
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => setBatchPlatforms((prev) => prev.includes(key) ? prev.filter(p => p !== key) : [...prev, key])}
+                            className={`flex items-center gap-2 px-2 py-2 rounded-lg border text-xs font-medium transition-all ${checked ? "border-primary bg-primary/10 text-primary" : "border-border opacity-60 hover:opacity-100"}`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />{cfg.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <Button onClick={generateBatch} disabled={Object.values(batchLoading).some(Boolean) || batchPlatforms.length === 0} variant="secondary" className="w-full gap-2">
+                    {Object.values(batchLoading).some(Boolean) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    Gerar {batchPlatforms.length} versões e salvar como rascunho
+                  </Button>
+                </div>
               </CardContent>
             </Card>
+
+            {/* Resultados multicanal */}
+            {Object.keys(batchResults).length > 0 && (
+              <div className="grid md:grid-cols-2 gap-3">
+                {(Object.entries(batchResults) as [Platform, string][]).map(([p, content]) => {
+                  const cfg = platformConfig[p];
+                  const Icon = cfg.icon;
+                  return (
+                    <Card key={p}>
+                      <CardHeader className="pb-2 flex-row items-center justify-between">
+                        <CardTitle className="text-sm flex items-center gap-2"><Icon className="h-4 w-4" /> {cfg.label}</CardTitle>
+                        {batchLoading[p] && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 rounded-lg p-3 text-xs"><ReactMarkdown>{content}</ReactMarkdown></div>
+                        <div className="flex gap-1.5">
+                          <Button size="sm" variant="outline" onClick={() => copyToClipboard(content)} className="gap-1 text-xs h-7"><Copy className="h-3 w-3" /> Copiar</Button>
+                          <Button size="sm" variant="outline" onClick={() => openWhatsappDialog(content)} className="gap-1 text-xs h-7 text-success"><Phone className="h-3 w-3" /> WhatsApp</Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
             {generatedContent && (
               <Card>
                 <CardHeader className="flex-row items-center justify-between pb-3">
@@ -380,12 +685,36 @@ export default function MarketingIA() {
                     <Badge key={s} variant="outline" className="cursor-pointer hover:bg-primary/10 text-xs" onClick={() => setImagePrompt(s)}>{s}</Badge>
                   ))}
                 </div>
-                <Button onClick={generateImage} disabled={isImageLoading} className="w-full gap-2">
-                  {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-                  {isImageLoading ? "Gerando..." : "Gerar Imagem"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={generateImage} disabled={isImageLoading} className="flex-1 gap-2">
+                    {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                    {isImageLoading ? "Gerando..." : "Gerar Imagem"}
+                  </Button>
+                  <Button onClick={generateVariations} disabled={isVariationsLoading} variant="secondary" className="gap-2">
+                    {isVariationsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    3 variações
+                  </Button>
+                </div>
               </CardContent>
             </Card>
+            {imageVariations.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3"><CardTitle className="text-base">Variações de estilo</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {imageVariations.map((url, i) => (
+                      <div key={i} className="space-y-2">
+                        <img src={url} alt={`Variação ${i+1}`} className="w-full rounded-lg border" />
+                        <div className="flex gap-1.5">
+                          <Button size="sm" variant="outline" onClick={() => downloadImage(url)} className="flex-1 gap-1 text-xs h-7"><Download className="h-3 w-3" /> Baixar</Button>
+                          <Button size="sm" variant="outline" onClick={() => setGeneratedImage(url)} className="flex-1 gap-1 text-xs h-7">Usar</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {generatedImage && (
               <Card>
                 <CardHeader className="flex-row items-center justify-between pb-3">
@@ -524,7 +853,65 @@ export default function MarketingIA() {
                     </div>
                   )}
                   
+                  {/* TTS Voiceover */}
+                  <div className="border-t pt-3 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="text-xs font-semibold flex items-center gap-1.5">🔊 Narração com IA:</label>
+                      <Select value={voice} onValueChange={setVoice}>
+                        <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="alloy">Alloy (neutra)</SelectItem>
+                          <SelectItem value="ash">Ash (grave)</SelectItem>
+                          <SelectItem value="ballad">Ballad (calma)</SelectItem>
+                          <SelectItem value="coral">Coral (feminina)</SelectItem>
+                          <SelectItem value="sage">Sage (amigável)</SelectItem>
+                          <SelectItem value="verse">Verse (animada)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button size="sm" onClick={generateVoiceover} disabled={voiceoverLoading} className="gap-1.5 h-8">
+                        {voiceoverLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                        Gerar narração
+                      </Button>
+                    </div>
+                    {voiceoverUrl && (
+                      <div className="space-y-1.5">
+                        <audio controls src={voiceoverUrl} className="w-full h-10" />
+                        <Button size="sm" variant="outline" onClick={() => downloadImage(voiceoverUrl)} className="gap-1.5 text-xs h-7">
+                          <Download className="h-3 w-3" /> Baixar MP3
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
                   <ActionButtons content={videoContent} tipo="video" />
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* ═══ CONCORRÊNCIA ═══ */}
+          <TabsContent value="competitor" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Análise de concorrência com IA</CardTitle>
+                <p className="text-sm text-muted-foreground">A IA analisa concorrentes e preços cadastrados na sua região e sugere diferenciais, posts e ofertas reativas.</p>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={generateCompetitorAnalysis} disabled={isCompetitorLoading} className="w-full gap-2">
+                  {isCompetitorLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {isCompetitorLoading ? "Analisando..." : "Gerar análise + ideias"}
+                </Button>
+              </CardContent>
+            </Card>
+            {competitorContent && (
+              <Card>
+                <CardHeader className="flex-row items-center justify-between pb-3">
+                  <CardTitle className="text-base">Análise & ideias</CardTitle>
+                  <Button size="sm" variant="outline" onClick={generateCompetitorAnalysis} disabled={isCompetitorLoading}><RefreshCw className="h-3.5 w-3.5 mr-1" /> Refazer</Button>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 rounded-lg p-4"><ReactMarkdown>{competitorContent}</ReactMarkdown></div>
+                  <ActionButtons content={competitorContent} tipo="texto" />
                 </CardContent>
               </Card>
             )}

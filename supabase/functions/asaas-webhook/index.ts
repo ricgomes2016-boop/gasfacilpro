@@ -59,6 +59,10 @@ Deno.serve(async (req) => {
         .eq("empresa_id", conta.empresa_id)
         .maybeSingle();
       const tokenEsperado = (cfg as any)?.asaas_webhook_token as string | null;
+      if (!tokenEsperado) {
+        console.warn("[asaas-webhook] token nao configurado para empresa", conta.empresa_id);
+        return ok({ ignored: "token_nao_configurado" });
+      }
       if (tokenEsperado && tokenEsperado !== tokenRecebido) {
         console.warn("[asaas-webhook] token inválido para empresa", conta.empresa_id);
         return ok({ ignored: "token_invalido" });

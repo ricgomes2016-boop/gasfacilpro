@@ -16,10 +16,12 @@ import {
 } from "@/components/ui/tooltip";
 import { useSidebarContext } from "@/contexts/SidebarContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { menuItems } from "./menuItems";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
+import { usePlanoAccess } from "@/hooks/usePlanoAccess";
+import { UnidadeSelector } from "./UnidadeSelector";
 
 // Color map for menu category icons using only semantic design-system tokens
 const menuIconColors: Record<string, string> = {
@@ -170,8 +172,27 @@ export function Sidebar() {
   const navigate = useNavigate();
   const { collapsed, setCollapsed, toggle } = useSidebarContext();
   const { signOut, profile } = useAuth();
+  const { canAccessPath } = usePlanoAccess();
   const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const [activePreset, setActivePreset] = useState(() =>
+    typeof document === "undefined" ? "" : document.documentElement.getAttribute("data-theme-preset") || ""
+  );
   const sidebarRef = useRef<HTMLElement | null>(null);
+  const isCleanTheme = activePreset === "operacional-clean";
+
+  // Filtra menu items pelas regras de plano (fail-open: se nada cadastrado, mostra tudo)
+  const visibleMenuItems = useMemo(() => {
+    return menuItems
+      .map((item) => {
+        if (item.submenu) {
+          const sub = item.submenu.filter((s) => !s.path || canAccessPath(s.path));
+          if (sub.length === 0) return null;
+          return { ...item, submenu: sub };
+        }
+        return canAccessPath(item.path) ? item : null;
+      })
+      .filter(Boolean) as typeof menuItems;
+  }, [canAccessPath]);
 
   // Auto-open active submenu
   useEffect(() => {
@@ -185,6 +206,22 @@ export function Sidebar() {
   }, [location.pathname]);
 
   useEffect(() => {
+    const syncPreset = () => setActivePreset(document.documentElement.getAttribute("data-theme-preset") || "");
+    syncPreset();
+    window.addEventListener("storage", syncPreset);
+
+    const observer = new MutationObserver(syncPreset);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme-preset"] });
+
+    return () => {
+      window.removeEventListener("storage", syncPreset);
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isCleanTheme) return;
+
     const handlePointerDown = (event: PointerEvent) => {
       const isDesktopSidebar = window.matchMedia("(min-width: 1280px)").matches;
       if (!isDesktopSidebar || collapsed || sidebarRef.current?.contains(event.target as Node)) return;
@@ -193,7 +230,7 @@ export function Sidebar() {
 
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [collapsed, setCollapsed]);
+  }, [collapsed, setCollapsed, isCleanTheme]);
 
   const toggleSubmenu = (label: string) => {
     setOpenMenus((prev) =>
@@ -226,67 +263,106 @@ export function Sidebar() {
 
   const { themeClass, brandTheme } = useDashboardTheme();
 
+  // Fecha o drawer no tema clean ao navegar para outra rota
+  const lastPathRef = useRef(location.pathname);
+  useEffect(() => {
+    if (!isCleanTheme) return;
+    if (lastPathRef.current !== location.pathname) {
+      lastPathRef.current = location.pathname;
+      if (!collapsed) setCollapsed(true);
+    }
+  }, [location.pathname, isCleanTheme, collapsed, setCollapsed]);
+
   return (
     <TooltipProvider delayDuration={0}>
+      {isCleanTheme && !collapsed && (
+        <div
+          onClick={(e) => {
+            // Só fecha se o clique foi realmente no overlay (não borbulhou da sidebar)
+            if (e.target === e.currentTarget) toggle();
+          }}
+          className="fixed inset-x-0 bottom-0 top-14 z-[55] bg-black/40"
+          aria-hidden="true"
+        />
+      )}
       <motion.aside
         ref={sidebarRef}
-        animate={{ width: collapsed ? 64 : 260 }}
+        onClick={(e) => e.stopPropagation()}
+        animate={
+          isCleanTheme
+            ? { x: collapsed ? -280 : 0, width: 260 }
+            : { width: collapsed ? 64 : 260, x: 0 }
+        }
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+        style={isCleanTheme && collapsed ? { pointerEvents: "none" } : undefined}
         className={cn(
           themeClass,
-          "app-sidebar-premium fixed left-0 top-0 z-40 hidden h-screen flex-col overflow-hidden rounded-r-2xl border-r border-sidebar-border/15 shadow-2xl xl:flex"
+          "app-sidebar-premium fixed left-0 flex-col overflow-hidden border-r border-sidebar-border/15 shadow-2xl",
+          isCleanTheme
+            ? "clean-sidebar top-14 z-[60] flex h-[calc(100vh-3.5rem)] w-[260px] rounded-r-none"
+            : "top-0 z-40 hidden h-screen rounded-r-2xl xl:flex"
         )}
       >
         {/* Header */}
-        <div className={cn("flex h-16 min-h-16 items-center border-b border-sidebar-border/15 px-3", collapsed ? "justify-center" : "justify-start")}>
-          <button
-            type="button"
-            onClick={() => (collapsed ? toggle() : navigate("/dashboard"))}
-            className={cn(
-              "group flex min-w-0 items-center rounded-3xl bg-transparent p-0 text-left transition-all",
-              collapsed ? "justify-center" : "justify-start gap-2.5 pr-10"
-            )}
-            title={collapsed ? "Expandir menu" : "Ir para o dashboard"}
-          >
-            <motion.div
-              whileHover={{ scale: 1.05, rotate: 2 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              className="shrink-0"
-            >
-              <img src={brandTheme.logoMark} alt="Gas Facil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-10 w-10" : "h-12 w-12")} />
-            </motion.div>
-            {!collapsed && (
-              <div className="flex min-w-0 flex-col justify-center leading-none">
-                <span className="truncate text-[15px] font-extrabold tracking-[-0.03em] text-sidebar-foreground">
-                  Gas Facil
-                </span>
-                <span className="mt-1 inline-flex w-fit rounded-full bg-sidebar-accent/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-sidebar-foreground/80 ring-1 ring-sidebar-border/20">
-                  ERP PRO
-                </span>
-              </div>
-            )}
-          </button>
-          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="absolute right-3 top-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggle}
-                className="h-8 w-8 flex-shrink-0 rounded-full text-sidebar-foreground/80 shadow-none hover:bg-sidebar-accent/15 hover:text-sidebar-foreground"
-            >
-              {collapsed ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
-              )}
-            </Button>
-          </motion.div>
+        <div className={cn(
+          "flex border-b border-sidebar-border/15 px-3",
+          isCleanTheme ? "min-h-28 items-center py-3" : "h-16 min-h-16 items-center",
+          collapsed ? "justify-center" : "justify-start"
+        )}>
+          {isCleanTheme ? (
+            <UnidadeSelector variant="sidebar" collapsed={collapsed} />
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => (collapsed ? toggle() : navigate("/dashboard"))}
+                className={cn(
+                  "group flex min-w-0 items-center rounded-3xl bg-transparent p-0 text-left transition-all",
+                  collapsed ? "justify-center" : "justify-start gap-2.5 pr-10"
+                )}
+                title={collapsed ? "Expandir menu" : "Ir para o dashboard"}
+              >
+                <motion.div
+                  whileHover={{ scale: 1.05, rotate: 2 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  className="shrink-0"
+                >
+                  <img src={brandTheme.logoMark} alt="Gas Facil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-10 w-10" : "h-12 w-12")} />
+                </motion.div>
+                {!collapsed && (
+                  <div className="flex min-w-0 flex-col justify-center leading-none">
+                    <span className="truncate text-[15px] font-extrabold tracking-[-0.03em] text-sidebar-foreground">
+                      Gas Facil
+                    </span>
+                    <span className="mt-1 inline-flex w-fit rounded-full bg-sidebar-accent/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-sidebar-foreground/80 ring-1 ring-sidebar-border/20">
+                      ERP PRO
+                    </span>
+                  </div>
+                )}
+              </button>
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="absolute right-3 top-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggle}
+                  className="h-8 w-8 flex-shrink-0 rounded-full text-sidebar-foreground/80 shadow-none hover:bg-sidebar-accent/15 hover:text-sidebar-foreground"
+                >
+                  {collapsed ? (
+                    <ChevronRight className="h-4 w-4" />
+                  ) : (
+                    <ChevronLeft className="h-4 w-4" />
+                  )}
+                </Button>
+              </motion.div>
+            </>
+          )}
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3.5 py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="space-y-2">
-            {menuItems.map((item, idx) => {
+            {visibleMenuItems.map((item, idx) => {
               const hasSubmenu = !!item.submenu;
               const isOpen = isSubmenuOpen(item.label);
               const isItemActive = isActive(item.path);
