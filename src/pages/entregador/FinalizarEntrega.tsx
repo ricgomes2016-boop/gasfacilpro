@@ -43,7 +43,10 @@ interface Pagamento {
   data_vencimento_fiado?: string;
   comprovante_url?: string;
   codigo_voucher?: string;
+  conta_bancaria_id?: string;
+  operadora_id?: string;
 }
+
 
 interface PedidoItem {
   id: string;
