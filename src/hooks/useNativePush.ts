@@ -18,6 +18,24 @@ export function useNativePush() {
         const { PushNotifications } = await import("@capacitor/push-notifications");
         const { LocalNotifications } = await import("@capacitor/local-notifications");
 
+        // Android requer canal HIGH explícito para tocar som / acordar tela
+        if (Capacitor.getPlatform() === "android") {
+          try {
+            await PushNotifications.createChannel({
+              id: "default",
+              name: "Notificações Importantes",
+              description: "Novos pedidos, chats e alertas",
+              importance: 5, // IMPORTANCE_HIGH (heads-up + som + acorda tela)
+              visibility: 1,
+              sound: "default",
+              vibration: true,
+              lights: true,
+            });
+          } catch (e) {
+            console.warn("[useNativePush] createChannel falhou", e);
+          }
+        }
+
         let perm = await PushNotifications.checkPermissions();
         if (perm.receive !== "granted") {
           perm = await PushNotifications.requestPermissions();
@@ -35,21 +53,43 @@ export function useNativePush() {
           } = await supabase.auth.getUser();
           if (!user) return;
 
+          // Resolver empresa_id: profile → entregador → unidade selecionada
+          let empresaId: string | null = null;
           const { data: profile } = await supabase
             .from("profiles")
             .select("empresa_id")
             .eq("user_id", user.id)
             .maybeSingle();
+          empresaId = profile?.empresa_id ?? null;
 
           const unidadeId =
             (typeof localStorage !== "undefined" &&
               localStorage.getItem("selected_unidade_id")) ||
             null;
 
+          if (!empresaId) {
+            const { data: ent } = await supabase
+              .from("entregadores")
+              .select("empresa_id, unidade_id")
+              .eq("user_id", user.id)
+              .eq("ativo", true)
+              .maybeSingle();
+            empresaId = ent?.empresa_id ?? null;
+          }
+
+          if (!empresaId && unidadeId) {
+            const { data: uni } = await supabase
+              .from("unidades")
+              .select("empresa_id")
+              .eq("id", unidadeId)
+              .maybeSingle();
+            empresaId = uni?.empresa_id ?? null;
+          }
+
           await supabase.from("push_subscriptions").upsert(
             {
               user_id: user.id,
-              empresa_id: profile?.empresa_id ?? null,
+              empresa_id: empresaId,
               unidade_id: unidadeId,
               provider: "fcm",
               fcm_token: token.value,
@@ -67,26 +107,33 @@ export function useNativePush() {
           console.warn("[useNativePush] registration error", err);
         });
 
-        // Em foreground: o sistema Android não mostra a notificação automaticamente;
-        // disparamos uma LocalNotification para o entregador ver mesmo dentro do app.
-        PushNotifications.addListener("pushNotificationReceived", async (n) => {
-          try {
-            await LocalNotifications.schedule({
-              notifications: [
-                {
-                  id: Math.floor(Math.random() * 2_147_483_000),
-                  title: n.title || "Novo aviso",
-                  body: n.body || "",
-                  smallIcon: "ic_stat_icon",
-                  sound: "default",
-                  extra: n.data ?? {},
-                },
-              ],
-            });
-          } catch (e) {
-            console.warn("[useNativePush] local schedule error", e);
+        // Em foreground (app visível): NÃO replicar a notificação como LocalNotification
+        // — isso causaria o som tocar enquanto o entregador já está usando o app.
+        // Quando o app está em background/fechado, o próprio FCM exibe a notificação
+        // pelo canal "default" (HIGH) com som e wake-lock.
+        PushNotifications.addListener("pushNotificationReceived", (n) => {
+          const visible =
+            typeof document !== "undefined" && document.visibilityState === "visible";
+          if (visible) {
+            // App aberto — deixa a UI/toast cuidar. Sem som.
+            return;
           }
+          // Edge case: evento entregue ao webview mas app não está visível.
+          LocalNotifications.schedule({
+            notifications: [
+              {
+                id: Math.floor(Math.random() * 2_147_483_000),
+                title: n.title || "Novo aviso",
+                body: n.body || "",
+                channelId: "default",
+                smallIcon: "ic_stat_icon",
+                sound: "default",
+                extra: n.data ?? {},
+              },
+            ],
+          }).catch((e) => console.warn("[useNativePush] local schedule error", e));
         });
+
 
         PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
           const data: any = action?.notification?.data ?? {};
