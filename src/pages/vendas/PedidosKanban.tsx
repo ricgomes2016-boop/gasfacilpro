@@ -220,6 +220,7 @@ export default function PedidosKanban() {
         onChangeEntregador={(id) => pedidoAberto && atribuirEntregador({ pedidoId: pedidoAberto.id, entregadorId: id })}
       />
     </div>
+    </MainLayout>
   );
 }
 
