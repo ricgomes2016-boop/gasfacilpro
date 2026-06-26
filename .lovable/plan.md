@@ -1,34 +1,39 @@
-## Plano: corrigir busca de endereço do cliente (Nova Venda e Cadastro)
+## Objetivo
+Fazer a notificação do app do entregador tocar som quando o celular estiver com a tela desligada, em segundo plano ou com outro aplicativo aberto.
 
-### Diagnóstico
-Examinei a função `autocomplete_clientes_v2` (usada pelo autocomplete em Nova Venda e por `VendedorClientes`) e o hook `useClientes` (Cadastro de Clientes), e cruzei com os dados reais no banco:
+## Diagnóstico
+O comportamento descrito indica que o push está chegando, mas o som está sendo tratado pelo WebView/JavaScript quando o app abre. Para tocar em segundo plano no Android, o som precisa estar configurado no nível nativo: Manifest, canal Android criado antes do primeiro push e payload FCM compatível com esse canal.
 
-- 62.451 clientes ativos, mas só **40.678 têm `endereco`** preenchido na tabela `clientes` e apenas **7.759 têm `numero`**. Boa parte dos clientes do app armazena o endereço principal apenas em `cliente_enderecos` (tabela separada, com `rua`, `numero`, `bairro`, `cep`, `complemento`, `referencia`, `principal`).
-- A função RPC `autocomplete_clientes_v2` **só lê e busca colunas da tabela `clientes`**. Resultado: para clientes que se cadastraram via app, a busca retorna o nome mas sem endereço, e endereços salvos no app não são localizados quando o operador digita rua/bairro.
-- Em registros importados, o endereço inteiro foi colocado no campo `endereco` (ex.: `"Rua Pará, 160, Centro"`) e `numero`/`bairro` ficaram nulos — então a busca "número da casa" não casa.
-- No `useClientes.ts` (Cadastro), a busca também ignora `cliente_enderecos` e usa apenas `ilike` em `endereco`/`bairro` da tabela `clientes`.
+## Plano de correção
+1. **Permissões Android corretas**
+   - Adicionar `android.permission.POST_NOTIFICATIONS` no `AndroidManifest.xml` para Android 13+.
+   - Manter `WAKE_LOCK` e permissões existentes.
 
-### Correções propostas
+2. **Canal nativo criado no início do APK**
+   - Atualizar `MainActivity.java` para criar o canal `gasfacil_alerts_v2` no startup nativo, antes do WebView.
+   - Usar `IMPORTANCE_HIGH`, vibração, tela pública e som vinculado ao arquivo `res/raw/gasfacil_alert.wav`.
+   - Isso evita depender apenas do `PushNotifications.createChannel()` do JavaScript, que pode rodar tarde demais.
 
-1. **Atualizar a RPC `autocomplete_clientes_v2` (migração SQL)**
-   - Buscar também em `cliente_enderecos` (rua, numero, bairro, cep, cidade, complemento).
-   - Fazer COALESCE para retornar o endereço principal de `cliente_enderecos` quando `clientes.endereco` estiver vazio.
-   - Manter a lógica atual de "rua + número" funcionando tanto via `clientes.numero` quanto via `cliente_enderecos.numero`.
-   - Considerar "rua + número" também quando `clientes.numero` for nulo mas o `endereco` contiver o número (regex sobre o próprio texto), cobrindo a base importada.
-   - Score: dar peso extra quando o match vier do endereço principal.
+3. **Manifest alinhado ao canal**
+   - Garantir que o `default_notification_channel_id` do Firebase aponta para `gasfacil_alerts_v2`.
+   - Garantir compatibilidade caso o FCM receba mensagem sem `channel_id`.
 
-2. **Atualizar `useClientes.ts` (tela Cadastro)**
-   - Estender o filtro `or(...)` para também encontrar clientes cujo endereço principal (em `cliente_enderecos`) bata com o termo. Implementação: antes de montar a query, fazer um `select cliente_id from cliente_enderecos` filtrando por `rua/bairro/cep ilike` e juntar esses IDs no `.in("id", [...])` final junto com o filtro de unidade.
-   - Ao listar, enriquecer cada cliente com o endereço principal de `cliente_enderecos` quando os campos da tabela `clientes` estiverem vazios, para que a coluna de endereço apareça corretamente na tabela.
+4. **Payload FCM mais robusto**
+   - Ajustar `supabase/functions/_shared/fcm.ts` para enviar:
+     - `priority: HIGH`
+     - `channel_id: gasfacil_alerts_v2`
+     - `sound: gasfacil_alert`
+     - `visibility: PUBLIC`
+     - `notification_priority: PRIORITY_MAX`
+     - TTL adequado para não perder pedido quando o celular estiver em repouso.
 
-3. **(Opcional, mesma migração) view auxiliar `clientes_endereco_resolvido`**
-   - Materializar lógica "endereço efetivo = COALESCE(clientes.endereco_components, principal de cliente_enderecos)" para reaproveitar em outras telas (lista, perfil, kanban). Mantém o restante do app sem mudança imediata.
+5. **Evitar som duplicado ao abrir o app**
+   - Ajustar `useNativePush.ts` para não reemitir notificação local com som quando a notificação já veio do sistema em background.
+   - Manter fallback local apenas para foreground, se necessário.
 
-### Arquivos/objetos afetados
-- `supabase/migrations/<novo>.sql` — recriar `autocomplete_clientes_v2` e (opcional) view auxiliar.
-- `src/hooks/useClientes.ts` — filtro + enriquecimento com `cliente_enderecos`.
-- Sem alteração em `ClienteAutocompleteInput.tsx` nem em `NovaVenda` (eles já consomem os campos que a RPC passar a retornar).
+6. **Orientação final de build/teste**
+   - Depois da correção, você precisará gerar/instalar um APK novo.
+   - No celular, será necessário aceitar a permissão de notificações e verificar se o canal “Notificações Importantes” está com som ativado nas configurações do Android.
 
-### Fora do escopo
-- Não vou mexer no fluxo de criação/edição de cliente nem em RLS — apenas leitura.
-- Não vou migrar dados em massa entre `clientes.endereco` e `cliente_enderecos`; a correção é de busca/exibição.
+## Resultado esperado
+Ao chegar novo pedido, o Android deve exibir a notificação com som mesmo com a tela bloqueada, com o app minimizado ou usando outro aplicativo.
