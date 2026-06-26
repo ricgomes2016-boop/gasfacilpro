@@ -128,9 +128,7 @@ export function useDeliveryAlarm() {
     }
   }, []);
 
-  useEffect(() => {
-    return () => { stopAlarm(); };
-  }, [stopAlarm]);
+// removed stopAlarm on unmount to prevent global alarm from stopping when navigating away
 
   return {
     startAlarm,
