@@ -22,11 +22,13 @@ export default function EntregadorEntregas() {
   const [modalIniciarRota, setModalIniciarRota] = useState(false);
   const [entregaParaIniciar, setEntregaParaIniciar] = useState<EntregaDB | null>(null);
   const [entregadorId, setEntregadorId] = useState<string | null>(null);
-  const [alarmEnabled, setAlarmEnabled] = useState(true);
+  
+  const [alarmEnabled, setAlarmEnabled] = useState(() => localStorage.getItem("erp_entregador_som_ativo") !== "false");
+  
   const { toast } = useToast();
   const { user } = useAuth();
-  const { startAlarm, stopAlarm, isPlaying } = useDeliveryAlarm();
-  const { permission, requestPermission, sendNotification } = useNotifications();
+  const { stopAlarm, isCurrentlyPlaying } = useDeliveryAlarm();
+  const { permission, requestPermission } = useNotifications();
   const prevPendentesRef = useRef<string[]>([]);
   const isFirstLoadRef = useRef(true);
 
@@ -75,36 +77,14 @@ export default function EntregadorEntregas() {
     return () => clearInterval(interval);
   }, [fetchEntregas]);
 
-  // Detect new pending deliveries and trigger alarm (urgent if 10+ min old)
-  useEffect(() => {
-    const currentPendentes = entregas.filter(e => e.status === "pendente");
-    const currentIds = currentPendentes.map(e => e.id);
-    const prevIds = prevPendentesRef.current;
-    const newIds = currentIds.filter(id => !prevIds.includes(id));
-
-    if (currentIds.length > 0 && alarmEnabled) {
-      if (isFirstLoadRef.current || newIds.length > 0) {
-        // Check if any pending delivery is older than 10 minutes
-        const hasUrgent = currentPendentes.some(e => {
-          const waitMs = Date.now() - new Date(e.created_at).getTime();
-          return waitMs >= 10 * 60 * 1000;
-        });
-
-        startAlarm(hasUrgent);
-        if (permission === "granted") {
-          const targetEntrega = entregas.find(e => e.id === (newIds[0] || currentIds[0]));
-          sendNotification({
-            title: hasUrgent ? "🔴 Entrega URGENTE!" : "🚚 Nova Entrega!",
-            body: `${targetEntrega?.clientes?.nome || "Cliente"} - ${targetEntrega?.endereco_entrega || ""}`,
-            tag: `new-delivery-${newIds[0] || currentIds[0]}`,
-          });
-        }
-      }
+  const toggleAlarm = () => {
+    const newState = !alarmEnabled;
+    setAlarmEnabled(newState);
+    localStorage.setItem("erp_entregador_som_ativo", String(newState));
+    if (newState) {
+      stopAlarm();
     }
-
-    isFirstLoadRef.current = false;
-    prevPendentesRef.current = currentIds;
-  }, [entregas, alarmEnabled, startAlarm, permission, sendNotification]);
+  };
 
   // Realtime
   useEffect(() => {
@@ -195,17 +175,14 @@ export default function EntregadorEntregas() {
               <Button
                 variant={alarmEnabled ? "default" : "outline"}
                 size="sm"
-                onClick={() => {
-                  setAlarmEnabled(!alarmEnabled);
-                  if (alarmEnabled) stopAlarm();
-                }}
+                onClick={toggleAlarm}
                 className="text-xs"
               >
                 {alarmEnabled ? <BellRing className="h-4 w-4 mr-1" /> : <BellOff className="h-4 w-4 mr-1" />}
                 {alarmEnabled ? "Som Ativo" : "Som Mudo"}
               </Button>
             )}
-            {isPlaying.current && (
+            {isCurrentlyPlaying && (
               <Button variant="destructive" size="sm" onClick={stopAlarm} className="text-xs animate-pulse">
                 🔔 Parar Alarme
               </Button>

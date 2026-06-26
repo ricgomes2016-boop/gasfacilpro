@@ -1,13 +1,24 @@
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
+
+let globalAudioContext: AudioContext | null = null;
+let globalInterval: ReturnType<typeof setInterval> | null = null;
+let globalIsPlaying = false;
 
 /**
  * Hook that plays a persistent alarm sound in a loop until stopped.
  * Supports urgent mode (faster, louder alarm for deliveries waiting 10+ min).
  */
 export function useDeliveryAlarm() {
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isPlayingRef = useRef(false);
+  const isPlayingRef = useRef(false); // keep local ref for component rendering if needed, but we'll use a state for UI
+  const [isPlaying, setIsPlaying] = useState(globalIsPlaying);
+
+  useEffect(() => {
+    // Keep local state in sync with global (rough approximation for UI)
+    const interval = setInterval(() => {
+      if (isPlaying !== globalIsPlaying) setIsPlaying(globalIsPlaying);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
 
   const playBeep = useCallback((ctx: AudioContext, urgent = false) => {
     const now = ctx.currentTime;
@@ -76,20 +87,22 @@ export function useDeliveryAlarm() {
   }, []);
 
   const startAlarm = useCallback((urgent = false) => {
-    if (isPlayingRef.current) return;
+    if (globalIsPlaying) return;
+    globalIsPlaying = true;
     isPlayingRef.current = true;
+    setIsPlaying(true);
 
     vibrate(urgent);
 
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      audioContextRef.current = ctx;
+      globalAudioContext = ctx;
 
       playBeep(ctx, urgent);
 
       // Urgent: repeat faster (every 1.2s instead of 2s)
       const interval = urgent ? 1200 : 2000;
-      intervalRef.current = setInterval(() => {
+      globalInterval = setInterval(() => {
         if (ctx.state === "suspended") ctx.resume();
         playBeep(ctx, urgent);
         vibrate(urgent);
@@ -100,16 +113,18 @@ export function useDeliveryAlarm() {
   }, [playBeep, vibrate]);
 
   const stopAlarm = useCallback(() => {
+    globalIsPlaying = false;
     isPlayingRef.current = false;
+    setIsPlaying(false);
 
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (globalInterval) {
+      clearInterval(globalInterval);
+      globalInterval = null;
     }
-
-    if (audioContextRef.current) {
-      audioContextRef.current.close().catch(() => {});
-      audioContextRef.current = null;
+    
+    if (globalAudioContext) {
+      globalAudioContext.close().catch(() => {});
+      globalAudioContext = null;
     }
   }, []);
 
@@ -117,5 +132,10 @@ export function useDeliveryAlarm() {
     return () => { stopAlarm(); };
   }, [stopAlarm]);
 
-  return { startAlarm, stopAlarm, isPlaying: isPlayingRef };
+  return {
+    startAlarm,
+    stopAlarm,
+    isPlaying: isPlayingRef,
+    isCurrentlyPlaying: isPlaying
+  };
 }
