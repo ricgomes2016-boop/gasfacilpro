@@ -1586,7 +1586,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         )}
 
         {/* Espaço para não esconder conteúdo atrás do rodapé fixo */}
-        <div aria-hidden className="h-20" />
+        <div aria-hidden className="h-24 md:h-20" />
       </div>
 
       {/* Rodapé fixo: Stepper + navegação Voltar/Continuar (portal único no SystemFooter — fixo em mobile e desktop) */}
