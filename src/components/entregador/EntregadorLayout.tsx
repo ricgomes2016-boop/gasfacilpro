@@ -151,7 +151,7 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto pb-20">
+      <main className="flex-1 overflow-auto pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
         <GpsPermissionBanner />
         <PendingDeliveriesBanner />
         {children}
