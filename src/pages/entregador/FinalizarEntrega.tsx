@@ -850,7 +850,10 @@ export default function FinalizarEntrega() {
           {isSaving ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <CheckCircle className="h-5 w-5 mr-2" />}
           {isSaving ? "Salvando..." : !assinatura ? "Assine o canhoto para finalizar" : "Finalizar Entrega"}
         </Button>
+
+        <div className="h-4" />
       </div>
+
 
       {/* PIX Key Selector */}
       <PixKeySelectorModal
