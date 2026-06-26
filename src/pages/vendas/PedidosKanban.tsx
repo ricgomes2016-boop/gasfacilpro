@@ -138,6 +138,7 @@ export default function PedidosKanban() {
   }
 
   return (
+    <MainLayout>
     <div className="px-3 md:px-6 py-4 space-y-4">
       {/* Top bar */}
       <Card className="p-3 md:p-4">
