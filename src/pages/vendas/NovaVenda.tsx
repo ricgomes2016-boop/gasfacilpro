@@ -201,11 +201,11 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
   const produtosOk = itens.length > 0;
   const pagamentoOk = totalPago >= totalVenda && totalVenda > 0;
   const steps: Array<{ id: VendaStepId; label: string; done: boolean; enabled: boolean; icon: typeof User }> = [
-    { id: "cliente", label: "Cliente", done: clienteOk, enabled: true, icon: User },
-    { id: "produtos", label: "Produtos", done: produtosOk, enabled: true, icon: PackageIcon },
-    { id: "pagamento", label: "Pagamento", done: pagamentoOk, enabled: true, icon: CreditCard },
-    { id: "entregador", label: "Entregador", done: entregadorSelecionado, enabled: true, icon: ShoppingBag },
-    { id: "confirmar", label: "Confirmar", done: pagamentoOk && produtosOk && entregadorSelecionado, enabled: true, icon: CheckCircle },
+    { id: "cliente", label: "Cliente", done: clienteOk, enabled: true, icon: UserRound },
+    { id: "produtos", label: "Produtos", done: produtosOk, enabled: true, icon: Flame },
+    { id: "pagamento", label: "Pagamento", done: pagamentoOk, enabled: true, icon: Wallet },
+    { id: "entregador", label: "Entregador", done: entregadorSelecionado, enabled: true, icon: Truck },
+    { id: "confirmar", label: "Confirmar", done: pagamentoOk && produtosOk && entregadorSelecionado, enabled: true, icon: BadgeCheck },
   ];
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
