@@ -145,11 +145,11 @@ function StepperFooterBar({
 }) {
   const idx = VENDA_STEPS.indexOf(activeStep);
   return (
-    <div className="flex w-full items-center gap-1.5 flex-nowrap">
+    <div className="flex w-full items-center gap-2 flex-nowrap">
       <Button
         variant="outline"
         size="icon"
-        className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full"
+        className="h-10 w-10 sm:h-9 sm:w-9 shrink-0 rounded-full"
         aria-label="Etapa anterior"
         disabled={idx === 0}
         onClick={() => {
@@ -157,7 +157,7 @@ function StepperFooterBar({
           if (prev && canOpenStep(prev)) setActiveStep(prev);
         }}
       >
-        <ChevronLeft className="h-3.5 w-3.5" />
+        <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4" />
       </Button>
       <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar">
         <VendaStepper
@@ -174,7 +174,7 @@ function StepperFooterBar({
       <Button
         variant="outline"
         size="icon"
-        className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 rounded-full"
+        className="h-10 w-10 sm:h-9 sm:w-9 shrink-0 rounded-full"
         aria-label="Próxima etapa"
         disabled={idx === VENDA_STEPS.length - 1}
         onClick={() => {
@@ -182,9 +182,10 @@ function StepperFooterBar({
           if (next && canOpenStep(next)) setActiveStep(next);
         }}
       >
-        <ChevronRight className="h-3.5 w-3.5" />
+        <ChevronRight className="h-5 w-5 sm:h-4 sm:w-4" />
       </Button>
     </div>
+
   );
 }
 
