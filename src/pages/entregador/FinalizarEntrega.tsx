@@ -208,7 +208,14 @@ export default function FinalizarEntrega() {
       if (novoPagamentoForma === "Cartão Crédito" || novoPagamentoForma === "Cartão Débito") {
         pag.comprovante_url = comprovanteUrl || undefined;
       }
+      if (selectedPaymentExtras.conta_bancaria_id) {
+        pag.conta_bancaria_id = selectedPaymentExtras.conta_bancaria_id;
+      }
+      if (selectedPaymentExtras.operadora_id) {
+        pag.operadora_id = selectedPaymentExtras.operadora_id;
+      }
       setPagamentos((prev) => [...prev, pag]);
+
       setNovoPagamentoForma("");
       setNovoPagamentoValor("");
       setChequeNumero("");
