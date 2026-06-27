@@ -60,6 +60,7 @@ interface PedidoData {
   id: string;
   created_at: string;
   data_entrega: string | null;
+  data_vencimento_fiado?: string | null;
   valor_total: number | null;
   endereco_entrega: string | null;
   observacoes: string | null;
@@ -147,9 +148,12 @@ export default function FinalizarEntrega() {
         setEditableItens(pedidoData.pedido_itens.map(i => ({ ...i })));
         const total = Number(data.valor_total) || 0;
         if (total > 0) {
-          const formaInicial = formasPagamento.includes(String(pedidoData.forma_pagamento || ""))
-            ? String(pedidoData.forma_pagamento)
-            : "Dinheiro";
+          const formaPedido = String(pedidoData.forma_pagamento || "");
+          const formaInicial = formaPedido.includes("Fiado")
+            ? "Fiado"
+            : formasPagamento.includes(formaPedido)
+              ? formaPedido
+              : "Dinheiro";
           setPagamentos([{ forma: formaInicial, valor: total }]);
         }
         // Fetch chave_pix from unidade
@@ -187,7 +191,10 @@ export default function FinalizarEntrega() {
 
   const totalPagamentos = pagamentos.reduce((acc, p) => acc + p.valor, 0);
   const diferenca = totalItens - totalPagamentos;
-  const exigeAssinaturaCanhoto = pagamentos.some((p) => p.forma === "Fiado");
+  const exigeAssinaturaCanhoto =
+    pagamentos.some((p) => p.forma === "Fiado") ||
+    String(pedido?.forma_pagamento || "").includes("Fiado") ||
+    Boolean((pedido as any)?.data_vencimento_fiado);
 
   const removerPagamento = (index: number) => {
     setPagamentos((prev) => prev.filter((_, i) => i !== index));
