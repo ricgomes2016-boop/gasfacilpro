@@ -100,7 +100,7 @@ export default function ClienteHistorico() {
         const { data, error } = await supabase
           .from("pedidos")
           .select(`
-            id, created_at, valor_total, status, forma_pagamento, endereco_entrega, entregador_id,
+            id, numero_sequencial, created_at, valor_total, status, forma_pagamento, endereco_entrega, entregador_id,
             pedido_itens (
               id, quantidade, preco_unitario, produto_id,
               produtos:produto_id (nome, image_url)
