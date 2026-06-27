@@ -35,11 +35,28 @@ serve(async (req) => {
 
       const supabase = createSupabase();
 
-      // We default to Central Gas Matriz for now. 
-      // In production with multiple numbers, this would be dynamic based on the caller's number.
-      let unidadeId = null;
-      const { data: matriz } = await supabase.from('unidades').select('id').eq('tipo', 'matriz').maybeSingle();
-      if (matriz) unidadeId = matriz.id;
+      // Roteamento de unidade:
+      // 1) Tenta por DID (número discado) via did_empresa_routing
+      // 2) Cai na unidade fixa Central Gas (mesma usada pela Bia de voz / ElevenLabs)
+      const CENTRAL_GAS_UNIDADE_ID = "aa5b7c93-4fe6-4dba-a0b5-2af43cd20614";
+      let unidadeId: string | null = null;
+
+      const toNumber: string | undefined =
+        body?.message?.call?.customer?.number ||
+        body?.message?.call?.toPhoneNumber ||
+        body?.message?.phoneNumber?.number;
+      if (toNumber) {
+        const digits = String(toNumber).replace(/\D/g, "");
+        const last10 = digits.slice(-10);
+        const { data: route } = await supabase
+          .from("did_empresa_routing")
+          .select("unidade_id")
+          .or(`did.ilike.%${last10}%,did.ilike.%${digits}%`)
+          .limit(1)
+          .maybeSingle();
+        if (route?.unidade_id) unidadeId = route.unidade_id;
+      }
+      if (!unidadeId) unidadeId = CENTRAL_GAS_UNIDADE_ID;
 
       // Check Business Hours / Sunday Rules
       const { isOffHours, horarioInfo, isSunday, waterDeliveryAllowed } = await checkBusinessHours(supabase, unidadeId);
@@ -111,15 +128,33 @@ async function handleConsultarPreco(supabase: any, args: any, toolCallId: string
 
   const { data, error } = await q.limit(1).maybeSingle();
 
+  // Fallback de preço: se produtos.preco = 0, usa configuracoes_empresa.regras_bia.tabela_precos
+  async function fallbackPreco(nome: string): Promise<number> {
+    if (!unidadeId) return 0;
+    const { data: u } = await supabase.from("unidades").select("empresa_id").eq("id", unidadeId).maybeSingle();
+    if (!u?.empresa_id) return 0;
+    const { data: cfg } = await supabase.from("configuracoes_empresa").select("regras_bia").eq("empresa_id", u.empresa_id).maybeSingle();
+    const tp = (cfg?.regras_bia as any)?.tabela_precos || {};
+    const key = /p13/i.test(nome) ? "gas_p13" : /p20/i.test(nome) ? "gas_p20" : /p45/i.test(nome) ? "gas_p45" : /agua|água/i.test(nome) ? "agua_20l" : null;
+    if (!key) return 0;
+    return Number(tp?.[key]?.preco_desconto) > 0 ? Number(tp[key].preco_desconto) : Number(tp?.[key]?.preco) || 0;
+  }
+
   let resultado = "";
   if (error || !data) {
     resultado = `Desculpe, não encontrei o produto ${produtoNome} cadastrado no momento.`;
-  } else if (data.estoque <= 0) {
-    resultado = `Temos o ${data.nome} por R$ ${Number(data.preco).toFixed(2)}, mas no momento está fora de estoque.`;
   } else {
-    resultado = `O valor do ${data.nome} é R$ ${Number(data.preco).toFixed(2)}. Temos em estoque para pronta entrega.`;
-    if (context.isSunday && data.categoria === 'gas') {
-      resultado += " Hoje no domingo atendemos até as 14:00.";
+    let preco = Number(data.preco) || 0;
+    if (preco <= 0) preco = await fallbackPreco(data.nome);
+    if (preco <= 0) {
+      resultado = `O ${data.nome} ainda não está com preço configurado. Vou pedir para um atendente te retornar.`;
+    } else if (data.estoque <= 0) {
+      resultado = `Temos o ${data.nome} por R$ ${preco.toFixed(2)}, mas no momento está fora de estoque.`;
+    } else {
+      resultado = `O valor do ${data.nome} é R$ ${preco.toFixed(2)}. Temos em estoque para pronta entrega.`;
+      if (context.isSunday && data.categoria === 'gas') {
+        resultado += " Hoje no domingo atendemos até as 14:00.";
+      }
     }
   }
 

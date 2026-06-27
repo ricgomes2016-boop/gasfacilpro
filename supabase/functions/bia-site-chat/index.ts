@@ -7,14 +7,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const SLUG_TO_EMPRESA: Record<string, string> = {
-  fortegas: "forte-gas",
-  centralgascp: "centralgascp",
-};
-
-const NOME_LOJA: Record<string, string> = {
-  fortegas: "Forte Gás",
-  centralgascp: "Central Gás",
+// Mapeia o slug do site institucional para a empresa-mãe (Central Gas) e o nome
+// EXATO da unidade dessa empresa onde os produtos estão precificados.
+// Sites legados podem ter empresas duplicadas com Matriz sem preço — por isso o
+// roteamento sempre aponta para a unidade certa dentro da empresa `central-gas`.
+const SLUG_TO_TENANT: Record<string, { empresaSlug: string; unidadeNome: string; nomeLoja: string }> = {
+  centralgascp: { empresaSlug: "central-gas", unidadeNome: "Central Gas", nomeLoja: "Central Gás" },
+  fortegas:     { empresaSlug: "central-gas", unidadeNome: "Forte Gás",   nomeLoja: "Forte Gás" },
+  japagas:      { empresaSlug: "central-gas", unidadeNome: "Japa Gás",    nomeLoja: "Japa Gás" },
 };
 
 serve(async (req) => {
@@ -34,21 +34,21 @@ serve(async (req) => {
 
     // SECURITY: enforce strict slug allowlist. Public endpoint must not allow
     // arbitrary tenant enumeration via guessed slugs.
-    if (!Object.prototype.hasOwnProperty.call(SLUG_TO_EMPRESA, unidadeSlug)) {
+    if (!Object.prototype.hasOwnProperty.call(SLUG_TO_TENANT, unidadeSlug)) {
       return new Response(
         JSON.stringify({ error: "Slug não autorizado" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const empresaSlug = SLUG_TO_EMPRESA[unidadeSlug];
-    const nomeLoja = NOME_LOJA[unidadeSlug] ?? "nossa loja";
+    const tenant = SLUG_TO_TENANT[unidadeSlug];
+    const nomeLoja = tenant.nomeLoja;
 
-    // Resolve empresa + unidade
+    // Resolve empresa + unidade pelo nome EXATO da unidade dentro da empresa-mãe.
     const { data: empresa } = await supabase
       .from("empresas")
       .select("id, nome")
-      .eq("slug", empresaSlug)
+      .eq("slug", tenant.empresaSlug)
       .maybeSingle();
 
     if (!empresa) {
@@ -62,14 +62,13 @@ serve(async (req) => {
       .from("unidades")
       .select("id, nome")
       .eq("empresa_id", empresa.id)
+      .eq("nome", tenant.unidadeNome)
       .eq("ativo", true)
-      .order("created_at", { ascending: true })
-      .limit(1)
       .maybeSingle();
 
     if (!unidade) {
       return new Response(
-        JSON.stringify({ error: "Unidade ativa não encontrada" }),
+        JSON.stringify({ error: `Unidade "${tenant.unidadeNome}" não encontrada/ativa para ${unidadeSlug}` }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -207,7 +206,7 @@ Regras:
           if (tc.function.name === "identificar_cliente") {
             result = await identificarCliente(supabase, empresa.id, unidade.id, args.telefone);
           } else if (tc.function.name === "consultar_produtos") {
-            result = await consultarProdutos(supabase, unidade.id);
+            result = await consultarProdutos(supabase, empresa.id, unidade.id);
           } else if (tc.function.name === "criar_pedido") {
             result = await criarPedido(supabase, empresa.id, unidade.id, args);
           } else {
@@ -283,7 +282,30 @@ async function identificarCliente(
   return { encontrado: false };
 }
 
-async function consultarProdutos(supabase: any, unidadeId: string) {
+// Fonte oficial de preços da Bia: configuracoes_empresa.regras_bia.tabela_precos
+async function getTabelaPrecosBia(
+  supabase: any,
+  empresaId: string
+): Promise<Record<string, number>> {
+  const { data } = await supabase
+    .from("configuracoes_empresa")
+    .select("regras_bia")
+    .eq("empresa_id", empresaId)
+    .maybeSingle();
+  const tp = (data?.regras_bia as any)?.tabela_precos || {};
+  const pick = (k: string) =>
+    Number(tp?.[k]?.preco_desconto) > 0
+      ? Number(tp[k].preco_desconto)
+      : Number(tp?.[k]?.preco) || 0;
+  return {
+    "Gás P13": pick("gas_p13"),
+    "Gás P20": pick("gas_p20"),
+    "Gás P45": pick("gas_p45"),
+    "Água Mineral 20L": pick("agua_20l"),
+  };
+}
+
+async function consultarProdutos(supabase: any, empresaId: string, unidadeId: string) {
   const { data } = await supabase
     .from("produtos")
     .select("id, nome, preco")
@@ -298,10 +320,18 @@ async function consultarProdutos(supabase: any, unidadeId: string) {
     .ilike("nome", "%água%")
     .limit(1);
 
+  const tabela = await getTabelaPrecosBia(supabase, empresaId);
+
   const lista = [...(data ?? []), ...(agua ?? [])].filter(
     (p) => !/vazio/i.test(p.nome)
   );
-  return { produtos: lista.map((p) => ({ nome: p.nome, preco: p.preco })) };
+  return {
+    produtos: lista.map((p) => {
+      const precoCad = Number(p.preco) || 0;
+      const precoTab = tabela[p.nome] || 0;
+      return { nome: p.nome, preco: precoCad > 0 ? precoCad : precoTab };
+    }).filter((p) => p.preco > 0),
+  };
 }
 
 async function criarPedido(
@@ -370,7 +400,11 @@ async function criarPedido(
   if (!prod) return { error: `Produto ${nomeProduto} não cadastrado` };
 
   const qty = Number(quantidade) || 1;
-  const precoUnit = Number(prod.preco) || 0;
+  let precoUnit = Number(prod.preco) || 0;
+  if (precoUnit <= 0) {
+    const tabela = await getTabelaPrecosBia(supabase, empresaId);
+    precoUnit = tabela[nomeProduto] || 0;
+  }
   const valorTotal = precoUnit * qty;
 
   if (precoUnit <= 0) {
