@@ -6,6 +6,7 @@ import { Package, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDeliveryAlarm } from "@/hooks/useDeliveryAlarm";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useWakeLock } from "@/hooks/useWakeLock";
 
 export function PendingDeliveriesBanner() {
   const [pendingDeliveries, setPendingDeliveries] = useState<any[]>([]);
@@ -14,8 +15,14 @@ export function PendingDeliveriesBanner() {
   
   const { startAlarm, stopAlarm } = useDeliveryAlarm();
   const { permission, requestPermission, sendNotification } = useNotifications();
+  const { requestWakeLock } = useWakeLock();
   const prevIdsRef = useRef<number[]>([]);
   const isFirstLoadRef = useRef(true);
+
+  // Mantém a tela acesa (Wake Lock) no PWA para o alarme não ser suspenso
+  useEffect(() => {
+    requestWakeLock();
+  }, []);
 
   const fetchPending = useCallback(async () => {
     if (!user) return;
