@@ -1732,6 +1732,7 @@ export async function createOrder(
       cliente_id: clienteId, valor_total: total,
       forma_pagamento: payMap[orderData.pagamento?.toLowerCase()] || "dinheiro",
       status: isAgendado ? "agendado" : "pendente", canal_venda: "whatsapp",
+      origem_pedido: "whatsapp",
       endereco_entrega: orderData.endereco || "",
       observacoes: `Pedido via WhatsApp${isAgendado ? " (AGENDADO)" : ""} - ${orderData.nome || clienteNome || senderName} (${phone})${disc > 0 ? ` | Desconto: R$${disc.toFixed(2)}` : ""}`,
       unidade_id: unidadeId,
