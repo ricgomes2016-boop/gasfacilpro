@@ -35,11 +35,28 @@ serve(async (req) => {
 
       const supabase = createSupabase();
 
-      // We default to Central Gas Matriz for now. 
-      // In production with multiple numbers, this would be dynamic based on the caller's number.
-      let unidadeId = null;
-      const { data: matriz } = await supabase.from('unidades').select('id').eq('tipo', 'matriz').maybeSingle();
-      if (matriz) unidadeId = matriz.id;
+      // Roteamento de unidade:
+      // 1) Tenta por DID (número discado) via did_empresa_routing
+      // 2) Cai na unidade fixa Central Gas (mesma usada pela Bia de voz / ElevenLabs)
+      const CENTRAL_GAS_UNIDADE_ID = "aa5b7c93-4fe6-4dba-a0b5-2af43cd20614";
+      let unidadeId: string | null = null;
+
+      const toNumber: string | undefined =
+        body?.message?.call?.customer?.number ||
+        body?.message?.call?.toPhoneNumber ||
+        body?.message?.phoneNumber?.number;
+      if (toNumber) {
+        const digits = String(toNumber).replace(/\D/g, "");
+        const last10 = digits.slice(-10);
+        const { data: route } = await supabase
+          .from("did_empresa_routing")
+          .select("unidade_id")
+          .or(`did.ilike.%${last10}%,did.ilike.%${digits}%`)
+          .limit(1)
+          .maybeSingle();
+        if (route?.unidade_id) unidadeId = route.unidade_id;
+      }
+      if (!unidadeId) unidadeId = CENTRAL_GAS_UNIDADE_ID;
 
       // Check Business Hours / Sunday Rules
       const { isOffHours, horarioInfo, isSunday, waterDeliveryAllowed } = await checkBusinessHours(supabase, unidadeId);
