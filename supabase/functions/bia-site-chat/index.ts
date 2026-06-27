@@ -102,7 +102,7 @@ serve(async (req) => {
         function: {
           name: "criar_pedido",
           description:
-            "Cria o pedido no ERP. Use APENAS após confirmar com o cliente: produto, quantidade e endereço.",
+            "Cria o pedido no ERP. NÃO chame esta função até o cliente ter respondido SIM explicitamente a uma pergunta de confirmação final (ex.: 'Posso confirmar seu pedido?'). Sempre passe confirmado_pelo_cliente=true apenas se o cliente acabou de confirmar.",
           parameters: {
             type: "object",
             properties: {
@@ -122,8 +122,12 @@ serve(async (req) => {
                 type: "string",
                 description: "dinheiro, pix, cartao, ou a_definir",
               },
+              confirmado_pelo_cliente: {
+                type: "boolean",
+                description: "Marque true APENAS se o cliente respondeu SIM na pergunta de confirmação final.",
+              },
             },
-            required: ["produto", "quantidade", "telefone"],
+            required: ["produto", "quantidade", "telefone", "confirmado_pelo_cliente"],
           },
         },
       },
@@ -135,14 +139,17 @@ Fluxo:
 1) Cumprimente e peça o telefone com DDD.
 2) Use identificar_cliente. Se encontrar, confirme o nome e o endereço. Se não, peça primeiro nome, rua, número e bairro.
 3) Pergunte o produto (P13, P20, P45 ou Água) e a quantidade. Use consultar_produtos quando pedirem preço.
-4) Confirme produto, quantidade, valor, endereço e forma de pagamento antes de criar o pedido.
-5) Chame criar_pedido e informe o número do pedido e o prazo (até 30 min).
+4) Apresente um RESUMO completo (produto, quantidade, valor total, endereço, forma de pagamento) e pergunte literalmente: "Posso confirmar seu pedido?".
+5) AGUARDE a resposta do cliente. Só chame criar_pedido (com confirmado_pelo_cliente=true) DEPOIS que o cliente responder SIM. Se responder não ou pedir ajuste, corrija e pergunte de novo.
+6) Após criar_pedido, informe o número do pedido e o prazo (até 30 min).
 
 Regras:
+- NUNCA chame criar_pedido antes da confirmação final do cliente.
 - Não invente preços nem endereços.
 - Se o cliente sair do assunto, retome com educação.
 - Não peça CPF, e-mail ou dados sensíveis.
 - Sempre se identifique como "Bia da ${nomeLoja}".`;
+
 
     // Loop de tool calling (até 5 iterações)
     let convo: any[] = [
