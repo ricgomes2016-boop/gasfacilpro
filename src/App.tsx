@@ -78,13 +78,36 @@ function RootRedirect() {
 import { useNovoPedidoNotifier } from "@/hooks/useNovoPedidoNotifier";
 import { useNativePush } from "@/hooks/useNativePush";
 import { usePushSubscription } from "@/hooks/usePushSubscription";
+import { useLocation } from "react-router-dom";
 
-function GlobalNotifiers() {
+const PUBLIC_NOTIFIER_PREFIXES = [
+  "/fortegas",
+  "/centralgascp",
+  "/japagas",
+  "/comprar-vale-gas",
+  "/cliente",
+  "/instalar",
+  "/auth",
+  "/qrcode",
+  "/reset-password",
+];
+
+function GlobalNotifiersInner() {
   useNovoPedidoNotifier();
   useNativePush();
   usePushSubscription();
   return null;
 }
+
+function GlobalNotifiers() {
+  const { pathname } = useLocation();
+  const isPublic = PUBLIC_NOTIFIER_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(p + "/")
+  );
+  if (isPublic) return null;
+  return <GlobalNotifiersInner />;
+}
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
