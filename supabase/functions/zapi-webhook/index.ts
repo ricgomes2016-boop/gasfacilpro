@@ -241,13 +241,15 @@ serve(async (req) => {
       const loc = await getEntregadorLocation(supabase, cliente.id);
       if (loc) {
         // Send text first, then location pin
-        await sendMessage(finalConfig, phone, reply);
+        const cleanReplyLoc = reply.replace(/\[STATE\][\s\S]*?\[\/STATE\]/gi, "").trim();
+        await sendMessage(finalConfig, phone, cleanReplyLoc);
         await sendLocation(finalConfig, phone, loc.lat, loc.lng, loc.nome);
-        return OK({ ok: true, reply: reply.substring(0, 100), location_sent: true });
+        return OK({ ok: true, reply: cleanReplyLoc.substring(0, 100), location_sent: true });
       }
     }
 
-    await sendMessage(finalConfig, phone, reply);
+    const finalCleanReply = reply.replace(/\[STATE\][\s\S]*?\[\/STATE\]/gi, "").trim();
+    await sendMessage(finalConfig, phone, finalCleanReply);
 
     // Auto follow-up for negotiation — only if auto_followup_ativo is enabled
     if (bh.autoFollowupAtivo) {
