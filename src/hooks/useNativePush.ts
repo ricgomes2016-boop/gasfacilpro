@@ -66,8 +66,13 @@ export function useNativePush() {
           } = await supabase.auth.getUser();
           if (!user) return;
 
-          // Resolver empresa_id: profile → entregador → unidade selecionada
+          // Resolver empresa_id/unidade_id: profile → entregador → unidade selecionada
           let empresaId: string | null = null;
+          let unidadeId: string | null =
+            (typeof localStorage !== "undefined" &&
+              localStorage.getItem("selected_unidade_id")) ||
+            null;
+
           const { data: profile } = await supabase
             .from("profiles")
             .select("empresa_id")
@@ -75,39 +80,27 @@ export function useNativePush() {
             .maybeSingle();
           empresaId = profile?.empresa_id ?? null;
 
-          const unidadeId =
-            (typeof localStorage !== "undefined" &&
-              localStorage.getItem("selected_unidade_id")) ||
-            null;
+          const { data: ent } = await supabase
+            .from("entregadores")
+            .select("unidade_id")
+            .eq("user_id", user.id)
+            .eq("ativo", true)
+            .maybeSingle();
 
-          if (!empresaId) {
-            const { data: ent } = await supabase
-              .from("entregadores")
-              .select("unidade_id")
-              .eq("user_id", user.id)
-              .eq("ativo", true)
-              .maybeSingle();
-            if (ent?.unidade_id) {
-              const { data: uni } = await supabase
-                .from("unidades")
-                .select("empresa_id")
-                .eq("id", ent.unidade_id)
-                .maybeSingle();
-              empresaId = uni?.empresa_id ?? null;
-            }
+          if (!unidadeId && ent?.unidade_id) {
+            unidadeId = ent.unidade_id;
           }
 
-
-          if (!empresaId && unidadeId) {
+          if (unidadeId) {
             const { data: uni } = await supabase
               .from("unidades")
               .select("empresa_id")
               .eq("id", unidadeId)
               .maybeSingle();
-            empresaId = uni?.empresa_id ?? null;
+            empresaId = empresaId ?? uni?.empresa_id ?? null;
           }
 
-          await supabase.from("push_subscriptions").upsert(
+          const { error: upsertError } = await supabase.from("push_subscriptions").upsert(
             {
               user_id: user.id,
               empresa_id: empresaId,
@@ -122,6 +115,17 @@ export function useNativePush() {
             },
             { onConflict: "endpoint" }
           );
+
+          if (upsertError) {
+            console.warn("[useNativePush] falha ao salvar token FCM", upsertError.message);
+            return;
+          }
+
+          console.info("[useNativePush] token FCM registrado", {
+            empresa_id: empresaId,
+            unidade_id: unidadeId,
+            platform: Capacitor.getPlatform(),
+          });
         });
 
         PushNotifications.addListener("registrationError", (err) => {
