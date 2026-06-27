@@ -1,6 +1,7 @@
 import { Bell, BellOff, BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/hooks/useNotifications";
+import { registerWebPushSubscription } from "@/hooks/usePushSubscription";
 import { cn } from "@/lib/utils";
 import { Capacitor } from "@capacitor/core";
 
@@ -30,11 +31,20 @@ export function NotificationToggle({ className, showLabel = false }: Notificatio
     return "Ativar notificações";
   };
 
+  const handleClick = async () => {
+    if (permission === "granted") {
+      await registerWebPushSubscription();
+      return;
+    }
+    await requestPermission();
+    await registerWebPushSubscription();
+  };
+
   return (
     <Button
       variant="ghost"
       size={showLabel ? "default" : "icon"}
-      onClick={requestPermission}
+      onClick={handleClick}
       disabled={permission === "denied"}
       className={cn(
         permission === "granted" && "text-success",

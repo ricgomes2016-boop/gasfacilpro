@@ -34,10 +34,13 @@ export async function registerWebPushSubscription() {
     if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) return false;
 
     let empresaId: string | null = null;
-    let unidadeId =
-      (typeof localStorage !== "undefined" &&
-        localStorage.getItem("selected_unidade_id")) ||
-      null;
+    const isEntregadorApp =
+      typeof window !== "undefined" && window.location.pathname.startsWith("/entregador");
+    let unidadeId = isEntregadorApp
+      ? null
+      : (typeof localStorage !== "undefined" &&
+          localStorage.getItem("selected_unidade_id")) ||
+        null;
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -51,9 +54,11 @@ export async function registerWebPushSubscription() {
       .select("unidade_id")
       .eq("user_id", user.id)
       .eq("ativo", true)
+      .order("updated_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
-    if (!unidadeId && entregador?.unidade_id) {
+    if ((isEntregadorApp || !unidadeId) && entregador?.unidade_id) {
       unidadeId = entregador.unidade_id;
     }
 
