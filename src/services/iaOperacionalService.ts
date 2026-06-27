@@ -1,4 +1,5 @@
 export const calcularDistancia = (a:any, b:any) => {
+  if (!a || !b || a.lat == null || a.lng == null || b.lat == null || b.lng == null) return Infinity;
   return Math.sqrt(Math.pow(a.lat - b.lat, 2) + Math.pow(a.lng - b.lng, 2));
 };
 
@@ -6,8 +7,10 @@ export const escolherMelhorEntregador = (pedido:any, entregadores:any[]) => {
   let melhor:any = null;
   let menorScore = Infinity;
 
+  if (!pedido?.localizacao) return null;
+
   entregadores.forEach((e:any) => {
-    if (!e.localizacao) return;
+    if (!e?.localizacao) return;
 
     const distancia = calcularDistancia(e.localizacao, pedido.localizacao);
     const carga = e.pedidosAtivos || 0;
