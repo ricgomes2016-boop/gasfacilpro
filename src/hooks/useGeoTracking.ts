@@ -9,6 +9,10 @@ const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>('Backg
 const MIN_DISTANCE_METERS = 20;
 const MAX_TIME_WITHOUT_UPDATE_MS = 2 * 60 * 1000; // 2 minutes
 
+function shouldTrackStatus(status?: string | null) {
+  return status === "em_rota";
+}
+
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371e3;
   const phi1 = lat1 * Math.PI / 180;
@@ -66,21 +70,22 @@ export function useGeoTracking(): GeoTrackingState {
   };
 
   // --- FETCH ACTIVE ROTA ID ---
-  const fetchActiveRotaId = async () => {
+  const fetchActiveRotaId = useCallback(async () => {
     if (!entregadorIdRef.current) return;
     try {
-      const { data } = await supabase.from("carregamentos_rota")
+      const { data, error } = await supabase.from("rotas")
         .select("id")
         .eq("entregador_id", entregadorIdRef.current)
-        .eq("status", "em_rota")
-        .order("data_saida", { ascending: false })
+        .eq("status", "em_andamento")
+        .order("data_inicio", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (error) throw error;
       activeRotaIdRef.current = data?.id || null;
     } catch (err) {
       console.warn("Erro ao buscar rota ativa:", err);
     }
-  };
+  }, []);
 
   // --- STOP TRACKING (reusable) ---
   const stopTracking = useCallback(() => {
@@ -91,13 +96,14 @@ export function useGeoTracking(): GeoTrackingState {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
       watchIdRef.current = null;
+      isCapacitorWatcherRef.current = false;
     }
     setTrackingState(prev => ({ ...prev, isTracking: false }));
   }, []);
 
   const updateLocation = useCallback(async (lat: number, lng: number, accuracy?: number) => {
     if (!entregadorIdRef.current) return;
-    if (statusRef.current === "offline") return;
+    if (!shouldTrackStatus(statusRef.current)) return;
 
     // Always update reactive state for UI
     setTrackingState({ lat, lng, accuracy: accuracy ?? null, isTracking: true });
@@ -123,19 +129,24 @@ export function useGeoTracking(): GeoTrackingState {
           .update({ latitude: lat, longitude: lng })
           .eq("id", entregadorIdRef.current);
 
+        if (!activeRotaIdRef.current) {
+          await fetchActiveRotaId();
+        }
+
         if (activeRotaIdRef.current) {
-          await supabase.from("rota_historico").insert({
+          const { error } = await supabase.from("rota_historico").insert({
             rota_id: activeRotaIdRef.current,
             latitude: lat,
             longitude: lng,
             timestamp: new Date().toISOString(),
           });
+          if (error) throw error;
         }
       } catch (err) {
         console.error("Erro ao atualizar localização:", err);
       }
     }
-  }, []);
+  }, [fetchActiveRotaId]);
 
   useEffect(() => {
     if (!user) return;
@@ -145,7 +156,7 @@ export function useGeoTracking(): GeoTrackingState {
 
     const startWebTracking = () => {
       if (!navigator.geolocation) return;
-      if (statusRef.current === "offline") return;
+      if (!shouldTrackStatus(statusRef.current)) return;
       
       stopTracking();
       
@@ -165,6 +176,7 @@ export function useGeoTracking(): GeoTrackingState {
     };
 
     const startCapacitorTracking = () => {
+      if (!shouldTrackStatus(statusRef.current)) return;
       stopTracking();
       
       BackgroundGeolocation.addWatcher(
@@ -205,33 +217,47 @@ export function useGeoTracking(): GeoTrackingState {
 
       await fetchActiveRotaId();
 
-      channel = supabase.channel(`entregador-status-${data.id}`).on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'entregadores', filter: `id=eq.${data.id}` },
-        async (payload) => {
-          const newStatus = payload.new.status;
-          const oldStatus = statusRef.current;
-          statusRef.current = newStatus;
+      const syncTrackingState = async () => {
+        await fetchActiveRotaId();
 
-          if (newStatus === "offline") {
-            stopTracking();
-            releaseWakeLock();
-            activeRotaIdRef.current = null;
-          } else if (oldStatus === "offline" && newStatus !== "offline") {
-            await fetchActiveRotaId();
-            requestWakeLock();
-            startTrackingForPlatform();
-          }
+        if (!shouldTrackStatus(statusRef.current)) {
+          stopTracking();
+          releaseWakeLock();
+          activeRotaIdRef.current = null;
+          return;
         }
-      ).subscribe();
 
-      if (statusRef.current !== "offline") {
+        requestWakeLock();
+        if (watchIdRef.current === null) {
+          startTrackingForPlatform();
+        }
+      };
+
+      channel = supabase.channel(`entregador-gps-${data.id}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'entregadores', filter: `id=eq.${data.id}` },
+          async (payload) => {
+            statusRef.current = payload.new.status || "offline";
+            await syncTrackingState();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'rotas', filter: `entregador_id=eq.${data.id}` },
+          async () => {
+            await syncTrackingState();
+          }
+        )
+        .subscribe();
+
+      if (shouldTrackStatus(statusRef.current)) {
         requestWakeLock();
         startTrackingForPlatform();
       }
 
       handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible' && statusRef.current !== "offline") {
+        if (document.visibilityState === 'visible' && shouldTrackStatus(statusRef.current)) {
           requestWakeLock();
         }
       };
@@ -249,7 +275,7 @@ export function useGeoTracking(): GeoTrackingState {
       if (channel) supabase.removeChannel(channel);
       if (handleVisibilityChange) document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [user, updateLocation, stopTracking]);
+  }, [user, updateLocation, stopTracking, fetchActiveRotaId]);
 
   return trackingState;
 }
