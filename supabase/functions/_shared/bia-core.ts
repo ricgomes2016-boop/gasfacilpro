@@ -1270,66 +1270,93 @@ export async function callAI(messages: any[]): Promise<string> {
     throw new Error("AI_CONFIG_MISSING: Nenhuma chave de IA configurada (GEMINI, OPENAI ou LOVABLE).");
   }
 
-  // Prioridade 1: Gemini Direto (Google AI Studio)
+  const errors: string[] = [];
+
+  // Prioridade 1: Gemini Direto (Google AI Studio) — melhor esforço
   if (GEMINI_API_KEY) {
-    const systemInstruction = messages.find(m => m.role === "system")?.content;
-    const history = messages.filter(m => m.role !== "system").map(m => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }]
-    }));
+    try {
+      const systemInstruction = messages.find((m) => m.role === "system")?.content;
+      const history = messages.filter((m) => m.role !== "system").map((m) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      }));
+      const payload: any = { contents: history };
+      if (systemInstruction) payload.system_instruction = { parts: [{ text: systemInstruction }] };
 
-    const payload: any = { contents: history };
-    if (systemInstruction) {
-      payload.system_instruction = { parts: [{ text: systemInstruction }] };
-    }
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (resp.ok) {
-      const result = await resp.json();
-      return result.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, tive um problema ao processar via Gemini.";
-    }
-    console.error("Gemini direct API error:", await resp.text());
-  }
-
-  // Prioridade 2: OpenAI
-  if (OPENAI_API_KEY) {
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "gpt-4o-mini", messages }),
-    });
-    if (resp.ok) {
-      const result = await resp.json();
-      return result.choices?.[0]?.message?.content || "Desculpe, tive um problema ao processar via OpenAI.";
+      if (resp.ok) {
+        const result = await resp.json();
+        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text && text.trim()) return text;
+        errors.push("gemini_empty");
+        console.warn("[callAI] Gemini retornou sem texto, fallback");
+      } else {
+        const errBody = await resp.text().catch(() => "");
+        errors.push(`gemini_${resp.status}`);
+        console.error(`Gemini direct API error ${resp.status}:`, errBody.substring(0, 300));
+      }
+    } catch (e: any) {
+      errors.push(`gemini_exc:${e?.message}`);
+      console.error("[callAI] Gemini exception:", e?.message);
     }
   }
 
-  // Prioridade 3: Lovable Gateway
+  // Prioridade 2: Lovable Gateway
   if (LOVABLE_API_KEY) {
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "google/gemini-2.5-flash", messages }),
-    });
+    try {
+      const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "google/gemini-2.5-flash", messages }),
+      });
 
-    if (!resp.ok) {
-      const errBody = await resp.text().catch(() => "");
-      console.error(`Lovable AI Gateway error ${resp.status}:`, errBody.substring(0, 300));
-      if (resp.status === 429) throw new Error("RATE_LIMIT");
-      if (resp.status === 402) throw new Error("CREDITS_EXHAUSTED");
-      throw new Error(`AI_ERROR_${resp.status}`);
+      if (!resp.ok) {
+        const errBody = await resp.text().catch(() => "");
+        console.error(`Lovable AI Gateway error ${resp.status}:`, errBody.substring(0, 300));
+        errors.push(`lovable_${resp.status}`);
+        if (resp.status === 429) throw new Error("RATE_LIMIT");
+        if (resp.status === 402) throw new Error("CREDITS_EXHAUSTED");
+      } else {
+        const result = await resp.json();
+        const text = result.choices?.[0]?.message?.content;
+        if (text && text.trim()) return text;
+        errors.push("lovable_empty");
+        console.warn("[callAI] Lovable Gateway sem conteúdo:", JSON.stringify(result).substring(0, 300));
+      }
+    } catch (e: any) {
+      if (e?.message === "RATE_LIMIT" || e?.message === "CREDITS_EXHAUSTED") throw e;
+      errors.push(`lovable_exc:${e?.message}`);
+      console.error("[callAI] Lovable exception:", e?.message);
     }
-
-    const result = await resp.json();
-    return result.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem pelo gateway.";
   }
 
-  return "Erro de configuração de IA.";
+  // Prioridade 3: OpenAI
+  if (OPENAI_API_KEY) {
+    try {
+      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "gpt-4o-mini", messages }),
+      });
+      if (resp.ok) {
+        const result = await resp.json();
+        const text = result.choices?.[0]?.message?.content;
+        if (text && text.trim()) return text;
+        errors.push("openai_empty");
+      } else {
+        errors.push(`openai_${resp.status}`);
+      }
+    } catch (e: any) {
+      errors.push(`openai_exc:${e?.message}`);
+    }
+  }
+
+  throw new Error(`AI_ALL_PROVIDERS_FAILED: ${errors.join(",")}`);
 }
 
 // ========== AUDIO TRANSCRIPTION ==========
