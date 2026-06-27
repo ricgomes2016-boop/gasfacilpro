@@ -129,7 +129,7 @@ export default function FinalizarEntrega() {
       const { data, error } = await supabase
         .from("pedidos")
         .select(`
-          id, created_at, data_entrega, valor_total, endereco_entrega, observacoes, forma_pagamento, unidade_id,
+          id, created_at, data_entrega, valor_total, endereco_entrega, observacoes, forma_pagamento, data_vencimento_fiado, unidade_id,
           clientes:cliente_id (nome, telefone, bairro),
           pedido_itens (
             id, quantidade, preco_unitario,
@@ -191,9 +191,16 @@ export default function FinalizarEntrega() {
 
   const totalPagamentos = pagamentos.reduce((acc, p) => acc + p.valor, 0);
   const diferenca = totalItens - totalPagamentos;
+  const isPagamentoPrazo = (forma?: string | null) => {
+    const value = String(forma || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    return value.includes("fiado") || value.includes("prazo") || value.includes("faturado");
+  };
   const exigeAssinaturaCanhoto =
-    pagamentos.some((p) => p.forma === "Fiado") ||
-    String(pedido?.forma_pagamento || "").includes("Fiado") ||
+    pagamentos.some((p) => isPagamentoPrazo(p.forma)) ||
+    isPagamentoPrazo(pedido?.forma_pagamento) ||
     Boolean((pedido as any)?.data_vencimento_fiado);
 
   const removerPagamento = (index: number) => {
