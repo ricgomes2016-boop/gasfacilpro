@@ -1,39 +1,35 @@
-## Objetivo
-Fazer a notificação do app do entregador tocar som quando o celular estiver com a tela desligada, em segundo plano ou com outro aplicativo aberto.
-
 ## Diagnóstico
-O comportamento descrito indica que o push está chegando, mas o som está sendo tratado pelo WebView/JavaScript quando o app abre. Para tocar em segundo plano no Android, o som precisa estar configurado no nível nativo: Manifest, canal Android criado antes do primeiro push e payload FCM compatível com esse canal.
+
+- **PWA no navegador:** a entrega chega, mas o som com tela bloqueada/outro app é uma limitação comum do navegador/Android Web Push. O sistema pode exibir a notificação, mas não garante áudio customizado disparado por JavaScript em segundo plano.
+- **APK:** há tokens FCM cadastrados no banco, mas os pedidos recentes não aparecem nos logs da função de push. O gatilho do banco está chamando `extensions.http_post`, porém a extensão disponível está no schema `net`, então o disparo backend provavelmente não está chegando na função `send-push-novo-pedido`.
 
 ## Plano de correção
-1. **Permissões Android corretas**
-   - Adicionar `android.permission.POST_NOTIFICATIONS` no `AndroidManifest.xml` para Android 13+.
-   - Manter `WAKE_LOCK` e permissões existentes.
 
-2. **Canal nativo criado no início do APK**
-   - Atualizar `MainActivity.java` para criar o canal `gasfacil_alerts_v2` no startup nativo, antes do WebView.
-   - Usar `IMPORTANCE_HIGH`, vibração, tela pública e som vinculado ao arquivo `res/raw/gasfacil_alert.wav`.
-   - Isso evita depender apenas do `PushNotifications.createChannel()` do JavaScript, que pode rodar tarde demais.
+1. **Corrigir o disparo backend de novos pedidos**
+   - Ajustar a função SQL `fn_dispatch_push_novo_pedido()` para chamar a Edge Function usando `net.http_post` corretamente.
+   - Manter o padrão de nunca bloquear a criação do pedido caso a notificação falhe.
+   - Opcionalmente repetir o mesmo ajuste para chat, se a mesma função estiver usando o schema incorreto.
 
-3. **Manifest alinhado ao canal**
-   - Garantir que o `default_notification_channel_id` do Firebase aponta para `gasfacil_alerts_v2`.
-   - Garantir compatibilidade caso o FCM receba mensagem sem `channel_id`.
+2. **Fortalecer envio para APK via FCM**
+   - Revisar `send-push-novo-pedido` para registrar logs claros: pedido recebido, empresa encontrada, total de inscrições, total FCM, total web, enviados e removidos.
+   - Manter resposta `200 OK` com flags de diagnóstico, sem expor tokens.
+   - Garantir que o filtro por empresa não deixe o entregador fora do envio.
 
-4. **Payload FCM mais robusto**
-   - Ajustar `supabase/functions/_shared/fcm.ts` para enviar:
-     - `priority: HIGH`
-     - `channel_id: gasfacil_alerts_v2`
-     - `sound: gasfacil_alert`
-     - `visibility: PUBLIC`
-     - `notification_priority: PRIORITY_MAX`
-     - TTL adequado para não perder pedido quando o celular estiver em repouso.
+3. **Ajustar PWA para comportamento correto**
+   - Corrigir a expectativa técnica: em PWA, o som customizado com tela bloqueada não é confiável por limitação do navegador.
+   - Melhorar a notificação web para usar `renotify`, vibração, prioridade visual e ação persistente; o som nativo dependerá das configurações do Android/Chrome.
+   - Evitar prometer áudio customizado no PWA; para som garantido, o caminho correto é APK nativo.
 
-5. **Evitar som duplicado ao abrir o app**
-   - Ajustar `useNativePush.ts` para não reemitir notificação local com som quando a notificação já veio do sistema em background.
-   - Manter fallback local apenas para foreground, se necessário.
+4. **Melhorar cadastro/comunicação do APK**
+   - Adicionar diagnóstico seguro no `useNativePush`: quando registrar token FCM, salvar `empresa_id`, `unidade_id`, `user_agent` e timestamp corretamente.
+   - Ajustar fallback de `unidade_id` para buscar pela tabela de entregadores quando o app não tiver `selected_unidade_id` no localStorage.
+   - Evitar depender de service worker no APK para recebimento de pedido.
 
-6. **Orientação final de build/teste**
-   - Depois da correção, você precisará gerar/instalar um APK novo.
-   - No celular, será necessário aceitar a permissão de notificações e verificar se o canal “Notificações Importantes” está com som ativado nas configurações do Android.
+5. **Validar após implementação**
+   - Consultar banco para confirmar chamadas e inscrições.
+   - Testar a Edge Function com um pedido real/recente.
+   - Orientar geração de APK novo com `git pull`, `npm install`, `npx cap sync android` e build pelo Android Studio.
 
-## Resultado esperado
-Ao chegar novo pedido, o Android deve exibir a notificação com som mesmo com a tela bloqueada, com o app minimizado ou usando outro aplicativo.
+## Observação importante
+
+Mesmo corrigindo o backend e o APK, no **PWA** o áudio com tela bloqueada pode continuar limitado pelo navegador. A solução profissional para som confiável em segundo plano é o **APK com FCM nativo**, e esse plano foca em fazer o APK voltar a se comunicar com o sistema e receber as entregas.
