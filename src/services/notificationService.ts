@@ -43,7 +43,10 @@ export const sendOrderNotification = async (
       // Tag estável: re-emissões substituem (não empilham) a notificação anterior.
       tag: "novo-pedido",
       renotify: true,
+      requireInteraction: true,
+      silent: false,
       data: { url: "/pedidos" },
+      actions: [{ action: "open", title: "Abrir pedido" }],
     });
   } catch (error) {
     console.error("Erro ao disparar notificação via SW:", error);

@@ -10,6 +10,13 @@ const corsHeaders = {
 
 const VAPID_PUBLIC_KEY =
   "BJnpqpoCph8LLsYCLBBTFxpJpAbDoFODpr3diJC-14ehvnadLdHVtKer8mSv8aQjKySPGBeSc-H_p8re4zQwQco";
+const BACKEND_URL = "https://scqenurznkatvrqxqjmt.supabase.co";
+
+function normalizeVapidSubject(value: string): string {
+  const subject = value.trim() || "mailto:contato@gasfacilpro.com.br";
+  if (/^(mailto:|https?:\/\/)/i.test(subject)) return subject;
+  return `mailto:${subject}`;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -29,7 +36,7 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
+      BACKEND_URL,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
@@ -90,7 +97,18 @@ Deno.serve(async (req) => {
 
     let query = supabase.from("push_subscriptions").select("*");
     if (empresaId) query = query.eq("empresa_id", empresaId);
-    const { data: subs } = await query;
+    const { data: subs, error: subsError } = await query;
+
+    if (subsError) {
+      console.warn(
+        "[send-push-novo-chat] erro ao buscar inscrições",
+        JSON.stringify({ conversaId, message: subsError.message })
+      );
+      return new Response(
+        JSON.stringify({ ok: true, sent: 0, skipped: "erro ao buscar inscrições" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!subs || subs.length === 0) {
       return new Response(
@@ -114,33 +132,43 @@ Deno.serve(async (req) => {
     const webSubs = subs.filter((s: any) => s.provider !== "fcm" && s.endpoint && s.p256dh && s.auth);
     const fcmSubs = subs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
 
+    console.info(
+      "[send-push-novo-chat] inscrições",
+      JSON.stringify({ conversaId, empresaId, total: subs.length, web: webSubs.length, fcm: fcmSubs.length })
+    );
+
     if (webSubs.length > 0) {
       const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
-      const VAPID_SUBJECT =
-        Deno.env.get("VAPID_SUBJECT") ?? "mailto:contato@gasfacilpro.com.br";
+      const VAPID_SUBJECT = normalizeVapidSubject(
+        Deno.env.get("VAPID_SUBJECT") ?? "mailto:contato@gasfacilpro.com.br"
+      );
 
       if (VAPID_PRIVATE_KEY) {
-        webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+        try {
+          webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
-        await Promise.all(
-          webSubs.map(async (s: any) => {
-            try {
-              await webpush.sendNotification(
-                { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-                payload,
-                { TTL: 60 }
-              );
-              sent++;
-            } catch (err: any) {
-              const status = err?.statusCode;
-              if (status === 404 || status === 410) {
-                staleEndpoints.push(s.endpoint);
-              } else {
-                console.warn("[send-push-novo-chat] erro envio:", status, err?.body);
+          await Promise.all(
+            webSubs.map(async (s: any) => {
+              try {
+                await webpush.sendNotification(
+                  { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+                  payload,
+                  { TTL: 60 }
+                );
+                sent++;
+              } catch (err: any) {
+                const status = err?.statusCode;
+                if (status === 404 || status === 410) {
+                  staleEndpoints.push(s.endpoint);
+                } else {
+                  console.warn("[send-push-novo-chat] erro envio:", status, err?.body);
+                }
               }
-            }
-          })
-        );
+            })
+          );
+        } catch (err: any) {
+          console.warn("[send-push-novo-chat] configuração web push inválida", err?.message ?? err);
+        }
       } else {
         console.warn("[send-push-novo-chat] VAPID_PRIVATE_KEY ausente; web push ignorado");
       }
