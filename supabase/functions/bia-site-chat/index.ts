@@ -400,7 +400,11 @@ async function criarPedido(
   if (!prod) return { error: `Produto ${nomeProduto} não cadastrado` };
 
   const qty = Number(quantidade) || 1;
-  const precoUnit = Number(prod.preco) || 0;
+  let precoUnit = Number(prod.preco) || 0;
+  if (precoUnit <= 0) {
+    const tabela = await getTabelaPrecosBia(supabase, empresaId);
+    precoUnit = tabela[nomeProduto] || 0;
+  }
   const valorTotal = precoUnit * qty;
 
   if (precoUnit <= 0) {
