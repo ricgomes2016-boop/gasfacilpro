@@ -1,0 +1,1 @@
+UPDATE public.integracoes_whatsapp SET status_conexao='desconectado', updated_at=now() WHERE id='b0a28973-aaea-4b35-b65d-f8ef3f3e6c5d';
