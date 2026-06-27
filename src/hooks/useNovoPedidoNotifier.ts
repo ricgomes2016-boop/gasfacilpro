@@ -73,8 +73,10 @@ export function useNovoPedidoNotifier() {
                   tag: `novo-pedido-${p.id}`,
                   renotify: true,
                   requireInteraction: true,
+                  silent: false,
                   data: { url: "/vendas/pedidos", pedidoId: p.id },
                   vibrate: [300, 100, 300],
+                  actions: [{ action: "open", title: "Abrir pedido" }],
                 } as NotificationOptions);
               } else {
                 const n = new Notification(titulo, {

@@ -52,8 +52,10 @@ self.addEventListener("push", (event) => {
     tag: data.tag || `novo-pedido-${Date.now()}`,
     renotify: true,
     requireInteraction: true,
+    silent: false,
     data: { url: data.url || "/vendas/pedidos", pedidoId: data.pedidoId },
     vibrate: [300, 100, 300],
+    actions: [{ action: "open", title: "Abrir pedido" }],
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
