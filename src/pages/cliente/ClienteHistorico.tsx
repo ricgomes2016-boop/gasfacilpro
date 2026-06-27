@@ -27,6 +27,7 @@ import { Link } from "react-router-dom";
 
 interface PedidoDB {
   id: string;
+  numero_sequencial: number | null;
   created_at: string;
   valor_total: number | null;
   status: string | null;
