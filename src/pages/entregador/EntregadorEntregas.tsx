@@ -36,13 +36,20 @@ export default function EntregadorEntregas() {
     if (!user) return;
 
     try {
-      const { data: entregador } = await supabase
+      const { data: entregador, error: entregadorError } = await supabase
         .from("entregadores")
-        .select("id")
+        .select("id, unidade_id")
         .eq("user_id", user.id)
+        .eq("ativo", true)
+        .order("updated_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
-      if (entregador) setEntregadorId(entregador.id);
+      if (entregadorError) {
+        console.warn("Erro ao buscar cadastro do entregador:", entregadorError.message);
+      }
+
+      setEntregadorId(entregador?.id ?? null);
 
       let query = supabase
         .from("pedidos")
@@ -56,13 +63,20 @@ export default function EntregadorEntregas() {
         .limit(100);
 
       if (entregador) {
+        if (entregador.unidade_id) {
+          query = query.eq("unidade_id", entregador.unidade_id);
+        }
         query = query.or(`entregador_id.eq.${entregador.id},and(entregador_id.is.null,status.eq.pendente)`);
       } else {
         query = query.eq("status", "pendente");
       }
 
       const { data, error } = await query;
-      if (!error && data) setEntregas(data as unknown as EntregaDB[]);
+      if (error) {
+        console.warn("Erro ao buscar pedidos do entregador:", error.message);
+        return;
+      }
+      if (data) setEntregas(data as unknown as EntregaDB[]);
     } catch (err) {
       console.error("Erro ao buscar entregas:", err);
     } finally {

@@ -70,7 +70,10 @@ export function useNativePush() {
           // cadastro do entregador tem prioridade sobre a loja selecionada no ERP.
           let empresaId: string | null = null;
           const isEntregadorApp =
-            typeof window !== "undefined" && window.location.pathname.startsWith("/entregador");
+            Capacitor.isNativePlatform() ||
+            (typeof window !== "undefined" &&
+              (window.location.pathname.startsWith("/entregador") ||
+                window.location.hostname.startsWith("entregador.")));
           let unidadeId: string | null = isEntregadorApp
             ? null
             : (typeof localStorage !== "undefined" &&
@@ -116,7 +119,7 @@ export function useNativePush() {
               endpoint: `fcm:${token.value}`,
               p256dh: "native",
               auth: "native",
-              user_agent: `capacitor/${Capacitor.getPlatform()}`,
+              user_agent: `capacitor/${Capacitor.getPlatform()};app=${isEntregadorApp ? "entregador" : "erp"}`,
               updated_at: new Date().toISOString(),
             },
             { onConflict: "endpoint" }
@@ -147,7 +150,10 @@ export function useNativePush() {
 
         PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
           const data: any = action?.notification?.data ?? {};
-          const url = data.url || (data.pedidoId ? `/entregador/entregas` : "/");
+          let url = data.url || (data.pedidoId ? `/entregador/entregas` : "/");
+          if (Capacitor.isNativePlatform() && data.pedidoId) {
+            url = "/entregador/entregas";
+          }
           if (typeof window !== "undefined") {
             window.location.href = url;
           }

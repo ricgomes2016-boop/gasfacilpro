@@ -9,6 +9,8 @@ on:
       - "android/**"
       - "src/**"
       - "supabase/functions/_shared/fcm.ts"
+      - "supabase/functions/send-push-novo-pedido/**"
+      - "supabase/functions/send-push-nova-entrega/**"
       - "capacitor.config.ts"
       - "package.json"
       - "package-lock.json"

@@ -35,7 +35,9 @@ export async function registerWebPushSubscription() {
 
     let empresaId: string | null = null;
     const isEntregadorApp =
-      typeof window !== "undefined" && window.location.pathname.startsWith("/entregador");
+      typeof window !== "undefined" &&
+      (window.location.pathname.startsWith("/entregador") ||
+        window.location.hostname.startsWith("entregador."));
     let unidadeId = isEntregadorApp
       ? null
       : (typeof localStorage !== "undefined" &&

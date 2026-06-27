@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     const { data: pedido, error: pedidoError } = await supabase
       .from("pedidos")
       .select(
-        "id, numero_sequencial, valor_total, canal_venda, cliente_id, forma_pagamento, unidade_id"
+        "id, numero_sequencial, valor_total, canal_venda, cliente_id, forma_pagamento, unidade_id, entregador_id"
       )
       .eq("id", pedidoId)
       .maybeSingle();
@@ -78,14 +78,31 @@ Deno.serve(async (req) => {
       empresaId = uni?.empresa_id ?? null;
     }
 
+    let entregadorUserId: string | null = null;
+    if (pedido.entregador_id) {
+      const { data: entregador } = await supabase
+        .from("entregadores")
+        .select("user_id")
+        .eq("id", pedido.entregador_id)
+        .maybeSingle();
+      entregadorUserId = entregador?.user_id ?? null;
+    }
+
     console.info(
       "[send-push-novo-pedido] contexto",
-      JSON.stringify({ pedidoId, unidadeId: pedido.unidade_id ?? null, empresaId })
+      JSON.stringify({
+        pedidoId,
+        unidadeId: pedido.unidade_id ?? null,
+        empresaId,
+        entregadorId: pedido.entregador_id ?? null,
+        entregadorUserId,
+      })
     );
 
     // Buscar inscrições da empresa (ou todas se sem empresa)
     let query = supabase.from("push_subscriptions").select("*");
     if (empresaId) query = query.eq("empresa_id", empresaId);
+    if (pedido.unidade_id) query = query.eq("unidade_id", pedido.unidade_id);
     const { data: subs, error: subsError } = await query;
 
     if (subsError) {
@@ -122,7 +139,7 @@ Deno.serve(async (req) => {
         ? String(pedido.numero_sequencial)
         : pedido.id.slice(0, 8).toUpperCase();
 
-    const payload = JSON.stringify({
+    const webPayload = JSON.stringify({
       title: "🛵 Novo Pedido!",
       body: `#${ref} · ${cliente} · R$ ${valor}`,
       url: "/vendas/pedidos",
@@ -134,7 +151,10 @@ Deno.serve(async (req) => {
     const staleEndpoints: string[] = [];
 
     const webSubs = subs.filter((s: any) => s.provider !== "fcm" && s.endpoint && s.p256dh && s.auth);
-    const fcmSubs = subs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
+    let fcmSubs = subs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
+    if (entregadorUserId) {
+      fcmSubs = fcmSubs.filter((s: any) => s.user_id === entregadorUserId);
+    }
 
     console.info(
       "[send-push-novo-pedido] inscrições",
@@ -156,7 +176,7 @@ Deno.serve(async (req) => {
               try {
                 await webpush.sendNotification(
                   { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-                  payload,
+                  webPayload,
                   { TTL: 60 }
                 );
                 sent++;
@@ -185,7 +205,12 @@ Deno.serve(async (req) => {
           token: s.fcm_token,
           title: "🛵 Novo Pedido!",
           body: `#${ref} · ${cliente} · R$ ${valor}`,
-          data: { url: "/vendas/pedidos", pedidoId: pedido.id, tag: `novo-pedido-${pedido.id}` },
+          data: {
+            url: "/entregador/entregas",
+            pedidoId: pedido.id,
+            tag: `novo-pedido-${pedido.id}`,
+            tipo: "entrega",
+          },
         }))
       );
       sent += fcmResult.sent;
