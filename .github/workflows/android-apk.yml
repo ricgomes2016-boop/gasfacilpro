@@ -1,0 +1,120 @@
+name: Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "android/**"
+      - "src/**"
+      - "supabase/functions/_shared/fcm.ts"
+      - "capacitor.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.ts"
+      - ".github/workflows/android-apk.yml"
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Restore Firebase Android config from secret
+        if: ${{ env.FIREBASE_GOOGLE_SERVICES_JSON_BASE64 != '' }}
+        run: |
+          echo "$FIREBASE_GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Validate native push configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f android/app/google-services.json
+          grep -q '"package_name": "com.gasfacilpro.app"' android/app/google-services.json
+          grep -q 'gasfacil_alerts_v2' android/app/src/main/res/values/strings.xml
+          grep -q 'com.google.firebase.messaging.default_notification_channel_id' android/app/src/main/AndroidManifest.xml
+          grep -q 'gasfacil_alert.wav' src/hooks/useNativePush.ts
+          grep -q 'gasfacil_alerts_v2' src/hooks/useNativePush.ts
+          grep -q 'gasfacil_alerts_v2' supabase/functions/_shared/fcm.ts
+          test -f android/app/src/main/res/raw/gasfacil_alert.wav
+
+      - name: Build debug and release APKs
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug assembleRelease
+
+      - name: Verify APK contains Firebase config and alert sound
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEBUG_APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          RELEASE_APK="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+
+          test -f "$DEBUG_APK"
+          unzip -l "$DEBUG_APK" | grep -q 'res/raw/gasfacil_alert.wav'
+          unzip -l "$DEBUG_APK" | grep -q 'res/values'
+
+          if [ -f "$RELEASE_APK" ]; then
+            unzip -l "$RELEASE_APK" | grep -q 'res/raw/gasfacil_alert.wav'
+          fi
+
+      - name: Sign release APK
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' && env.ANDROID_KEY_ALIAS != '' && env.ANDROID_KEYSTORE_PASSWORD != '' && env.ANDROID_KEY_PASSWORD != '' }}
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: android/app/build/outputs/apk/release
+          signingKeyBase64: ${{ env.ANDROID_KEYSTORE_BASE64 }}
+          alias: ${{ env.ANDROID_KEY_ALIAS }}
+          keyStorePassword: ${{ env.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword: ${{ env.ANDROID_KEY_PASSWORD }}
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: gasfacil-entregador-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Upload release APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: gasfacil-entregador-release-apks
+          path: |
+            android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
