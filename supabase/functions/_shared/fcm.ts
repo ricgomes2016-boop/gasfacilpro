@@ -97,6 +97,9 @@ export async function sendFcmMessages(messages: FcmMessage[]): Promise<{
 }> {
   const raw = Deno.env.get("FCM_SERVICE_ACCOUNT_JSON") ?? "";
   if (!raw || messages.length === 0) {
+    if (!raw && messages.length > 0) {
+      console.warn("[fcm] FCM_SERVICE_ACCOUNT_JSON ausente; envio nativo ignorado");
+    }
     return { sent: 0, invalidTokens: [] };
   }
   let sa: ServiceAccount;
@@ -163,6 +166,11 @@ export async function sendFcmMessages(messages: FcmMessage[]): Promise<{
         console.warn("[fcm] erro envio", e);
       }
     })
+  );
+
+  console.info(
+    "[fcm] resumo envio",
+    JSON.stringify({ requested: messages.length, sent, invalidTokens: invalidTokens.length })
   );
 
   return { sent, invalidTokens };
