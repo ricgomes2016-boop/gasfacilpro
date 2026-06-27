@@ -358,9 +358,15 @@ async function criarPedido(
     produto,
     quantidade,
     forma_pagamento,
+    confirmado_pelo_cliente,
   } = args;
 
+  if (confirmado_pelo_cliente !== true) {
+    return { error: "Peça a confirmação final ao cliente (\"Posso confirmar seu pedido?\") antes de criar o pedido." };
+  }
+
   if (!produto || !quantidade) return { error: "Produto e quantidade obrigatórios" };
+
 
   let finalClienteId = cliente_id;
   if (!finalClienteId) {
