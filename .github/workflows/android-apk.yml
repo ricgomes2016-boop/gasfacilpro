@@ -102,12 +102,20 @@ jobs:
           set -euo pipefail
           DEBUG_APK="android/app/build/outputs/apk/debug/app-debug.apk"
           RELEASE_APK="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          AAPT2="$(find "$ANDROID_HOME/build-tools" -name aapt2 -type f | sort | tail -n 1)"
 
           test -f "$DEBUG_APK"
-          unzip -l "$DEBUG_APK" | grep -q 'res/raw/gasfacil_alert.wav'
+          test -x "$AAPT2" || { echo "::error::aapt2 não encontrado"; exit 1; }
+          "$AAPT2" dump resources "$DEBUG_APK" | grep -q 'raw/gasfacil_alert' || {
+            echo "::error::Recurso raw/gasfacil_alert não foi compilado no APK debug";
+            exit 1;
+          }
 
           if [ -f "$RELEASE_APK" ]; then
-            unzip -l "$RELEASE_APK" | grep -q 'res/raw/gasfacil_alert.wav'
+            "$AAPT2" dump resources "$RELEASE_APK" | grep -q 'raw/gasfacil_alert' || {
+              echo "::error::Recurso raw/gasfacil_alert não foi compilado no APK release";
+              exit 1;
+            }
           fi
 
       - name: Sign release APK
