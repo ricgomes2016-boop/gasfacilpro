@@ -66,12 +66,16 @@ export function useNativePush() {
           } = await supabase.auth.getUser();
           if (!user) return;
 
-          // Resolver empresa_id/unidade_id: profile → entregador → unidade selecionada
+          // Resolver empresa_id/unidade_id. Para o app do entregador, a unidade do
+          // cadastro do entregador tem prioridade sobre a loja selecionada no ERP.
           let empresaId: string | null = null;
-          let unidadeId: string | null =
-            (typeof localStorage !== "undefined" &&
-              localStorage.getItem("selected_unidade_id")) ||
-            null;
+          const isEntregadorApp =
+            typeof window !== "undefined" && window.location.pathname.startsWith("/entregador");
+          let unidadeId: string | null = isEntregadorApp
+            ? null
+            : (typeof localStorage !== "undefined" &&
+                localStorage.getItem("selected_unidade_id")) ||
+              null;
 
           const { data: profile } = await supabase
             .from("profiles")
@@ -85,9 +89,11 @@ export function useNativePush() {
             .select("unidade_id")
             .eq("user_id", user.id)
             .eq("ativo", true)
+            .order("updated_at", { ascending: false })
+            .limit(1)
             .maybeSingle();
 
-          if (!unidadeId && ent?.unidade_id) {
+          if ((isEntregadorApp || !unidadeId) && ent?.unidade_id) {
             unidadeId = ent.unidade_id;
           }
 
