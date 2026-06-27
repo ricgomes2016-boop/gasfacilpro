@@ -59,6 +59,7 @@ const statusOrder: Record<string, number> = {
 
 interface PedidoData {
   id: string;
+  numero_sequencial: number | null;
   status: string;
   endereco_entrega: string | null;
   entregador_id: string | null;
@@ -99,7 +100,7 @@ export default function ClienteRastreamento() {
     const { data: pedidoData } = await supabase
       .from("pedidos")
       .select(`
-        id, status, endereco_entrega, entregador_id, created_at,
+        id, numero_sequencial, status, endereco_entrega, entregador_id, created_at,
         pedido_itens (quantidade, produtos:produto_id (nome))
       `)
       .eq("id", orderId)
@@ -265,7 +266,7 @@ export default function ClienteRastreamento() {
               <h1 className="text-xl font-bold">Rastrear Pedido</h1>
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm text-muted-foreground">
-                  Pedido #{pedido.id.slice(-6).toUpperCase()}
+                  Pedido #{pedido.numero_sequencial ?? pedido.id.slice(-6).toUpperCase()}
                 </p>
                 <RealtimeBadge
                   status={

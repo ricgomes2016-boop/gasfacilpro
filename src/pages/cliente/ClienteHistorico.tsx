@@ -27,6 +27,7 @@ import { Link } from "react-router-dom";
 
 interface PedidoDB {
   id: string;
+  numero_sequencial: number | null;
   created_at: string;
   valor_total: number | null;
   status: string | null;
@@ -99,7 +100,7 @@ export default function ClienteHistorico() {
         const { data, error } = await supabase
           .from("pedidos")
           .select(`
-            id, created_at, valor_total, status, forma_pagamento, endereco_entrega, entregador_id,
+            id, numero_sequencial, created_at, valor_total, status, forma_pagamento, endereco_entrega, entregador_id,
             pedido_itens (
               id, quantidade, preco_unitario, produto_id,
               produtos:produto_id (nome, image_url)
@@ -205,7 +206,7 @@ export default function ClienteHistorico() {
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">
-                          #{pedido.id.slice(-6).toUpperCase()}
+                          #{pedido.numero_sequencial ?? pedido.id.slice(-6).toUpperCase()}
                         </p>
                         <p className="text-sm font-medium">
                           {format(new Date(pedido.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
