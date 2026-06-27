@@ -19,6 +19,8 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const pedidoId = body?.pedido_id as string | undefined;
+    console.info("[send-push-novo-pedido] recebido", JSON.stringify({ pedidoId: pedidoId ?? null }));
+
     if (!pedidoId) {
       return new Response(
         JSON.stringify({ ok: false, error: "pedido_id obrigatório" }),
@@ -40,6 +42,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!pedido) {
+      console.info("[send-push-novo-pedido] pedido não encontrado", JSON.stringify({ pedidoId }));
       return new Response(
         JSON.stringify({ ok: true, skipped: "pedido não encontrado" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -57,12 +60,29 @@ Deno.serve(async (req) => {
       empresaId = uni?.empresa_id ?? null;
     }
 
+    console.info(
+      "[send-push-novo-pedido] contexto",
+      JSON.stringify({ pedidoId, unidadeId: pedido.unidade_id ?? null, empresaId })
+    );
+
     // Buscar inscrições da empresa (ou todas se sem empresa)
     let query = supabase.from("push_subscriptions").select("*");
     if (empresaId) query = query.eq("empresa_id", empresaId);
-    const { data: subs } = await query;
+    const { data: subs, error: subsError } = await query;
+
+    if (subsError) {
+      console.warn(
+        "[send-push-novo-pedido] erro ao buscar inscrições",
+        JSON.stringify({ pedidoId, message: subsError.message })
+      );
+      return new Response(
+        JSON.stringify({ ok: true, sent: 0, skipped: "erro ao buscar inscrições" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!subs || subs.length === 0) {
+      console.info("[send-push-novo-pedido] sem inscrições", JSON.stringify({ pedidoId, empresaId }));
       return new Response(
         JSON.stringify({ ok: true, sent: 0, note: "sem inscrições" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -90,6 +110,11 @@ Deno.serve(async (req) => {
     const webSubs = subs.filter((s: any) => s.provider !== "fcm" && s.endpoint && s.p256dh && s.auth);
     const fcmSubs = subs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
 
+    console.info(
+      "[send-push-novo-pedido] inscrições",
+      JSON.stringify({ pedidoId, total: subs.length, web: webSubs.length, fcm: fcmSubs.length })
+    );
+
     if (webSubs.length > 0) {
       const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
       const VAPID_SUBJECT =
@@ -112,7 +137,7 @@ Deno.serve(async (req) => {
               if (status === 404 || status === 410) {
                 staleEndpoints.push(s.endpoint);
               } else {
-                console.warn("[send-push] erro envio:", status, err?.body);
+                console.warn("[send-push-novo-pedido] erro web push:", status, err?.body);
               }
             }
           })
@@ -148,8 +173,23 @@ Deno.serve(async (req) => {
         .in("endpoint", staleEndpoints);
     }
 
+    console.info(
+      "[send-push-novo-pedido] resumo",
+      JSON.stringify({ pedidoId, sent, webRequested: webSubs.length, fcmRequested: fcmSubs.length, removed: staleEndpoints.length })
+    );
+
     return new Response(
-      JSON.stringify({ ok: true, sent, removed: staleEndpoints.length }),
+      JSON.stringify({
+        ok: true,
+        sent,
+        diagnostics: {
+          empresa_id_found: Boolean(empresaId),
+          subscriptions_total: subs.length,
+          web_total: webSubs.length,
+          fcm_total: fcmSubs.length,
+          stale_web_removed: staleEndpoints.length,
+        },
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e: any) {
