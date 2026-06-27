@@ -123,6 +123,15 @@ function toBrasiliaNoonISOString(dateValue: string) {
   return `${dateValue}T12:00:00-03:00`;
 }
 
+function getValidSaleItems<T extends { produto_id?: string | null; quantidade?: number; preco_unitario?: number }>(items: T[]) {
+  return items.filter((item) =>
+    !!item.produto_id &&
+    Number(item.quantidade) > 0 &&
+    Number.isFinite(Number(item.preco_unitario)) &&
+    Number(item.preco_unitario) >= 0
+  );
+}
+
 // Wrapper that portals stepper into SystemFooter center slot + hides quote
 function NovaVendaFooterStepper({ children }: { children: React.ReactNode }) {
   useFooterCenterOverride(true);
@@ -732,6 +741,11 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       let successCount = 0;
       for (const venda of vendas) {
         try {
+          const itensValidos = getValidSaleItems(venda.itens || []);
+          if (itensValidos.length === 0 || itensValidos.length !== (venda.itens || []).length) {
+            throw new Error("Venda ignorada: adicione pelo menos um produto válido.");
+          }
+
           let clienteId = venda.cliente_id;
           if (!clienteId && venda.cliente_nome) {
             const { data: found } = await supabase
@@ -777,7 +791,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             venda.bairro,
           ].filter(Boolean).join(", ");
 
-          const valorTotal = (venda.itens || []).reduce((a: number, i: any) => a + (i.quantidade || 1) * i.preco_unitario, 0);
+          const valorTotal = itensValidos.reduce((a: number, i: any) => a + (i.quantidade || 1) * i.preco_unitario, 0);
 
           const { data: pedido, error: pedidoError } = await supabase
             .from("pedidos")
@@ -801,19 +815,21 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           if (pedido?.id) markOrderNotified(pedido.id, venda.telefone_entrega || venda.cliente_telefone || null);
 
 
-          if (venda.itens?.length) {
-            const itensInsert = venda.itens.map((item: any) => ({
-              pedido_id: pedido.id,
-              produto_id: item.produto_id,
-              quantidade: item.quantidade || 1,
-              preco_unitario: item.preco_unitario,
-            }));
-            await supabase.from("pedido_itens").insert(itensInsert);
+          const itensInsert = itensValidos.map((item: any) => ({
+            pedido_id: pedido.id,
+            produto_id: item.produto_id,
+            quantidade: item.quantidade || 1,
+            preco_unitario: item.preco_unitario,
+          }));
+          const { error: itensError } = await supabase.from("pedido_itens").insert(itensInsert);
+          if (itensError) {
+            await supabase.from("pedidos").delete().eq("id", pedido.id);
+            throw itensError;
           }
 
           // #4 - Use shared stock update service
           await atualizarEstoqueVenda(
-            (venda.itens || []).map((item: any) => ({
+            itensValidos.map((item: any) => ({
               produto_id: item.produto_id,
               quantidade: item.quantidade || 1,
             })),
@@ -952,8 +968,15 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   };
 
   const handleFinalizar = async () => {
-    if (itens.length === 0) {
-      toast({ title: "Erro", description: "Adicione pelo menos um produto.", variant: "destructive" });
+    const itensValidos = getValidSaleItems(itens);
+    if (itensValidos.length === 0) {
+      toast({ title: "Produto obrigatório", description: "Adicione pelo menos um produto antes de finalizar.", variant: "destructive" });
+      setActiveStep("produtos");
+      return;
+    }
+    if (itensValidos.length !== itens.length) {
+      toast({ title: "Produto inválido", description: "Revise os produtos da venda antes de finalizar.", variant: "destructive" });
+      setActiveStep("produtos");
       return;
     }
 
@@ -1084,7 +1107,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       }
 
 
-      const itensInsert = itens.map((item) => ({
+      const itensInsert = itensValidos.map((item) => ({
         pedido_id: pedido.id,
         produto_id: item.produto_id,
         quantidade: item.quantidade,
@@ -1092,10 +1115,13 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       }));
 
       const { error: itensError } = await supabase.from("pedido_itens").insert(itensInsert);
-      if (itensError) throw itensError;
+      if (itensError) {
+        await supabase.from("pedidos").delete().eq("id", pedido.id);
+        throw itensError;
+      }
 
       // #4 - Use shared stock update service
-      await atualizarEstoqueVenda(itens.map((item) => ({
+      await atualizarEstoqueVenda(itensValidos.map((item) => ({
         produto_id: item.produto_id,
         quantidade: item.quantidade,
       })), unidadeAtual?.id);
@@ -1202,8 +1228,15 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   };
 
   const handleAgendar = () => {
-    if (itens.length === 0) {
-      toast({ title: "Erro", description: "Adicione pelo menos um produto.", variant: "destructive" });
+    const itensValidos = getValidSaleItems(itens);
+    if (itensValidos.length === 0) {
+      toast({ title: "Produto obrigatório", description: "Adicione pelo menos um produto antes de agendar.", variant: "destructive" });
+      setActiveStep("produtos");
+      return;
+    }
+    if (itensValidos.length !== itens.length) {
+      toast({ title: "Produto inválido", description: "Revise os produtos da venda antes de agendar.", variant: "destructive" });
+      setActiveStep("produtos");
       return;
     }
     if (!canalVenda) {
@@ -1215,6 +1248,13 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
 
   const handleConfirmarAgendamento = async () => {
+    const itensValidos = getValidSaleItems(itens);
+    if (itensValidos.length === 0 || itensValidos.length !== itens.length) {
+      toast({ title: "Produto obrigatório", description: "Adicione pelo menos um produto válido antes de agendar.", variant: "destructive" });
+      setAgendarOpen(false);
+      setActiveStep("produtos");
+      return;
+    }
     if (!dataAgendamento) {
       toast({ title: "Selecione a data", variant: "destructive" }); return;
     }
@@ -1245,11 +1285,15 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       if (pedido?.id) markOrderNotified(pedido.id, customer?.telefone || null);
 
 
-      const itensInsert = itens.map((item) => ({
+      const itensInsert = itensValidos.map((item) => ({
         pedido_id: pedido.id, produto_id: item.produto_id,
         quantidade: item.quantidade, preco_unitario: item.preco_unitario,
       }));
-      await supabase.from("pedido_itens").insert(itensInsert);
+      const { error: itensError } = await supabase.from("pedido_itens").insert(itensInsert);
+      if (itensError) {
+        await supabase.from("pedidos").delete().eq("id", pedido.id);
+        throw itensError;
+      }
 
       clearDraft();
       setAgendarOpen(false);

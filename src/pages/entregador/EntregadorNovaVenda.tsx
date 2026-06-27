@@ -424,8 +424,18 @@ export default function EntregadorNovaVenda({ noLayout = false }: EntregadorNova
       toast({ title: "Dados incompletos", description: "Preencha nome e endereço do cliente.", variant: "destructive" });
       return;
     }
-    if (itens.length === 0) {
+    const itensValidos = itens.filter((item) =>
+      !!item.produtoId &&
+      Number(item.quantidade) > 0 &&
+      Number.isFinite(Number(item.precoUnitario)) &&
+      Number(item.precoUnitario) >= 0
+    );
+    if (itensValidos.length === 0) {
       toast({ title: "Carrinho vazio", description: "Adicione pelo menos um produto.", variant: "destructive" });
+      return;
+    }
+    if (itensValidos.length !== itens.length) {
+      toast({ title: "Produto inválido", description: "Revise os produtos antes de finalizar.", variant: "destructive" });
       return;
     }
     const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
@@ -458,7 +468,7 @@ export default function EntregadorNovaVenda({ noLayout = false }: EntregadorNova
 
       if (pedidoError) throw pedidoError;
 
-      const itensInsert = itens.map((item) => ({
+      const itensInsert = itensValidos.map((item) => ({
         pedido_id: pedido.id,
         produto_id: item.produtoId,
         quantidade: item.quantidade,
@@ -466,7 +476,10 @@ export default function EntregadorNovaVenda({ noLayout = false }: EntregadorNova
       }));
 
       const { error: itensError } = await supabase.from("pedido_itens").insert(itensInsert);
-      if (itensError) throw itensError;
+      if (itensError) {
+        await supabase.from("pedidos").delete().eq("id", pedido.id);
+        throw itensError;
+      }
 
       // Update stock
       for (const item of itens) {
