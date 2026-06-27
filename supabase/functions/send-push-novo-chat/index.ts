@@ -90,7 +90,18 @@ Deno.serve(async (req) => {
 
     let query = supabase.from("push_subscriptions").select("*");
     if (empresaId) query = query.eq("empresa_id", empresaId);
-    const { data: subs } = await query;
+    const { data: subs, error: subsError } = await query;
+
+    if (subsError) {
+      console.warn(
+        "[send-push-novo-chat] erro ao buscar inscrições",
+        JSON.stringify({ conversaId, message: subsError.message })
+      );
+      return new Response(
+        JSON.stringify({ ok: true, sent: 0, skipped: "erro ao buscar inscrições" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!subs || subs.length === 0) {
       return new Response(
@@ -113,6 +124,11 @@ Deno.serve(async (req) => {
 
     const webSubs = subs.filter((s: any) => s.provider !== "fcm" && s.endpoint && s.p256dh && s.auth);
     const fcmSubs = subs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
+
+    console.info(
+      "[send-push-novo-chat] inscrições",
+      JSON.stringify({ conversaId, empresaId, total: subs.length, web: webSubs.length, fcm: fcmSubs.length })
+    );
 
     if (webSubs.length > 0) {
       const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
