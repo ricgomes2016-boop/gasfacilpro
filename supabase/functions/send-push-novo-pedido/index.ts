@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const { data: pedido, error: pedidoError } = await supabase
       .from("pedidos")
       .select(
-        "id, numero_sequencial, valor_total, canal_venda, cliente_nome, forma_pagamento, unidade_id"
+        "id, numero_sequencial, valor_total, canal_venda, cliente_id, forma_pagamento, unidade_id"
       )
       .eq("id", pedidoId)
       .maybeSingle();
@@ -101,7 +101,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    const cliente = pedido.cliente_nome || "Cliente";
+    let cliente = "Cliente";
+    if (pedido.cliente_id) {
+      const { data: clienteData } = await supabase
+        .from("clientes")
+        .select("nome")
+        .eq("id", pedido.cliente_id)
+        .maybeSingle();
+      cliente = clienteData?.nome || cliente;
+    }
     const valor = Number(pedido.valor_total || 0).toFixed(2);
     const ref =
       pedido.numero_sequencial != null
