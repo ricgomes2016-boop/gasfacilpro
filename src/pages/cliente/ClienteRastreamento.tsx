@@ -100,7 +100,7 @@ export default function ClienteRastreamento() {
     const { data: pedidoData } = await supabase
       .from("pedidos")
       .select(`
-        id, status, endereco_entrega, entregador_id, created_at,
+        id, numero_sequencial, status, endereco_entrega, entregador_id, created_at,
         pedido_itens (quantidade, produtos:produto_id (nome))
       `)
       .eq("id", orderId)
