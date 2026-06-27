@@ -7,14 +7,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const SLUG_TO_EMPRESA: Record<string, string> = {
-  fortegas: "forte-gas",
-  centralgascp: "centralgascp",
-};
-
-const NOME_LOJA: Record<string, string> = {
-  fortegas: "Forte Gás",
-  centralgascp: "Central Gás",
+// Mapeia o slug do site institucional para a empresa-mãe (Central Gas) e o nome
+// EXATO da unidade dessa empresa onde os produtos estão precificados.
+// Sites legados podem ter empresas duplicadas com Matriz sem preço — por isso o
+// roteamento sempre aponta para a unidade certa dentro da empresa `central-gas`.
+const SLUG_TO_TENANT: Record<string, { empresaSlug: string; unidadeNome: string; nomeLoja: string }> = {
+  centralgascp: { empresaSlug: "central-gas", unidadeNome: "Central Gas", nomeLoja: "Central Gás" },
+  fortegas:     { empresaSlug: "central-gas", unidadeNome: "Forte Gás",   nomeLoja: "Forte Gás" },
+  japagas:      { empresaSlug: "central-gas", unidadeNome: "Japa Gás",    nomeLoja: "Japa Gás" },
 };
 
 serve(async (req) => {
@@ -34,21 +34,21 @@ serve(async (req) => {
 
     // SECURITY: enforce strict slug allowlist. Public endpoint must not allow
     // arbitrary tenant enumeration via guessed slugs.
-    if (!Object.prototype.hasOwnProperty.call(SLUG_TO_EMPRESA, unidadeSlug)) {
+    if (!Object.prototype.hasOwnProperty.call(SLUG_TO_TENANT, unidadeSlug)) {
       return new Response(
         JSON.stringify({ error: "Slug não autorizado" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const empresaSlug = SLUG_TO_EMPRESA[unidadeSlug];
-    const nomeLoja = NOME_LOJA[unidadeSlug] ?? "nossa loja";
+    const tenant = SLUG_TO_TENANT[unidadeSlug];
+    const nomeLoja = tenant.nomeLoja;
 
-    // Resolve empresa + unidade
+    // Resolve empresa + unidade pelo nome EXATO da unidade dentro da empresa-mãe.
     const { data: empresa } = await supabase
       .from("empresas")
       .select("id, nome")
-      .eq("slug", empresaSlug)
+      .eq("slug", tenant.empresaSlug)
       .maybeSingle();
 
     if (!empresa) {
@@ -62,14 +62,13 @@ serve(async (req) => {
       .from("unidades")
       .select("id, nome")
       .eq("empresa_id", empresa.id)
+      .eq("nome", tenant.unidadeNome)
       .eq("ativo", true)
-      .order("created_at", { ascending: true })
-      .limit(1)
       .maybeSingle();
 
     if (!unidade) {
       return new Response(
-        JSON.stringify({ error: "Unidade ativa não encontrada" }),
+        JSON.stringify({ error: `Unidade "${tenant.unidadeNome}" não encontrada/ativa para ${unidadeSlug}` }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
