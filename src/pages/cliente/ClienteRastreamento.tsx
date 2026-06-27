@@ -59,6 +59,7 @@ const statusOrder: Record<string, number> = {
 
 interface PedidoData {
   id: string;
+  numero_sequencial: number | null;
   status: string;
   endereco_entrega: string | null;
   entregador_id: string | null;
