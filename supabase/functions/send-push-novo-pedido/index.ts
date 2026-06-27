@@ -34,13 +34,24 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: pedido } = await supabase
+    const { data: pedido, error: pedidoError } = await supabase
       .from("pedidos")
       .select(
         "id, numero_sequencial, valor_total, canal_venda, cliente_nome, forma_pagamento, unidade_id"
       )
       .eq("id", pedidoId)
       .maybeSingle();
+
+    if (pedidoError) {
+      console.warn(
+        "[send-push-novo-pedido] erro ao buscar pedido",
+        JSON.stringify({ pedidoId, message: pedidoError.message, code: pedidoError.code })
+      );
+      return new Response(
+        JSON.stringify({ ok: true, sent: 0, skipped: "erro ao buscar pedido" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!pedido) {
       console.info("[send-push-novo-pedido] pedido não encontrado", JSON.stringify({ pedidoId }));
