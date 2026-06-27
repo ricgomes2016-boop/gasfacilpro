@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Capacitor } from "@capacitor/core";
+import { registerWebPushSubscription } from "@/hooks/usePushSubscription";
 
 interface NotificationOptions {
   title: string;
@@ -38,6 +39,7 @@ export function useNotifications() {
       setPermission(result);
       
       if (result === "granted") {
+        await registerWebPushSubscription();
         toast({
           title: "Notificações ativadas!",
           description: "Você receberá alertas de novas entregas.",

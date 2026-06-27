@@ -1,35 +1,35 @@
-## Diagnóstico
+Plano de correção
 
-- **PWA no navegador:** a entrega chega, mas o som com tela bloqueada/outro app é uma limitação comum do navegador/Android Web Push. O sistema pode exibir a notificação, mas não garante áudio customizado disparado por JavaScript em segundo plano.
-- **APK:** há tokens FCM cadastrados no banco, mas os pedidos recentes não aparecem nos logs da função de push. O gatilho do banco está chamando `extensions.http_post`, porém a extensão disponível está no schema `net`, então o disparo backend provavelmente não está chegando na função `send-push-novo-pedido`.
+1. Assinatura do recebedor no app do entregador
+- Remover a exigência de assinatura para pagamentos comuns.
+- Exibir e exigir o componente de assinatura somente quando existir pagamento com forma "Fiado" / pedido a prazo.
+- Se o pedido já vier com forma de pagamento "Fiado", manter a assinatura como obrigatória.
+- Ajustar o texto do botão de finalizar para não bloquear entregas à vista.
 
-## Plano de correção
+2. Ajuste fino visual da tela de finalizar entrega
+- Reduzir aparência de cards pesados dentro de cards na tela de finalização.
+- Melhorar bordas, espaçamento e contraste dos blocos de produtos/pagamentos.
+- Manter o rodapé livre para o botão finalizar não ficar coberto no mobile/PWA/APK.
 
-1. **Corrigir o disparo backend de novos pedidos**
-   - Ajustar a função SQL `fn_dispatch_push_novo_pedido()` para chamar a Edge Function usando `net.http_post` corretamente.
-   - Manter o padrão de nunca bloquear a criação do pedido caso a notificação falhe.
-   - Opcionalmente repetir o mesmo ajuste para chat, se a mesma função estiver usando o schema incorreto.
+3. Garantia de notificação PWA para entregadores
+- Corrigir o registro Web Push para entregador salvar `empresa_id` e `unidade_id` de forma confiável usando: perfil, entregador ativo e unidade selecionada.
+- Revalidar a inscrição push quando o usuário permite notificações, volta ao app ou abre o app do entregador.
+- Melhorar o botão/banner de notificação para registrar a inscrição imediatamente após a permissão ser concedida.
 
-2. **Fortalecer envio para APK via FCM**
-   - Revisar `send-push-novo-pedido` para registrar logs claros: pedido recebido, empresa encontrada, total de inscrições, total FCM, total web, enviados e removidos.
-   - Manter resposta `200 OK` com flags de diagnóstico, sem expor tokens.
-   - Garantir que o filtro por empresa não deixe o entregador fora do envio.
+4. Disparo correto para o entregador atribuído
+- Adicionar uma Edge Function específica para notificar nova entrega ao entregador quando um pedido recebe `entregador_id` ou entra em rota.
+- Enviar Web Push para PWA e FCM para APK usando os tokens do usuário do entregador, não apenas tokens gerais da empresa.
+- Criar trigger SQL em `pedidos` para disparar essa função em `INSERT/UPDATE` quando houver entregador atribuído.
+- Manter retorno tolerante a falhas para nunca impedir a venda/pedido caso a notificação falhe.
 
-3. **Ajustar PWA para comportamento correto**
-   - Corrigir a expectativa técnica: em PWA, o som customizado com tela bloqueada não é confiável por limitação do navegador.
-   - Melhorar a notificação web para usar `renotify`, vibração, prioridade visual e ação persistente; o som nativo dependerá das configurações do Android/Chrome.
-   - Evitar prometer áudio customizado no PWA; para som garantido, o caminho correto é APK nativo.
+5. Limites técnicos importantes
+- No PWA, a entrega da notificação com tela bloqueada depende de permissão concedida, HTTPS, Service Worker ativo e inscrição salva no banco.
+- Som com tela bloqueada no navegador depende das regras do Android/Chrome; o sistema pode vibrar e mostrar a notificação, mas o navegador pode limitar som personalizado. Para som garantido em background, o APK com FCM/canal Android é o caminho mais confiável.
 
-4. **Melhorar cadastro/comunicação do APK**
-   - Adicionar diagnóstico seguro no `useNativePush`: quando registrar token FCM, salvar `empresa_id`, `unidade_id`, `user_agent` e timestamp corretamente.
-   - Ajustar fallback de `unidade_id` para buscar pela tabela de entregadores quando o app não tiver `selected_unidade_id` no localStorage.
-   - Evitar depender de service worker no APK para recebimento de pedido.
-
-5. **Validar após implementação**
-   - Consultar banco para confirmar chamadas e inscrições.
-   - Testar a Edge Function com um pedido real/recente.
-   - Orientar geração de APK novo com `git pull`, `npm install`, `npx cap sync android` e build pelo Android Studio.
-
-## Observação importante
-
-Mesmo corrigindo o backend e o APK, no **PWA** o áudio com tela bloqueada pode continuar limitado pelo navegador. A solução profissional para som confiável em segundo plano é o **APK com FCM nativo**, e esse plano foca em fazer o APK voltar a se comunicar com o sistema e receber as entregas.
+Arquivos principais a alterar
+- `src/pages/entregador/FinalizarEntrega.tsx`
+- `src/hooks/usePushSubscription.ts`
+- `src/hooks/useNotifications.ts`
+- `src/components/entregador/NotificationToggle.tsx`
+- `supabase/functions/send-push-nova-entrega/index.ts`
+- nova migration SQL para trigger de notificação ao entregador

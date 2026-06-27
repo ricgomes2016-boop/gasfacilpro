@@ -147,7 +147,10 @@ export default function FinalizarEntrega() {
         setEditableItens(pedidoData.pedido_itens.map(i => ({ ...i })));
         const total = Number(data.valor_total) || 0;
         if (total > 0) {
-          setPagamentos([{ forma: "Dinheiro", valor: total }]);
+          const formaInicial = formasPagamento.includes(String(pedidoData.forma_pagamento || ""))
+            ? String(pedidoData.forma_pagamento)
+            : "Dinheiro";
+          setPagamentos([{ forma: formaInicial, valor: total }]);
         }
         // Fetch chave_pix from unidade
         if ((data as any).unidade_id) {
@@ -184,6 +187,7 @@ export default function FinalizarEntrega() {
 
   const totalPagamentos = pagamentos.reduce((acc, p) => acc + p.valor, 0);
   const diferenca = totalItens - totalPagamentos;
+  const exigeAssinaturaCanhoto = pagamentos.some((p) => p.forma === "Fiado");
 
   const removerPagamento = (index: number) => {
     setPagamentos((prev) => prev.filter((_, i) => i !== index));
@@ -545,22 +549,22 @@ export default function FinalizarEntrega() {
 
   return (
     <EntregadorLayout title="Finalizar Entrega">
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 pb-8">
         {/* Cabeçalho */}
-        <Card className="border-none shadow-md gradient-primary text-white">
+        <Card className="overflow-hidden border border-primary/20 shadow-lg gradient-primary text-primary-foreground rounded-2xl">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-white/80 text-sm">Pedido #{id?.slice(-6).toUpperCase()}</p>
+                <p className="text-primary-foreground/80 text-sm">Pedido #{id?.slice(-6).toUpperCase()}</p>
                 <p className="font-bold text-lg">{clienteNome}</p>
-                {pedido.endereco_entrega && <p className="text-sm text-white/80">{pedido.endereco_entrega}</p>}
+                {pedido.endereco_entrega && <p className="text-sm text-primary-foreground/80">{pedido.endereco_entrega}</p>}
               </div>
-              <Package className="h-12 w-12 text-white/50" />
+              <Package className="h-12 w-12 text-primary-foreground/50" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-md">
+        <Card className="border border-border/60 shadow-sm rounded-2xl">
           <CardContent className="p-4 space-y-2">
             <Label htmlFor="data-entrega">Data da entrega</Label>
             <Input
@@ -574,7 +578,7 @@ export default function FinalizarEntrega() {
         </Card>
 
         {/* Produtos (editáveis) */}
-        <Card className="border-none shadow-md">
+        <Card className="border border-border/60 shadow-sm rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Package className="h-5 w-5 text-primary" />
@@ -583,7 +587,7 @@ export default function FinalizarEntrega() {
           </CardHeader>
           <CardContent className="space-y-3">
             {editableItens.map((item, index) => (
-              <div key={item.id} className="p-3 bg-muted/50 rounded-lg">
+              <div key={item.id} className="p-3 bg-background rounded-xl border border-border/60">
                 <div className="flex items-center justify-between mb-1">
                   <p className="font-medium text-sm flex-1">{item.produtos?.nome || "Produto"}</p>
                   <Button
@@ -638,7 +642,7 @@ export default function FinalizarEntrega() {
         </Card>
 
         {/* Pagamentos */}
-        <Card className="border-none shadow-md">
+        <Card className="border border-border/60 shadow-sm rounded-2xl">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
@@ -847,7 +851,7 @@ export default function FinalizarEntrega() {
           </CardHeader>
           <CardContent className="space-y-3">
             {pagamentos.map((pag, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div key={index} className="flex items-center justify-between p-3 bg-background rounded-xl border border-border/60">
                 <div className="min-w-0">
                   <p className="font-medium text-sm">{pag.forma}</p>
                   {pag.valeGasInfo && <p className="text-xs text-muted-foreground">{pag.valeGasInfo.parceiro} • {pag.valeGasInfo.codigo}</p>}
@@ -891,17 +895,28 @@ export default function FinalizarEntrega() {
         </Button>
 
 
-        {/* Assinatura do canhoto */}
-        <AssinaturaCanhotoCard onChange={setAssinatura} />
+        {/* Assinatura do canhoto: obrigatória somente para pedido a prazo/fiado */}
+        {exigeAssinaturaCanhoto && (
+          <div className="space-y-2">
+            <div className="rounded-2xl border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">
+              Pedido a prazo: colete a assinatura do recebedor para comprovar o canhoto.
+            </div>
+            <AssinaturaCanhotoCard onChange={setAssinatura} />
+          </div>
+        )}
 
         {/* Botão Finalizar */}
         <Button
           onClick={finalizarEntrega}
           className="w-full h-14 text-lg gradient-primary text-white shadow-glow"
-          disabled={diferenca !== 0 || isSaving || !assinatura}
+          disabled={diferenca !== 0 || isSaving || (exigeAssinaturaCanhoto && !assinatura)}
         >
           {isSaving ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <CheckCircle className="h-5 w-5 mr-2" />}
-          {isSaving ? "Salvando..." : !assinatura ? "Assine o canhoto para finalizar" : "Finalizar Entrega"}
+          {isSaving
+            ? "Salvando..."
+            : exigeAssinaturaCanhoto && !assinatura
+              ? "Assine o canhoto do prazo"
+              : "Finalizar Entrega"}
         </Button>
 
         <div className="h-4" />
