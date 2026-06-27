@@ -266,7 +266,7 @@ export default function ClienteRastreamento() {
               <h1 className="text-xl font-bold">Rastrear Pedido</h1>
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm text-muted-foreground">
-                  Pedido #{pedido.id.slice(-6).toUpperCase()}
+                  Pedido #{pedido.numero_sequencial ?? pedido.id.slice(-6).toUpperCase()}
                 </p>
                 <RealtimeBadge
                   status={
