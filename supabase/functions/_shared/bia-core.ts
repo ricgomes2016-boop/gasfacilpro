@@ -261,11 +261,14 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
   if (!unidadeId) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: null };
 
   const { data: u } = await supabase.from("unidades")
-    .select("horario_abertura, horario_fechamento, empresa_id, cidade, estado, bairros_atendidos, endereco, bairro, cep")
+    .select("nome, horario_abertura, horario_fechamento, empresa_id, cidade, estado, bairros_atendidos, endereco, bairro, cep")
     .eq("id", unidadeId).maybeSingle();
 
-  let empresaNome: string | null = null;
-  if (u?.empresa_id) {
+  // IMPORTANTE: a "marca" exibida ao cliente é o nome da UNIDADE (loja),
+  // não da empresa-mãe. Ex.: unidade "Forte Gás" pertencente à empresa "Central Gas"
+  // deve se apresentar como "Forte Gás" no WhatsApp.
+  let empresaNome: string | null = u?.nome || null;
+  if (!empresaNome && u?.empresa_id) {
     const { data: emp } = await supabase.from("empresas").select("nome").eq("id", u.empresa_id).maybeSingle();
     empresaNome = emp?.nome || null;
   }
