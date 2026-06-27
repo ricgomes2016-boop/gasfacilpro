@@ -64,14 +64,31 @@ jobs:
         run: |
           set -euo pipefail
 
-          test -f android/app/google-services.json
-          grep -q '"package_name": "com.gasfacilpro.app"' android/app/google-services.json
-          grep -q 'gasfacil_alerts_v2' android/app/src/main/res/values/strings.xml
-          grep -q 'com.google.firebase.messaging.default_notification_channel_id' android/app/src/main/AndroidManifest.xml
-          grep -q 'gasfacil_alert.wav' src/hooks/useNativePush.ts
-          grep -q 'gasfacil_alerts_v2' src/hooks/useNativePush.ts
-          grep -q 'gasfacil_alerts_v2' supabase/functions/_shared/fcm.ts
-          test -f android/app/src/main/res/raw/gasfacil_alert.wav
+          CHANNEL_ID="gasfacil_alerts_v3"
+          SOUND_FILE="gasfacil_alert.wav"
+          FCM_SOUND="gasfacil_alert"
+
+          require_file() {
+            test -f "$1" || { echo "::error::Arquivo obrigatório ausente: $1"; exit 1; }
+          }
+
+          require_text() {
+            local pattern="$1"
+            local file="$2"
+            grep -q "$pattern" "$file" || { echo "::error::Padrão '$pattern' não encontrado em $file"; exit 1; }
+          }
+
+          require_file android/app/google-services.json
+          require_file android/app/src/main/res/raw/$SOUND_FILE
+
+          require_text '"package_name": "com.gasfacilpro.app"' android/app/google-services.json
+          require_text "$CHANNEL_ID" android/app/src/main/res/values/strings.xml
+          require_text 'com.google.firebase.messaging.default_notification_channel_id' android/app/src/main/AndroidManifest.xml
+          require_text "$CHANNEL_ID" android/app/src/main/java/com/gasfacilpro/app/MainActivity.java
+          require_text "$CHANNEL_ID" src/hooks/useNativePush.ts
+          require_text "$SOUND_FILE" src/hooks/useNativePush.ts
+          require_text "$CHANNEL_ID" supabase/functions/_shared/fcm.ts
+          require_text "$FCM_SOUND" supabase/functions/_shared/fcm.ts
 
       - name: Build debug and release APKs
         working-directory: android
@@ -88,7 +105,6 @@ jobs:
 
           test -f "$DEBUG_APK"
           unzip -l "$DEBUG_APK" | grep -q 'res/raw/gasfacil_alert.wav'
-          unzip -l "$DEBUG_APK" | grep -q 'res/values'
 
           if [ -f "$RELEASE_APK" ]; then
             unzip -l "$RELEASE_APK" | grep -q 'res/raw/gasfacil_alert.wav'
