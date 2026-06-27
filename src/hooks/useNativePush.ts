@@ -100,6 +100,18 @@ export function useNativePush() {
             unidadeId = ent.unidade_id;
           }
 
+          if (!unidadeId && empresaId) {
+            const { data: unidadesEmpresa } = await supabase
+              .from("unidades")
+              .select("id")
+              .eq("empresa_id", empresaId)
+              .eq("ativo", true)
+              .limit(2);
+            if (unidadesEmpresa?.length === 1) {
+              unidadeId = unidadesEmpresa[0].id;
+            }
+          }
+
           if (unidadeId) {
             const { data: uni } = await supabase
               .from("unidades")

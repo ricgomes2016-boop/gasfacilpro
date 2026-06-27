@@ -116,7 +116,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!subs || subs.length === 0) {
+    let allSubs = subs ?? [];
+    if (entregadorUserId) {
+      const { data: entregadorSubs, error: entregadorSubsError } = await supabase
+        .from("push_subscriptions")
+        .select("*")
+        .eq("user_id", entregadorUserId)
+        .eq("provider", "fcm");
+
+      if (entregadorSubsError) {
+        console.warn(
+          "[send-push-novo-pedido] erro ao buscar fcm do entregador",
+          JSON.stringify({ pedidoId, message: entregadorSubsError.message })
+        );
+      }
+
+      if (entregadorSubs?.length) {
+        const seen = new Set(allSubs.map((s: any) => s.id ?? s.endpoint ?? s.fcm_token));
+        for (const sub of entregadorSubs) {
+          const key = (sub as any).id ?? (sub as any).endpoint ?? (sub as any).fcm_token;
+          if (!seen.has(key)) {
+            allSubs.push(sub);
+            seen.add(key);
+          }
+        }
+      }
+    }
+
+    if (allSubs.length === 0) {
       console.info("[send-push-novo-pedido] sem inscrições", JSON.stringify({ pedidoId, empresaId }));
       return new Response(
         JSON.stringify({ ok: true, sent: 0, note: "sem inscrições" }),
@@ -150,15 +177,15 @@ Deno.serve(async (req) => {
     let sent = 0;
     const staleEndpoints: string[] = [];
 
-    const webSubs = subs.filter((s: any) => s.provider !== "fcm" && s.endpoint && s.p256dh && s.auth);
-    let fcmSubs = subs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
+    const webSubs = allSubs.filter((s: any) => s.provider !== "fcm" && s.endpoint && s.p256dh && s.auth);
+    let fcmSubs = allSubs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
     if (entregadorUserId) {
       fcmSubs = fcmSubs.filter((s: any) => s.user_id === entregadorUserId);
     }
 
     console.info(
       "[send-push-novo-pedido] inscrições",
-      JSON.stringify({ pedidoId, total: subs.length, web: webSubs.length, fcm: fcmSubs.length })
+      JSON.stringify({ pedidoId, total: allSubs.length, web: webSubs.length, fcm: fcmSubs.length })
     );
 
     if (webSubs.length > 0) {
@@ -240,7 +267,7 @@ Deno.serve(async (req) => {
         sent,
         diagnostics: {
           empresa_id_found: Boolean(empresaId),
-          subscriptions_total: subs.length,
+          subscriptions_total: allSubs.length,
           web_total: webSubs.length,
           fcm_total: fcmSubs.length,
           stale_web_removed: staleEndpoints.length,

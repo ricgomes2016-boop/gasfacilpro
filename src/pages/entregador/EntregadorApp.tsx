@@ -5,6 +5,8 @@ import { MapPin, CheckCircle } from "lucide-react";
 import { aplicarModoEntregador, vibrar } from "@/utils/mobileApp";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { startOfDay } from "date-fns";
+import { getBrasiliaDate } from "@/lib/utils";
 
 interface Pedido {
   id: string;
@@ -34,7 +36,7 @@ export default function EntregadorApp() {
 
           const pertenceAoEntregador =
             novo.entregador_id === entregadorId ||
-            (!novo.entregador_id && novo.unidade_id === unidadeId);
+            Boolean(unidadeId && !novo.entregador_id && novo.unidade_id === unidadeId);
 
           if (novo.status === "pendente" && pertenceAoEntregador) {
             vibrar(300);
@@ -74,12 +76,20 @@ export default function EntregadorApp() {
     setEntregadorId(entregador.id);
     setUnidadeId(entregador.unidade_id);
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("pedidos")
       .select("id, endereco_entrega, clientes(nome)")
       .eq("status", "pendente")
-      .or(`entregador_id.eq.${entregador.id},and(entregador_id.is.null,unidade_id.eq.${entregador.unidade_id})`)
+      .gte("created_at", startOfDay(getBrasiliaDate()).toISOString())
       .limit(20);
+
+    if (entregador.unidade_id) {
+      query = query.or(`entregador_id.eq.${entregador.id},and(entregador_id.is.null,unidade_id.eq.${entregador.unidade_id})`);
+    } else {
+      query = query.eq("entregador_id", entregador.id);
+    }
+
+    const { data, error } = await query;
 
     if (error) return;
 

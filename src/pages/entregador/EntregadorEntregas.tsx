@@ -36,6 +36,7 @@ export default function EntregadorEntregas() {
     if (!user) return;
 
     try {
+      const operationStart = startOfDay(getBrasiliaDate()).toISOString();
       const { data: entregador, error: entregadorError } = await supabase
         .from("entregadores")
         .select("id, unidade_id")
@@ -59,14 +60,17 @@ export default function EntregadorEntregas() {
           pedido_itens (id, quantidade, preco_unitario, produtos:produto_id (nome))
         `)
         .in("status", ["pendente", "em_rota", "entregue", "finalizado"])
+        .gte("created_at", operationStart)
         .order("created_at", { ascending: false })
         .limit(100);
 
       if (entregador) {
         if (entregador.unidade_id) {
           query = query.eq("unidade_id", entregador.unidade_id);
+          query = query.or(`entregador_id.eq.${entregador.id},and(entregador_id.is.null,status.eq.pendente)`);
+        } else {
+          query = query.eq("entregador_id", entregador.id);
         }
-        query = query.or(`entregador_id.eq.${entregador.id},and(entregador_id.is.null,status.eq.pendente)`);
       } else {
         query = query.eq("status", "pendente");
       }
