@@ -10,6 +10,7 @@ const corsHeaders = {
 
 const VAPID_PUBLIC_KEY =
   "BJnpqpoCph8LLsYCLBBTFxpJpAbDoFODpr3diJC-14ehvnadLdHVtKer8mSv8aQjKySPGBeSc-H_p8re4zQwQco";
+const BACKEND_URL = "https://scqenurznkatvrqxqjmt.supabase.co";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -29,7 +30,7 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
+      BACKEND_URL,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
