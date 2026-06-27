@@ -183,10 +183,10 @@ export default function Pedidos() {
   const { data: canaisVenda = [] } = useQuery({
     queryKey: ["canais-venda-empresa", unidadeAtual?.id],
     queryFn: async () => {
-      // Canais fixos da unidade atual + parceiros vale gás de toda a empresa
+      // Canais: da unidade atual + globais (sem unidade) + parceiros vale gás de toda a empresa
       const filtro = unidadeAtual?.id
-        ? `unidade_id.eq.${unidadeAtual.id},tipo.eq.parceiro_vale_gas`
-        : `tipo.eq.parceiro_vale_gas`;
+        ? `unidade_id.eq.${unidadeAtual.id},unidade_id.is.null,tipo.eq.parceiro_vale_gas`
+        : `unidade_id.is.null,tipo.eq.parceiro_vale_gas`;
       const { data } = await supabase
         .from("canais_venda")
         .select("id, nome, tipo, unidade_id")
