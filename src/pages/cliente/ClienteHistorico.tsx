@@ -206,7 +206,7 @@ export default function ClienteHistorico() {
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">
-                          #{pedido.id.slice(-6).toUpperCase()}
+                          #{pedido.numero_sequencial ?? pedido.id.slice(-6).toUpperCase()}
                         </p>
                         <p className="text-sm font-medium">
                           {format(new Date(pedido.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
