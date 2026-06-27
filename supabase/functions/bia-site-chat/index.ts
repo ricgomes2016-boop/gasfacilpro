@@ -282,7 +282,30 @@ async function identificarCliente(
   return { encontrado: false };
 }
 
-async function consultarProdutos(supabase: any, unidadeId: string) {
+// Fonte oficial de preços da Bia: configuracoes_empresa.regras_bia.tabela_precos
+async function getTabelaPrecosBia(
+  supabase: any,
+  empresaId: string
+): Promise<Record<string, number>> {
+  const { data } = await supabase
+    .from("configuracoes_empresa")
+    .select("regras_bia")
+    .eq("empresa_id", empresaId)
+    .maybeSingle();
+  const tp = (data?.regras_bia as any)?.tabela_precos || {};
+  const pick = (k: string) =>
+    Number(tp?.[k]?.preco_desconto) > 0
+      ? Number(tp[k].preco_desconto)
+      : Number(tp?.[k]?.preco) || 0;
+  return {
+    "Gás P13": pick("gas_p13"),
+    "Gás P20": pick("gas_p20"),
+    "Gás P45": pick("gas_p45"),
+    "Água Mineral 20L": pick("agua_20l"),
+  };
+}
+
+async function consultarProdutos(supabase: any, empresaId: string, unidadeId: string) {
   const { data } = await supabase
     .from("produtos")
     .select("id, nome, preco")
@@ -297,10 +320,18 @@ async function consultarProdutos(supabase: any, unidadeId: string) {
     .ilike("nome", "%água%")
     .limit(1);
 
+  const tabela = await getTabelaPrecosBia(supabase, empresaId);
+
   const lista = [...(data ?? []), ...(agua ?? [])].filter(
     (p) => !/vazio/i.test(p.nome)
   );
-  return { produtos: lista.map((p) => ({ nome: p.nome, preco: p.preco })) };
+  return {
+    produtos: lista.map((p) => {
+      const precoCad = Number(p.preco) || 0;
+      const precoTab = tabela[p.nome] || 0;
+      return { nome: p.nome, preco: precoCad > 0 ? precoCad : precoTab };
+    }).filter((p) => p.preco > 0),
+  };
 }
 
 async function criarPedido(
