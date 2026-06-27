@@ -206,7 +206,7 @@ Regras:
           if (tc.function.name === "identificar_cliente") {
             result = await identificarCliente(supabase, empresa.id, unidade.id, args.telefone);
           } else if (tc.function.name === "consultar_produtos") {
-            result = await consultarProdutos(supabase, unidade.id);
+            result = await consultarProdutos(supabase, empresa.id, unidade.id);
           } else if (tc.function.name === "criar_pedido") {
             result = await criarPedido(supabase, empresa.id, unidade.id, args);
           } else {
