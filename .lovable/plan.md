@@ -1,44 +1,39 @@
 ## Diagnóstico
 
-Os logs do `zapi-webhook` mostram a causa real:
+Pedido 72 da Forte Gás (`f1a95446...`) está com `status = 'entregue'` e **sem `cliente_id`**. Foram vinculados 2 vales (#9 e #10) à mesma venda, ambos já com `status = 'utilizado'` mas com `cliente_id` nulo.
 
-```
-ERROR Gemini direct API error: { "code": 429, "RESOURCE_EXHAUSTED",
-       "Your prepayment credits are depleted..." }
-WARNING [order-recovery] confirmação detectada sem tag, acionando fallback
-WARNING [order-recovery] LLM não devolveu bloco. reply= Desculpe, não consegui
-        processar sua mensagem pelo gateway.
-```
+Causas:
 
-A chave direta do Google (`GEMINI_API_KEY`) está sem créditos. Em `bia-core.ts → callAI` o Gemini é a prioridade 1; quando ele falha, o código cai para o Lovable Gateway — mas o gateway também respondeu sem `[PEDIDO_CONFIRMADO]`, então a Bia respondeu texto genérico ("respondeu corretamente" para o cliente) mas o pedido não foi gravado. Mesmo problema ocorre na função auxiliar `recoverOrderBlock`, que também tenta apenas Gemini direto.
-
-Sobre origem: hoje o ERP só usa `pedidos.canal_venda` (`site_ia` no site, `whatsapp` no WhatsApp). A coluna `pedidos.origem_pedido` existe mas não é preenchida pelas Edge Functions da Bia, então a UI cai no default ("ERP").
+1. **Acerto não baixa**: em `AcertoEntregador.tsx` (linhas 706‑728), a busca `.from("vale_gas").eq("venda_id", entrega.id).maybeSingle()` quebra (PGRST116) quando há mais de um vale na mesma venda. O erro é silenciado, `valeUsado` fica nulo, o check `temValeGasSemVinculo` dispara `throw` e o pedido vai para a lista de falhas — porém o vale já estava marcado como `utilizado` em outra etapa, dando a impressão de "concluído".
+2. **Cliente não aparece no Vale Gás**: em `paymentRoutingService.ts` (linha 322‑328), o update do vale usa `.neq("status","utilizado")` — quando o vale já foi marcado utilizado antes do acerto (cenário comum quando a forma de pagamento é validada na venda/edição), o `cliente_id`/`cliente_nome` nunca é gravado. Além disso, o pedido 72 nem tem `cliente_id` salvo.
+3. **Vínculo errado quando há vários vales**: o vale anterior (#9) não é desvinculado quando o usuário troca para #10 na edição do acerto, criando 2 vales para o mesmo pedido.
 
 ## Correções
 
-### 1) Robustez do `callAI` e `recoverOrderBlock` (`supabase/functions/_shared/bia-core.ts`)
-- Em `callAI`, tratar Gemini direto como melhor-esforço: se a resposta vier não-ok (429/5xx) ou sem `candidates[0].content`, registrar e cair imediatamente no próximo provedor (OpenAI → Lovable Gateway). Já existe o fall-through mas precisa ignorar respostas "vazias" do Gemini também (resposta 200 sem texto).
-- Em `recoverOrderBlock` (linha ~1384), reaproveitar `callAI([...])` em vez de chamar Gemini diretamente, garantindo o mesmo fallback.
-- Em `callAI`, se chegar uma resposta vazia do Lovable Gateway, lançar erro em vez de devolver string "Desculpe, não consegui processar..." — isso evita que o handler envie texto inútil sem rodar a recuperação de pedido.
+### 1. `src/pages/caixa/AcertoEntregador.tsx`
+- Trocar `.maybeSingle()` por consulta que aceita múltiplos vales:
+  ```ts
+  .select("...").eq("venda_id", entrega.id).order("data_utilizacao", { ascending: true })
+  ```
+  e mapear **todos** os vales encontrados na linha de pagamentos `vale_gas` (somando valores), em vez de pegar um só.
+- Se mesmo assim não houver vale vinculado e a forma é Vale Gás, exibir mensagem clara ("abra o pedido e valide o número do vale") em vez de falhar silenciosamente.
+- Ao salvar a edição com novo vale, **liberar o vale anterior** (status = `disponivel`, limpar `venda_id`/`cliente_id`/`data_utilizacao`) antes de marcar o novo como utilizado, evitando vales órfãos.
 
-### 2) Mensagem de fallback no `zapi-webhook` (`supabase/functions/zapi-webhook/index.ts`)
-- No `catch` em torno de `callAI`, distinguir `CREDITS_EXHAUSTED` e `AI_ERROR_*` e responder ao cliente uma mensagem clara ("Estou com instabilidade no atendimento, já chamei um atendente humano"), em vez de seguir o fluxo e tentar gravar pedido sem dados.
+### 2. `src/services/paymentRoutingService.ts` (case `vale_gas`)
+- Remover o `.neq("status","utilizado")`. Sempre atualizar `venda_id`, `cliente_id`, `cliente_nome` e `data_utilizacao` (mantendo `status = 'utilizado'`), para que o cliente final seja preservado mesmo quando o vale já foi marcado antes.
+- Suportar lista de vales: se o pagamento trouxer `vales: [{id,...}]`, aplicar o update em todos.
 
-### 3) Padronizar origem do pedido
-- Adicionar `whatsapp_ia` ao enum em `src/lib/pedidos/origem.ts` (label "WhatsApp IA", ícone 🤖💬) e usar `ORIGEM_PEDIDO_META.whatsapp_ia` no fallback de leitura.
-- `supabase/functions/bia-site-chat/index.ts` (insert do pedido):
-  - `canal_venda: "site"` e `origem_pedido: "site"`.
-- `supabase/functions/_shared/bia-core.ts → createOrder` (WhatsApp):
-  - manter `canal_venda: "whatsapp"` e adicionar `origem_pedido: "whatsapp_ia"`.
-- Garantir que a UI de pedidos (badge de origem) já lê `origem_pedido` antes de `canal_venda` — se não ler, ajustar o helper `getOrigemMeta` para receber ambos e priorizar `origem_pedido`.
+### 3. Fallback de `cliente_id` no acerto
+- Quando o pedido tem `cliente_id` nulo mas `clientes` (FK relacional) está vazio, tentar resolver pelo telefone/nome livre antes de rotear (ou ao menos passar `clienteNome` consistente) para que o vale guarde a referência textual mesmo sem FK.
 
-### 4) Aviso ao usuário
-- Não conseguimos renovar a `GEMINI_API_KEY` daqui; o usuário precisa repor crédito no Google AI Studio ou remover a variável de ambiente para o sistema usar exclusivamente o Lovable Gateway. Após a correção do fallback, o WhatsApp volta a funcionar mesmo sem Gemini direto.
+### 4. Script de reparo dos vales 9 e 10
+Migration única (data-only via insert tool) para preencher retroativamente o cliente nos vales utilizados sem `cliente_id`, usando o `cliente_id` do `pedido` quando existir; nos vales do pedido 72 (sem cliente) gravar `cliente_nome = 'Não informado'` apenas para padronizar a coluna.
 
-## Validação
+### 5. Refletir status correto do pedido 72
+Após a correção do código, basta o usuário reabrir o acerto e baixar — o update agora encontrará o vale e marcará `pedidos.status = 'finalizado'`. Não vamos forçar o status via SQL para preservar o fluxo financeiro (`rotearPagamentosVenda`) que cria/atualiza os registros corretamente.
 
-1. Mandar mensagem de teste para a Forte Gás no WhatsApp e confirmar nos logs do `zapi-webhook` que, mesmo com Gemini em 429, o pedido é criado via Lovable Gateway.
-2. Conferir na lista `/vendas/pedidos`:
-   - pedido criado pelo site da ForteGás aparece com badge **Site**.
-   - pedido criado pelo WhatsApp aparece com badge **WhatsApp IA**.
-3. Fazer um pedido pela Bia no site e confirmar que só sobe ao banco depois do "sim" final (regra já existente continua valendo).
+## Resultado esperado
+
+- Baixar o acerto do pedido 72 funciona em 1 clique, mesmo com múltiplos vales.
+- Em `Financeiro › Vale Gás`, o cliente que utilizou o vale aparece.
+- Trocar de vale na edição não deixa vale órfão "utilizado" sem venda real.

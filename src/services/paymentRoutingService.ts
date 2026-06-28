@@ -316,18 +316,22 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
       case "vale_gas": {
         // Vale Gás NÃO gera contas_receber na venda.
         // O título financeiro vive no LOTE (vinculado ao parceiro), criado em ValeGasEmissao.
-        // Aqui apenas marcamos o voucher como utilizado para rastreabilidade.
-        promises.push((async () => {
-          if (pag.vale_gas_id) {
+        // Aqui apenas marcamos o(s) voucher(s) como utilizado(s) para rastreabilidade.
+        // Suporta múltiplos vales por pagamento via (pag as any).vales: [{id}, ...]
+        const ids: string[] = Array.isArray((pag as any).vales) && (pag as any).vales.length
+          ? (pag as any).vales.map((v: any) => v.id).filter(Boolean)
+          : (pag.vale_gas_id ? [pag.vale_gas_id] : []);
+        if (ids.length) {
+          promises.push((async () => {
             await (supabase as any).from("vale_gas").update({
               status: "utilizado",
               data_utilizacao: new Date().toISOString(),
               venda_id: pedidoId,
               cliente_id: clienteId || null,
               cliente_nome: clienteNome || null,
-            }).eq("id", pag.vale_gas_id).neq("status", "utilizado");
-          }
-        })());
+            }).in("id", ids);
+          })());
+        }
         break;
       }
 

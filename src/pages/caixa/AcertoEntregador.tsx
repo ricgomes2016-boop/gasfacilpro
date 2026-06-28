@@ -492,6 +492,23 @@ export default function AcertoEntregador() {
       if (error) throw error;
 
       if (valeGasValidado?.valido && (valeGasValidado as any)?.valeId) {
+        const novoValeId = (valeGasValidado as any).valeId as string;
+
+        // Libera vales anteriormente vinculados a esta venda (exceto o que está sendo gravado agora)
+        await (supabase as any)
+          .from("vale_gas")
+          .update({
+            status: "disponivel",
+            venda_id: null,
+            cliente_id: null,
+            cliente_nome: null,
+            consumidor_nome: null,
+            consumidor_telefone: null,
+            data_utilizacao: null,
+          })
+          .eq("venda_id", editingEntrega.id)
+          .neq("id", novoValeId);
+
         const { data: pedidoData } = await supabase
           .from("pedidos")
           .select("cliente_id, clientes(nome, telefone, endereco, bairro)")
@@ -511,7 +528,7 @@ export default function AcertoEntregador() {
             consumidor_telefone: clienteInfo?.telefone || null,
             venda_id: editingEntrega.id,
           })
-          .eq("id", (valeGasValidado as any).valeId);
+          .eq("id", novoValeId);
       }
 
       toast.success("Entrega atualizada com sucesso!");
@@ -704,27 +721,31 @@ export default function AcertoEntregador() {
           }
 
           if (pagamentos.some(p => p.forma === "vale_gas")) {
-            const { data: valeUsado } = await (supabase as any)
+            const { data: valesUsados } = await (supabase as any)
               .from("vale_gas")
               .select("id, numero, codigo, parceiro_id, valor, vale_gas_parceiros:parceiro_id(nome)")
               .eq("venda_id", entrega.id)
-              .maybeSingle();
-            if (valeUsado) {
+              .order("data_utilizacao", { ascending: true });
+            const lista = Array.isArray(valesUsados) ? valesUsados : [];
+            if (lista.length) {
+              const primeiro = lista[0];
+              const somaVales = lista.reduce((s: number, v: any) => s + Number(v.valor || 0), 0);
               pagamentos = pagamentos.map((p) => p.forma === "vale_gas" ? {
                 ...p,
-                vale_gas_id: valeUsado.id,
-                vale_gas_parceiro_id: valeUsado.parceiro_id,
-                vale_gas_parceiro_nome: valeUsado.vale_gas_parceiros?.nome,
-                vale_gas_numero: valeUsado.numero,
-                vale_gas_codigo: valeUsado.codigo,
-                valor: Number(valeUsado.valor || p.valor),
-              } : p);
+                vale_gas_id: primeiro.id,
+                vale_gas_parceiro_id: primeiro.parceiro_id,
+                vale_gas_parceiro_nome: primeiro.vale_gas_parceiros?.nome,
+                vale_gas_numero: primeiro.numero,
+                vale_gas_codigo: primeiro.codigo,
+                valor: somaVales || p.valor,
+                vales: lista.map((v: any) => ({ id: v.id, numero: v.numero, codigo: v.codigo, valor: Number(v.valor || 0) })),
+              } as any : p);
             }
           }
 
           const temValeGasSemVinculo = pagamentos.some(p => p.forma === "vale_gas" && !(p as any).vale_gas_id);
           if (temValeGasSemVinculo) {
-            throw new Error("Vale Gás sem parceiro/número validado");
+            throw new Error("Vale Gás sem vínculo. Abra o pedido, edite a forma de pagamento e valide o número do vale antes de baixar o acerto.");
           }
 
           await rotearPagamentosVenda({
