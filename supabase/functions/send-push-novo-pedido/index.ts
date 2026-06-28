@@ -18,6 +18,24 @@ function normalizeVapidSubject(value: string): string {
   return `mailto:${subject}`;
 }
 
+function isStaffSubscription(sub: any): boolean {
+  const scope = String(sub?.app_scope || "").toLowerCase();
+  if (scope) return scope === "erp" || scope === "atendimento";
+
+  const ua = String(sub?.user_agent || "").toLowerCase();
+  if (
+    ua.includes("app=entregador") ||
+    ua.includes("app=cliente") ||
+    ua.includes("app=vendedor") ||
+    ua.includes("app=parceiro") ||
+    ua.includes("app=transportadora")
+  ) {
+    return false;
+  }
+
+  return sub?.provider !== "fcm";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -78,16 +96,6 @@ Deno.serve(async (req) => {
       empresaId = uni?.empresa_id ?? null;
     }
 
-    let entregadorUserId: string | null = null;
-    if (pedido.entregador_id) {
-      const { data: entregador } = await supabase
-        .from("entregadores")
-        .select("user_id")
-        .eq("id", pedido.entregador_id)
-        .maybeSingle();
-      entregadorUserId = entregador?.user_id ?? null;
-    }
-
     console.info(
       "[send-push-novo-pedido] contexto",
       JSON.stringify({
@@ -95,7 +103,6 @@ Deno.serve(async (req) => {
         unidadeId: pedido.unidade_id ?? null,
         empresaId,
         entregadorId: pedido.entregador_id ?? null,
-        entregadorUserId,
       })
     );
 
@@ -116,32 +123,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    let allSubs = subs ?? [];
-    if (entregadorUserId) {
-      const { data: entregadorSubs, error: entregadorSubsError } = await supabase
-        .from("push_subscriptions")
-        .select("*")
-        .eq("user_id", entregadorUserId)
-        .eq("provider", "fcm");
-
-      if (entregadorSubsError) {
-        console.warn(
-          "[send-push-novo-pedido] erro ao buscar fcm do entregador",
-          JSON.stringify({ pedidoId, message: entregadorSubsError.message })
-        );
-      }
-
-      if (entregadorSubs?.length) {
-        const seen = new Set(allSubs.map((s: any) => s.id ?? s.endpoint ?? s.fcm_token));
-        for (const sub of entregadorSubs) {
-          const key = (sub as any).id ?? (sub as any).endpoint ?? (sub as any).fcm_token;
-          if (!seen.has(key)) {
-            allSubs.push(sub);
-            seen.add(key);
-          }
-        }
-      }
-    }
+    const allSubs = (subs ?? []).filter(isStaffSubscription);
 
     if (allSubs.length === 0) {
       console.info("[send-push-novo-pedido] sem inscrições", JSON.stringify({ pedidoId, empresaId }));
@@ -178,10 +160,7 @@ Deno.serve(async (req) => {
     const staleEndpoints: string[] = [];
 
     const webSubs = allSubs.filter((s: any) => s.provider !== "fcm" && s.endpoint && s.p256dh && s.auth);
-    let fcmSubs = allSubs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
-    if (entregadorUserId) {
-      fcmSubs = fcmSubs.filter((s: any) => s.user_id === entregadorUserId);
-    }
+    const fcmSubs = allSubs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
 
     console.info(
       "[send-push-novo-pedido] inscrições",
@@ -233,10 +212,10 @@ Deno.serve(async (req) => {
           title: "🛵 Novo Pedido!",
           body: `#${ref} · ${cliente} · R$ ${valor}`,
           data: {
-            url: "/entregador/entregas",
+            url: "/vendas/pedidos",
             pedidoId: pedido.id,
             tag: `novo-pedido-${pedido.id}`,
-            tipo: "entrega",
+            tipo: "pedido",
           },
         }))
       );

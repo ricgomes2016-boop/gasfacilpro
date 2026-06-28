@@ -18,6 +18,24 @@ function normalizeVapidSubject(value: string): string {
   return `mailto:${subject}`;
 }
 
+function isStaffSubscription(sub: any): boolean {
+  const scope = String(sub?.app_scope || "").toLowerCase();
+  if (scope) return scope === "erp" || scope === "atendimento";
+
+  const ua = String(sub?.user_agent || "").toLowerCase();
+  if (
+    ua.includes("app=entregador") ||
+    ua.includes("app=cliente") ||
+    ua.includes("app=vendedor") ||
+    ua.includes("app=parceiro") ||
+    ua.includes("app=transportadora")
+  ) {
+    return false;
+  }
+
+  return sub?.provider !== "fcm";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -97,6 +115,7 @@ Deno.serve(async (req) => {
 
     let query = supabase.from("push_subscriptions").select("*");
     if (empresaId) query = query.eq("empresa_id", empresaId);
+    if (conv.unidade_id) query = query.or(`unidade_id.eq.${conv.unidade_id},unidade_id.is.null`);
     const { data: subs, error: subsError } = await query;
 
     if (subsError) {
@@ -110,7 +129,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!subs || subs.length === 0) {
+    const scopedSubs = (subs ?? []).filter(isStaffSubscription);
+
+    if (scopedSubs.length === 0) {
       return new Response(
         JSON.stringify({ ok: true, sent: 0, note: "sem inscrições" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -129,12 +150,12 @@ Deno.serve(async (req) => {
     let sent = 0;
     const staleEndpoints: string[] = [];
 
-    const webSubs = subs.filter((s: any) => s.provider !== "fcm" && s.endpoint && s.p256dh && s.auth);
-    const fcmSubs = subs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
+    const webSubs = scopedSubs.filter((s: any) => s.provider !== "fcm" && s.endpoint && s.p256dh && s.auth);
+    const fcmSubs = scopedSubs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
 
     console.info(
       "[send-push-novo-chat] inscrições",
-      JSON.stringify({ conversaId, empresaId, total: subs.length, web: webSubs.length, fcm: fcmSubs.length })
+      JSON.stringify({ conversaId, empresaId, total: scopedSubs.length, web: webSubs.length, fcm: fcmSubs.length })
     );
 
     if (webSubs.length > 0) {

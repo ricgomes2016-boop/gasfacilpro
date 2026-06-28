@@ -18,6 +18,24 @@ function normalizeVapidSubject(value: string): string {
   return `mailto:${subject}`;
 }
 
+function isEntregadorSubscription(sub: any): boolean {
+  const scope = String(sub?.app_scope || "").toLowerCase();
+  if (scope) return scope === "entregador";
+
+  const ua = String(sub?.user_agent || "").toLowerCase();
+  if (ua.includes("app=entregador")) return true;
+  if (
+    ua.includes("app=erp") ||
+    ua.includes("app=atendimento") ||
+    ua.includes("app=cliente") ||
+    ua.includes("app=vendedor")
+  ) {
+    return false;
+  }
+
+  return sub?.provider === "fcm";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -89,7 +107,9 @@ Deno.serve(async (req) => {
       .select("*")
       .eq("user_id", entregador.user_id);
 
-    if (subsError || !subs || subs.length === 0) {
+    const scopedSubs = (subs ?? []).filter(isEntregadorSubscription);
+
+    if (subsError || scopedSubs.length === 0) {
       return new Response(
         JSON.stringify({ ok: true, sent: 0, skipped: subsError?.message || "entregador sem inscrição push" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -106,8 +126,8 @@ Deno.serve(async (req) => {
 
     let sent = 0;
     const staleEndpoints: string[] = [];
-    const webSubs = subs.filter((s: any) => s.provider !== "fcm" && s.endpoint && s.p256dh && s.auth);
-    const fcmSubs = subs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
+    const webSubs = scopedSubs.filter((s: any) => s.provider !== "fcm" && s.endpoint && s.p256dh && s.auth);
+    const fcmSubs = scopedSubs.filter((s: any) => s.provider === "fcm" && s.fcm_token);
 
     if (webSubs.length > 0) {
       const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
@@ -170,7 +190,7 @@ Deno.serve(async (req) => {
         ok: true,
         sent,
         diagnostics: {
-          subscriptions_total: subs.length,
+          subscriptions_total: scopedSubs.length,
           web_total: webSubs.length,
           fcm_total: fcmSubs.length,
           stale_web_removed: staleEndpoints.length,

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { VAPID_PUBLIC_KEY, urlBase64ToUint8Array } from "@/lib/vapid";
+import { getRuntimeAppScope, getRuntimePortalHost } from "@/lib/appScope";
 
 export async function registerWebPushSubscription() {
   try {
@@ -34,10 +35,8 @@ export async function registerWebPushSubscription() {
     if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) return false;
 
     let empresaId: string | null = null;
-    const isEntregadorApp =
-      typeof window !== "undefined" &&
-      (window.location.pathname.startsWith("/entregador") ||
-        window.location.hostname.startsWith("entregador."));
+    const appScope = getRuntimeAppScope();
+    const isEntregadorApp = appScope === "entregador";
     let unidadeId = isEntregadorApp
       ? null
       : (typeof localStorage !== "undefined" &&
@@ -92,13 +91,18 @@ export async function registerWebPushSubscription() {
           user_id: user.id,
           empresa_id: empresaId,
           unidade_id: unidadeId,
+          app_scope: appScope,
+          portal_host: getRuntimePortalHost(),
           provider: "web",
           endpoint: json.endpoint,
           p256dh: json.keys.p256dh,
           auth: json.keys.auth,
-          user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+          user_agent:
+            typeof navigator !== "undefined"
+              ? `${navigator.userAgent};app=${appScope}`
+              : `app=${appScope}`,
           updated_at: new Date().toISOString(),
-        },
+        } as any,
         { onConflict: "endpoint" }
       );
 

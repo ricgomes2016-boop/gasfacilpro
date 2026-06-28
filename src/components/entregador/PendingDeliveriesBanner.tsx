@@ -10,6 +10,7 @@ import { useWakeLock } from "@/hooks/useWakeLock";
 
 export function PendingDeliveriesBanner() {
   const [pendingDeliveries, setPendingDeliveries] = useState<any[]>([]);
+  const [entregadorId, setEntregadorId] = useState<string | null>(null);
   const { user } = useAuth();
   const location = useLocation();
   
@@ -33,12 +34,18 @@ export function PendingDeliveriesBanner() {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (!entregador) return;
+    if (!entregador) {
+      setEntregadorId(null);
+      return;
+    }
+
+    setEntregadorId(entregador.id);
 
     const { data } = await supabase
       .from("pedidos")
       .select("id, created_at, endereco_entrega, clientes(nome)")
-      .or(`and(entregador_id.eq.${entregador.id},status.eq.pendente),and(entregador_id.is.null,status.eq.pendente)`);
+      .eq("entregador_id", entregador.id)
+      .eq("status", "pendente");
 
     if (data) {
       setPendingDeliveries(data);
@@ -54,14 +61,18 @@ export function PendingDeliveriesBanner() {
 
   // Realtime
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !entregadorId) return;
 
     const channel = supabase
-      .channel(`pending-banner-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => fetchPending())
+      .channel(`pending-banner-${entregadorId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pedidos", filter: `entregador_id=eq.${entregadorId}` },
+        () => fetchPending()
+      )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [fetchPending]);
+  }, [entregadorId, fetchPending, user?.id]);
 
   // Alarm and Push Notification Logic
   useEffect(() => {
@@ -73,7 +84,7 @@ export function PendingDeliveriesBanner() {
     const alarmEnabled = localStorage.getItem("erp_entregador_som_ativo") !== "false";
 
     if (currentIds.length > 0 && alarmEnabled) {
-      if (isFirstLoadRef.current || newIds.length > 0) {
+      if (!isFirstLoadRef.current && newIds.length > 0) {
         const hasUrgent = pendingDeliveries.some(e => {
           return (Date.now() - new Date(e.created_at).getTime()) >= 10 * 60 * 1000;
         });

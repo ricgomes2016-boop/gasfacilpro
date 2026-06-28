@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
+import { getRuntimeAppScope, getRuntimePortalHost } from "@/lib/appScope";
 
 const ANDROID_PUSH_CHANNEL_ID = "gasfacil_alerts_v3";
 const ANDROID_PUSH_SOUND = "gasfacil_alert.wav";
@@ -69,11 +70,8 @@ export function useNativePush() {
           // Resolver empresa_id/unidade_id. Para o app do entregador, a unidade do
           // cadastro do entregador tem prioridade sobre a loja selecionada no ERP.
           let empresaId: string | null = null;
-          const isEntregadorApp =
-            Capacitor.isNativePlatform() ||
-            (typeof window !== "undefined" &&
-              (window.location.pathname.startsWith("/entregador") ||
-                window.location.hostname.startsWith("entregador.")));
+          const appScope = Capacitor.isNativePlatform() ? "entregador" : getRuntimeAppScope();
+          const isEntregadorApp = appScope === "entregador";
           let unidadeId: string | null = isEntregadorApp
             ? null
             : (typeof localStorage !== "undefined" &&
@@ -126,14 +124,16 @@ export function useNativePush() {
               user_id: user.id,
               empresa_id: empresaId,
               unidade_id: unidadeId,
+              app_scope: appScope,
+              portal_host: getRuntimePortalHost(),
               provider: "fcm",
               fcm_token: token.value,
               endpoint: `fcm:${token.value}`,
               p256dh: "native",
               auth: "native",
-              user_agent: `capacitor/${Capacitor.getPlatform()};app=${isEntregadorApp ? "entregador" : "erp"}`,
+              user_agent: `capacitor/${Capacitor.getPlatform()};app=${appScope}`,
               updated_at: new Date().toISOString(),
-            },
+            } as any,
             { onConflict: "endpoint" }
           );
 

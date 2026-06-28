@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { wasRecentOrderForPhone } from "@/lib/novoPedidoDedupe";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { getRuntimeAppScope, isStaffNotificationScope } from "@/lib/appScope";
 
 
 interface WhatsAppNotificationContextValue {
@@ -117,6 +118,7 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
   // Escopo: empresa do usuário + unidade atual (quando houver)
   const { empresa } = useEmpresa();
   const { unidadeAtual } = useUnidade();
+  const notificationsEnabled = isStaffNotificationScope(getRuntimeAppScope());
   const empresaId = empresa?.id ?? null;
   const unidadeId = unidadeAtual?.id ?? null;
   const empresaRef = useRef<string | null>(null);
@@ -139,7 +141,7 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
 
   // Initial load: count unread per conversation based on localStorage timestamps
   useEffect(() => {
-    if (!empresaId) { setUnread({}); return; }
+    if (!notificationsEnabled || !empresaId) { setUnread({}); return; }
     let cancelled = false;
     (async () => {
       let q = supabase
@@ -171,11 +173,11 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
       if (!cancelled) setUnread(counts);
     })();
     return () => { cancelled = true; };
-  }, [empresaId, unidadeId]);
+  }, [empresaId, notificationsEnabled, unidadeId]);
 
   // Realtime listener for new incoming messages
   useEffect(() => {
-    if (!empresaId) return;
+    if (!notificationsEnabled || !empresaId) return;
 
     const channel = supabase
       .channel(`wa-notifications-${empresaId}-${unidadeId || "all"}`)
@@ -243,7 +245,7 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [conversaNoEscopo, empresaId, unidadeId]);
+  }, [conversaNoEscopo, empresaId, notificationsEnabled, unidadeId]);
 
   const markAsRead = useCallback((conversaId: string) => {
     localStorage.setItem(LS_PREFIX + conversaId, new Date().toISOString());

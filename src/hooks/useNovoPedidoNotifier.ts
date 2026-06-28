@@ -7,6 +7,7 @@ import {
   isPushPrefEnabled,
 } from "@/lib/novoPedidoDedupe";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { getRuntimeAppScope, isStaffNotificationScope } from "@/lib/appScope";
 
 /**
  * Listener único e centralizado para INSERT em `pedidos`.
@@ -23,6 +24,7 @@ export function useNovoPedidoNotifier() {
   const unidadeId = unidadeAtual?.id ?? null;
 
   useEffect(() => {
+    if (!isStaffNotificationScope(getRuntimeAppScope())) return;
     if (!unidadeId) return;
 
     // Solicita permissão silenciosamente uma vez (sem assustar o usuário com modal).
