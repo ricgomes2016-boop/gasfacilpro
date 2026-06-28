@@ -492,6 +492,23 @@ export default function AcertoEntregador() {
       if (error) throw error;
 
       if (valeGasValidado?.valido && (valeGasValidado as any)?.valeId) {
+        const novoValeId = (valeGasValidado as any).valeId as string;
+
+        // Libera vales anteriormente vinculados a esta venda (exceto o que está sendo gravado agora)
+        await (supabase as any)
+          .from("vale_gas")
+          .update({
+            status: "disponivel",
+            venda_id: null,
+            cliente_id: null,
+            cliente_nome: null,
+            consumidor_nome: null,
+            consumidor_telefone: null,
+            data_utilizacao: null,
+          })
+          .eq("venda_id", editingEntrega.id)
+          .neq("id", novoValeId);
+
         const { data: pedidoData } = await supabase
           .from("pedidos")
           .select("cliente_id, clientes(nome, telefone, endereco, bairro)")
@@ -511,7 +528,7 @@ export default function AcertoEntregador() {
             consumidor_telefone: clienteInfo?.telefone || null,
             venda_id: editingEntrega.id,
           })
-          .eq("id", (valeGasValidado as any).valeId);
+          .eq("id", novoValeId);
       }
 
       toast.success("Entrega atualizada com sucesso!");
