@@ -82,7 +82,7 @@ export function QuickSelectorsRow({
         .from("produtos")
         .select("id, nome, preco")
         .eq("ativo", true)
-        .or("tipo_botijao.is.null,tipo_botijao.neq.vazio")
+        
         .order("nome")
         .limit(200);
       if (unidadeId) q = q.eq("unidade_id", unidadeId);
