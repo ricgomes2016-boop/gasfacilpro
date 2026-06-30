@@ -13,6 +13,7 @@ import {
   ORDER_CONFIRMATION_REGEX, recoverOrderBlock,
   type BiaConfig,
 } from "../_shared/bia-core.ts";
+import { handleEntregadorMessage } from "../_shared/bia-entregador.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
