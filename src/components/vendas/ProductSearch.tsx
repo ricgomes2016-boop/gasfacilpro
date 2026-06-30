@@ -77,7 +77,6 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
         .from("produtos")
         .select("id, nome, preco, estoque")
         .eq("ativo", true)
-        .or("tipo_botijao.is.null,tipo_botijao.neq.vazio")
         .limit(100);
 
       if (unidadeId) query = query.eq("unidade_id", unidadeId);
