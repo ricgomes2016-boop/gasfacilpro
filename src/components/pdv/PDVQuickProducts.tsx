@@ -29,7 +29,7 @@ export function PDVQuickProducts({ onSelectProduct, unidadeId }: PDVQuickProduct
           .from("produtos")
           .select("id, nome, preco, estoque, categoria, image_url")
           .eq("ativo", true)
-          .or("tipo_botijao.is.null,tipo_botijao.neq.vazio")
+          
           .order("nome")
           .limit(12);
 
