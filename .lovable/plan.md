@@ -1,39 +1,89 @@
-## Diagnóstico
 
-Pedido 72 da Forte Gás (`f1a95446...`) está com `status = 'entregue'` e **sem `cliente_id`**. Foram vinculados 2 vales (#9 e #10) à mesma venda, ambos já com `status = 'utilizado'` mas com `cliente_id` nulo.
+## Objetivo
+Entregador envia o pedido pelo **mesmo WhatsApp da loja** (o que já roda a Bia). Quando a mensagem vem do telefone de um entregador cadastrado e ativo da unidade, o sistema desvia para o fluxo de "Lançamento por entregador" — a Bia entende o texto livre, confirma com ele e cria os pedidos no ERP.
 
-Causas:
+## Fluxo do entregador
 
-1. **Acerto não baixa**: em `AcertoEntregador.tsx` (linhas 706‑728), a busca `.from("vale_gas").eq("venda_id", entrega.id).maybeSingle()` quebra (PGRST116) quando há mais de um vale na mesma venda. O erro é silenciado, `valeUsado` fica nulo, o check `temValeGasSemVinculo` dispara `throw` e o pedido vai para a lista de falhas — porém o vale já estava marcado como `utilizado` em outra etapa, dando a impressão de "concluído".
-2. **Cliente não aparece no Vale Gás**: em `paymentRoutingService.ts` (linha 322‑328), o update do vale usa `.neq("status","utilizado")` — quando o vale já foi marcado utilizado antes do acerto (cenário comum quando a forma de pagamento é validada na venda/edição), o `cliente_id`/`cliente_nome` nunca é gravado. Além disso, o pedido 72 nem tem `cliente_id` salvo.
-3. **Vínculo errado quando há vários vales**: o vale anterior (#9) não é desvinculado quando o usuário troca para #10 na edição do acerto, criando 2 vales para o mesmo pedido.
+1. Entregador escreve no WhatsApp da loja:
+   ```
+   1 gas, rua Ceará 331, 100 pix
+   3 gas padaria da tia lena, 100,00 dinheiro
+   1 gas rua Augusto Sicoli 105, 110 dinheiro
+   ```
+2. Bia responde, dentro do mesmo chat:
+   ```
+   👋 Olá, [nome do entregador]. Confirma 3 lançamentos?
+   #1 Rua Ceará, 331 · 1× Gás P13 · R$ 100 · PIX
+   #2 Padaria da Tia Lena · 3× Gás P13 · R$ 100 · Dinheiro
+   #3 Rua Augusto Sicoli, 105 · 1× Gás P13 · R$ 110 · Dinheiro
+   Responda OK para lançar tudo, ou ajuste (ex.: "remover 2").
+   ```
+3. `OK`/`sim`/`confirmo` → cria os pedidos. `Não`/`cancelar` → descarta o rascunho. Edições simples (remover linha, trocar pagamento, alterar valor/quantidade) atualizam o rascunho antes do OK.
+4. Após criar, Bia confirma com o número dos pedidos gerados no sistema:
+   `✅ Pedidos #1023, #1024, #1025 lançados em rota com você.`
 
-## Correções
+## Identificação de quem está mandando
 
-### 1. `src/pages/caixa/AcertoEntregador.tsx`
-- Trocar `.maybeSingle()` por consulta que aceita múltiplos vales:
-  ```ts
-  .select("...").eq("venda_id", entrega.id).order("data_utilizacao", { ascending: true })
+Hoje todo webhook entra por `_shared/bia-core.ts`. Vai ser adicionado, **logo no início do `resolveConfig`/handler de mensagem**, um passo de classificação:
+
+1. Normaliza o telefone do remetente (DDI 55).
+2. Busca em `entregadores` `WHERE telefone_normalizado = $1 AND ativo = true AND unidade_id = $unidade_da_instancia`.
+3. Match → marca a mensagem como `modo='entregador'` e segue para o novo handler.
+4. Sem match → segue o fluxo atual da Bia de atendimento ao cliente, **sem nenhuma alteração**.
+
+Isso garante: o cliente que mandar mensagem continua sendo atendido normalmente; só números cadastrados como entregador entram no novo modo. Não cria número novo, não muda integração existente.
+
+## Parsing e rascunho
+
+- Uma chamada de IA por mensagem (com fallback Lovable Gateway → OpenAI já existente no `callAI`) devolvendo JSON estruturado:
   ```
-  e mapear **todos** os vales encontrados na linha de pagamentos `vale_gas` (somando valores), em vez de pegar um só.
-- Se mesmo assim não houver vale vinculado e a forma é Vale Gás, exibir mensagem clara ("abra o pedido e valide o número do vale") em vez de falhar silenciosamente.
-- Ao salvar a edição com novo vale, **liberar o vale anterior** (status = `disponivel`, limpar `venda_id`/`cliente_id`/`data_utilizacao`) antes de marcar o novo como utilizado, evitando vales órfãos.
+  { pedidos: [
+    { quantidade, produto, cliente_texto, endereco_texto, valor, forma_pagamento }
+  ]}
+  ```
+- Normalização em código (não na IA):
+  - Produto: `gas`/`gás`/`p13` → `Gás P13` (regra `product-naming-convention`).
+  - Pagamento: dicionário curto (`pix`, `dinheiro`, `cartão`, `fiado`).
+  - Valor: aceita `100`, `100,00`, `R$ 100`.
+  - Quantidade default = 1.
+- Rascunho fica em `bia_followups` (tabela já existe) chaveado pelo telefone, com expiração de 10 min. Aguarda o `OK` antes de criar qualquer pedido.
 
-### 2. `src/services/paymentRoutingService.ts` (case `vale_gas`)
-- Remover o `.neq("status","utilizado")`. Sempre atualizar `venda_id`, `cliente_id`, `cliente_nome` e `data_utilizacao` (mantendo `status = 'utilizado'`), para que o cliente final seja preservado mesmo quando o vale já foi marcado antes.
-- Suportar lista de vales: se o pagamento trouxer `vales: [{id,...}]`, aplicar o update em todos.
+## Resolução de cliente/endereço
 
-### 3. Fallback de `cliente_id` no acerto
-- Quando o pedido tem `cliente_id` nulo mas `clientes` (FK relacional) está vazio, tentar resolver pelo telefone/nome livre antes de rotear (ou ao menos passar `clienteNome` consistente) para que o vale guarde a referência textual mesmo sem FK.
+Para cada linha:
+1. Match em `clientes` + `cliente_enderecos` via RPC `autocomplete_clientes_v2`, filtrado pela unidade.
+2. Score único forte → usa esse cliente e endereço.
+3. Sem match → cria como **cliente avulso** automaticamente (`Cliente Rua Ceará 331`) — a opção que o entregador escolheu para não travar. O entregador pode informar nome depois.
+4. Múltiplos matches próximos → Bia lista até 3 e pede `1/2/3`.
 
-### 4. Script de reparo dos vales 9 e 10
-Migration única (data-only via insert tool) para preencher retroativamente o cliente nos vales utilizados sem `cliente_id`, usando o `cliente_id` do `pedido` quando existir; nos vales do pedido 72 (sem cliente) gravar `cliente_nome = 'Não informado'` apenas para padronizar a coluna.
+## Criação do pedido
 
-### 5. Refletir status correto do pedido 72
-Após a correção do código, basta o usuário reabrir o acerto e baixar — o update agora encontrará o vale e marcará `pedidos.status = 'finalizado'`. Não vamos forçar o status via SQL para preservar o fluxo financeiro (`rotearPagamentosVenda`) que cria/atualiza os registros corretamente.
+Reutiliza exatamente o caminho que a Bia já usa (`criar_pedido` com `confirmado_pelo_cliente=true`), preenchendo:
 
-## Resultado esperado
+- `unidade_id` e `empresa_id` da instância de WhatsApp.
+- `entregador_id` = do remetente.
+- `status` = `em_rota` (entregador já está com o produto na mão).
+- `canal_venda` = `whatsapp`.
+- `origem_pedido` = novo valor `whatsapp_entregador` (rótulo "Entregador WhatsApp" 🛵, adicionado em `src/lib/pedidos/origem.ts`).
+- Item: produto + quantidade + `preco_unitario = valor/qtd`.
+- Forma de pagamento e Contas a Receber seguem regras existentes (`isFormaAVista`, `paymentRoutingService`): PIX/Dinheiro liquidam imediato; fiado vira a receber.
 
-- Baixar o acerto do pedido 72 funciona em 1 clique, mesmo com múltiplos vales.
-- Em `Financeiro › Vale Gás`, o cliente que utilizou o vale aparece.
-- Trocar de vale na edição não deixa vale órfão "utilizado" sem venda real.
+## Onde mexer
+
+- `supabase/functions/_shared/bia-core.ts` — adicionar o branch "modo entregador" e o gerador de resumo/confirmação. Sem tocar nas regras atuais da Bia cliente.
+- Novo arquivo `supabase/functions/_shared/bia-entregador.ts` — parser, draft em `bia_followups`, montagem do pedido.
+- `src/lib/pedidos/origem.ts` — novo valor `whatsapp_entregador`.
+- (Opcional) flag em `Configurações → Integrações WhatsApp` para ligar/desligar o modo por unidade. Default ligado.
+
+## Garantias de estabilidade
+
+- Mantém o número da loja e a Bia de cliente intactos — desvio é apenas por telefone do remetente.
+- Não altera `App.tsx`, autenticação, rotas, RLS, app do entregador APK, financeiro, estoque, fluxo de vendas.
+- Pedido só nasce após `OK` explícito (sem falsos positivos).
+- Se IA falhar/parser não entender, Bia responde com o formato esperado e nada é criado.
+
+## Fora do escopo agora
+
+- Comandos avançados ("cancelar pedido #X" via WhatsApp).
+- Áudio (entregador mandando voz) — pode entrar depois reaproveitando o STT já usado.
+- Mais de um produto por linha (`1 gás + 1 água`). Primeiro lote: 1 produto por linha.

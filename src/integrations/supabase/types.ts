@@ -4586,6 +4586,78 @@ export type Database = {
           },
         ]
       }
+      entregador_lancamento_drafts: {
+        Row: {
+          created_at: string
+          empresa_id: string | null
+          entregador_id: string
+          expires_at: string
+          id: string
+          payload: Json
+          telefone: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id?: string | null
+          entregador_id: string
+          expires_at?: string
+          id?: string
+          payload?: Json
+          telefone: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string | null
+          entregador_id?: string
+          expires_at?: string
+          id?: string
+          payload?: Json
+          telefone?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregador_lancamento_drafts_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregador_lancamento_drafts_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "entregadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregador_lancamento_drafts_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregador_lancamento_drafts_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
+          },
+          {
+            foreignKeyName: "entregador_lancamento_drafts_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entregadores: {
         Row: {
           ativo: boolean | null
@@ -12366,6 +12438,7 @@ export type Database = {
         | "portaria"
         | "assistente_bia"
         | "autoatendimento"
+        | "whatsapp_entregador"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -12528,6 +12601,7 @@ export const Constants = {
         "portaria",
         "assistente_bia",
         "autoatendimento",
+        "whatsapp_entregador",
       ],
     },
   },

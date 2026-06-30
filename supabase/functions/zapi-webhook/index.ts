@@ -13,6 +13,7 @@ import {
   ORDER_CONFIRMATION_REGEX, recoverOrderBlock,
   type BiaConfig,
 } from "../_shared/bia-core.ts";
+import { handleEntregadorMessage } from "../_shared/bia-entregador.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -106,6 +107,21 @@ serve(async (req) => {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ===== MODO ENTREGADOR: se o telefone bate com um entregador ativo da
+    // unidade da instância, desvia para o handler de lançamento de pedidos
+    // pelo entregador. Sem match, segue o fluxo normal da Bia cliente.
+    try {
+      const entregadorReply = await handleEntregadorMessage(
+        supabase, phone, messageText, finalConfig.unidadeId,
+      );
+      if (entregadorReply) {
+        await sendMessage(finalConfig, phone, entregadorReply);
+        return OK({ ok: true, mode: "entregador" });
+      }
+    } catch (e) {
+      console.error("[zapi-webhook] entregador mode erro:", e);
     }
 
     const normalized = normalizePhone(phone);
