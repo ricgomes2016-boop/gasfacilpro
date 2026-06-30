@@ -100,7 +100,7 @@ export default function PDV() {
         .from("produtos")
         .select("id, nome, preco, estoque, categoria, tipo_botijao, botijao_par_id")
         .eq("ativo", true)
-        .or("tipo_botijao.is.null,tipo_botijao.neq.vazio")
+        
         .ilike("nome", `%${term}%`)
         .limit(8);
 

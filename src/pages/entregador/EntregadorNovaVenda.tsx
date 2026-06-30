@@ -174,7 +174,7 @@ export default function EntregadorNovaVenda({ noLayout = false }: EntregadorNova
       .from("produtos")
       .select("id, nome, preco, estoque, categoria")
       .eq("ativo", true)
-      .or("tipo_botijao.is.null,tipo_botijao.neq.vazio")
+      
       .order("nome");
 
     if (unidadeId) {
