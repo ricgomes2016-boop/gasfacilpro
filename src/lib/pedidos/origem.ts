@@ -2,6 +2,7 @@ export type OrigemPedido =
   | "telefone_ia"
   | "erp"
   | "whatsapp"
+  | "whatsapp_entregador"
   | "site"
   | "app_entregador"
   | "app_cliente"
@@ -19,6 +20,7 @@ export const ORIGEM_PEDIDO_META: Record<
   telefone_ia:     { label: "Telefone IA",     icon: "📞", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
   erp:             { label: "ERP",             icon: "🖥️", color: "bg-slate-100 text-slate-700 border-slate-200" },
   whatsapp:        { label: "WhatsApp IA",     icon: "🤖", color: "bg-green-100 text-green-700 border-green-200" },
+  whatsapp_entregador: { label: "Entregador WhatsApp", icon: "🛵", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   site:            { label: "Site",            icon: "🌐", color: "bg-sky-100 text-sky-700 border-sky-200" },
   app_entregador:  { label: "App Entregador",  icon: "🛵", color: "bg-orange-100 text-orange-700 border-orange-200" },
   app_cliente:     { label: "App Cliente",     icon: "📱", color: "bg-blue-100 text-blue-700 border-blue-200" },
