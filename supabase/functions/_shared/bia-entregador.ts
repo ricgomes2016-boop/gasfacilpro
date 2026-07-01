@@ -31,35 +31,103 @@ export function isCancellation(text: string) {
   return CANCEL_REGEX.test(text.trim());
 }
 
+/**
+ * Gera variantes de telefone tolerantes ao formato brasileiro:
+ * - normalizado completo, últimos 11, últimos 10, últimos 8 dígitos
+ * - versão "com 9" inserido depois do DDD (celular)
+ * - versão "sem 9" depois do DDD (fixo antigo ou entrada sem o 9)
+ * Todas usadas em ilike contra a coluna telefone.
+ */
+function buildPhoneVariants(phone: string): string[] {
+  const norm = normalizePhone(phone) || "";
+  const digits = norm.replace(/\D/g, "");
+  const variants = new Set<string>();
+
+  if (digits) variants.add(digits);
+  if (digits.length >= 8) variants.add(digits.slice(-8));
+  if (digits.length >= 10) variants.add(digits.slice(-10));
+  if (digits.length >= 11) variants.add(digits.slice(-11));
+
+  // Considera bloco DDD+número (últimos 10 ou 11)
+  const base = digits.slice(-11).length >= 10 ? digits.slice(-11) : digits;
+  if (base.length >= 10) {
+    const ddd = base.slice(0, 2);
+    const resto = base.slice(2);
+    // resto pode ter 8 (sem 9) ou 9 (com 9) dígitos
+    if (resto.length === 8) {
+      variants.add(ddd + resto);           // sem 9
+      variants.add(ddd + "9" + resto);     // com 9
+      variants.add("9" + resto);           // celular sem DDD
+      variants.add(resto);                 // 8 dígitos puros
+    } else if (resto.length === 9) {
+      variants.add(ddd + resto);           // com 9
+      const sem9 = resto.startsWith("9") ? resto.slice(1) : resto;
+      variants.add(ddd + sem9);            // sem 9
+      variants.add(sem9);
+      variants.add(resto);
+    }
+  }
+
+  return Array.from(variants).filter((v) => v && v.length >= 6);
+}
+
 /** Busca entregador ativo cujo telefone bate com o remetente. */
 export async function findEntregadorByPhone(
   supabase: any,
   phone: string,
   unidadeId: string | null,
 ): Promise<EntregadorMatch | null> {
-  const norm = normalizePhone(phone);
-  const last10 = norm.slice(-10);
-  const last11 = norm.slice(-11);
-  const patterns = Array.from(new Set([norm, last11, last10])).filter(Boolean);
+  // Ignora identificadores não-numéricos (ex.: LID) sem base de dígitos
+  const rawDigits = (phone || "").replace(/\D/g, "");
+  if (rawDigits.length < 8) return null;
 
+  const patterns = buildPhoneVariants(phone);
+  if (patterns.length === 0) return null;
+
+  // Resolve empresa_id a partir da unidade da instância (quando houver)
+  let empresaId: string | null = null;
+  if (unidadeId) {
+    const { data: u } = await supabase
+      .from("unidades").select("empresa_id").eq("id", unidadeId).maybeSingle();
+    empresaId = u?.empresa_id || null;
+  }
+
+  // Coleta unidades da empresa para ampliar a busca (entregador pode estar
+  // cadastrado em unidade irmã da mesma empresa).
+  let unidadeIds: string[] = [];
+  if (empresaId) {
+    const { data: irmas } = await supabase
+      .from("unidades").select("id").eq("empresa_id", empresaId);
+    unidadeIds = (irmas || []).map((r: any) => r.id);
+  } else if (unidadeId) {
+    unidadeIds = [unidadeId];
+  }
+
+  const orFilter = patterns.map((p) => `telefone.ilike.%${p}%`).join(",");
   let query = supabase
     .from("entregadores")
     .select("id, nome, unidade_id, ativo")
-    .eq("ativo", true);
+    .eq("ativo", true)
+    .or(orFilter);
 
-  if (unidadeId) query = query.eq("unidade_id", unidadeId);
+  if (unidadeIds.length > 0) query = query.in("unidade_id", unidadeIds);
 
-  const orFilter = patterns.map((p) => `telefone.ilike.%${p}%`).join(",");
-  const { data, error } = await query.or(orFilter).limit(1);
+  const { data, error } = await query.limit(10);
   if (error || !data || data.length === 0) return null;
 
-  const ent = data[0];
-  let empresaId: string | null = null;
-  if (ent.unidade_id) {
-    const { data: u } = await supabase.from("unidades").select("empresa_id").eq("id", ent.unidade_id).maybeSingle();
-    empresaId = u?.empresa_id || null;
+  // Prefere match na própria unidade da instância
+  const preferido = unidadeId
+    ? data.find((e: any) => e.unidade_id === unidadeId)
+    : null;
+  const ent = preferido || data[0];
+
+  let entEmpresaId = empresaId;
+  if (!entEmpresaId && ent.unidade_id) {
+    const { data: u } = await supabase
+      .from("unidades").select("empresa_id").eq("id", ent.unidade_id).maybeSingle();
+    entEmpresaId = u?.empresa_id || null;
   }
-  return { id: ent.id, nome: ent.nome, unidade_id: ent.unidade_id, empresa_id: empresaId };
+  return { id: ent.id, nome: ent.nome, unidade_id: ent.unidade_id, empresa_id: entEmpresaId };
 }
 
 /** Parser via IA: extrai array de itens. Tolerante a múltiplas linhas. */
