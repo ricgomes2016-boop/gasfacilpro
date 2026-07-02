@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
@@ -101,6 +102,7 @@ export default function EditarPedido() {
   const [clienteResults, setClienteResults] = useState<Array<{ id: string; nome: string; telefone: string | null; endereco: string | null; numero: string | null; bairro: string | null; cidade: string | null; cep: string | null }>>([]);
   const [showClienteResults, setShowClienteResults] = useState(false);
   const clienteSearchRef = useRef<HTMLDivElement>(null);
+  const clienteInputWrapRef = useRef<HTMLDivElement>(null);
   const debounceClienteRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -542,7 +544,7 @@ export default function EditarPedido() {
                       disabled={isDisabled}
                     />
                   </div>
-                  <div className="relative">
+                  <div className="relative" ref={clienteInputWrapRef}>
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Buscar outro cliente por nome ou telefone..."
@@ -554,28 +556,45 @@ export default function EditarPedido() {
                       className="pl-10"
                       disabled={isDisabled}
                     />
-                    {showClienteResults && clienteResults.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
-                        {clienteResults.map((c) => (
-                          <button
-                            key={c.id}
-                            className="w-full px-4 py-3 text-left hover:bg-accent transition-colors border-b border-border last:border-0"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              selectCliente(c);
+                    {showClienteResults && clienteResults.length > 0 && clienteInputWrapRef.current && createPortal(
+                      (() => {
+                        const rect = clienteInputWrapRef.current!.getBoundingClientRect();
+                        return (
+                          <div
+                            style={{
+                              position: "fixed",
+                              top: rect.bottom + 4,
+                              left: rect.left,
+                              width: rect.width,
+                              zIndex: 9999,
                             }}
+                            className="bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto"
                           >
-                            <p className="font-medium text-sm">{c.nome}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {c.telefone} • {c.endereco}
-                            </p>
-                          </button>
-                        ))}
-                      </div>
+                            {clienteResults.map((c) => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                className="w-full px-4 py-3 text-left hover:bg-accent transition-colors border-b border-border last:border-0"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  selectCliente(c);
+                                }}
+                              >
+                                <p className="font-medium text-sm">{c.nome}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {c.telefone} • {c.endereco}
+                                </p>
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })(),
+                      document.body,
                     )}
                   </div>
                 </CardContent>
               </Card>
+
 
               {/* Endereço de Entrega */}
               <Card>
