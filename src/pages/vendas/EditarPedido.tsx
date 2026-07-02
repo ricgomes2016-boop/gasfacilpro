@@ -102,6 +102,7 @@ export default function EditarPedido() {
   const [clienteResults, setClienteResults] = useState<Array<{ id: string; nome: string; telefone: string | null; endereco: string | null; numero: string | null; bairro: string | null; cidade: string | null; cep: string | null }>>([]);
   const [showClienteResults, setShowClienteResults] = useState(false);
   const clienteSearchRef = useRef<HTMLDivElement>(null);
+  const clienteInputWrapRef = useRef<HTMLDivElement>(null);
   const debounceClienteRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
