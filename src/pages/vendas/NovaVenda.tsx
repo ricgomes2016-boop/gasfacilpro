@@ -908,6 +908,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   const handleSelecionarEntregador = (id: string, nome: string) => {
     setEntregador({ id, nome });
+    if (!id) setJaEntregue(false);
     toast({
       title: "Entregador selecionado!",
       description: `${nome} foi atribuído a esta venda.`,
