@@ -1072,9 +1072,6 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         data_entrega: dataEntrega,
         created_at: toBrasiliaNoonISOString(dataEntrega),
       };
-      if (pedidoJaEntregue) {
-        pedidoInsert.data_entrega_realizada = new Date().toISOString();
-      }
 
       if (chequePag) {
         pedidoInsert.cheque_numero = chequePag.cheque_numero || null;
