@@ -1056,6 +1056,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       const chequePag = pagamentos.find(p => p.forma === "cheque");
       const fiadoPag = pagamentos.find(p => p.forma === "fiado");
 
+      const pedidoJaEntregue = jaEntregue && !!entregador.id;
       const pedidoInsert: any = {
         cliente_id: clienteId,
         entregador_id: entregador.id,
@@ -1066,11 +1067,14 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         canal_venda: canalVenda,
         origem_pedido: "erp",
         observacoes: customer.observacao,
-        status: "pendente",
+        status: pedidoJaEntregue ? "entregue" : "pendente",
         unidade_id: unidadeAtual?.id,
         data_entrega: dataEntrega,
         created_at: toBrasiliaNoonISOString(dataEntrega),
       };
+      if (pedidoJaEntregue) {
+        pedidoInsert.data_entrega_realizada = new Date().toISOString();
+      }
 
       if (chequePag) {
         pedidoInsert.cheque_numero = chequePag.cheque_numero || null;
