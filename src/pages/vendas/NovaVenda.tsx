@@ -1656,6 +1656,25 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
                 onSelectEntregador={handleSelecionarEntregador}
                 onVendedorAuto={handleVendedorAuto}
               />
+              <label
+                className={cn(
+                  "flex items-start gap-3 rounded-lg border p-3 transition-colors",
+                  entregador.id ? "cursor-pointer bg-muted/40 hover:bg-muted/60" : "cursor-not-allowed opacity-50",
+                )}
+              >
+                <Checkbox
+                  checked={jaEntregue}
+                  disabled={!entregador.id}
+                  onCheckedChange={(v) => setJaEntregue(v === true)}
+                  className="mt-0.5"
+                />
+                <div className="text-sm">
+                  <div className="font-medium">Pedido já entregue</div>
+                  <div className="text-xs text-muted-foreground">
+                    Apenas lançamento — não notifica o app do entregador e o pedido entra como <b>entregue</b>.
+                  </div>
+                </div>
+              </label>
               <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
               <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
               <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} />
