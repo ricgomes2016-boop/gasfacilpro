@@ -128,15 +128,42 @@ export default function EditarPedido() {
     if (debounceClienteRef.current) clearTimeout(debounceClienteRef.current);
     if (term.length < 2) { setClienteResults([]); setShowClienteResults(false); return; }
     debounceClienteRef.current = setTimeout(async () => {
+      const empresaId = (unidadeAtual as any)?.empresa_id || null;
+      // Prioriza busca por endereço via RPC (busca por rua/número/bairro/nome/telefone)
+      if (empresaId) {
+        const { data, error } = await supabase.rpc("autocomplete_clientes_v2" as any, {
+          _empresa_id: empresaId,
+          _unidade_id: unidadeAtual?.id || null,
+          _termo: term.trim(),
+          _limite: 10,
+        });
+        if (!error && data) {
+          const mapped = (data as any[]).map((c) => ({
+            id: c.id,
+            nome: c.nome,
+            telefone: c.telefone ?? null,
+            endereco: c.endereco ?? null,
+            numero: c.numero ?? null,
+            bairro: c.bairro ?? null,
+            cidade: c.cidade ?? null,
+            cep: c.cep ?? null,
+          }));
+          setClienteResults(mapped);
+          setShowClienteResults(mapped.length > 0);
+          return;
+        }
+      }
+      // Fallback: busca direta incluindo endereço/bairro
+      const like = `%${term}%`;
       const { data } = await supabase
         .from("clientes")
         .select("id, nome, telefone, endereco, numero, bairro, cidade, cep")
         .eq("ativo", true)
-        .or(`nome.ilike.%${term}%,telefone.ilike.%${term}%`)
-        .limit(8);
+        .or(`endereco.ilike.${like},bairro.ilike.${like},nome.ilike.${like},telefone.ilike.${like}`)
+        .limit(10);
       if (data) { setClienteResults(data); setShowClienteResults(data.length > 0); }
     }, 300);
-  }, []);
+  }, [unidadeAtual?.id]);
 
   const selectCliente = (cliente: typeof clienteResults[0]) => {
     setPedido(prev => prev ? { ...prev, cliente_id: cliente.id, cliente_nome: cliente.nome } : prev);
