@@ -322,6 +322,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     id: null,
     nome: null,
   });
+  const [jaEntregue, setJaEntregue] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Próximo número de pedido (preview na tela)
