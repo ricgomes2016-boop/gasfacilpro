@@ -1172,9 +1172,9 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       };
 
       // #5 - Rotear pagamentos para caixa/contas a receber/cheques
-      // Se tem entregador, o roteamento financeiro acontece APENAS no acerto diário
-      // porque o entregador ainda não entregou/coletou o dinheiro
-      if (!entregador.id) {
+      // Se tem entregador em rota, o roteamento acontece APENAS no acerto diário.
+      // Se o pedido já foi entregue (lançamento retroativo), rotear imediatamente.
+      if (!entregador.id || pedidoJaEntregue) {
         await rotearPagamentosVenda({
           pedidoId: pedido.id,
           pedidoNumero: (pedido as any).numero_sequencial ?? null,
@@ -1191,7 +1191,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             conta_bancaria_id: (p as any).conta_bancaria_id,
           })),
           unidadeId: unidadeAtual?.id,
-          entregadorId: null,
+          entregadorId: pedidoJaEntregue ? entregador.id : null,
         });
       }
 
