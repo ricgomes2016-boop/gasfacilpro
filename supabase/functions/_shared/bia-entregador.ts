@@ -256,40 +256,155 @@ export async function clearDraft(supabase: any, telefone: string) {
 
 // ===================== Resolução de cliente / produto =====================
 
+function normalizeStr(s: string): string {
+  return (s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/^\s*(rua|r\.?|avenida|av\.?|travessa|tv\.?|alameda|al\.?|pra[cç]a|pc\.?|estrada|estr\.?|rodovia|rod\.?)\s+/i, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseEndereco(texto: string): { rua: string; numero: string; bairro: string } {
+  const raw = (texto || "").trim();
+  if (!raw) return { rua: "", numero: "", bairro: "" };
+  // Ex.: "Rua Francisco Bayardo Lacerda, 23, Centro" | "Av. Brasil 123 - Bairro X"
+  const parts = raw.split(/[,\-–—]/).map((p) => p.trim()).filter(Boolean);
+  let rua = parts[0] || "";
+  let numero = "";
+  let bairro = "";
+  const numMatch = rua.match(/\b(\d{1,6})\b/);
+  if (numMatch) {
+    numero = numMatch[1];
+    rua = rua.replace(numMatch[0], "").trim();
+  }
+  if (parts.length >= 2) {
+    const p2 = parts[1];
+    const nm = p2.match(/^\d{1,6}$/);
+    if (nm && !numero) numero = nm[0];
+    else if (!numero && /^\d{1,6}/.test(p2)) {
+      const m = p2.match(/^(\d{1,6})\s*(.*)$/);
+      if (m) { numero = m[1]; if (m[2]) bairro = m[2]; }
+    } else if (!bairro) bairro = p2;
+  }
+  if (!bairro && parts.length >= 3) bairro = parts[2];
+  return { rua: rua.trim(), numero: numero.trim(), bairro: bairro.trim() };
+}
+
+/**
+ * Tenta encontrar cliente existente priorizando ENDEREÇO na unidade.
+ * Ordem: 1) endereço (clientes + cliente_enderecos), 2) nome, 3) cria novo.
+ */
 async function resolveCliente(
   supabase: any,
   item: DraftItem,
   unidadeId: string | null,
   empresaId: string | null,
 ): Promise<{ clienteId: string | null; clienteNome: string; endereco: string }> {
-  const queryText = (item.cliente_texto || item.endereco_texto || "").trim();
-  const endereco = item.endereco_texto || "";
+  const endereco = (item.endereco_texto || "").trim();
+  const nomeTexto = (item.cliente_texto || "").trim();
+  const parsed = parseEndereco(endereco);
+  const ruaNorm = normalizeStr(parsed.rua);
+  const bairroNorm = normalizeStr(parsed.bairro);
 
-  if (queryText && unidadeId) {
-    // Match simples: busca por nome ou endereço com ilike, escopado à unidade
-    const like = `%${queryText.slice(0, 40)}%`;
+  // IDs de clientes escopo unidade
+  let clienteIdsUnidade: string[] = [];
+  if (unidadeId) {
+    const { data: cu } = await supabase
+      .from("cliente_unidades")
+      .select("cliente_id")
+      .eq("unidade_id", unidadeId);
+    clienteIdsUnidade = (cu || []).map((r: any) => r.cliente_id);
+  }
+
+  // 1) Match por ENDEREÇO
+  if (ruaNorm && ruaNorm.length >= 3 && clienteIdsUnidade.length > 0) {
+    const ruaLike = `%${parsed.rua.slice(0, 30)}%`;
+    // 1a) tabela clientes
+    const { data: matches } = await supabase
+      .from("clientes")
+      .select("id, nome, endereco, numero, bairro")
+      .in("id", clienteIdsUnidade)
+      .ilike("endereco", ruaLike)
+      .limit(20);
+
+    const scored = (matches || []).map((c: any) => {
+      const cRua = normalizeStr(c.endereco || "");
+      const cBairro = normalizeStr(c.bairro || "");
+      let score = 0;
+      if (cRua && (cRua.includes(ruaNorm) || ruaNorm.includes(cRua))) score += 3;
+      if (parsed.numero && String(c.numero || "").trim() === parsed.numero) score += 3;
+      if (bairroNorm && cBairro && (cBairro === bairroNorm || cBairro.includes(bairroNorm))) score += 2;
+      return { c, score };
+    }).filter((x) => x.score >= 3).sort((a, b) => b.score - a.score);
+
+    if (scored.length > 0) {
+      const best = scored[0].c;
+      console.log("[bia-entregador] cliente resolvido por endereço:", best.id, best.nome);
+      return { clienteId: best.id, clienteNome: best.nome, endereco: endereco || best.endereco || "" };
+    }
+
+    // 1b) tabela cliente_enderecos (endereços adicionais do app)
+    const { data: ce } = await supabase
+      .from("cliente_enderecos")
+      .select("cliente_id, rua, numero, bairro")
+      .in("cliente_id", clienteIdsUnidade)
+      .ilike("rua", ruaLike)
+      .limit(20);
+    const scoredCe = (ce || []).map((r: any) => {
+      const cRua = normalizeStr(r.rua || "");
+      const cBairro = normalizeStr(r.bairro || "");
+      let score = 0;
+      if (cRua && (cRua.includes(ruaNorm) || ruaNorm.includes(cRua))) score += 3;
+      if (parsed.numero && String(r.numero || "").trim() === parsed.numero) score += 3;
+      if (bairroNorm && cBairro && (cBairro === bairroNorm || cBairro.includes(bairroNorm))) score += 2;
+      return { r, score };
+    }).filter((x) => x.score >= 3).sort((a, b) => b.score - a.score);
+    if (scoredCe.length > 0) {
+      const cliId = scoredCe[0].r.cliente_id;
+      const { data: cli } = await supabase.from("clientes").select("id, nome, endereco").eq("id", cliId).maybeSingle();
+      if (cli) {
+        console.log("[bia-entregador] cliente resolvido por cliente_enderecos:", cli.id, cli.nome);
+        return { clienteId: cli.id, clienteNome: cli.nome, endereco: endereco || cli.endereco || "" };
+      }
+    }
+  }
+
+  // 2) Match por NOME dentro da unidade
+  if (nomeTexto && nomeTexto.length >= 3 && clienteIdsUnidade.length > 0) {
+    const like = `%${nomeTexto.slice(0, 40)}%`;
     const { data } = await supabase
       .from("clientes")
       .select("id, nome, endereco")
-      .or(`nome.ilike.${like},endereco.ilike.${like}`)
+      .in("id", clienteIdsUnidade)
+      .ilike("nome", like)
       .limit(2);
     if (data && data.length === 1) {
+      console.log("[bia-entregador] cliente resolvido por nome:", data[0].id, data[0].nome);
       return { clienteId: data[0].id, clienteNome: data[0].nome, endereco: endereco || data[0].endereco || "" };
     }
   }
 
-  // Cria cliente avulso
-  const nome = item.cliente_texto
-    ? item.cliente_texto.replace(/\b\w/g, (c) => c.toUpperCase())
-    : item.endereco_texto
-      ? `Cliente ${item.endereco_texto.split(",")[0]}`
+  // 3) Cria cliente novo
+  const nome = nomeTexto
+    ? nomeTexto.replace(/\b\w/g, (c) => c.toUpperCase())
+    : endereco
+      ? `Cliente ${endereco.split(",")[0]}`
       : "Cliente Avulso";
 
-  const insert: any = { nome, endereco: endereco || null };
+  const insert: any = {
+    nome,
+    endereco: parsed.rua || endereco || null,
+    numero: parsed.numero || null,
+    bairro: parsed.bairro || null,
+  };
   if (empresaId) insert.empresa_id = empresaId;
   const { data: novo, error } = await supabase.from("clientes").insert(insert).select("id, nome").single();
   if (error || !novo) return { clienteId: null, clienteNome: nome, endereco };
   if (unidadeId) await supabase.from("cliente_unidades").insert({ cliente_id: novo.id, unidade_id: unidadeId });
+  console.log("[bia-entregador] cliente novo criado:", novo.id, novo.nome);
   return { clienteId: novo.id, clienteNome: novo.nome, endereco };
 }
 
