@@ -574,7 +574,7 @@ export default function EditarPedido() {
                   <div className="relative" ref={clienteInputWrapRef}>
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar outro cliente por nome ou telefone..."
+                      placeholder="Buscar por endereço, rua, número, bairro, nome ou telefone..."
                       value={clienteSearch}
                       onChange={(e) => {
                         setClienteSearch(e.target.value);
