@@ -1,27 +1,80 @@
-## Diagnóstico corrigido
+## Objetivo
 
-Entregador é **Marcos Godoy** (nome no WhatsApp), cadastrado como **Marcos Antônio** com telefone `43988045994` na unidade **Forte Gás** (mesma empresa Central Gas). Ele mandou `01 gás Angélica Bolos 105,00 pix`, `01 gás Francisco Bayardo Lacerda 23 Ana Cláudia - 105,00 fiado`, `02 Águas tabacaria Bus - 15,00 cada pix` no WhatsApp da Forte Gás, e a Bia respondeu como cliente ("estamos fechados"), pulando o fluxo do entregador.
+Priorizar **endereço** como chave principal de busca/identificação de cliente em dois pontos:
 
-Causa raiz em `findEntregadorByPhone` (`supabase/functions/_shared/bia-entregador.ts`):
+1. Tela **Vendas / Editar Pedido** — busca de cliente
+2. Fluxo **Bia + Entregador** — antes de criar cliente novo, procurar por endereço
 
-- WhatsApp entregou o `phone` como `4388045994` (10 dígitos, sem o "9" do celular).
-- Cadastro tem `43988045994` (11 dígitos, com o "9").
-- Comparação atual por `ilike '%últimos10%'` não bate (`4388045994` vs `3988045994`).
+---
 
-Não é problema de LID nem de unidade — é normalização de telefone brasileiro (dígito 9 do celular).
+## 1. Vendas / Editar Pedido — busca prioriza endereço
 
-## Correção (só backend)
+**Arquivo:** `src/pages/vendas/EditarPedido.tsx` (componente de busca de cliente já usa portal)
 
-Editar apenas `supabase/functions/_shared/bia-entregador.ts`:
+**Mudanças:**
+- Alterar o placeholder do input para: *"Buscar por endereço, rua, número, bairro, nome ou telefone"*.
+- Alterar a renderização de cada resultado para exibir o **endereço em destaque** (linha 1, negrito) e o nome/telefone/cidade em linha secundária (igual ao padrão já usado em `ClienteSearchVendedor.tsx`, que é a referência de UX aprovada).
+- A RPC `autocomplete_clientes_v2` já busca por endereço/bairro/rua — não precisa alterar backend. Apenas garantir que a ordenação priorize matches em `endereco` quando o termo tiver 3+ caracteres alfabéticos (verificar se a função SQL já faz; se não, ajustar via migração).
 
-1. Em `findEntregadorByPhone`, gerar variantes do telefone recebido: últimos 8, últimos 10, últimos 11, "com 9 inserido depois do DDD" e "sem 9 depois do DDD". Buscar via `or(telefone.ilike.%v%,…)` com todas.
-2. Resolver `empresa_id` da instância e buscar entregadores ativos em qualquer unidade dessa empresa; preferir match na própria unidade da instância quando houver múltiplos (caso do Marcos, que existe em 2 unidades).
-3. Fallback por `senderName` (primeiro nome, `ilike`) só quando `phone` vier como `@lid` ou tiver menos de 8 dígitos — aceitar apenas se resultado for exatamente 1 entregador na empresa.
-4. Manter `ativo=true` e retorno `null` silencioso; fluxo cliente segue intacto quando não achar.
+**Verificação necessária antes de codar:** ler a definição de `autocomplete_clientes_v2` para confirmar se já pondera endereço. Se sim, mudança é 100% frontend.
 
-Sem mudanças em UI, RLS, parser, `bia-core.ts` ou webhooks; o módulo é reimportado automaticamente pelos webhooks.
+---
 
-## Validação
+## 2. Bia (entregador) — buscar endereço antes de criar cliente
 
-- Marcos Godoy reenvia `01 gás Angélica Bolos 105,00 pix` de `43 98804-5994` para o WhatsApp da Forte Gás → Bia responde com o resumo pedindo `OK`.
-- Cliente comum continua no fluxo normal.
+**Arquivo principal:** `supabase/functions/_shared/bia-entregador.ts` (fluxo de lançamento de pedido pelo entregador via WhatsApp)
+
+**Fluxo atual (resumido):** Bia extrai dados da mensagem → cria cliente novo → cria pedido.
+
+**Fluxo novo:**
+
+```text
+Mensagem do entregador
+   ↓
+Extrair: nome, endereço (rua+número), bairro, telefone
+   ↓
+1º — Buscar cliente por ENDEREÇO na unidade
+     (tabelas: clientes.endereco+numero+bairro
+              + cliente_enderecos.rua+numero+bairro
+              filtrado por cliente_unidades.unidade_id)
+   ↓
+   Encontrou match forte de endereço?
+   ├── SIM → usar esse cliente_id (não criar novo)
+   └── NÃO → 2º fallback: buscar por telefone (se veio)
+             ├── SIM → usar cliente existente
+             └── NÃO → 3º criar cliente novo + associar à unidade
+   ↓
+Criar pedido vinculado ao cliente_id resolvido
+```
+
+**Critério de "match forte de endereço":**
+- Mesma unidade (via `cliente_unidades`)
+- Rua normalizada igual (lowercase, sem acentos, sem "rua/av/r.")
+- Número igual (quando informado nos dois lados)
+- Bairro igual OU vazio em um dos lados
+
+**Implementação:**
+- Nova função helper `resolverClientePorEndereco(supabase, { unidadeId, rua, numero, bairro, telefone, nome })` em `supabase/functions/_shared/bia-entregador.ts` (ou arquivo auxiliar `_shared/cliente-resolver.ts` se ficar grande).
+- Usa `supabase.from('clientes').select().eq('empresa_id', ...)` + join implícito com `cliente_unidades`, e também consulta `cliente_enderecos`.
+- Retorna `{ clienteId, criouNovo: boolean, matchTipo: 'endereco' | 'telefone' | 'novo' }`.
+- Substituir o trecho atual que sempre insere em `clientes` pela chamada dessa função.
+- Adicionar log claro (`console.log('[bia-entregador] cliente resolvido por', matchTipo, clienteId)`) para auditoria.
+
+**Efeito colateral positivo:** os 3 pedidos que o Marcos lançou hoje (Angélica, Ana Cláudia, Tabacaria Bus) só criaram cliente novo porque o fluxo antigo nunca procurou. Com a mudança, próximas mensagens reusarão o cadastro.
+
+---
+
+## Fora de escopo (não vou mexer)
+
+- Não altero a UI do PDV / Nova Venda / Vendedor (já está no padrão endereço-primeiro).
+- Não altero a RPC `autocomplete_clientes_v2` a menos que a leitura mostre que ela ignora endereço.
+- Não crio backfill/deduplicação de clientes duplicados existentes — se quiser, é outro pedido.
+
+---
+
+## Entregáveis
+
+1. Edit em `src/pages/vendas/EditarPedido.tsx` (placeholder + layout do dropdown).
+2. Edit em `supabase/functions/_shared/bia-entregador.ts` (resolver por endereço antes de criar).
+3. Possível migração pequena se `autocomplete_clientes_v2` não priorizar endereço (confirmar na fase de build).
+4. Deploy das edge functions afetadas (`bia-webhook` / a que importa `bia-entregador.ts`).
