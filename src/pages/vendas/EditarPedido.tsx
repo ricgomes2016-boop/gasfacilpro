@@ -607,9 +607,12 @@ export default function EditarPedido() {
                                   selectCliente(c);
                                 }}
                               >
-                                <p className="font-medium text-sm">{c.nome}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {c.telefone} • {c.endereco}
+                                <p className="font-medium text-sm truncate">
+                                  <MapPin className="inline h-3 w-3 mr-1 text-primary" />
+                                  {[c.endereco && c.numero ? `${c.endereco}, ${c.numero}` : c.endereco, c.bairro].filter(Boolean).join(" — ") || "Sem endereço"}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {[c.nome, c.telefone, c.cidade].filter(Boolean).join(" • ")}
                                 </p>
                               </button>
                             ))}
