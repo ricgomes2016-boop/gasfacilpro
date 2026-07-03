@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -321,6 +322,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     id: null,
     nome: null,
   });
+  const [jaEntregue, setJaEntregue] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Próximo número de pedido (preview na tela)
@@ -906,6 +908,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   const handleSelecionarEntregador = (id: string, nome: string) => {
     setEntregador({ id, nome });
+    if (!id) setJaEntregue(false);
     toast({
       title: "Entregador selecionado!",
       description: `${nome} foi atribuído a esta venda.`,
@@ -1054,6 +1057,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       const chequePag = pagamentos.find(p => p.forma === "cheque");
       const fiadoPag = pagamentos.find(p => p.forma === "fiado");
 
+      const pedidoJaEntregue = jaEntregue && !!entregador.id;
       const pedidoInsert: any = {
         cliente_id: clienteId,
         entregador_id: entregador.id,
@@ -1064,7 +1068,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         canal_venda: canalVenda,
         origem_pedido: "erp",
         observacoes: customer.observacao,
-        status: "pendente",
+        status: pedidoJaEntregue ? "entregue" : "pendente",
         unidade_id: unidadeAtual?.id,
         data_entrega: dataEntrega,
         created_at: toBrasiliaNoonISOString(dataEntrega),
@@ -1169,9 +1173,9 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       };
 
       // #5 - Rotear pagamentos para caixa/contas a receber/cheques
-      // Se tem entregador, o roteamento financeiro acontece APENAS no acerto diário
-      // porque o entregador ainda não entregou/coletou o dinheiro
-      if (!entregador.id) {
+      // Se tem entregador em rota, o roteamento acontece APENAS no acerto diário.
+      // Se o pedido já foi entregue (lançamento retroativo), rotear imediatamente.
+      if (!entregador.id || pedidoJaEntregue) {
         await rotearPagamentosVenda({
           pedidoId: pedido.id,
           pedidoNumero: (pedido as any).numero_sequencial ?? null,
@@ -1188,7 +1192,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             conta_bancaria_id: (p as any).conta_bancaria_id,
           })),
           unidadeId: unidadeAtual?.id,
-          entregadorId: null,
+          entregadorId: pedidoJaEntregue ? entregador.id : null,
         });
       }
 
@@ -1209,6 +1213,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
       // #6 - Clear draft after successful sale
       clearDraft();
+      setJaEntregue(false);
 
       toast({
         title: "Venda finalizada!",
@@ -1606,8 +1611,27 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               </div>
             )}
             {activeStep === "entregador" && (
-              <div className="venda-step-panel venda-tone-entregador w-full">
+              <div className="venda-step-panel venda-tone-entregador w-full space-y-3">
                 <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} onVendedorAuto={handleVendedorAuto} endereco={customer.endereco} />
+                <label
+                  className={cn(
+                    "flex items-start gap-3 rounded-lg border p-3 transition-colors",
+                    entregador.id ? "cursor-pointer bg-muted/40 hover:bg-muted/60" : "cursor-not-allowed opacity-50",
+                  )}
+                >
+                  <Checkbox
+                    checked={jaEntregue}
+                    disabled={!entregador.id}
+                    onCheckedChange={(v) => setJaEntregue(v === true)}
+                    className="mt-0.5"
+                  />
+                  <div className="text-sm">
+                    <div className="font-medium">Pedido já entregue</div>
+                    <div className="text-xs text-muted-foreground">
+                      Apenas lançamento — a entrega já aconteceu. Não envia notificação ao app do entregador e o pedido entra como <b>entregue</b>.
+                    </div>
+                  </div>
+                </label>
                 <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
               </div>
             )}
@@ -1634,6 +1658,25 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
                 onSelectEntregador={handleSelecionarEntregador}
                 onVendedorAuto={handleVendedorAuto}
               />
+              <label
+                className={cn(
+                  "flex items-start gap-3 rounded-lg border p-3 transition-colors",
+                  entregador.id ? "cursor-pointer bg-muted/40 hover:bg-muted/60" : "cursor-not-allowed opacity-50",
+                )}
+              >
+                <Checkbox
+                  checked={jaEntregue}
+                  disabled={!entregador.id}
+                  onCheckedChange={(v) => setJaEntregue(v === true)}
+                  className="mt-0.5"
+                />
+                <div className="text-sm">
+                  <div className="font-medium">Pedido já entregue</div>
+                  <div className="text-xs text-muted-foreground">
+                    Apenas lançamento — não notifica o app do entregador e o pedido entra como <b>entregue</b>.
+                  </div>
+                </div>
+              </label>
               <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
               <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
               <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} />
