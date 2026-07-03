@@ -1213,6 +1213,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
       // #6 - Clear draft after successful sale
       clearDraft();
+      setJaEntregue(false);
 
       toast({
         title: "Venda finalizada!",
