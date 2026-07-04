@@ -373,11 +373,18 @@ export default function Pedidos() {
     queryClient.invalidateQueries({ queryKey: ["pedidos"] });
   };
 
+  const isPedidoBloqueado = (status: string) =>
+    status === "cancelado" || status === "entregue" || status === "finalizado";
+
   const alterarStatusPedido = (pedidoId: string, novoStatus: PedidoStatus) => {
+    const pedidoAtual = pedidos.find((p) => p.id === pedidoId);
+    if (pedidoAtual?.status === "finalizado") {
+      toast({ title: "Pedido finalizado", description: "Este pedido já teve o acerto realizado com o entregador e não pode ser alterado.", variant: "destructive" });
+      return;
+    }
     // Bloquear "entregue" sem forma de pagamento
     if (novoStatus === "entregue") {
-      const pedido = pedidos.find((p) => p.id === pedidoId);
-      if (pedido && !pedido.forma_pagamento) {
+      if (pedidoAtual && !pedidoAtual.forma_pagamento) {
         toast({ title: "Forma de pagamento obrigatória", description: "Não é possível marcar como entregue sem forma de pagamento. Edite o pedido primeiro.", variant: "destructive" });
         return;
       }
