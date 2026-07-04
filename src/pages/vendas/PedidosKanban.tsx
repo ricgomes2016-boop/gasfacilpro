@@ -312,7 +312,7 @@ function DetailModal({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Pedido #{getNumero(pedido)}</DialogTitle>
-          <div className="text-xs text-muted-foreground">{pedido.data} · {pedido.forma_pagamento || "—"}</div>
+          <div className="text-xs text-muted-foreground">{pedido.data} · {formaLabel(pedido.forma_pagamento)}</div>
         </DialogHeader>
 
         {/* Status chips */}
