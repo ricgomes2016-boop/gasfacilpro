@@ -75,7 +75,7 @@ interface ContaReceber {
   pix_copia_cola?: string | null;
 }
 
-const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque", "Vale Gás"];
+const FORMAS_PAGAMENTO_BUILTIN = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque", "Vale Gás"];
 
 // Categorias de filtro disponíveis na barra unificada
 const FORMA_FILTER_OPTIONS: { value: FormaCategoria; label: string; grupo: "a_vista" | "a_prazo" | "outros" }[] = [
