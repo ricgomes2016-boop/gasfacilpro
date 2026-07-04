@@ -31,6 +31,7 @@ interface CustomerHistoryProps {
 export function CustomerHistory({ clienteId }: CustomerHistoryProps) {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(false);
+  const formaLabel = useFormaPagamentoLabel();
 
   useEffect(() => {
     if (!clienteId) {
