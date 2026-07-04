@@ -14,6 +14,12 @@ Deno.serve(async (req: Request) => {
   try {
     const auth = await requireAuth(req, { "Content-Type": "application/json" });
     if (!auth.ok) return auth.response;
+    if (!auth.isServiceRole) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Forbidden: service_role required" }),
+        { status: 403, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
