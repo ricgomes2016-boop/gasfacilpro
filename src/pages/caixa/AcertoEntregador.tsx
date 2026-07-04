@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
@@ -67,7 +68,7 @@ const paymentLabels: Record<string, string> = {
   "Gás do Povo": "Gás do Povo",
 };
 
-const formasPagamento = [
+const FORMAS_PAGAMENTO_BUILTIN = [
   "Dinheiro", "PIX", "PIX Maquininha", "Cartão Crédito", "Cartão Débito", "Cheque", "Vale Gás", "Fiado", "Boleto", "Gás do Povo",
 ];
 
@@ -115,6 +116,8 @@ function canonicalForma(raw: string): string {
   };
   if (direct[s]) return direct[s];
   if (FORMAS_CANONICAS.has(s)) return s;
+  // Formas customizadas: preserva o slug como está.
+  if (s.startsWith("custom_avista_") || s.startsWith("custom_aprazo_")) return s;
   return "__invalido__";
 }
 
@@ -165,6 +168,14 @@ interface EditingEntrega {
 
 export default function AcertoEntregador() {
   const { unidadeAtual } = useUnidade();
+  const { data: formasCustom = [] } = useFormasPagamentoCustom({ onlyActive: true });
+  const formasPagamento = useMemo(
+    () => [
+      ...FORMAS_PAGAMENTO_BUILTIN.map((f) => ({ value: f, label: f })),
+      ...formasCustom.map((c) => ({ value: c.slug, label: `${c.icone} ${c.nome}` })),
+    ],
+    [formasCustom],
+  );
   const { parceiros } = useValeGas();
   const { hasAnyRole } = useAuth();
   const { toast: toastHook } = useToast();
@@ -1483,7 +1494,7 @@ export default function AcertoEntregador() {
                         <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {formasPagamento.map((f) => (
-                            <SelectItem key={f} value={f}>{f}</SelectItem>
+                            <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
