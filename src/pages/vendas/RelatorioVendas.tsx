@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { getBrasiliaDateString, cn } from "@/lib/utils";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
