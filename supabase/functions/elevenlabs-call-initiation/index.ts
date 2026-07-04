@@ -19,7 +19,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-secret",
 };
 
 // Mesma lista usada em twilio-voice-webhook / vonage-voice-webhook
@@ -39,8 +39,26 @@ function normalizeE164(s: string | null | undefined) {
   return d.startsWith("55") ? "+" + d : d.length >= 10 ? "+55" + d.slice(-11) : "+" + d;
 }
 
+function safeEqualInit(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let x = 0; for (let i = 0; i < a.length; i++) x |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return x === 0;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Fail-closed: require ELEVENLABS_WEBHOOK_SECRET via x-admin-secret header
+  // (configure this in ElevenLabs Agent > Conversation Initiation Webhook > Headers).
+  const expected = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET") || "";
+  const provided = req.headers.get("x-admin-secret") || "";
+  if (!expected || !provided || !safeEqualInit(expected, provided)) {
+    console.warn("[EL-INIT] Unauthorized: missing/invalid x-admin-secret");
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
 
   // Sempre 200 OK com fallback seguro — nunca derrubar a chamada por erro nosso
   let body: any = {};
