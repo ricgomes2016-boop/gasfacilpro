@@ -133,7 +133,7 @@ export function EntregaCard({ entrega, onAceitar, sameBairroCount }: EntregaCard
           </div>
 
           <div className="flex items-center justify-between pt-2 border-t border-border">
-            <p className="text-xs text-muted-foreground">{entrega.forma_pagamento || "—"}</p>
+            <p className="text-xs text-muted-foreground truncate max-w-[60%]" title={formaLabel(entrega.forma_pagamento)}>{formaLabel(entrega.forma_pagamento)}</p>
             <p className="font-bold text-lg text-primary">
               R$ {(entrega.valor_total || 0).toFixed(2)}
             </p>
