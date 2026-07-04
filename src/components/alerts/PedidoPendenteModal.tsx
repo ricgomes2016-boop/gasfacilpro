@@ -43,6 +43,7 @@ export function PedidoPendenteModal({
   onSnooze,
 }: Props) {
   const [agora, setAgora] = useState(Date.now());
+  const formaLabel = useFormaPagamentoLabel();
 
   useEffect(() => {
     const i = setInterval(() => setAgora(Date.now()), 1000);
