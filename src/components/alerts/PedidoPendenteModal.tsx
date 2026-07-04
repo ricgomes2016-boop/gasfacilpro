@@ -177,7 +177,7 @@ export function PedidoPendenteModal({
           <p className="text-sm font-medium">{pedido.itens_resumo}</p>
           <div className="flex items-center justify-between pt-1 border-t">
             <span className="text-xs text-muted-foreground">
-              {pedido.forma_pagamento || "A definir"}
+              {pedido.forma_pagamento ? formaLabel(pedido.forma_pagamento) : "A definir"}
             </span>
             <span className="text-lg font-bold text-primary">
               R$ {pedido.valor_total.toFixed(2)}
