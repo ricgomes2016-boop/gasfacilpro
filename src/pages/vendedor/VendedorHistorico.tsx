@@ -22,6 +22,7 @@ export default function VendedorHistorico() {
   const { user } = useAuth();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
+  const formaLabel = useFormaPagamentoLabel();
 
   useEffect(() => {
     if (!user?.id) return;
