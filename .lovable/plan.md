@@ -1,36 +1,63 @@
+## Objetivo
 
-# Plano: consolidar Forte Gás na empresa antiga (reativá-la como matriz)
+Garantir e comprovar que **nenhum dado da unidade Forte Gás** (antes filial da Central Gas) foi perdido na migração/consolidação, incluindo integração **Zapi WhatsApp** e **todos os clientes** que eram atendidos por essa filial.
 
-## Estado atual (do banco)
-- Empresa **"Forte Gás"** (antiga, inativa)
-  - unidade "Matriz" (auto-criada) — tem 3 pedidos históricos.
-- Empresa **"Forte Gás Distribuidora"** (criada pelo spin-off, ativa)
-  - unidade **"Forte Gás"** — é a unidade real, foi tirada da Central Gas na migração e virou matriz aqui. Concentra 70 clientes, 10 usuários e ~40 mil vínculos de cliente_unidades.
-  - unidade "Matriz" (auto-criada, órfã) — nunca usada.
+## Estado atual verificado (Forte Gás — unidade `3a3dbca4`, empresa `c94c210b`)
 
-## O que a operação vai fazer (data-only, uma única migration de reparo)
+| Item | Contagem |
+|---|---|
+| cliente_unidades (vínculos cliente↔unidade) | 55.288 |
+| clientes (empresa Forte Gás) | 14.984 |
+| pedidos | 128 |
+| user_unidades (acessos) | 10 |
+| produtos | 9 |
+| contas bancárias | 5 |
+| funcionários | 3 |
+| entregadores | 4 |
+| Integração WhatsApp Zapi (`provedor=zapi`, `provedor_tipo=evolution`, token/instance preservados, ativo=true) | 1 |
+| Registros órfãos em clientes/cliente_unidades/user_unidades/pedidos | 0 |
 
-1. **Reativar** a empresa "Forte Gás" antiga (`ativo = true`).
-2. **Mover a unidade "Forte Gás"** (a de verdade) para dentro da empresa antiga, mantendo `tipo = matriz`.
-3. **Reatribuir os 3 pedidos** da unidade "Matriz" antiga → unidade "Forte Gás".
-4. **Migrar quaisquer outros vínculos** da unidade "Matriz" antiga (contas bancárias, entregadores, funcionários, produtos, cliente_unidades, user_unidades) → unidade "Forte Gás".
-5. **Apagar a unidade "Matriz" antiga** (07f9bfac) — agora vazia.
-6. **Apagar a unidade "Matriz" órfã** dentro de "Forte Gás Distribuidora" (b5429c3a) — nunca teve dados.
-7. **Atualizar `clientes.empresa_id`** de `Forte Gás Distribuidora` → `Forte Gás` (70 registros).
-8. **Atualizar `profiles.empresa_id`** de `Forte Gás Distribuidora` → `Forte Gás` (0 no momento; no-op se continuar assim).
-9. **Apagar a empresa "Forte Gás Distribuidora"** (já vazia).
+Nenhuma referência quebrada foi detectada e a integração Zapi está intacta na unidade Forte Gás.
 
-Tudo dentro de uma única transação, para que qualquer falha faça rollback e nada fique parcialmente aplicado.
+## Plano de auditoria e blindagem (somente leitura + relatório)
 
-## Resultado final
-- Existe **uma única empresa "Forte Gás"**, ativa, com uma única unidade **"Forte Gás"** como matriz.
-- Nenhum cliente, usuário, vínculo, pedido ou saldo é perdido — todos passam a apontar para a Forte Gás consolidada.
-- Central Gas **continua sem a Forte Gás como filial** (essa foi a mudança que a migração original produziu e é o cenário que você confirmou querer manter).
+Nenhuma alteração de schema ou de código é necessária. O objetivo é **auditar, comprovar e documentar** que tudo foi preservado, e gerar um snapshot CSV para o usuário guardar.
 
-## Fora do escopo desta iteração
-- Não vou alterar código do frontend, do edge function `migrate-unidade`, RLS, nem rotas.
-- Melhorias no botão "Migrar unidade" (mensagens de erro claras, bloquear spin-off duplicado, remoção da unidade "Matriz" órfã criada por trigger) ficam para uma próxima iteração, se você pedir.
-- Não vou mexer em outras empresas inativas antigas (Sertaneja, ABMF, Temgas, Morumbi Gás, Japa Gás) — só a Forte Gás.
+### 1. Auditoria completa por tabela vinculada à unidade Forte Gás
+Rodar contagens em todas as tabelas com `unidade_id` que podem ter dados relevantes, comparando com o estado esperado:
 
-## Como confirmar depois
-Após aplicar, farei uma consulta mostrando: empresas Forte Gás, unidades vinculadas, contagem de clientes/pedidos/usuários — pra você conferir que ficou como esperado.
+- Operacional: `pedidos`, `pedido_itens` (via join), `orcamentos`, `devolucoes`, `movimentacoes_estoque`, `carregamentos_rota`, `rotas`, `escalas_entregador`
+- Financeiro: `contas_pagar`, `contas_receber`, `movimentacoes_caixa`, `caixa_sessoes`, `extrato_bancario`, `movimentacoes_bancarias`, `boletos_emitidos`, `cheques`
+- Cadastros: `clientes`, `cliente_unidades`, `cliente_enderecos`, `cliente_creditos`, `produtos`, `fornecedores`, `funcionarios`, `entregadores`, `veiculos`
+- Fiscal: `notas_fiscais`, `nota_fiscal_itens`, `compras`, `compra_itens`
+- Atendimento/IA: `ai_conversas`, `ai_mensagens`, `chamadas_recebidas`, `chat_mensagens`, `bia_followups`
+- WhatsApp/Marketing: `integracoes_whatsapp`, `whatsapp_gateway_instances`, `marketing_conversas`, `marketing_conteudos`, `marketing_agendamentos`
+- Vale Gás/Comodato: `vale_gas`, `vale_gas_lotes`, `comodatos`
+- Configuração: `configuracoes_empresa`, `configuracoes_visuais`, `formas_pagamento_custom`, `politicas_cobranca`, `sla_config`
+
+### 2. Verificação cruzada de integridade
+- Zero referências órfãs entre `clientes`, `cliente_unidades`, `user_unidades`, `pedidos`, `notas_fiscais` → unidades/empresas existentes.
+- Nenhum registro ainda apontando para a empresa/unidades removidas (spin-off "Forte Gás Distribuidora" e "Matriz" órfãs).
+- Sequencial de pedidos (`pedido_sequencias_unidade`) coerente com o `MAX(numero_sequencial)` real da unidade Forte Gás.
+- `configuracoes_empresa` presente para empresa Forte Gás.
+
+### 3. Verificação específica de WhatsApp
+- Confirmar `integracoes_whatsapp` da unidade Forte Gás com `provedor='zapi'`, token, `instance_id` e `security_token` preservados (já confirmado).
+- Listar `ai_conversas`, `chamadas_recebidas` e `marketing_conversas` da unidade para garantir histórico de atendimento preservado.
+- Checar `did_empresa_routing` se houver DID roteado para Forte Gás.
+
+### 4. Verificação específica dos clientes "que eram da Central Gas"
+Interpretação: clientes atendidos pela filial Forte Gás quando ela pertencia à Central Gas.
+- Contar clientes vinculados à unidade Forte Gás via `cliente_unidades` (esperado: 55.288 vínculos, 14.984 clientes distintos na empresa).
+- Verificar se algum cliente com pedido histórico na unidade Forte Gás está sem vínculo em `cliente_unidades` (auto-heal via relatório, sem alterar dados nesta fase).
+- Confirmar que endereços, créditos, tags e observações desses clientes seguem acessíveis.
+
+### 5. Entregável
+- Relatório consolidado exibido no chat com todas as contagens.
+- Export CSV do inventário (uma linha por tabela: `tabela`, `escopo`, `total`) salvo em `/mnt/documents/auditoria-forte-gas.csv` para download.
+- Se qualquer divergência ou órfão for detectado, listar exatamente quais registros e propor um segundo plano de correção — **sem alterar dados neste passo**.
+
+## Fora de escopo
+- Nenhuma edição de código, RLS, edge function ou schema.
+- Nenhum `UPDATE`/`DELETE`/`INSERT`. Somente leitura + CSV.
+- Correções de eventuais divergências ficam para um plano separado, após sua aprovação do relatório.
