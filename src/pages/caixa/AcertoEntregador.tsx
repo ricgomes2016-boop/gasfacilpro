@@ -68,7 +68,7 @@ const paymentLabels: Record<string, string> = {
   "Gás do Povo": "Gás do Povo",
 };
 
-const formasPagamento = [
+const FORMAS_PAGAMENTO_BUILTIN = [
   "Dinheiro", "PIX", "PIX Maquininha", "Cartão Crédito", "Cartão Débito", "Cheque", "Vale Gás", "Fiado", "Boleto", "Gás do Povo",
 ];
 
@@ -171,8 +171,8 @@ export default function AcertoEntregador() {
   const { data: formasCustom = [] } = useFormasPagamentoCustom({ onlyActive: true });
   const formasPagamento = useMemo(
     () => [
-      "Dinheiro", "PIX", "PIX Maquininha", "Cartão Crédito", "Cartão Débito", "Cheque", "Vale Gás", "Fiado", "Boleto", "Gás do Povo",
-      ...formasCustom.map((c) => c.slug),
+      ...FORMAS_PAGAMENTO_BUILTIN.map((f) => ({ value: f, label: f })),
+      ...formasCustom.map((c) => ({ value: c.slug, label: `${c.icone} ${c.nome}` })),
     ],
     [formasCustom],
   );
@@ -1494,7 +1494,7 @@ export default function AcertoEntregador() {
                         <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {formasPagamento.map((f) => (
-                            <SelectItem key={f} value={f}>{f}</SelectItem>
+                            <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
