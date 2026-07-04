@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bike, Clock, MapPin, Phone, User, Volume2, VolumeX, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PedidoPendente } from "@/hooks/usePedidosPendentesAlert";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 
 interface Props {
   pedido: PedidoPendente;
@@ -42,6 +43,7 @@ export function PedidoPendenteModal({
   onSnooze,
 }: Props) {
   const [agora, setAgora] = useState(Date.now());
+  const formaLabel = useFormaPagamentoLabel();
 
   useEffect(() => {
     const i = setInterval(() => setAgora(Date.now()), 1000);
@@ -175,7 +177,7 @@ export function PedidoPendenteModal({
           <p className="text-sm font-medium">{pedido.itens_resumo}</p>
           <div className="flex items-center justify-between pt-1 border-t">
             <span className="text-xs text-muted-foreground">
-              {pedido.forma_pagamento || "A definir"}
+              {pedido.forma_pagamento ? formaLabel(pedido.forma_pagamento) : "A definir"}
             </span>
             <span className="text-lg font-bold text-primary">
               R$ {pedido.valor_total.toFixed(2)}

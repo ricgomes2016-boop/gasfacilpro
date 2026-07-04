@@ -25,6 +25,8 @@ import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getBrasiliaDateString } from "@/lib/utils";
 import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
+import { formatFormaPagamentoLabel } from "@/lib/financeiro/formaPagamento";
+import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
 
 interface RecebiveisRow {
   id: string;
@@ -107,6 +109,7 @@ function PipelineIndicator({ conciliado, liquidado, divergente }: {
 
 export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {}) {
   const { unidadeAtual } = useUnidade();
+  const { data: formasCustom = [] } = useFormasPagamentoCustom({ onlyActive: false });
   const [rows, setRows] = useState<RecebiveisRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -200,13 +203,11 @@ export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {
   }, [rows, filtroEtapa, hoje, operadoraId]);
 
   const getFormaLabel = (f: string | null) => {
-    if (!f) return "—";
-    const map: Record<string, string> = {
-      cartao_debito: "Débito", debito: "Débito",
-      cartao_credito: "Crédito", credito: "Crédito",
-      pix_maquininha: "PIX Maq.",
-    };
-    return map[f] || f;
+    // Abreviações específicas do pipeline (mantém compacto na tabela).
+    if (f === "cartao_debito" || f === "debito") return "Débito";
+    if (f === "cartao_credito" || f === "credito") return "Crédito";
+    if (f === "pix_maquininha") return "PIX Maq.";
+    return formatFormaPagamentoLabel(f, formasCustom);
   };
 
   const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;

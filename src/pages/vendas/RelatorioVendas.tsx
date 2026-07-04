@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { getBrasiliaDateString, cn } from "@/lib/utils";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
@@ -110,6 +111,7 @@ export default function RelatorioVendas() {
   const { empresa } = useEmpresa();
   const queryClient = useQueryClient();
   const hoje = new Date();
+  const formaLabel = useFormaPagamentoLabel();
 
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(hoje), "yyyy-MM-dd"));
   const [dataFim, setDataFim] = useState(format(endOfMonth(hoje), "yyyy-MM-dd"));
@@ -545,7 +547,7 @@ export default function RelatorioVendas() {
       "Itens": p.pedido_itens?.map((i) => `${i.quantidade}x ${i.produtos?.nome || "?"}`).join(", ") || "-",
       "Qtd. Itens": p.pedido_itens?.reduce((acc, i) => acc + i.quantidade, 0) || 0,
       "Valor Total": p.valor_total || 0,
-      "Forma Pagamento": p.forma_pagamento || "-",
+      "Forma Pagamento": formaLabel(p.forma_pagamento),
       "Canal": canalLabels[p.canal_venda || ""] || p.canal_venda || "-",
       "Status": statusConfig[p.status || "pendente"]?.label || p.status,
     }));

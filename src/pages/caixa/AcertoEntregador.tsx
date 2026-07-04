@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
+import { useFormasPagamentoCustom, useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
@@ -169,6 +169,7 @@ interface EditingEntrega {
 export default function AcertoEntregador() {
   const { unidadeAtual } = useUnidade();
   const { data: formasCustom = [] } = useFormasPagamentoCustom({ onlyActive: true });
+  const formaLabel = useFormaPagamentoLabel();
   const formasPagamento = useMemo(
     () => [
       ...FORMAS_PAGAMENTO_BUILTIN.map((f) => ({ value: f, label: f })),
@@ -831,7 +832,7 @@ export default function AcertoEntregador() {
         ["Total Entregas", String(entregas.length)],
         ["Total Vendas", formatCurrency(metricas.totalVendas)],
         ...Object.entries(metricas.porForma).map(([forma, valor]) => [
-          paymentLabels[forma] || forma,
+          formaLabel(forma),
           formatCurrency(valor),
         ]),
         ["Total Despesas", formatCurrency(metricas.totalDespesas)],
@@ -863,7 +864,7 @@ export default function AcertoEntregador() {
         e.data_entrega ? format(parseISO(`${e.data_entrega}T12:00:00`), "dd/MM/yyyy") : format(parseISO(e.created_at), "dd/MM/yyyy"),
         e.clientes?.nome || "—",
         (e.pedido_itens || []).map((i: any) => `${i.quantidade}x ${i.produtos?.nome || "?"}`).join(", ") || "—",
-        paymentLabels[e.forma_pagamento || ""] || e.forma_pagamento || "—",
+        formaLabel(e.forma_pagamento),
         e.status === "finalizado" ? "Acertado" : "Pendente",
         formatCurrency(Number(e.valor_total || 0)),
       ]),
@@ -1118,7 +1119,7 @@ export default function AcertoEntregador() {
                           return (
                             <div key={forma} className="flex justify-between text-sm">
                               <span className={isDinheiro ? "font-medium" : "text-muted-foreground"}>
-                                {isDinheiro ? "💵" : "💳"} {paymentLabels[forma] || forma}
+                                {isDinheiro ? "💵" : "💳"} {formaLabel(forma)}
                               </span>
                               <span className={isDinheiro ? "font-bold" : ""}>{formatCurrency(valor)}</span>
                             </div>
@@ -1258,7 +1259,7 @@ export default function AcertoEntregador() {
                               return (
                                 <TableRow key={forma}>
                                   <TableCell className="font-medium">
-                                    <Badge variant="outline" className="text-xs">{paymentLabels[forma] || forma}</Badge>
+                                    <Badge variant="outline" className="text-xs max-w-[180px] truncate" title={formaLabel(forma)}>{formaLabel(forma)}</Badge>
                                   </TableCell>
                                   <TableCell className="text-right">{qtd}</TableCell>
                                   <TableCell className="text-right font-semibold whitespace-nowrap">{formatCurrency(valor)}</TableCell>
@@ -1429,7 +1430,7 @@ export default function AcertoEntregador() {
                                 <div className="md:hidden text-xs text-muted-foreground mt-0.5 max-w-[140px] truncate">{itensStr}</div>
                               </TableCell>
                               <TableCell className="hidden md:table-cell text-xs text-muted-foreground max-w-[200px] truncate">{itensStr}</TableCell>
-                              <TableCell><Badge variant="outline" className="text-xs whitespace-nowrap">{paymentLabels[e.forma_pagamento || ""] || e.forma_pagamento || "—"}</Badge></TableCell>
+                              <TableCell><Badge variant="outline" className="text-xs max-w-[160px] truncate" title={formaLabel(e.forma_pagamento)}>{formaLabel(e.forma_pagamento)}</Badge></TableCell>
                               <TableCell>
                                 {isAcertado ? (
                                   <Badge className="bg-success/15 text-success border-success/30 text-[10px] gap-1">

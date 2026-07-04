@@ -13,6 +13,7 @@ import { History, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 import { VendaSectionHeader } from "./VendaSectionHeader";
 
 interface Pedido {
@@ -30,6 +31,7 @@ interface CustomerHistoryProps {
 export function CustomerHistory({ clienteId }: CustomerHistoryProps) {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(false);
+  const formaLabel = useFormaPagamentoLabel();
 
   useEffect(() => {
     if (!clienteId) {
@@ -118,8 +120,8 @@ export function CustomerHistory({ clienteId }: CustomerHistoryProps) {
                       R$ {(pedido.valor_total || 0).toFixed(2)}
                     </TableCell>
                     <TableCell className="px-2 sm:px-4 hidden md:table-cell">
-                      <Badge variant="outline" className="text-xs truncate max-w-[120px]">
-                        {pedido.forma_pagamento || "—"}
+                      <Badge variant="outline" className="text-xs truncate max-w-[140px]" title={formaLabel(pedido.forma_pagamento)}>
+                        {formaLabel(pedido.forma_pagamento)}
                       </Badge>
                     </TableCell>
                     <TableCell className="px-2 sm:px-4">{getStatusBadge(pedido.status)}</TableCell>

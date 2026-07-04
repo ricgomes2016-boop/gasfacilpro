@@ -1,39 +1,57 @@
+## Problema
 
-## Diagnóstico
+Em `Acerto do Entregador` (e outras telas), a forma de pagamento aparece como o **slug técnico** (ex.: `custom_avista_vale_gas_central_gas`) porque as formas customizadas não estão no dicionário fixo `paymentLabels`. Precisamos exibir o **nome amigável** cadastrado em "Formas de pagamento customizadas" (ex.: `Vale Gás Central Gás`).
 
-Verifiquei o banco e encontrei o motivo dos endereços "sumirem" na Forte Gás:
+## Solução
 
-**Situação atual da unidade Forte Gás:**
-- 55.288 clientes já vinculados via `cliente_unidades` (superset)
-- 128 pedidos históricos na unidade
-- **28 pedidos sem `cliente_id`** (vindos do WhatsApp) — o nome fica em `observacoes` e o endereço em `endereco_entrega` do próprio pedido. Se `endereco_entrega` estiver vazio, aparece "Endereço não informado".
-- **7 pedidos com `cliente_id`** apontando para clientes da Central Gás que **não estão vinculados** à unidade Forte Gás em `cliente_unidades` (ex.: Ricardo Gomes #46, JANETE #14, CLIENTE ALFA #7 e #8, JOSE #15, MARIA #11 e #5). Como a tela de Clientes filtra por `cliente_unidades`, esses clientes não aparecem na lista da Forte Gás — logo endereço/telefone não são localizáveis a partir do cadastro.
+### 1) Helper central de exibição (novo)
 
-Nenhum dado foi perdido — os pedidos, endereços salvos em `pedidos.endereco_entrega` e cadastros de clientes continuam intactos. Só falta o **vínculo** cliente↔unidade Forte Gás.
+Adicionar em `src/lib/financeiro/formaPagamento.ts`:
 
-## Plano
+- `formatFormaPagamentoLabel(slug, customs?)` — resolve rótulo a partir de:
+  1. Dicionário built-in (`Dinheiro`, `PIX`, `Cartão Crédito`, etc.).
+  2. Lista de customizadas (`FormaPagamentoCustom[]`) — casa por `slug` e retorna `nome` (com ícone opcional).
+  3. Fallback: se for `custom_avista_*` / `custom_aprazo_*`, remove o prefixo, troca `_` por espaço e capitaliza (ex.: `Vale Gas Central Gas`) — evita mostrar o slug cru mesmo sem a lista carregada.
+  4. Caso contrário, devolve o próprio valor.
 
-### 1. Vincular todos os clientes da Central Gás à unidade Forte Gás
-Rodar um único `INSERT ... SELECT` em `cliente_unidades` fazendo backfill:
-- Para cada cliente com `empresa_id = Central Gas` (`f27e158e-7ab5-4617-9f66-c6b4a084d293`)
-- Que ainda **não** possui vínculo com a unidade Forte Gás (`3a3dbca4-f9c5-4564-8f58-7ed5f6b7ed05`)
-- Criar linha em `cliente_unidades (cliente_id, unidade_id)`
+### 2) Hook de conveniência
 
-Isso resolve os 7 pedidos órfãos e garante que qualquer cliente antigo da Central Gás apareça também na Forte Gás (conforme pedido).
+`useFormaPagamentoLabel()` em `src/hooks/useFormasPagamentoCustom.ts`:
+- Usa `useFormasPagamentoCustom({ onlyActive: false })` (para exibir também inativas em históricos).
+- Retorna `(slug) => label` memoizado.
 
-### 2. Backfill de endereço nos pedidos sem cliente_id
-Para os 28 pedidos WhatsApp sem `cliente_id` cujo `endereco_entrega` esteja preenchido, nada a fazer — a tela já usa `endereco_entrega` diretamente.
+### 3) Aplicar na tela de Acerto Diário
 
-Para os que estiverem com `endereco_entrega` vazio, tentar reconstruir a partir de `observacoes` (padrão "Pedido via WhatsApp - Nome (endereço)") **somente se** houver informação parseável — sem sobrescrever nada existente. Se não houver dado, mantemos "Endereço não informado" (não há como inventar).
+`src/pages/caixa/AcertoEntregador.tsx`:
+- Consumir `useFormaPagamentoLabel()`.
+- Substituir os 4 pontos que hoje usam `paymentLabels[...] || ...` pelo helper:
+  - Linha ~834 (agrupamento por forma)
+  - Linha ~866 (export/print)
+  - Linha ~1121 (badge modal do entregador)
+  - Linha ~1261 (badge lista por forma)
+  - Linha ~1432 (badge coluna da tabela)
+- Manter `paymentLabels` como base do helper (não remover).
+- Para os badges mais estreitos (mobile 384px), usar `truncate max-w-[140px]` com `title={label}` para não estourar o layout quando o nome customizado for longo.
 
-### 3. Sem mudanças de código/UI
-- `useClientes` e `usePedidos` continuam como estão.
-- Nenhuma migração de schema, nenhuma alteração em RLS, `App.tsx`, rotas ou componentes.
+### 4) Auditoria de outras telas que exibem `forma_pagamento`
 
-## Detalhes técnicos
+Aplicar o mesmo helper (sem mudar lógica de negócio) onde o slug aparece cru na UI:
+- `src/pages/vendas/PedidosKanban.tsx`
+- `src/pages/vendas/Pedidos.tsx`
+- `src/pages/vendas/RelatorioVendas.tsx`
+- `src/pages/vendedor/VendedorHistorico.tsx`
+- `src/components/entregador/EntregaCard.tsx`
+- `src/components/clientes/HistoricoComprasDialog.tsx`
+- `src/components/vendas/CustomerHistory.tsx`
+- `src/components/alerts/PedidoPendenteModal.tsx`
+- `src/components/financeiro/RecebiveisPipeline.tsx`
+- `src/lib/comprovanteEntregaPdf.ts` (usa versão pura do helper, sem hook, recebendo lista de customs por parâmetro)
 
-- Empresa Central Gás: `f27e158e-7ab5-4617-9f66-c6b4a084d293`
-- Empresa Forte Gás: `c94c210b-8dbd-4d91-914e-2db146b8cf94`
-- Unidade Forte Gás: `3a3dbca4-f9c5-4564-8f58-7ed5f6b7ed05`
-- Operações via `supabase--insert` (INSERT ... ON CONFLICT DO NOTHING em `cliente_unidades`; UPDATE condicional em `pedidos.endereco_entrega`).
-- `admin@fortegas.com` já é `gestor+admin`, então RLS permite leitura cross-empresa após o vínculo.
+Escopo: apenas **exibição** (labels/badges/PDF). Nada de mudar `forma_pagamento` salvo no banco, roteamento financeiro ou regras de A Vista/A Prazo.
+
+## Critério de aceite
+
+- Em Acerto Diário, badges mostram `Vale Gás Central Gás` em vez de `custom_avista_vale_gas_central_gas`.
+- Nenhum slug `custom_*` aparece cru em nenhuma das telas listadas.
+- Layout mobile 384px não quebra quando o nome customizado for longo (truncamento com tooltip).
+- Nenhuma alteração em queries, filtros por `forma_pagamento`, roteamento de conta bancária ou cálculo de acerto.

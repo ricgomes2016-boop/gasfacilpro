@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
+import { formatFormaPagamentoLabel } from "@/lib/financeiro/formaPagamento";
 
 interface GerarOptions {
   pedidoId: string;
@@ -62,6 +63,12 @@ export async function gerarComprovanteEntregaPdf({ pedidoId, download = true }: 
     .limit(1)
     .maybeSingle();
 
+  // Buscar formas customizadas da unidade para exibir nome amigável
+  const { data: formasCustom } = await (supabase as any)
+    .from("formas_pagamento_custom")
+    .select("slug, nome, icone")
+    .or(`unidade_id.eq.${(pedido as any).unidade_id},unidade_id.is.null`);
+
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 14;
@@ -120,7 +127,7 @@ export async function gerarComprovanteEntregaPdf({ pedidoId, download = true }: 
   if (ender) linhasCliente.push(`Endereço: ${ender}`);
   if ((pedido as any).entregadores?.nome) linhasCliente.push(`Entregador: ${(pedido as any).entregadores.nome}`);
   if (pedido.data_entrega) linhasCliente.push(`Data entrega: ${fmtDate(pedido.data_entrega)}`);
-  if (pedido.forma_pagamento) linhasCliente.push(`Forma pagto: ${pedido.forma_pagamento}`);
+  if (pedido.forma_pagamento) linhasCliente.push(`Forma pagto: ${formatFormaPagamentoLabel(pedido.forma_pagamento, formasCustom || [])}`);
 
   for (const linha of linhasCliente) {
     doc.text(linha, margin, y);

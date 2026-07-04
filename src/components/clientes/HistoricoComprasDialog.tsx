@@ -9,6 +9,7 @@ import { Loader2, RotateCcw, ShoppingCart, Package } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 
 interface PedidoHist {
   id: string;
@@ -31,6 +32,7 @@ export function HistoricoComprasDialog({ open, onOpenChange, clienteId, clienteN
   const [pedidos, setPedidos] = useState<PedidoHist[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const formaLabel = useFormaPagamentoLabel();
 
   useEffect(() => {
     if (!open || !clienteId) return;
@@ -108,7 +110,7 @@ export function HistoricoComprasDialog({ open, onOpenChange, clienteId, clienteN
                         )}
                         <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                           <span className="font-semibold text-foreground">R$ {(p.valor_total || 0).toFixed(2)}</span>
-                          {p.forma_pagamento && <span>· {p.forma_pagamento}</span>}
+                          {p.forma_pagamento && <span className="truncate max-w-[160px]" title={formaLabel(p.forma_pagamento)}>· {formaLabel(p.forma_pagamento)}</span>}
                         </div>
                       </div>
                       <Button

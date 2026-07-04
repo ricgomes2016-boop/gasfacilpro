@@ -5,6 +5,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Plus, RefreshCw, MessageCircle, Phone, GripVertical, X,
 } from "lucide-react";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 
 import { Card } from "@/components/ui/card";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -304,13 +305,14 @@ function DetailModal({
 }) {
   if (!pedido) return null;
   const colAtual = STATUS_TO_COL[pedido.status] ?? "novo";
+  const formaLabel = useFormaPagamentoLabel();
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Pedido #{getNumero(pedido)}</DialogTitle>
-          <div className="text-xs text-muted-foreground">{pedido.data} · {pedido.forma_pagamento || "—"}</div>
+          <div className="text-xs text-muted-foreground">{pedido.data} · {formaLabel(pedido.forma_pagamento)}</div>
         </DialogHeader>
 
         {/* Status chips */}
@@ -361,7 +363,7 @@ function DetailModal({
             </Select>
           </Section>
           <Section label="Pagamento">
-            <div className="text-sm font-medium">{pedido.forma_pagamento || "—"}</div>
+            <div className="text-sm font-medium">{formaLabel(pedido.forma_pagamento)}</div>
           </Section>
         </div>
 
