@@ -1118,7 +1118,7 @@ export default function ContasReceber() {
                     <Select value={form.forma_pagamento} onValueChange={v => setForm({ ...form, forma_pagamento: v })}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
-                        {FORMAS_PAGAMENTO.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                        {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1465,7 +1465,7 @@ export default function ContasReceber() {
                         <Select value={fp.forma} onValueChange={v => updateFormaPagamento(idx, "forma", v)}>
                           <SelectTrigger><SelectValue placeholder="Forma" /></SelectTrigger>
                           <SelectContent>
-                            {FORMAS_PAGAMENTO.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                            {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -1526,7 +1526,7 @@ export default function ContasReceber() {
                 <Select value={bulkFormaPagamento} onValueChange={setBulkFormaPagamento}>
                   <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {FORMAS_PAGAMENTO.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                    {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
