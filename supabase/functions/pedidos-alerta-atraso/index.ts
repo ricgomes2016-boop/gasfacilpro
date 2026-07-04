@@ -2,12 +2,23 @@
 // e dispara um alerta via WhatsApp para o número configurado na unidade.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createSupabase, resolveConfig, sendMessage, type BiaConfig } from "../_shared/bia-core.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
 const FALLBACK_NOTIFY_NUMBER = "5543999692765";
 const STATUS_ABERTOS = ["pendente", "agendado", "em_separacao", "em_rota", "saiu_para_entrega", "confirmado", "preparando"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Cron/service-role only: block any non-service caller from spamming alerts.
+  const auth = await requireAuth(req, corsHeaders);
+  if (!auth.ok) return auth.response;
+  if (!auth.isServiceRole) {
+    return new Response(JSON.stringify({ error: "Forbidden: service_role required" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
 
   const supabase = createSupabase();
   const startedAt = Date.now();
