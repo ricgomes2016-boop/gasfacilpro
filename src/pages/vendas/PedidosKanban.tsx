@@ -363,7 +363,7 @@ function DetailModal({
             </Select>
           </Section>
           <Section label="Pagamento">
-            <div className="text-sm font-medium">{pedido.forma_pagamento || "—"}</div>
+            <div className="text-sm font-medium">{formaLabel(pedido.forma_pagamento)}</div>
           </Section>
         </div>
 
