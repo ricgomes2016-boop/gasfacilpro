@@ -90,3 +90,68 @@ export const FORMA_LABELS: Record<FormaCategoria, string> = {
   gas_do_povo: "Gás do Povo",
   outros: "Outros",
 };
+
+// Dicionário de rótulos "built-in" aceitando slugs e variações antigas em PT.
+const BUILTIN_LABELS: Record<string, string> = {
+  dinheiro: "Dinheiro",
+  pix: "PIX",
+  pix_maquininha: "PIX Maquininha",
+  cartao_credito: "Cartão Crédito",
+  cartao_debito: "Cartão Débito",
+  cartao: "Cartão",
+  cheque: "Cheque",
+  boleto: "Boleto",
+  fiado: "Fiado",
+  vale_gas: "Vale Gás",
+  gas_do_povo: "Gás do Povo",
+  transferencia: "Transferência",
+};
+
+export interface FormaCustomLite {
+  slug: string;
+  nome: string;
+  icone?: string | null;
+  ativo?: boolean;
+}
+
+/**
+ * Rótulo amigável de uma forma de pagamento para exibição em UI/PDF.
+ * - Usa o `nome` da forma customizada quando `customs` está disponível.
+ * - Faz fallback prettificando o slug (`custom_avista_vale_gas` -> "Vale Gas").
+ * - Nunca retorna o slug técnico cru.
+ */
+export function formatFormaPagamentoLabel(
+  raw: string | null | undefined,
+  customs?: FormaCustomLite[] | null,
+  opts?: { withIcon?: boolean }
+): string {
+  if (!raw) return "—";
+  const s = String(raw).trim();
+  if (!s) return "—";
+  const lower = norm(s);
+
+  if (BUILTIN_LABELS[lower]) return BUILTIN_LABELS[lower];
+
+  if (!/^custom_(avista|aprazo)_/.test(lower) && /[A-ZÁÉÍÓÚÃÂÊÔÇ ]/.test(s)) {
+    return s;
+  }
+
+  if (customs && customs.length) {
+    const hit = customs.find((c) => c.slug === s || c.slug === lower);
+    if (hit) {
+      const icon = opts?.withIcon && hit.icone ? `${hit.icone} ` : "";
+      return `${icon}${hit.nome}`;
+    }
+  }
+
+  const m = lower.match(/^custom_(?:avista|aprazo)_(.+)$/);
+  if (m) {
+    return m[1]
+      .split("_")
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  }
+
+  return s;
+}
