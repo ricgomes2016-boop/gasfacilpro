@@ -9,6 +9,7 @@ import { ProximityCheckinBanner } from "./ProximityCheckinBanner";
 import { useProximityCheckin } from "@/hooks/useProximityCheckin";
 import { WaitingTimer } from "./WaitingTimer";
 import { SwipeToAccept } from "./SwipeToAccept";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 
 export interface EntregaDB {
   id: string;
