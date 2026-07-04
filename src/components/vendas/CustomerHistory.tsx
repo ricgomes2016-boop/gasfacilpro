@@ -120,8 +120,8 @@ export function CustomerHistory({ clienteId }: CustomerHistoryProps) {
                       R$ {(pedido.valor_total || 0).toFixed(2)}
                     </TableCell>
                     <TableCell className="px-2 sm:px-4 hidden md:table-cell">
-                      <Badge variant="outline" className="text-xs truncate max-w-[120px]">
-                        {pedido.forma_pagamento || "—"}
+                      <Badge variant="outline" className="text-xs truncate max-w-[140px]" title={formaLabel(pedido.forma_pagamento)}>
+                        {formaLabel(pedido.forma_pagamento)}
                       </Badge>
                     </TableCell>
                     <TableCell className="px-2 sm:px-4">{getStatusBadge(pedido.status)}</TableCell>
