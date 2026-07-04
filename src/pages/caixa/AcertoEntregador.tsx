@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
-import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
+import { useFormasPagamentoCustom, useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
