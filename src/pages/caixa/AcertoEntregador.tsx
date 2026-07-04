@@ -864,7 +864,7 @@ export default function AcertoEntregador() {
         e.data_entrega ? format(parseISO(`${e.data_entrega}T12:00:00`), "dd/MM/yyyy") : format(parseISO(e.created_at), "dd/MM/yyyy"),
         e.clientes?.nome || "—",
         (e.pedido_itens || []).map((i: any) => `${i.quantidade}x ${i.produtos?.nome || "?"}`).join(", ") || "—",
-        paymentLabels[e.forma_pagamento || ""] || e.forma_pagamento || "—",
+        formaLabel(e.forma_pagamento),
         e.status === "finalizado" ? "Acertado" : "Pendente",
         formatCurrency(Number(e.valor_total || 0)),
       ]),
