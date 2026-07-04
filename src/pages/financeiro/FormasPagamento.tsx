@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import ConfigDestinoPagamento from "@/components/financeiro/ConfigDestinoPagamento";
+import FormasCustomizadasCard from "@/components/financeiro/FormasCustomizadasCard";
 
 export default function FormasPagamento() {
   const { unidadeAtual } = useUnidade();
@@ -28,8 +29,9 @@ export default function FormasPagamento() {
         title="Formas de Pagamento"
         subtitle="Defina qual conta bancária recebe cada forma de pagamento das suas vendas"
       />
-      <div className="p-4 md:p-6">
+      <div className="p-4 md:p-6 space-y-6">
         <ConfigDestinoPagamento contas={contas as any} />
+        <FormasCustomizadasCard contas={contas as any} />
       </div>
     </MainLayout>
   );

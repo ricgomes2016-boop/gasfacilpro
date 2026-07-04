@@ -46,6 +46,7 @@ import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
 import { useAuth } from "@/contexts/AuthContext";
 import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 import { ClienteAutocompleteInput } from "@/components/clientes/ClienteAutocompleteInput";
+import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
 
 interface ContaReceber {
   id: string;
@@ -75,7 +76,7 @@ interface ContaReceber {
   pix_copia_cola?: string | null;
 }
 
-const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque", "Vale Gás"];
+const FORMAS_PAGAMENTO_BUILTIN = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque", "Vale Gás"];
 
 // Categorias de filtro disponíveis na barra unificada
 const FORMA_FILTER_OPTIONS: { value: FormaCategoria; label: string; grupo: "a_vista" | "a_prazo" | "outros" }[] = [
@@ -121,6 +122,14 @@ export default function ContasReceber() {
   const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { unidadeAtual } = useUnidade();
+  const { data: formasCustom = [] } = useFormasPagamentoCustom({ onlyActive: true });
+  const FORMAS_PAGAMENTO = useMemo(
+    () => [
+      ...FORMAS_PAGAMENTO_BUILTIN.map((f) => ({ value: f, label: f })),
+      ...formasCustom.map((c) => ({ value: c.slug, label: `${c.icone} ${c.nome}` })),
+    ],
+    [formasCustom],
+  );
 
   // Bulk liquidation states
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
@@ -1109,7 +1118,7 @@ export default function ContasReceber() {
                     <Select value={form.forma_pagamento} onValueChange={v => setForm({ ...form, forma_pagamento: v })}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
-                        {FORMAS_PAGAMENTO.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                        {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1456,7 +1465,7 @@ export default function ContasReceber() {
                         <Select value={fp.forma} onValueChange={v => updateFormaPagamento(idx, "forma", v)}>
                           <SelectTrigger><SelectValue placeholder="Forma" /></SelectTrigger>
                           <SelectContent>
-                            {FORMAS_PAGAMENTO.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                            {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -1517,7 +1526,7 @@ export default function ContasReceber() {
                 <Select value={bulkFormaPagamento} onValueChange={setBulkFormaPagamento}>
                   <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {FORMAS_PAGAMENTO.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                    {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

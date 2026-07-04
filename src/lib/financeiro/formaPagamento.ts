@@ -25,6 +25,8 @@ function norm(s: string | null | undefined): string {
 export function getFormaCategoria(forma: string | null | undefined): FormaCategoria {
   const f = norm(forma);
   if (!f) return "outros";
+  // Customizadas mantêm a categoria "outros"; grupo é decidido pelo prefixo.
+  if (f.startsWith("custom_avista_") || f.startsWith("custom_aprazo_")) return "outros";
   if (f.includes("povo")) return "gas_do_povo";
   if (f.includes("pix_maquininha") || f.includes("pix maquininha")) return "pix_maquininha";
   if (f === "pix" || f.startsWith("pix")) return "pix";
@@ -40,6 +42,10 @@ export function getFormaCategoria(forma: string | null | undefined): FormaCatego
 }
 
 export function getFormaGrupo(forma: string | null | undefined): FormaGrupo {
+  const f = norm(forma);
+  // Formas customizadas: grupo vem do prefixo do slug.
+  if (f.startsWith("custom_avista_")) return "a_vista";
+  if (f.startsWith("custom_aprazo_")) return "a_prazo";
   const cat = getFormaCategoria(forma);
   // À vista (liquidação imediata para o cliente):
   // - Dinheiro e PIX puro: liquidam instantaneamente (auto-baixa segura).

@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { addDays, format } from "date-fns";
 import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
+import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { VendaSectionHeader } from "./VendaSectionHeader";
@@ -79,9 +80,24 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
 
   const gasDoPovoHabilitado = !!(unidadeAtual as any)?.gas_do_povo_habilitado;
   const gasDoPovoValor = Number((unidadeAtual as any)?.gas_do_povo_valor ?? 101.08);
-  const formasPagamento = gasDoPovoHabilitado
-    ? [...formasPagamentoBase, GAS_DO_POVO_FORMA]
-    : formasPagamentoBase;
+  const { data: formasCustom = [] } = useFormasPagamentoCustom({ onlyActive: true });
+  const customEntries = formasCustom.map((c) => ({
+    value: c.slug,
+    label: c.nome,
+    icon: c.icone,
+    Icon: c.grupo === "a_vista" ? Banknote : FileText,
+    tone: "bg-primary/15 text-primary ring-primary/25",
+    cardTone: "border-primary/25 bg-primary/5 hover:border-primary/45 hover:bg-primary/10",
+    valueTone: "text-primary",
+    quickTone: "text-primary",
+    quickSurface: "bg-primary/10",
+    quickRing: "ring-primary/35",
+  }));
+  const formasPagamento = [
+    ...formasPagamentoBase,
+    ...(gasDoPovoHabilitado ? [GAS_DO_POVO_FORMA] : []),
+    ...customEntries,
+  ];
 
   // Carrinho elegível: exatamente 1× Gás P13
   const cartoElegivelGasDoPovo = (() => {

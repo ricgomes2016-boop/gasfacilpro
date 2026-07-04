@@ -5366,6 +5366,70 @@ export type Database = {
           },
         ]
       }
+      formas_pagamento_custom: {
+        Row: {
+          ativo: boolean
+          conta_bancaria_id: string | null
+          created_at: string
+          empresa_id: string | null
+          grupo: string
+          icone: string
+          id: string
+          nome: string
+          slug: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          conta_bancaria_id?: string | null
+          created_at?: string
+          empresa_id?: string | null
+          grupo: string
+          icone?: string
+          id?: string
+          nome: string
+          slug: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          conta_bancaria_id?: string | null
+          created_at?: string
+          empresa_id?: string | null
+          grupo?: string
+          icone?: string
+          id?: string
+          nome?: string
+          slug?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formas_pagamento_custom_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formas_pagamento_custom_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formas_pagamento_custom_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fornecedores: {
         Row: {
           ativo: boolean | null
