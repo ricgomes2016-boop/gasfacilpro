@@ -55,3 +55,17 @@ export function useFormasPagamentoCustom(opts?: { onlyActive?: boolean }) {
     },
   });
 }
+
+/**
+ * Retorna uma função `label(slug)` que resolve o nome amigável da forma
+ * de pagamento, incluindo as customizadas (ativas e inativas para históricos).
+ */
+export function useFormaPagamentoLabel(opts?: { withIcon?: boolean }) {
+  const { data: customs = [] } = useFormasPagamentoCustom({ onlyActive: false });
+  const withIcon = !!opts?.withIcon;
+  return useCallback(
+    (slug: string | null | undefined) =>
+      formatFormaPagamentoLabel(slug, customs, { withIcon }),
+    [customs, withIcon]
+  );
+}
