@@ -1430,7 +1430,7 @@ export default function AcertoEntregador() {
                                 <div className="md:hidden text-xs text-muted-foreground mt-0.5 max-w-[140px] truncate">{itensStr}</div>
                               </TableCell>
                               <TableCell className="hidden md:table-cell text-xs text-muted-foreground max-w-[200px] truncate">{itensStr}</TableCell>
-                              <TableCell><Badge variant="outline" className="text-xs whitespace-nowrap">{paymentLabels[e.forma_pagamento || ""] || e.forma_pagamento || "—"}</Badge></TableCell>
+                              <TableCell><Badge variant="outline" className="text-xs max-w-[160px] truncate" title={formaLabel(e.forma_pagamento)}>{formaLabel(e.forma_pagamento)}</Badge></TableCell>
                               <TableCell>
                                 {isAcertado ? (
                                   <Badge className="bg-success/15 text-success border-success/30 text-[10px] gap-1">
