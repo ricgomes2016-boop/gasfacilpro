@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { formatFormaPagamentoLabel } from "@/lib/financeiro/formaPagamento";
 
 export interface FormaPagamentoCustom {
   id: string;
