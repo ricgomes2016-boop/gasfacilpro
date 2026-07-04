@@ -832,7 +832,7 @@ export default function AcertoEntregador() {
         ["Total Entregas", String(entregas.length)],
         ["Total Vendas", formatCurrency(metricas.totalVendas)],
         ...Object.entries(metricas.porForma).map(([forma, valor]) => [
-          paymentLabels[forma] || forma,
+          formaLabel(forma),
           formatCurrency(valor),
         ]),
         ["Total Despesas", formatCurrency(metricas.totalDespesas)],
