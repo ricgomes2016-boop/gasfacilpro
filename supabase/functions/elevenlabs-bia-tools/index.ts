@@ -140,10 +140,6 @@ async function resolverEmpresaUnidade(supabase: any, _body: any) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  try {
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
   // Fail-closed: only accept calls carrying the shared secret configured in the
   // ElevenLabs tool definition as x-admin-secret header.
   const expected = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET") || "";
