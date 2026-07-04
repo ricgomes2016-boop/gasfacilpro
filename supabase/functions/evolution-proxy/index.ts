@@ -40,6 +40,41 @@ serve(async (req) => {
       .eq("provedor", "evolution")
       .maybeSingle();
 
+    // Tenant check: unless caller is service_role or super_admin, the target
+    // instance MUST belong to caller's empresa. Prevents cross-tenant hijack of
+    // WhatsApp connections by any authenticated user.
+    if (!auth.isServiceRole) {
+      // Resolve caller's empresa via profiles
+      let callerEmpresaId: string | null = null;
+      let callerIsSuperAdmin = false;
+      if (auth.userId) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("empresa_id")
+          .eq("user_id", auth.userId)
+          .maybeSingle();
+        callerEmpresaId = prof?.empresa_id ?? null;
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", auth.userId);
+        callerIsSuperAdmin = !!roles?.some((r: any) => r.role === "super_admin");
+      }
+      if (!callerIsSuperAdmin) {
+        if (!config?.empresa_id) {
+          return new Response(JSON.stringify({ error: "Instância não encontrada ou sem empresa vinculada" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (!callerEmpresaId || callerEmpresaId !== config.empresa_id) {
+          console.warn("[EVOLUTION-PROXY] tenant mismatch", { callerEmpresaId, instanceEmpresa: config.empresa_id, instance_id });
+          return new Response(JSON.stringify({ error: "Forbidden: instance does not belong to your empresa" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+    }
+
     if (config) {
       baseUrl = (config.base_url || "").replace(/\/$/, "");
       apiKey = config.token || "";
