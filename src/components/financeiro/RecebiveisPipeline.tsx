@@ -25,6 +25,8 @@ import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getBrasiliaDateString } from "@/lib/utils";
 import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
+import { formatFormaPagamentoLabel } from "@/lib/financeiro/formaPagamento";
+import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
 
 interface RecebiveisRow {
   id: string;
