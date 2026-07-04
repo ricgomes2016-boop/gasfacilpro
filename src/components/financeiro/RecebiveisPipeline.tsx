@@ -109,6 +109,7 @@ function PipelineIndicator({ conciliado, liquidado, divergente }: {
 
 export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {}) {
   const { unidadeAtual } = useUnidade();
+  const { data: formasCustom = [] } = useFormasPagamentoCustom({ onlyActive: false });
   const [rows, setRows] = useState<RecebiveisRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
