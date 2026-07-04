@@ -173,8 +173,29 @@ async function criarPedido(args: any, ctx: any) {
   };
 }
 
+function safeEqualVt(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Fail-closed: require Vapi server-secret header. Configure VAPI_SERVER_SECRET
+  // in this project's secrets and paste the same value into Vapi's assistant
+  // "Server URL Secret" so Vapi sends it in the x-vapi-secret header.
+  const expected = Deno.env.get("VAPI_SERVER_SECRET") || "";
+  const provided =
+    req.headers.get("x-vapi-secret") ||
+    req.headers.get("x-vapi-signature") ||
+    req.headers.get("x-admin-secret") ||
+    "";
+  if (!expected || !provided || !safeEqualVt(expected, provided)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const body = await req.json();
