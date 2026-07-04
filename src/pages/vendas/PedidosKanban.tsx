@@ -5,6 +5,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Plus, RefreshCw, MessageCircle, Phone, GripVertical, X,
 } from "lucide-react";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 
 import { Card } from "@/components/ui/card";
 import { MainLayout } from "@/components/layout/MainLayout";
