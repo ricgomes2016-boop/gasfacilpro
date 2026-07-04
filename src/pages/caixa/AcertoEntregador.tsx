@@ -1259,7 +1259,7 @@ export default function AcertoEntregador() {
                               return (
                                 <TableRow key={forma}>
                                   <TableCell className="font-medium">
-                                    <Badge variant="outline" className="text-xs">{paymentLabels[forma] || forma}</Badge>
+                                    <Badge variant="outline" className="text-xs max-w-[180px] truncate" title={formaLabel(forma)}>{formaLabel(forma)}</Badge>
                                   </TableCell>
                                   <TableCell className="text-right">{qtd}</TableCell>
                                   <TableCell className="text-right font-semibold whitespace-nowrap">{formatCurrency(valor)}</TableCell>
