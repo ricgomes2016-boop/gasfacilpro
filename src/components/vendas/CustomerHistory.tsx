@@ -13,6 +13,7 @@ import { History, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 import { VendaSectionHeader } from "./VendaSectionHeader";
 
 interface Pedido {
