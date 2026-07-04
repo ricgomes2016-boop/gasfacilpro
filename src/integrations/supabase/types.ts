@@ -5575,6 +5575,7 @@ export type Database = {
           tipo_vinculo: string
           unidade_id: string | null
           updated_at: string
+          user_id: string | null
           valor_diaria: number
           valor_por_produto: Json
         }
@@ -5600,6 +5601,7 @@ export type Database = {
           tipo_vinculo?: string
           unidade_id?: string | null
           updated_at?: string
+          user_id?: string | null
           valor_diaria?: number
           valor_por_produto?: Json
         }
@@ -5625,6 +5627,7 @@ export type Database = {
           tipo_vinculo?: string
           unidade_id?: string | null
           updated_at?: string
+          user_id?: string | null
           valor_diaria?: number
           valor_por_produto?: Json
         }

@@ -1068,7 +1068,10 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         canal_venda: canalVenda,
         origem_pedido: "erp",
         observacoes: customer.observacao,
-        status: pedidoJaEntregue ? "entregue" : "pendente",
+        // "finalizado" quando já entregue: pagamentos já são roteados abaixo,
+        // então o pedido não pode aparecer no Acerto do Entregador (que filtra "entregue"/"pago")
+        // e causar duplicidade em caixa / contas a receber.
+        status: pedidoJaEntregue ? "finalizado" : "pendente",
         unidade_id: unidadeAtual?.id,
         data_entrega: dataEntrega,
         created_at: toBrasiliaNoonISOString(dataEntrega),
