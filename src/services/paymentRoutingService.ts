@@ -375,7 +375,66 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
         break;
       }
 
-
+      default: {
+        // Formas customizadas cadastradas em Financeiro → Formas de Pagamento
+        if (pag.forma?.startsWith("custom_avista_")) {
+          // À vista: se houver conta bancária destino cadastrada, credita direto.
+          // Caso contrário, entra no caixa da loja.
+          promises.push((async () => {
+            const { data: custom } = await (supabase as any)
+              .from("formas_pagamento_custom")
+              .select("nome, conta_bancaria_id")
+              .eq("slug", pag.forma)
+              .maybeSingle();
+            const nome = custom?.nome || "Personalizado";
+            const contaId = custom?.conta_bancaria_id || null;
+            if (contaId) {
+              await criarMovimentacaoBancaria({
+                contaBancariaId: contaId,
+                valor: pag.valor,
+                descricao: `Venda #${pedidoRef} - ${nome}`,
+                categoria: "venda",
+                unidadeId,
+                userId,
+                pedidoId,
+              });
+            } else {
+              await insertCaixa({
+                tipo: "entrada",
+                descricao: `Venda #${pedidoRef} - ${nome}`,
+                valor: pag.valor,
+                categoria: nome,
+                status: "aprovada",
+                pedido_id: pedidoId,
+                unidade_id: unidadeId || null,
+                entregador_id: entregadorId || null,
+              });
+            }
+          })());
+        } else if (pag.forma?.startsWith("custom_aprazo_")) {
+          // A prazo: gera título em contas_receber
+          promises.push((async () => {
+            const { data: custom } = await (supabase as any)
+              .from("formas_pagamento_custom")
+              .select("nome")
+              .eq("slug", pag.forma)
+              .maybeSingle();
+            const nome = custom?.nome || "Personalizado";
+            await insertContasReceber({
+              cliente: clienteNome || "Cliente não identificado",
+              descricao: `${nome} - Pedido #${pedidoRef}`,
+              valor: pag.valor,
+              vencimento: format(addDays(new Date(), 30), "yyyy-MM-dd"),
+              status: "pendente",
+              forma_pagamento: pag.forma,
+              pedido_id: pedidoId,
+              unidade_id: unidadeId || null,
+              cliente_id: clienteId || null,
+            });
+          })());
+        }
+        break;
+      }
     }
   }
 
