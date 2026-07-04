@@ -127,7 +127,7 @@ export async function gerarComprovanteEntregaPdf({ pedidoId, download = true }: 
   if (ender) linhasCliente.push(`Endereço: ${ender}`);
   if ((pedido as any).entregadores?.nome) linhasCliente.push(`Entregador: ${(pedido as any).entregadores.nome}`);
   if (pedido.data_entrega) linhasCliente.push(`Data entrega: ${fmtDate(pedido.data_entrega)}`);
-  if (pedido.forma_pagamento) linhasCliente.push(`Forma pagto: ${pedido.forma_pagamento}`);
+  if (pedido.forma_pagamento) linhasCliente.push(`Forma pagto: ${formatFormaPagamentoLabel(pedido.forma_pagamento, formasCustom || [])}`);
 
   for (const linha of linhasCliente) {
     doc.text(linha, margin, y);
