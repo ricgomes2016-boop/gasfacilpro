@@ -46,6 +46,7 @@ import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
 import { useAuth } from "@/contexts/AuthContext";
 import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 import { ClienteAutocompleteInput } from "@/components/clientes/ClienteAutocompleteInput";
+import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
 
 interface ContaReceber {
   id: string;
@@ -121,6 +122,14 @@ export default function ContasReceber() {
   const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { unidadeAtual } = useUnidade();
+  const { data: formasCustom = [] } = useFormasPagamentoCustom({ onlyActive: true });
+  const FORMAS_PAGAMENTO = useMemo(
+    () => [
+      ...FORMAS_PAGAMENTO_BUILTIN.map((f) => ({ value: f, label: f })),
+      ...formasCustom.map((c) => ({ value: c.slug, label: `${c.icone} ${c.nome}` })),
+    ],
+    [formasCustom],
+  );
 
   // Bulk liquidation states
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
