@@ -1,16 +1,24 @@
 // One-shot setup function for Vapi BYO SIP Trunk (GoTo / Forte Gás 0800)
 // Call: GET https://<proj>.supabase.co/functions/v1/vapi-setup
 // Returns JSON with credentialId, assistantId, phoneNumberId and step status.
+//
+// SECURITY: requires x-admin-secret header matching VAPI_SERVER_SECRET.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-secret",
 };
 
 const VAPI_BASE = "https://api.vapi.ai";
 const SERVER_URL = "https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/vapi-webhook";
 const PHONE_E164 = "+558005900492";
 const VONAGE_SIP_URI = "sip:vonage-fortegas@sip.vapi.ai";
+
+function safeEqualVs(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
 
 async function vapi(path: string, init: RequestInit & { json?: any } = {}) {
   const apiKey = Deno.env.get("VAPI_API_KEY");
@@ -31,13 +39,33 @@ async function vapi(path: string, init: RequestInit & { json?: any } = {}) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Fail-closed admin gate — reconfigures production telephony trunk/assistant.
+  const expected = Deno.env.get("VAPI_SERVER_SECRET") || "";
+  const provided = req.headers.get("x-admin-secret") || "";
+  if (!expected || !provided || !safeEqualVs(expected, provided)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const result: any = { steps: {} };
 
   try {
-    const username = Deno.env.get("GOTO_SIP_USERNAME") || "53LcZzueOL72RsONRVMAe6ag0XSlFe";
-    const password = Deno.env.get("GOTO_SIP_PASSWORD") || "ZrBAJEsTuX8Bfaut";
-    const domain = Deno.env.get("GOTO_SIP_DOMAIN") || "reg.jiveip.net";
-    const proxy = Deno.env.get("GOTO_SIP_OUTBOUND_PROXY") || "fortegascomercioetransporteslt.jive.rtcfront.net";
+    // No hardcoded fallbacks — SIP credentials MUST come from configured secrets.
+    const username = Deno.env.get("GOTO_SIP_USERNAME") || Deno.env.get("GOTO_SIP_USER") || "";
+    const password = Deno.env.get("GOTO_SIP_PASSWORD") || "";
+    const domain = Deno.env.get("GOTO_SIP_DOMAIN") || "";
+    const proxy = Deno.env.get("GOTO_SIP_OUTBOUND_PROXY") || "";
+    if (!username || !password || !domain || !proxy) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Missing GoTo SIP secrets (GOTO_SIP_USERNAME/GOTO_SIP_USER, GOTO_SIP_PASSWORD, GOTO_SIP_DOMAIN, GOTO_SIP_OUTBOUND_PROXY)",
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
 
     // ---------- STEP A: SIP Trunk Credential ----------
     // Look for existing credential with this name first
