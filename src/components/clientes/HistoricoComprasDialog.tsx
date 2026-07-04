@@ -32,6 +32,7 @@ export function HistoricoComprasDialog({ open, onOpenChange, clienteId, clienteN
   const [pedidos, setPedidos] = useState<PedidoHist[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const formaLabel = useFormaPagamentoLabel();
 
   useEffect(() => {
     if (!open || !clienteId) return;
