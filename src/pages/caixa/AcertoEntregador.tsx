@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
@@ -115,6 +116,8 @@ function canonicalForma(raw: string): string {
   };
   if (direct[s]) return direct[s];
   if (FORMAS_CANONICAS.has(s)) return s;
+  // Formas customizadas: preserva o slug como está.
+  if (s.startsWith("custom_avista_") || s.startsWith("custom_aprazo_")) return s;
   return "__invalido__";
 }
 
@@ -165,6 +168,14 @@ interface EditingEntrega {
 
 export default function AcertoEntregador() {
   const { unidadeAtual } = useUnidade();
+  const { data: formasCustom = [] } = useFormasPagamentoCustom({ onlyActive: true });
+  const formasPagamento = useMemo(
+    () => [
+      "Dinheiro", "PIX", "PIX Maquininha", "Cartão Crédito", "Cartão Débito", "Cheque", "Vale Gás", "Fiado", "Boleto", "Gás do Povo",
+      ...formasCustom.map((c) => c.slug),
+    ],
+    [formasCustom],
+  );
   const { parceiros } = useValeGas();
   const { hasAnyRole } = useAuth();
   const { toast: toastHook } = useToast();
