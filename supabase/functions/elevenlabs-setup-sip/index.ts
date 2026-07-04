@@ -2,7 +2,7 @@
 // Roda sob demanda. Idempotente: detecta phone number existente e atualiza.
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-secret",
 };
 
 const EL_API = "https://api.elevenlabs.io/v1/convai";
@@ -15,8 +15,22 @@ interface SetupBody {
   webhook_base_url?: string;    // ex: "https://scqenurznkatvrqxqjmt.supabase.co/functions/v1"
 }
 
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Fail-closed admin gate — reconfigures production telephony trunk.
+  const adminSecret = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET") || "";
+  const headerSecret = req.headers.get("x-admin-secret") || "";
+  if (!adminSecret || !headerSecret || !safeEqual(adminSecret, headerSecret)) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+
 
   try {
     const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
