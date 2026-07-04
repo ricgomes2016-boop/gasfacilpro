@@ -9,6 +9,7 @@ import { Loader2, RotateCcw, ShoppingCart, Package } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 
 interface PedidoHist {
   id: string;
