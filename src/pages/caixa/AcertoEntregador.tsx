@@ -169,6 +169,7 @@ interface EditingEntrega {
 export default function AcertoEntregador() {
   const { unidadeAtual } = useUnidade();
   const { data: formasCustom = [] } = useFormasPagamentoCustom({ onlyActive: true });
+  const formaLabel = useFormaPagamentoLabel();
   const formasPagamento = useMemo(
     () => [
       ...FORMAS_PAGAMENTO_BUILTIN.map((f) => ({ value: f, label: f })),
