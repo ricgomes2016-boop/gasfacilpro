@@ -200,13 +200,11 @@ export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {
   }, [rows, filtroEtapa, hoje, operadoraId]);
 
   const getFormaLabel = (f: string | null) => {
-    if (!f) return "—";
-    const map: Record<string, string> = {
-      cartao_debito: "Débito", debito: "Débito",
-      cartao_credito: "Crédito", credito: "Crédito",
-      pix_maquininha: "PIX Maq.",
-    };
-    return map[f] || f;
+    // Abreviações específicas do pipeline (mantém compacto na tabela).
+    if (f === "cartao_debito" || f === "debito") return "Débito";
+    if (f === "cartao_credito" || f === "credito") return "Crédito";
+    if (f === "pix_maquininha") return "PIX Maq.";
+    return formatFormaPagamentoLabel(f, formasCustom);
   };
 
   const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
