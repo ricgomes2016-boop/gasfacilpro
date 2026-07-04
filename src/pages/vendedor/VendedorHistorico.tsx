@@ -62,8 +62,8 @@ export default function VendedorHistorico() {
                       {p.status}
                     </Badge>
                     {p.forma_pagamento && (
-                      <Badge variant="outline" className="text-[10px]">
-                        {p.forma_pagamento}
+                      <Badge variant="outline" className="text-[10px] max-w-[140px] truncate" title={formaLabel(p.forma_pagamento)}>
+                        {formaLabel(p.forma_pagamento)}
                       </Badge>
                     )}
                   </div>
