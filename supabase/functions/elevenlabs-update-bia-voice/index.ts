@@ -6,14 +6,30 @@
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-secret",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
+
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Fail-closed: require ELEVENLABS_WEBHOOK_SECRET via x-admin-secret header.
+  const adminSecret = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET") || "";
+  const headerSecret = req.headers.get("x-admin-secret") || "";
+  if (!adminSecret || !headerSecret || !safeEqual(adminSecret, headerSecret)) {
+    return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
 
   const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
   const ELEVENLABS_AGENT_ID = Deno.env.get("ELEVENLABS_AGENT_ID");
