@@ -111,6 +111,7 @@ export default function RelatorioVendas() {
   const { empresa } = useEmpresa();
   const queryClient = useQueryClient();
   const hoje = new Date();
+  const formaLabel = useFormaPagamentoLabel();
 
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(hoje), "yyyy-MM-dd"));
   const [dataFim, setDataFim] = useState(format(endOfMonth(hoje), "yyyy-MM-dd"));
