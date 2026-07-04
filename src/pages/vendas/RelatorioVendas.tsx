@@ -547,7 +547,7 @@ export default function RelatorioVendas() {
       "Itens": p.pedido_itens?.map((i) => `${i.quantidade}x ${i.produtos?.nome || "?"}`).join(", ") || "-",
       "Qtd. Itens": p.pedido_itens?.reduce((acc, i) => acc + i.quantidade, 0) || 0,
       "Valor Total": p.valor_total || 0,
-      "Forma Pagamento": p.forma_pagamento || "-",
+      "Forma Pagamento": formaLabel(p.forma_pagamento),
       "Canal": canalLabels[p.canal_venda || ""] || p.canal_venda || "-",
       "Status": statusConfig[p.status || "pendente"]?.label || p.status,
     }));
