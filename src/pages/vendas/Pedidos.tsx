@@ -1063,11 +1063,11 @@ export default function Pedidos() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
-                          {pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>}
-                          {pedido.agendado && pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>}
-                          {pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>}
-                          {pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria (Retirada)</DropdownMenuItem>}
-                          {unidades.length > 1 && <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}><MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial</DropdownMenuItem>}
+                          {!isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>}
+                          {pedido.agendado && !isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>}
+                          {!isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>}
+                          {!isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria (Retirada)</DropdownMenuItem>}
+                          {unidades.length > 1 && !isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}><MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial</DropdownMenuItem>}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
@@ -1080,7 +1080,7 @@ export default function Pedidos() {
                               }
                             }}><Download className="h-4 w-4 mr-2" />Comprovante de Entrega (PDF)</DropdownMenuItem>
                           )}
-                          {pedido.status !== "cancelado" && pedido.status !== "entregue" && <>
+                          {!isPedidoBloqueado(pedido.status) && <>
                             <DropdownMenuSeparator />
                             {pedido.status !== "em_rota" && <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "em_rota")}><Truck className="h-4 w-4 mr-2" />Marcar Em Rota</DropdownMenuItem>}
                             <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "entregue")}><CheckCircle className="h-4 w-4 mr-2" />Marcar Entregue</DropdownMenuItem>
@@ -1089,7 +1089,7 @@ export default function Pedidos() {
                             <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => cancelarPedido(pedido.id)}><XCircle className="h-4 w-4 mr-2" />Cancelar Pedido</DropdownMenuItem>
                           </>}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => abrirExclusao(pedido)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
+                          {pedido.status !== "finalizado" && <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => abrirExclusao(pedido)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -1175,7 +1175,7 @@ export default function Pedidos() {
                         <Badge variant="outline" className="cursor-pointer hover:bg-accent text-xs" onClick={() => abrirTransferencia(pedido)}>
                               <Truck className="h-3 w-3 mr-1" />{pedido.entregador}
                             </Badge> :
-                        pedido.status !== "cancelado" && pedido.status !== "entregue" ?
+                        !isPedidoBloqueado(pedido.status) ?
                         <div className="flex gap-1">
                               <Button size="sm" variant="ghost" className="text-primary h-6 px-2 text-xs" onClick={() => abrirTransferencia(pedido)}>
                                 <Sparkles className="h-3 w-3 mr-1" /> Atribuir
@@ -1222,27 +1222,23 @@ export default function Pedidos() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
-                              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                              {!isPedidoBloqueado(pedido.status) &&
                             <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
                             }
-                              {pedido.agendado && pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                              {pedido.agendado && !isPedidoBloqueado(pedido.status) &&
                             <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>
                             }
-                              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                              {!isPedidoBloqueado(pedido.status) &&
                             <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>
                             }
-              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+              {!isPedidoBloqueado(pedido.status) &&
                             <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria (Retirada)</DropdownMenuItem>
                             }
-                              {unidades.length > 1 &&
-                            <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}>
-                                  <MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial
-                                </DropdownMenuItem>
-                            }
+                              {unidades.length > 1 && !isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}><MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial</DropdownMenuItem>}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
-                              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                              {!isPedidoBloqueado(pedido.status) &&
                             <>
                                   <DropdownMenuSeparator />
                                   {pedido.status !== "em_rota" &&
@@ -1257,7 +1253,7 @@ export default function Pedidos() {
                                 </>
                             }
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => abrirExclusao(pedido)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
+                              {pedido.status !== "finalizado" && <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => abrirExclusao(pedido)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
