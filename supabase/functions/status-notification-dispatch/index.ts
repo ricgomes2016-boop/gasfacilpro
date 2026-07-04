@@ -14,6 +14,11 @@ serve(async (req) => {
 
   const auth = await requireAuth(req, corsHeaders);
   if (!auth.ok) return auth.response;
+  if (!auth.isServiceRole) {
+    return new Response(JSON.stringify({ error: "Forbidden: service_role required" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
