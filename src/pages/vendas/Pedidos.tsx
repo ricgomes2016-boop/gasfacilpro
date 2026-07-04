@@ -1321,7 +1321,7 @@ export default function Pedidos() {
                 const pct = contadores.total > 0 ? Math.round(valor / contadores.total * 100) : 0;
                 return (
                   <div key={method} className="rounded-xl border bg-background px-3 py-2 min-w-0">
-                    <p className="text-xs text-muted-foreground truncate capitalize" title={method}>{method}</p>
+                    <p className="text-xs text-muted-foreground truncate" title={formaLabel(method)}>{formaLabel(method)}</p>
                     <p className="text-lg font-bold leading-tight">R$ {valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
                     <p className="text-[11px] text-muted-foreground">{pct}% do total</p>
                   </div>
