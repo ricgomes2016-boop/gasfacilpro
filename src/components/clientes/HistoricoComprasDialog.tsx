@@ -110,7 +110,7 @@ export function HistoricoComprasDialog({ open, onOpenChange, clienteId, clienteN
                         )}
                         <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                           <span className="font-semibold text-foreground">R$ {(p.valor_total || 0).toFixed(2)}</span>
-                          {p.forma_pagamento && <span>· {p.forma_pagamento}</span>}
+                          {p.forma_pagamento && <span className="truncate max-w-[160px]" title={formaLabel(p.forma_pagamento)}>· {formaLabel(p.forma_pagamento)}</span>}
                         </div>
                       </div>
                       <Button
