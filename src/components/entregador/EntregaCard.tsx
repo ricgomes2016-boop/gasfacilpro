@@ -52,6 +52,7 @@ interface EntregaCardProps {
 
 export function EntregaCard({ entrega, onAceitar, sameBairroCount }: EntregaCardProps) {
   const status = statusConfig[entrega.status as keyof typeof statusConfig] || statusConfig.pendente;
+  const formaLabel = useFormaPagamentoLabel();
   const StatusIcon = status.icon;
   const clienteNome = entrega.clientes?.nome || "Cliente";
   const clienteTelefone = entrega.clientes?.telefone || "";
