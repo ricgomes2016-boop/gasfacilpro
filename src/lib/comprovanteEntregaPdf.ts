@@ -63,6 +63,12 @@ export async function gerarComprovanteEntregaPdf({ pedidoId, download = true }: 
     .limit(1)
     .maybeSingle();
 
+  // Buscar formas customizadas da unidade para exibir nome amigável
+  const { data: formasCustom } = await (supabase as any)
+    .from("formas_pagamento_custom")
+    .select("slug, nome, icone")
+    .or(`unidade_id.eq.${(pedido as any).unidade_id},unidade_id.is.null`);
+
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 14;
