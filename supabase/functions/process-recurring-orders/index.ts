@@ -13,6 +13,12 @@ serve(async (req) => {
   try {
     const auth = await requireAuth(req, corsHeaders);
     if (!auth.ok) return auth.response;
+    // Cron/service-role only: reject regular user JWTs to prevent tenant abuse.
+    if (!auth.isServiceRole) {
+      return new Response(JSON.stringify({ error: "Forbidden: service_role required" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
