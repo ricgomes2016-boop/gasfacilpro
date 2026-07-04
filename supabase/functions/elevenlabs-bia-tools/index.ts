@@ -141,6 +141,20 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Fail-closed: only accept calls carrying the shared secret configured in the
+  // ElevenLabs tool definition as x-admin-secret header.
+  const expected = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET") || "";
+  const provided = req.headers.get("x-admin-secret") || "";
+  if (!expected || !provided || !safeEqualBia(expected, provided)) {
+    return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
