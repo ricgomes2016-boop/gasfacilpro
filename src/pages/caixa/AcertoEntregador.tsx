@@ -1119,7 +1119,7 @@ export default function AcertoEntregador() {
                           return (
                             <div key={forma} className="flex justify-between text-sm">
                               <span className={isDinheiro ? "font-medium" : "text-muted-foreground"}>
-                                {isDinheiro ? "💵" : "💳"} {paymentLabels[forma] || forma}
+                                {isDinheiro ? "💵" : "💳"} {formaLabel(forma)}
                               </span>
                               <span className={isDinheiro ? "font-bold" : ""}>{formatCurrency(valor)}</span>
                             </div>
