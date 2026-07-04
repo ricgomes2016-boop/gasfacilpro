@@ -304,6 +304,7 @@ function DetailModal({
 }) {
   if (!pedido) return null;
   const colAtual = STATUS_TO_COL[pedido.status] ?? "novo";
+  const formaLabel = useFormaPagamentoLabel();
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
