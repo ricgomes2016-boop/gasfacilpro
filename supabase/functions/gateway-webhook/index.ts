@@ -56,8 +56,9 @@ serve(async (req) => {
       .eq("instance_name", instanceName)
       .maybeSingle();
     const expectedSecret = gwInstance?.webhook_secret || null;
-    if (expectedSecret && incomingSecret !== expectedSecret) {
-      console.warn("Gateway webhook: invalid or missing x-webhook-secret for instance", instanceName);
+    // Fail-closed: require a configured webhook_secret AND matching header.
+    if (!expectedSecret || incomingSecret !== expectedSecret) {
+      console.warn("Gateway webhook: missing/invalid x-webhook-secret for instance", instanceName, { hasSecret: !!expectedSecret });
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -42,10 +42,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const adminSecret = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET");
-    const headerSecret = req.headers.get("x-admin-secret");
-    if (adminSecret && headerSecret && headerSecret !== adminSecret) {
-      return json({ ok: false, error: "Invalid admin secret" }, 200);
+    // Fail-closed: reject unless secret is configured and header matches exactly.
+    const adminSecret = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET") || "";
+    const headerSecret = req.headers.get("x-admin-secret") || "";
+    if (!adminSecret || !headerSecret || headerSecret.length !== adminSecret.length || headerSecret !== adminSecret) {
+      return json({ ok: false, error: "Unauthorized" }, 401);
     }
 
     let body: Record<string, unknown> = {};

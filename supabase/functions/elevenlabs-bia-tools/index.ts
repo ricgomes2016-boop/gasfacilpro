@@ -3,8 +3,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-secret",
 };
+
+function safeEqualBia(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
 
 // Empresa fixa para atendimento da Bia por telefone (Central Gas)
 const EMPRESA_BIA_ID = "f27e158e-7ab5-4617-9f66-c6b4a084d293";
@@ -133,6 +139,16 @@ async function resolverEmpresaUnidade(supabase: any, _body: any) {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Fail-closed: only accept calls carrying the shared secret configured in the
+  // ElevenLabs tool definition as x-admin-secret header.
+  const expected = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET") || "";
+  const provided = req.headers.get("x-admin-secret") || "";
+  if (!expected || !provided || !safeEqualBia(expected, provided)) {
+    return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const supabase = createClient(

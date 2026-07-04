@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-vapi-secret, x-vapi-signature, x-admin-secret",
 };
 
 const supabase = createClient(
@@ -173,8 +173,29 @@ async function criarPedido(args: any, ctx: any) {
   };
 }
 
+function safeEqualVt(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // Fail-closed: require Vapi server-secret header. Configure VAPI_SERVER_SECRET
+  // in this project's secrets and paste the same value into Vapi's assistant
+  // "Server URL Secret" so Vapi sends it in the x-vapi-secret header.
+  const expected = Deno.env.get("VAPI_SERVER_SECRET") || "";
+  const provided =
+    req.headers.get("x-vapi-secret") ||
+    req.headers.get("x-vapi-signature") ||
+    req.headers.get("x-admin-secret") ||
+    "";
+  if (!expected || !provided || !safeEqualVt(expected, provided)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const body = await req.json();
