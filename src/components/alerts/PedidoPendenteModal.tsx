@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bike, Clock, MapPin, Phone, User, Volume2, VolumeX, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PedidoPendente } from "@/hooks/usePedidosPendentesAlert";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 
 interface Props {
   pedido: PedidoPendente;
