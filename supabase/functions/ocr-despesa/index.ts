@@ -1,9 +1,13 @@
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { requireAuth } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req, corsHeaders);
+    if (!auth.ok) return auth.response;
+
     const { image_base64, mime_type, filename } = await req.json();
     if (!image_base64) throw new Error("image_base64 obrigatório");
 
