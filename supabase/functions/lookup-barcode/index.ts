@@ -4,6 +4,7 @@
 // Sempre retorna 200 OK com { ok, encontrado, dados, fonte }.
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requireAuth } from "../_shared/auth.ts";
 
 interface Dados {
   nome: string | null;
