@@ -265,6 +265,31 @@ export default function RelatorioDetalhadoVendas() {
     return { produtos: finalizar(Array.from(porProduto.values())), canais: finalizar(Array.from(porCanal.values())) };
   }, [entregadorAberto, filtradas]);
 
+  const detalhesProduto = useMemo(() => {
+    if (!produtoAberto) return null;
+    const dados = linhas.filter(l => l.produto === produtoAberto.produto);
+    const porEntregador = new Map<string, LinhaDetalhe>();
+    const porCanal = new Map<string, LinhaDetalhe>();
+    dados.forEach(l => {
+      const ent = porEntregador.get(l.entregador) || novaLinha(l.entregador, l.produto, l.canal);
+      ent.qtd += l.qtd; ent.qtdComCusto += l.qtdComCusto; ent.totalCusto += l.totalCusto; ent.totalVenda += l.totalVenda; ent.vendaSemCusto += l.vendaSemCusto;
+      porEntregador.set(l.entregador, ent);
+      const cnl = porCanal.get(l.canal) || novaLinha(l.entregador, l.produto, l.canal);
+      cnl.qtd += l.qtd; cnl.qtdComCusto += l.qtdComCusto; cnl.totalCusto += l.totalCusto; cnl.totalVenda += l.totalVenda; cnl.vendaSemCusto += l.vendaSemCusto;
+      porCanal.set(l.canal, cnl);
+    });
+    const totais = dados.reduce((acc, l) => {
+      acc.qtd += l.qtd; acc.qtdComCusto += l.qtdComCusto; acc.totalCusto += l.totalCusto; acc.totalVenda += l.totalVenda; acc.vendaSemCusto += l.vendaSemCusto;
+      return acc;
+    }, novaLinha("", produtoAberto.produto, ""));
+    const finalizar = (list: LinhaDetalhe[]) => list.map(finalizarLinha).sort((a, b) => b.totalVenda - a.totalVenda);
+    return {
+      entregadores: finalizar(Array.from(porEntregador.values())),
+      canais: finalizar(Array.from(porCanal.values())),
+      totais: finalizarLinha(totais),
+    };
+  }, [produtoAberto, linhas]);
+
   const limparFiltros = () => { setEntregadoresSelecionados([]); setCanaisSelecionados([]); setProdutosSelecionados([]); setBusca(""); };
   const filtrosAtivos = entregadoresSelecionados.length + canaisSelecionados.length + produtosSelecionados.length + (busca ? 1 : 0);
 
