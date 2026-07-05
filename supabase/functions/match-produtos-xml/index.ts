@@ -3,6 +3,7 @@
 // and returns, per item, the best matching produto_id or null.
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requireAuth } from "../_shared/auth.ts";
 
 interface XmlItem {
   index: number;
