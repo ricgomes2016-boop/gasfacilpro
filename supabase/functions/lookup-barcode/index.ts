@@ -74,6 +74,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req, corsHeaders);
+    if (!auth.ok) return auth.response;
+
     const { codigo } = await req.json().catch(() => ({ codigo: "" }));
     const ean = String(codigo || "").replace(/\D/g, "");
 
