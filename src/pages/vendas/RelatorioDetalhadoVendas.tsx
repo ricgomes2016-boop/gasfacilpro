@@ -230,16 +230,15 @@ export default function RelatorioDetalhadoVendas() {
     const map = new Map<string, LinhaDetalhe>();
     filtradas.forEach(l => {
       const nome = l[campo];
-      const atual = map.get(nome) || { entregador: nome, produto: nome, canal: nome, qtd: 0, custoMedio: 0, vendaMedia: 0, totalCusto: 0, totalVenda: 0, lucro: 0, margem: 0 };
+      const atual = map.get(nome) || novaLinha(nome, nome, nome);
       atual.qtd += l.qtd;
+      atual.qtdComCusto += l.qtdComCusto;
       atual.totalVenda += l.totalVenda;
       atual.totalCusto += l.totalCusto;
+      atual.vendaSemCusto += l.vendaSemCusto;
       map.set(nome, atual);
     });
-    return Array.from(map.values()).map(l => {
-      const lucro = l.totalVenda - l.totalCusto;
-      return { ...l, custoMedio: l.qtd ? l.totalCusto / l.qtd : 0, vendaMedia: l.qtd ? l.totalVenda / l.qtd : 0, lucro, margem: l.totalVenda ? lucro / l.totalVenda * 100 : 0 };
-    }).sort((a, b) => b.totalVenda - a.totalVenda);
+    return Array.from(map.values()).map(finalizarLinha).sort((a, b) => b.totalVenda - a.totalVenda);
   };
 
   const rankingEntregadores = useMemo<ResumoEntregador[]>(() => agregado("entregador").map((l, index) => ({
@@ -254,15 +253,14 @@ export default function RelatorioDetalhadoVendas() {
     const porProduto = new Map<string, LinhaDetalhe>();
     const porCanal = new Map<string, LinhaDetalhe>();
     dados.forEach(l => {
-      const prod = porProduto.get(l.produto) || { ...l, qtd: 0, totalCusto: 0, totalVenda: 0, lucro: 0, custoMedio: 0, vendaMedia: 0, margem: 0 };
-      prod.qtd += l.qtd; prod.totalCusto += l.totalCusto; prod.totalVenda += l.totalVenda; porProduto.set(l.produto, prod);
-      const canal = porCanal.get(l.canal) || { ...l, qtd: 0, totalCusto: 0, totalVenda: 0, lucro: 0, custoMedio: 0, vendaMedia: 0, margem: 0 };
-      canal.qtd += l.qtd; canal.totalCusto += l.totalCusto; canal.totalVenda += l.totalVenda; porCanal.set(l.canal, canal);
+      const prod = porProduto.get(l.produto) || novaLinha(l.entregador, l.produto, l.canal);
+      prod.qtd += l.qtd; prod.qtdComCusto += l.qtdComCusto; prod.totalCusto += l.totalCusto; prod.totalVenda += l.totalVenda; prod.vendaSemCusto += l.vendaSemCusto;
+      porProduto.set(l.produto, prod);
+      const canal = porCanal.get(l.canal) || novaLinha(l.entregador, l.produto, l.canal);
+      canal.qtd += l.qtd; canal.qtdComCusto += l.qtdComCusto; canal.totalCusto += l.totalCusto; canal.totalVenda += l.totalVenda; canal.vendaSemCusto += l.vendaSemCusto;
+      porCanal.set(l.canal, canal);
     });
-    const finalizar = (list: LinhaDetalhe[]) => list.map(l => {
-      const lucro = l.totalVenda - l.totalCusto;
-      return { ...l, custoMedio: l.qtd ? l.totalCusto / l.qtd : 0, vendaMedia: l.qtd ? l.totalVenda / l.qtd : 0, lucro, margem: l.totalVenda ? lucro / l.totalVenda * 100 : 0 };
-    }).sort((a, b) => b.totalVenda - a.totalVenda);
+    const finalizar = (list: LinhaDetalhe[]) => list.map(finalizarLinha).sort((a, b) => b.totalVenda - a.totalVenda);
     return { produtos: finalizar(Array.from(porProduto.values())), canais: finalizar(Array.from(porCanal.values())) };
   }, [entregadorAberto, filtradas]);
 
