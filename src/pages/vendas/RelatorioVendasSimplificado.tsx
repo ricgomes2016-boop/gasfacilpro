@@ -108,9 +108,11 @@ export default function RelatorioVendasSimplificado() {
     pedidosFiltrados.forEach(p => {
       const nome = p.entregadores?.nome || "Sem entregador";
       const atual = map.get(nome) || { nome, qtd: 0, total: 0 };
-      const qtdItens = p.pedido_itens?.reduce((sum, item) => sum + (Number(item.quantidade) || 0), 0) || 0;
-      atual.qtd += qtdItens;
-      atual.total += Number(p.valor_total) || 0;
+      p.pedido_itens?.forEach(item => {
+        const qtd = Number(item.quantidade) || 0;
+        atual.qtd += qtd;
+        atual.total += qtd * (Number(item.preco_unitario) || 0);
+      });
       map.set(nome, atual);
     });
     return Array.from(map.values()).map(item => ({ ...item, precoMedio: item.qtd ? item.total / item.qtd : 0 })).sort((a, b) => b.total - a.total);
@@ -122,9 +124,11 @@ export default function RelatorioVendasSimplificado() {
       const canal = p.canal_venda || "outros";
       const nome = canalLabels[canal] || canal;
       const atual = map.get(canal) || { nome, qtd: 0, total: 0 };
-      const qtdItens = p.pedido_itens?.reduce((sum, item) => sum + (Number(item.quantidade) || 0), 0) || 0;
-      atual.qtd += qtdItens;
-      atual.total += Number(p.valor_total) || 0;
+      p.pedido_itens?.forEach(item => {
+        const qtd = Number(item.quantidade) || 0;
+        atual.qtd += qtd;
+        atual.total += qtd * (Number(item.preco_unitario) || 0);
+      });
       map.set(canal, atual);
     });
     return Array.from(map.values()).map(item => ({ ...item, precoMedio: item.qtd ? item.total / item.qtd : 0 })).sort((a, b) => b.total - a.total);
