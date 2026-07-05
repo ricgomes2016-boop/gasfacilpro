@@ -1,6 +1,7 @@
 // Edge function: sugerir-escala-ia
 // Gera proposta de escala semanal usando histórico + IA (Lovable AI Gateway)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,9 +12,17 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req, corsHeaders);
+    if (!auth.ok) return auth.response;
+
     const { unidade_id, inicio_semana } = await req.json();
     if (!inicio_semana) {
       return new Response(JSON.stringify({ error: "inicio_semana é obrigatório (YYYY-MM-DD, segunda-feira)" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!unidade_id) {
+      return new Response(JSON.stringify({ error: "unidade_id é obrigatório" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -29,6 +38,19 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Tenant guard: caller must belong to the unidade's empresa (unless service role)
+    if (!auth.isServiceRole) {
+      const { data: prof } = await supabase
+        .from("profiles").select("empresa_id").eq("user_id", auth.userId).maybeSingle();
+      const { data: uni } = await supabase
+        .from("unidades").select("empresa_id").eq("id", unidade_id).maybeSingle();
+      if (!prof?.empresa_id || !uni?.empresa_id || prof.empresa_id !== uni.empresa_id) {
+        return new Response(JSON.stringify({ error: "Acesso negado a esta unidade" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // Datas: semana visível e 4 semanas anteriores
     const inicio = new Date(inicio_semana + "T00:00:00");
     const semanaDias = Array.from({ length: 7 }, (_, i) => {
@@ -40,23 +62,17 @@ Deno.serve(async (req) => {
     const histFim = new Date(inicio); histFim.setDate(histFim.getDate() - 1);
     const histFimStr = histFim.toISOString().slice(0, 10);
 
-    // Buscar dados em paralelo
-    let entregadoresQ = supabase.from("entregadores").select("id, nome").eq("ativo", true);
-    let rotasQ = supabase.from("rotas_definidas").select("id, nome").eq("ativo", true);
-    let histQ = supabase.from("escalas_entregador")
+    // Buscar dados em paralelo (sempre filtrados pela unidade validada)
+    const entregadoresQ = supabase.from("entregadores").select("id, nome").eq("ativo", true).eq("unidade_id", unidade_id);
+    const rotasQ = supabase.from("rotas_definidas").select("id, nome").eq("ativo", true).eq("unidade_id", unidade_id);
+    const histQ = supabase.from("escalas_entregador")
       .select("entregador_id, data, turno_inicio, turno_fim, almoco_inicio, almoco_fim, rota_definida_id")
-      .gte("data", histInicioStr).lte("data", histFimStr);
-    let pedidosQ = supabase.from("pedidos")
+      .gte("data", histInicioStr).lte("data", histFimStr).eq("unidade_id", unidade_id);
+    const pedidosQ = supabase.from("pedidos")
       .select("created_at")
       .gte("created_at", histInicioStr).lte("created_at", histFimStr + "T23:59:59")
+      .eq("unidade_id", unidade_id)
       .limit(2000);
-
-    if (unidade_id) {
-      entregadoresQ = entregadoresQ.eq("unidade_id", unidade_id);
-      rotasQ = rotasQ.eq("unidade_id", unidade_id);
-      histQ = histQ.eq("unidade_id", unidade_id);
-      pedidosQ = pedidosQ.eq("unidade_id", unidade_id);
-    }
 
     const [entRes, rotasRes, histRes, pedidosRes] = await Promise.all([entregadoresQ, rotasQ, histQ, pedidosQ]);
 
