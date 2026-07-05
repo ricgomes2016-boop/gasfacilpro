@@ -17,6 +17,12 @@ serve(async (req) => {
 
   const auth = await requireAuth(req, corsHeaders);
   if (!auth.ok) return auth.response;
+  if (!auth.isServiceRole) {
+    return new Response(JSON.stringify({ error: "Forbidden: cron-only endpoint" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const supabase = createSupabase();
 
