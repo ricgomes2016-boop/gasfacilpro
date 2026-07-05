@@ -31,7 +31,7 @@ interface PedidoRelatorio {
   pedido_itens: Array<{
     quantidade: number;
     preco_unitario: number;
-    produtos: { nome: string } | null;
+    produtos: { id: string; nome: string; preco_custo: number | null } | null;
   }>;
 }
 
@@ -40,12 +40,15 @@ type LinhaDetalhe = {
   produto: string;
   canal: string;
   qtd: number;
+  qtdComCusto: number;
   custoMedio: number;
   vendaMedia: number;
   totalCusto: number;
   totalVenda: number;
+  vendaSemCusto: number;
   lucro: number;
   margem: number;
+  temCustoIncompleto: boolean;
 };
 
 type ResumoEntregador = LinhaDetalhe & {
@@ -63,15 +66,6 @@ const canalLabels: Record<string, string> = {
   parceiro: "Parceiro",
   importado: "Importado",
   outros: "Outros",
-};
-
-const custoPadrao = (produto: string) => {
-  const nome = produto.toLowerCase();
-  if (nome.includes("água") || nome.includes("agua")) return 8;
-  if (nome.includes("p13") || nome.includes("13 kg")) return 78.84;
-  if (nome.includes("p20") || nome.includes("20 kg")) return 135.03;
-  if (nome.includes("p45") || nome.includes("45 kg")) return 315.1;
-  return 0;
 };
 
 const money = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
