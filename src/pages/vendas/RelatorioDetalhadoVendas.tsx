@@ -378,6 +378,44 @@ export default function RelatorioDetalhadoVendas() {
           </>}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!produtoAberto} onOpenChange={(open) => !open && setProdutoAberto(null)}>
+        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
+          {produtoAberto && detalhesProduto && <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><ShoppingCart className="h-5 w-5 text-primary" />{produtoAberto.produto}</DialogTitle>
+              <DialogDescription>
+                Vendas e custos no período {format(new Date(dataInicio + "T00:00:00"), "dd/MM/yyyy")} a {format(new Date(dataFim + "T00:00:00"), "dd/MM/yyyy")}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+              <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Quantidade</p><p className="text-xl font-bold">{detalhesProduto.totais.qtd.toLocaleString("pt-BR")}</p></CardContent></Card>
+              <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Preço médio</p><p className="font-bold">{money(detalhesProduto.totais.vendaMedia)}</p></CardContent></Card>
+              <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Custo médio</p><p className="font-bold">{detalhesProduto.totais.custoMedio > 0 ? money(detalhesProduto.totais.custoMedio) : <span className="text-xs italic text-muted-foreground">sem custo</span>}</p></CardContent></Card>
+              <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Faturamento</p><p className="font-bold">{money(detalhesProduto.totais.totalVenda)}</p></CardContent></Card>
+              <Card className="col-span-2 lg:col-span-1"><CardContent className="p-3"><p className="text-xs text-muted-foreground">Lucro / Margem</p><p className="font-bold text-emerald-700">{detalhesProduto.totais.custoMedio > 0 ? `${money(detalhesProduto.totais.lucro)} · ${pct(detalhesProduto.totais.margem)}` : "—"}</p></CardContent></Card>
+            </div>
+            {detalhesProduto.totais.temCustoIncompleto && (
+              <div className="flex items-center gap-2 text-xs text-amber-800 bg-amber-50 dark:bg-amber-950/20 border border-amber-300/50 rounded-md p-2">
+                <AlertTriangle className="h-4 w-4" />
+                Este produto tem vendas sem preço de custo cadastrado — lucro/margem baseados apenas nas unidades com custo conhecido.
+              </div>
+            )}
+            <Tabs defaultValue="entregadores" className="space-y-3">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="entregadores">Por entregador</TabsTrigger>
+                <TabsTrigger value="canais">Por canal</TabsTrigger>
+              </TabsList>
+              <TabsContent value="entregadores">
+                <Card><CardContent className="p-0 sm:p-6 sm:pt-0"><div className="overflow-x-auto"><Table className="min-w-[640px]"><TableHeader><TableRow><TableHead>Entregador</TableHead><TableHead className="text-right">Qt</TableHead><TableHead className="text-right">Preço médio</TableHead><TableHead className="text-right">Total venda</TableHead><TableHead className="text-right">Lucro</TableHead><TableHead className="text-right">Margem</TableHead></TableRow></TableHeader><TableBody>{detalhesProduto.entregadores.map((l, i) => <TableRow key={`pe-${i}`}><TableCell className="font-medium">{l.entregador}</TableCell><TableCell className="text-right">{l.qtd.toLocaleString("pt-BR")}</TableCell><TableCell className="text-right">{money(l.vendaMedia)}</TableCell><TableCell className="text-right font-semibold">{money(l.totalVenda)}</TableCell><TableCell className="text-right text-emerald-700">{l.custoMedio > 0 ? money(l.lucro) : "—"}</TableCell><TableCell className="text-right">{l.custoMedio > 0 ? pct(l.margem) : "—"}</TableCell></TableRow>)}</TableBody></Table></div></CardContent></Card>
+              </TabsContent>
+              <TabsContent value="canais">
+                <Card><CardContent className="p-0 sm:p-6 sm:pt-0"><div className="overflow-x-auto"><Table className="min-w-[640px]"><TableHeader><TableRow><TableHead>Canal</TableHead><TableHead className="text-right">Qt</TableHead><TableHead className="text-right">Preço médio</TableHead><TableHead className="text-right">Total venda</TableHead><TableHead className="text-right">Lucro</TableHead><TableHead className="text-right">Margem</TableHead></TableRow></TableHeader><TableBody>{detalhesProduto.canais.map((l, i) => <TableRow key={`pc-${i}`}><TableCell className="font-medium">{l.canal}</TableCell><TableCell className="text-right">{l.qtd.toLocaleString("pt-BR")}</TableCell><TableCell className="text-right">{money(l.vendaMedia)}</TableCell><TableCell className="text-right font-semibold">{money(l.totalVenda)}</TableCell><TableCell className="text-right text-emerald-700">{l.custoMedio > 0 ? money(l.lucro) : "—"}</TableCell><TableCell className="text-right">{l.custoMedio > 0 ? pct(l.margem) : "—"}</TableCell></TableRow>)}</TableBody></Table></div></CardContent></Card>
+              </TabsContent>
+            </Tabs>
+          </>}
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }
