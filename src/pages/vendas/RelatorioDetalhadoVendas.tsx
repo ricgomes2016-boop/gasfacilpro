@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth } from "date-fns";
-import { Brain, Download, Filter, RefreshCw, Search, TrendingUp, X, Trophy, Medal, Crown, UserRound, ShoppingCart } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AlertTriangle, Brain, Download, Filter, RefreshCw, Search, TrendingUp, X, Trophy, Medal, Crown, UserRound, ShoppingCart } from "lucide-react";
 import * as XLSX from "xlsx";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
@@ -30,7 +31,7 @@ interface PedidoRelatorio {
   pedido_itens: Array<{
     quantidade: number;
     preco_unitario: number;
-    produtos: { nome: string } | null;
+    produtos: { id: string; nome: string; preco_custo: number | null } | null;
   }>;
 }
 
@@ -39,12 +40,15 @@ type LinhaDetalhe = {
   produto: string;
   canal: string;
   qtd: number;
+  qtdComCusto: number;
   custoMedio: number;
   vendaMedia: number;
   totalCusto: number;
   totalVenda: number;
+  vendaSemCusto: number;
   lucro: number;
   margem: number;
+  temCustoIncompleto: boolean;
 };
 
 type ResumoEntregador = LinhaDetalhe & {
@@ -62,15 +66,6 @@ const canalLabels: Record<string, string> = {
   parceiro: "Parceiro",
   importado: "Importado",
   outros: "Outros",
-};
-
-const custoPadrao = (produto: string) => {
-  const nome = produto.toLowerCase();
-  if (nome.includes("água") || nome.includes("agua")) return 8;
-  if (nome.includes("p13") || nome.includes("13 kg")) return 78.84;
-  if (nome.includes("p20") || nome.includes("20 kg")) return 135.03;
-  if (nome.includes("p45") || nome.includes("45 kg")) return 315.1;
-  return 0;
 };
 
 const money = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -140,7 +135,7 @@ export default function RelatorioDetalhadoVendas() {
         .select(`
           id, data_entrega, created_at, valor_total, status, canal_venda,
           entregadores (nome),
-          pedido_itens (quantidade, preco_unitario, produtos (nome))
+          pedido_itens (quantidade, preco_unitario, produtos (id, nome, preco_custo))
         `)
         .eq("unidade_id", unidadeAtual!.id)
         .neq("status", "cancelado")
@@ -154,6 +149,36 @@ export default function RelatorioDetalhadoVendas() {
     },
   });
 
+  const novaLinha = (entregador: string, produto: string, canal: string): LinhaDetalhe => ({
+    entregador, produto, canal,
+    qtd: 0, qtdComCusto: 0, custoMedio: 0, vendaMedia: 0,
+    totalCusto: 0, totalVenda: 0, vendaSemCusto: 0, lucro: 0, margem: 0,
+    temCustoIncompleto: false,
+  });
+
+  const finalizarLinha = (l: LinhaDetalhe): LinhaDetalhe => {
+    const lucro = l.totalVenda - l.totalCusto;
+    // Margem calculada apenas sobre venda com custo conhecido (evita distorção).
+    const baseMargem = l.totalVenda - l.vendaSemCusto;
+    return {
+      ...l,
+      custoMedio: l.qtdComCusto ? l.totalCusto / l.qtdComCusto : 0,
+      vendaMedia: l.qtd ? l.totalVenda / l.qtd : 0,
+      lucro,
+      margem: baseMargem > 0 ? ((baseMargem - l.totalCusto) / baseMargem) * 100 : 0,
+      temCustoIncompleto: l.vendaSemCusto > 0,
+    };
+  };
+
+  const produtosSemCusto = useMemo(() => {
+    const set = new Set<string>();
+    pedidos.forEach((p) => p.pedido_itens?.forEach((i) => {
+      const custo = Number(i.produtos?.preco_custo) || 0;
+      if (custo <= 0 && i.produtos?.nome) set.add(i.produtos.nome);
+    }));
+    return Array.from(set).sort();
+  }, [pedidos]);
+
   const linhas = useMemo<LinhaDetalhe[]>(() => {
     const map = new Map<string, LinhaDetalhe>();
     pedidos.forEach((pedido) => {
@@ -164,19 +189,21 @@ export default function RelatorioDetalhadoVendas() {
         const produto = item.produtos?.nome || "Produto sem nome";
         const qtd = Number(item.quantidade) || 0;
         const vendaUnit = Number(item.preco_unitario) || 0;
-        const custoUnit = custoPadrao(produto);
+        const custoUnit = Number(item.produtos?.preco_custo) || 0;
         const key = `${entregador}|||${produto}|||${canal}`;
-        const atual = map.get(key) || { entregador, produto, canal, qtd: 0, custoMedio: 0, vendaMedia: 0, totalCusto: 0, totalVenda: 0, lucro: 0, margem: 0 };
+        const atual = map.get(key) || novaLinha(entregador, produto, canal);
         atual.qtd += qtd;
         atual.totalVenda += qtd * vendaUnit;
-        atual.totalCusto += qtd * custoUnit;
+        if (custoUnit > 0) {
+          atual.qtdComCusto += qtd;
+          atual.totalCusto += qtd * custoUnit;
+        } else {
+          atual.vendaSemCusto += qtd * vendaUnit;
+        }
         map.set(key, atual);
       });
     });
-    return Array.from(map.values()).map((l) => {
-      const lucro = l.totalVenda - l.totalCusto;
-      return { ...l, custoMedio: l.qtd ? l.totalCusto / l.qtd : 0, vendaMedia: l.qtd ? l.totalVenda / l.qtd : 0, lucro, margem: l.totalVenda ? (lucro / l.totalVenda) * 100 : 0 };
-    }).sort((a, b) => b.totalVenda - a.totalVenda);
+    return Array.from(map.values()).map(finalizarLinha).sort((a, b) => b.totalVenda - a.totalVenda);
   }, [pedidos]);
 
   const opcoesEntregador = useMemo(() => Array.from(new Set(linhas.map(l => l.entregador))).sort(), [linhas]);
@@ -203,16 +230,15 @@ export default function RelatorioDetalhadoVendas() {
     const map = new Map<string, LinhaDetalhe>();
     filtradas.forEach(l => {
       const nome = l[campo];
-      const atual = map.get(nome) || { entregador: nome, produto: nome, canal: nome, qtd: 0, custoMedio: 0, vendaMedia: 0, totalCusto: 0, totalVenda: 0, lucro: 0, margem: 0 };
+      const atual = map.get(nome) || novaLinha(nome, nome, nome);
       atual.qtd += l.qtd;
+      atual.qtdComCusto += l.qtdComCusto;
       atual.totalVenda += l.totalVenda;
       atual.totalCusto += l.totalCusto;
+      atual.vendaSemCusto += l.vendaSemCusto;
       map.set(nome, atual);
     });
-    return Array.from(map.values()).map(l => {
-      const lucro = l.totalVenda - l.totalCusto;
-      return { ...l, custoMedio: l.qtd ? l.totalCusto / l.qtd : 0, vendaMedia: l.qtd ? l.totalVenda / l.qtd : 0, lucro, margem: l.totalVenda ? lucro / l.totalVenda * 100 : 0 };
-    }).sort((a, b) => b.totalVenda - a.totalVenda);
+    return Array.from(map.values()).map(finalizarLinha).sort((a, b) => b.totalVenda - a.totalVenda);
   };
 
   const rankingEntregadores = useMemo<ResumoEntregador[]>(() => agregado("entregador").map((l, index) => ({
@@ -227,15 +253,14 @@ export default function RelatorioDetalhadoVendas() {
     const porProduto = new Map<string, LinhaDetalhe>();
     const porCanal = new Map<string, LinhaDetalhe>();
     dados.forEach(l => {
-      const prod = porProduto.get(l.produto) || { ...l, qtd: 0, totalCusto: 0, totalVenda: 0, lucro: 0, custoMedio: 0, vendaMedia: 0, margem: 0 };
-      prod.qtd += l.qtd; prod.totalCusto += l.totalCusto; prod.totalVenda += l.totalVenda; porProduto.set(l.produto, prod);
-      const canal = porCanal.get(l.canal) || { ...l, qtd: 0, totalCusto: 0, totalVenda: 0, lucro: 0, custoMedio: 0, vendaMedia: 0, margem: 0 };
-      canal.qtd += l.qtd; canal.totalCusto += l.totalCusto; canal.totalVenda += l.totalVenda; porCanal.set(l.canal, canal);
+      const prod = porProduto.get(l.produto) || novaLinha(l.entregador, l.produto, l.canal);
+      prod.qtd += l.qtd; prod.qtdComCusto += l.qtdComCusto; prod.totalCusto += l.totalCusto; prod.totalVenda += l.totalVenda; prod.vendaSemCusto += l.vendaSemCusto;
+      porProduto.set(l.produto, prod);
+      const canal = porCanal.get(l.canal) || novaLinha(l.entregador, l.produto, l.canal);
+      canal.qtd += l.qtd; canal.qtdComCusto += l.qtdComCusto; canal.totalCusto += l.totalCusto; canal.totalVenda += l.totalVenda; canal.vendaSemCusto += l.vendaSemCusto;
+      porCanal.set(l.canal, canal);
     });
-    const finalizar = (list: LinhaDetalhe[]) => list.map(l => {
-      const lucro = l.totalVenda - l.totalCusto;
-      return { ...l, custoMedio: l.qtd ? l.totalCusto / l.qtd : 0, vendaMedia: l.qtd ? l.totalVenda / l.qtd : 0, lucro, margem: l.totalVenda ? lucro / l.totalVenda * 100 : 0 };
-    }).sort((a, b) => b.totalVenda - a.totalVenda);
+    const finalizar = (list: LinhaDetalhe[]) => list.map(finalizarLinha).sort((a, b) => b.totalVenda - a.totalVenda);
     return { produtos: finalizar(Array.from(porProduto.values())), canais: finalizar(Array.from(porCanal.values())) };
   }, [entregadorAberto, filtradas]);
 
@@ -265,15 +290,21 @@ export default function RelatorioDetalhadoVendas() {
 
   const TabelaDetalhada = () => (
     <Card><CardHeader className="pb-3"><CardTitle className="text-base">Entregador x Produto x Canal</CardTitle></CardHeader><CardContent className="p-0 sm:p-6 sm:pt-0">
-      {isLoading ? <div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /></div> : filtradas.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">Sem dados para os filtros selecionados.</p> : <div className="overflow-x-auto"><Table className="min-w-[980px]"><TableHeader><TableRow><TableHead>Entregador</TableHead><TableHead>Produto</TableHead><TableHead>Canal</TableHead><TableHead className="text-right">Qt</TableHead><TableHead className="text-right">Custo médio</TableHead><TableHead className="text-right">Preço médio</TableHead><TableHead className="text-right">Total venda</TableHead><TableHead className="text-right">Lucro</TableHead><TableHead className="text-right">Margem</TableHead></TableRow></TableHeader><TableBody>{filtradas.map((l, i) => <TableRow key={`det-${i}`}><TableCell className="font-medium whitespace-nowrap">{l.entregador}</TableCell><TableCell>{l.produto}</TableCell><TableCell>{l.canal}</TableCell><TableCell className="text-right">{l.qtd.toLocaleString("pt-BR")}</TableCell><TableCell className="text-right">{money(l.custoMedio)}</TableCell><TableCell className="text-right">{money(l.vendaMedia)}</TableCell><TableCell className="text-right font-semibold">{money(l.totalVenda)}</TableCell><TableCell className="text-right text-emerald-700">{money(l.lucro)}</TableCell><TableCell className="text-right"><Badge variant={l.margem < 20 ? "destructive" : "secondary"}>{pct(l.margem)}</Badge></TableCell></TableRow>)}</TableBody></Table></div>}
+      {isLoading ? <div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /></div> : filtradas.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">Sem dados para os filtros selecionados.</p> : <div className="overflow-x-auto"><Table className="min-w-[980px]"><TableHeader><TableRow><TableHead>Entregador</TableHead><TableHead>Produto</TableHead><TableHead>Canal</TableHead><TableHead className="text-right">Qt</TableHead><TableHead className="text-right">Custo médio</TableHead><TableHead className="text-right">Preço médio</TableHead><TableHead className="text-right">Total venda</TableHead><TableHead className="text-right">Lucro</TableHead><TableHead className="text-right">Margem</TableHead></TableRow></TableHeader><TableBody>{filtradas.map((l, i) => <TableRow key={`det-${i}`}><TableCell className="font-medium whitespace-nowrap">{l.entregador}</TableCell><TableCell>{l.produto}</TableCell><TableCell>{l.canal}</TableCell><TableCell className="text-right">{l.qtd.toLocaleString("pt-BR")}</TableCell><TableCell className="text-right">{l.custoMedio > 0 ? money(l.custoMedio) : <span className="text-xs text-muted-foreground italic">sem custo</span>}</TableCell><TableCell className="text-right">{money(l.vendaMedia)}</TableCell><TableCell className="text-right font-semibold">{money(l.totalVenda)}</TableCell><TableCell className="text-right text-emerald-700">{l.custoMedio > 0 ? money(l.lucro) : "—"}</TableCell><TableCell className="text-right">{l.custoMedio > 0 ? <Badge variant={l.margem < 20 ? "destructive" : "secondary"}>{pct(l.margem)}</Badge> : <span className="text-xs text-muted-foreground">—</span>}</TableCell></TableRow>)}<TableRow className="bg-muted/50 font-bold"><TableCell colSpan={3}>Total</TableCell><TableCell className="text-right">{resumo.qtd.toLocaleString("pt-BR")}</TableCell><TableCell className="text-right">—</TableCell><TableCell className="text-right">{money(resumo.vendaMedia)}</TableCell><TableCell className="text-right">{money(resumo.totalVenda)}</TableCell><TableCell className="text-right text-emerald-700">{money(resumo.lucro)}</TableCell><TableCell className="text-right">{pct(resumo.margem)}</TableCell></TableRow></TableBody></Table></div>}
     </CardContent></Card>
   );
 
-  const TabelaResumo = ({ rows, titulo, campo }: { rows: LinhaDetalhe[]; titulo: string; campo: "produto" | "canal" }) => (
+  const TabelaResumo = ({ rows, titulo, campo }: { rows: LinhaDetalhe[]; titulo: string; campo: "produto" | "canal" }) => {
+    const totQtd = rows.reduce((s, r) => s + r.qtd, 0);
+    const totVenda = rows.reduce((s, r) => s + r.totalVenda, 0);
+    const totCusto = rows.reduce((s, r) => s + r.totalCusto, 0);
+    const totLucro = totVenda - totCusto;
+    return (
     <Card><CardHeader className="pb-3"><CardTitle className="text-base">{titulo}</CardTitle></CardHeader><CardContent className="p-0 sm:p-6 sm:pt-0">
-      {isLoading ? <div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /></div> : rows.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">Sem dados.</p> : <div className="overflow-x-auto"><Table className="min-w-[720px]"><TableHeader><TableRow><TableHead>{campo === "produto" ? "Produto" : "Canal"}</TableHead><TableHead className="text-right">Qt</TableHead><TableHead className="text-right">Custo médio</TableHead><TableHead className="text-right">Preço médio</TableHead><TableHead className="text-right">Total</TableHead><TableHead className="text-right">Lucro</TableHead></TableRow></TableHeader><TableBody>{rows.map((l, i) => <TableRow key={`${campo}-${i}`}><TableCell className="font-medium">{campo === "produto" ? l.produto : l.canal}</TableCell><TableCell className="text-right">{l.qtd}</TableCell><TableCell className="text-right">{money(l.custoMedio)}</TableCell><TableCell className="text-right">{money(l.vendaMedia)}</TableCell><TableCell className="text-right font-semibold">{money(l.totalVenda)}</TableCell><TableCell className="text-right text-emerald-700">{money(l.lucro)}</TableCell></TableRow>)}</TableBody></Table></div>}
+      {isLoading ? <div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /></div> : rows.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">Sem dados.</p> : <div className="overflow-x-auto"><Table className="min-w-[720px]"><TableHeader><TableRow><TableHead>{campo === "produto" ? "Produto" : "Canal"}</TableHead><TableHead className="text-right">Qt</TableHead><TableHead className="text-right">Custo médio</TableHead><TableHead className="text-right">Preço médio</TableHead><TableHead className="text-right">Total</TableHead><TableHead className="text-right">Lucro</TableHead></TableRow></TableHeader><TableBody>{rows.map((l, i) => <TableRow key={`${campo}-${i}`}><TableCell className="font-medium">{campo === "produto" ? l.produto : l.canal}{l.temCustoIncompleto && <Badge variant="outline" className="ml-2 text-[10px]">custo parcial</Badge>}</TableCell><TableCell className="text-right">{l.qtd}</TableCell><TableCell className="text-right">{l.custoMedio > 0 ? money(l.custoMedio) : <span className="text-xs text-muted-foreground italic">sem custo</span>}</TableCell><TableCell className="text-right">{money(l.vendaMedia)}</TableCell><TableCell className="text-right font-semibold">{money(l.totalVenda)}</TableCell><TableCell className="text-right text-emerald-700">{l.custoMedio > 0 ? money(l.lucro) : "—"}</TableCell></TableRow>)}<TableRow className="bg-muted/50 font-bold"><TableCell>Total</TableCell><TableCell className="text-right">{totQtd.toLocaleString("pt-BR")}</TableCell><TableCell className="text-right">—</TableCell><TableCell className="text-right">{money(totQtd ? totVenda / totQtd : 0)}</TableCell><TableCell className="text-right">{money(totVenda)}</TableCell><TableCell className="text-right text-emerald-700">{money(totLucro)}</TableCell></TableRow></TableBody></Table></div>}
     </CardContent></Card>
-  );
+    );
+  };
 
   const MedalhaIcon = ({ posicao }: { posicao: number }) => posicao === 1 ? <Crown className="h-5 w-5 text-yellow-500" /> : posicao === 2 ? <Medal className="h-5 w-5 text-slate-400" /> : posicao === 3 ? <Medal className="h-5 w-5 text-amber-600" /> : <span className="text-sm text-muted-foreground">{posicao}º</span>;
 
@@ -292,6 +323,22 @@ export default function RelatorioDetalhadoVendas() {
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 min-w-0">
         <Card><CardContent className="p-3 sm:p-4 space-y-3"><div className="flex items-center justify-between gap-3 flex-wrap"><div className="flex items-center gap-2 text-sm font-medium"><Filter className="h-4 w-4 text-primary" />Filtros inteligentes</div>{filtrosAtivos > 0 && <Button size="sm" variant="ghost" onClick={limparFiltros}><X className="h-4 w-4 mr-1" />Limpar filtros</Button>}</div><div className="grid grid-cols-2 lg:grid-cols-7 gap-2 sm:gap-3"><div className="space-y-1"><Label className="text-xs">Início</Label><Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} /></div><div className="space-y-1"><Label className="text-xs">Fim</Label><Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} /></div><div className="lg:col-span-1 col-span-2"><MultiSelectFiltro titulo="Entregadores" opcoes={opcoesEntregador} selecionados={entregadoresSelecionados} onChange={setEntregadoresSelecionados} /></div><div className="lg:col-span-1 col-span-2"><MultiSelectFiltro titulo="Produtos" opcoes={opcoesProduto} selecionados={produtosSelecionados} onChange={setProdutosSelecionados} /></div><div className="lg:col-span-1 col-span-2"><MultiSelectFiltro titulo="Canais" opcoes={opcoesCanal} selecionados={canaisSelecionados} onChange={setCanaisSelecionados} /></div><div className="col-span-2 lg:col-span-1 flex items-end"><Button variant="outline" className="w-full" onClick={() => refetch()} disabled={isLoading}><RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? "animate-spin" : ""}`} />Atualizar</Button></div></div><div className="relative max-w-xl"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input className="pl-9" placeholder="Buscar entregador, produto ou canal..." value={busca} onChange={e => setBusca(e.target.value)} /></div></CardContent></Card>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Qt vendida</p><p className="text-xl font-bold">{resumo.qtd.toLocaleString("pt-BR")}</p></CardContent></Card><Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Total venda</p><p className="text-lg font-bold truncate">{money(resumo.totalVenda)}</p></CardContent></Card><Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Preço médio</p><p className="text-lg font-bold truncate">{money(resumo.vendaMedia)}</p></CardContent></Card><Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Lucro estimado</p><p className="text-lg font-bold text-emerald-700 truncate">{money(resumo.lucro)}</p></CardContent></Card><Card className="col-span-2 lg:col-span-1"><CardContent className="p-3"><p className="text-xs text-muted-foreground">Margem média</p><p className="text-xl font-bold">{pct(resumo.margem)}</p></CardContent></Card></div>
+        {produtosSemCusto.length > 0 && (
+          <Card className="border-amber-400/60 bg-amber-50 dark:bg-amber-950/20">
+            <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+              <div className="flex-1 text-sm">
+                <p className="font-medium text-amber-900 dark:text-amber-200">
+                  {produtosSemCusto.length} produto(s) sem preço de custo cadastrado — lucro e margem incompletos.
+                </p>
+                <p className="text-xs text-amber-800/80 dark:text-amber-300/80 truncate" title={produtosSemCusto.join(", ")}>
+                  {produtosSemCusto.slice(0, 4).join(", ")}{produtosSemCusto.length > 4 ? ` +${produtosSemCusto.length - 4}` : ""}
+                </p>
+              </div>
+              <Link to="/cadastros/produtos"><Button size="sm" variant="outline">Cadastrar custos</Button></Link>
+            </CardContent>
+          </Card>
+        )}
         <div className="flex justify-end"><Button onClick={exportarExcel}><Download className="h-4 w-4 mr-2" />Exportar Excel</Button></div>
         <Tabs defaultValue="geral" className="space-y-3"><TabsList className="w-full h-auto p-1 grid grid-cols-3 md:grid-cols-6"><TabsTrigger value="geral">Geral</TabsTrigger><TabsTrigger value="produto">Produtos</TabsTrigger><TabsTrigger value="entregador">Entregadores</TabsTrigger><TabsTrigger value="canal">Canais</TabsTrigger><TabsTrigger value="detalhado">Detalhado</TabsTrigger><TabsTrigger value="ia">Inteligência</TabsTrigger></TabsList><TabsContent value="geral" className="space-y-3"><div className="grid gap-3 lg:grid-cols-2"><TabelaResumo rows={agregado("produto").slice(0, 10)} titulo="Top produtos" campo="produto" /><TabelaResumo rows={agregado("canal").slice(0, 10)} titulo="Top canais" campo="canal" /></div></TabsContent><TabsContent value="produto"><TabelaResumo rows={agregado("produto")} titulo="Resumo por Produto" campo="produto" /></TabsContent><TabsContent value="entregador"><RankingEntregadores /></TabsContent><TabsContent value="canal"><TabelaResumo rows={agregado("canal")} titulo="Resumo por Canal" campo="canal" /></TabsContent><TabsContent value="detalhado"><TabelaDetalhada /></TabsContent><TabsContent value="ia"><Card className="border-primary/20 bg-primary/5"><CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Brain className="h-5 w-5 text-primary" />Insights automáticos</CardTitle></CardHeader><CardContent className="space-y-2">{insights.length ? insights.map((i, idx) => <div key={idx} className="text-sm flex gap-2"><TrendingUp className="h-4 w-4 text-primary mt-0.5" /><span>{i}</span></div>) : <p className="text-sm text-muted-foreground">Sem dados suficientes para gerar insights.</p>}</CardContent></Card></TabsContent></Tabs>
       </div>

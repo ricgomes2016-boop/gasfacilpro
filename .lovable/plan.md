@@ -1,37 +1,39 @@
 ## Problema
-Na tela `Pedidos` (`src/pages/vendas/Pedidos.tsx`), o menu **Ações** trata apenas `cancelado` e `entregue` como estados protegidos. Pedidos com status `finalizado` (gerado após o Acerto Diário do entregador) ainda exibem todas as opções de alteração — Editar, Transferir/Atribuir Entregador, Portaria, Marcar Em Rota / Entregue / Pendente, Cancelar, Excluir, Editar Agendamento, Transferir p/ Filial.
 
-Isso permite mexer em pedidos cujo acerto financeiro com o entregador já foi realizado, corrompendo o fechamento.
+Em `src/pages/vendas/RelatorioDetalhadoVendas.tsx` (rota `/vendas/relatorio`), o custo médio nas tabelas "Todos os produtos", "Canal" e "Entregador x Produto x Canal" está errado porque é calculado por uma função `custoPadrao(nomeDoProduto)` **hardcoded** (linhas 67-74) que retorna valores fixos:
 
-## Solução
-Bloquear no menu Ações (versões desktop e mobile) todas as opções que alteram o pedido quando `status === "finalizado"`, mantendo apenas as leituras/impressões:
+- "água" → R$ 8,00
+- "p13"/"13 kg" → R$ 78,84
+- "p20" → R$ 135,03
+- "p45" → R$ 315,10
+- qualquer outro nome → **R$ 0,00** (por isso lucro/margem ficam totalmente errados)
 
-**Permanecem visíveis para `finalizado`:**
-- Visualizar
-- Imprimir
-- WhatsApp
-- Comprovante de Entrega (PDF)
-- Transferir p/ Filial? → **não**, pois altera unidade do pedido pós-acerto → **bloquear**
+Isso ignora o preço de custo real cadastrado em `produtos.preco_custo` e não funciona para nenhum outro produto (recargas, acessórios, etc.).
 
-**Ficam ocultas para `finalizado`:**
-- Editar pedido
-- Editar agendamento
-- Atribuir/Transferir Entregador
-- Portaria (Retirada)
-- Transferir p/ Filial
-- Marcar Em Rota / Entregue / Voltar p/ Pendente
-- Cancelar Pedido
-- Excluir
+O **preço médio de venda** (`totalVenda / qtd`) já está correto — vem de `pedido_itens.preco_unitario` real.
 
-Aplicar a mesma regra também na ação de troca de status pela `StatusDropdown`/`alterarStatusPedido` como salvaguarda (early-return com toast "Pedido finalizado no acerto — alterações bloqueadas") caso algum caminho residual dispare.
+## Correção
 
-## Arquivos alterados
-- `src/pages/vendas/Pedidos.tsx`
-  - Criar helper local `isPedidoBloqueado(status) = ["cancelado","entregue","finalizado"].includes(status)`.
-  - Substituir as condições atuais `status !== "cancelado" && status !== "entregue"` nos dois blocos de `DropdownMenuContent` (desktop ~linhas 1057-1086 e mobile ~linhas 1216-1254) por `!isPedidoBloqueado(pedido.status)`.
-  - Aplicar também no bloco "Transferir p/ Filial" (condicionar a `!isPedidoBloqueado`).
-  - Aplicar no botão "Excluir" (bloquear quando `finalizado` — exclusão pós-acerto quebra conciliação).
-  - Em `alterarStatusPedido` e `cancelarPedido`: se `pedido.status === "finalizado"`, exibir toast e retornar.
+1. **Buscar o custo real do cadastro do produto**: alterar a query em `queryFn` para trazer `produto_id, preco_custo` junto no join:
+   ```
+   pedido_itens (quantidade, preco_unitario, produtos (id, nome, preco_custo))
+   ```
+2. **Substituir `custoPadrao(produto)`** pelo valor `Number(item.produtos?.preco_custo) || 0` dentro do agregador `linhas` (linhas 157-180).
+3. **Remover a função `custoPadrao`** (linhas 67-74) — não usada em mais lugar nenhum.
+4. **Indicador visual quando custo = 0**: se um produto não tem `preco_custo` cadastrado, exibir badge discreto "custo não cadastrado" na coluna Custo médio e excluir essa linha do cálculo de margem para não poluir o insight de "baixa margem".
 
-## Escopo
-Somente UI de guardas do menu Ações da tela Pedidos. Sem alterar hooks, RLS, ou regras de acerto/estoque.
+## Melhorias pontuais (mesma tela, escopo mínimo)
+
+- **Totais na tabela "Entregador x Produto x Canal"**: adicionar linha de total (Qt, Total Venda, Lucro, Margem consolidada) como já existe nas outras.
+- **Alerta no topo** quando houver 1+ produtos sem `preco_custo` cadastrado: "N produto(s) sem preço de custo — lucro incompleto. [Ir para Produtos]".
+- **Export Excel**: manter o mesmo custo real corrigido (já usa `l.custoMedio`, então herda o fix automaticamente).
+
+## Fora de escopo
+
+- Não alterar `RelatorioVendas.tsx` nem `RelatorioVendasSimplificado.tsx` (não são a página em uso na rota `/vendas/relatorio`).
+- Não criar snapshot histórico de custo em `pedido_itens` (mudança de schema grande; usaria o custo cadastrado atual, que é o padrão do ERP hoje).
+- Não mexer em RLS, edge functions, ou lógica de vendas/estoque.
+
+## Arquivo alterado
+
+- `src/pages/vendas/RelatorioDetalhadoVendas.tsx` (único)
