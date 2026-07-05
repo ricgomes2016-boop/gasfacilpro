@@ -123,6 +123,7 @@ export default function RelatorioDetalhadoVendas() {
   const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
   const [busca, setBusca] = useState("");
   const [entregadorAberto, setEntregadorAberto] = useState<ResumoEntregador | null>(null);
+  const [produtoAberto, setProdutoAberto] = useState<LinhaDetalhe | null>(null);
 
   const { data: pedidos = [], isLoading, refetch } = useQuery({
     queryKey: ["relatorio-vendas-unificado", unidadeAtual?.id, dataInicio, dataFim],
