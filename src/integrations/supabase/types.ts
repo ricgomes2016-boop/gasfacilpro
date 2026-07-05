@@ -12296,6 +12296,10 @@ export type Database = {
         Args: { _codigo: string; _observacao?: string; _pedido_id?: string }
         Returns: Json
       }
+      contador_can_access_unidade: {
+        Args: { _unidade_id: string }
+        Returns: boolean
+      }
       contador_has_empresa: {
         Args: { _empresa_id: string; _user_id: string }
         Returns: boolean
