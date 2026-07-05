@@ -5,6 +5,33 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Reject SSRF-prone URLs: only https, no internal/private/loopback/metadata hosts
+function isSafeWebhookUrl(raw: string): boolean {
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== "https:") return false;
+  const host = u.hostname.toLowerCase();
+  if (!host || host === "localhost" || host.endsWith(".localhost")) return false;
+  // IPv6 loopback / any
+  if (host === "::1" || host === "[::1]" || host === "0.0.0.0") return false;
+  // Metadata endpoints
+  if (host === "169.254.169.254" || host === "metadata.google.internal") return false;
+  // IPv4 private ranges
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [a, b] = [parseInt(ipv4[1]), parseInt(ipv4[2])];
+    if (a === 10) return false;
+    if (a === 127) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 0) return false;
+  }
+  // Block internal-looking hostnames
+  if (host.endsWith(".internal") || host.endsWith(".local")) return false;
+  return true;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -27,63 +54,50 @@ Deno.serve(async (req) => {
 
     if (authError || !user) throw new Error("Não autorizado");
 
+    // Caller's empresa (from profile) for tenant-ownership enforcement
+    const { data: prof } = await supabase
+      .from("profiles").select("empresa_id").eq("user_id", user.id).maybeSingle();
+    const callerEmpresaId = prof?.empresa_id ?? null;
+
     const body = await req.json();
     const { action, content, phone, imageUrl, webhookUrl, unidadeId } = body;
 
     // === WhatsApp via Z-API or UaZapi ===
     if (action === "whatsapp") {
       if (!phone || !content) throw new Error("Telefone e conteúdo são obrigatórios");
+      if (!unidadeId) throw new Error("unidadeId é obrigatório");
 
-      // Get WhatsApp credentials
-      let instanceId: string | null = null;
-      let zapToken: string | null = null;
-      let securityToken: string | null = null;
-      let provedor = "zapi";
-
-      if (unidadeId) {
-        const { data: config } = await supabase
-          .from("integracoes_whatsapp")
-          .select("instance_id, token, security_token, provedor")
-          .eq("unidade_id", unidadeId)
-          .eq("ativo", true)
-          .maybeSingle();
-
-        if (config) {
-          instanceId = config.instance_id;
-          zapToken = config.token;
-          securityToken = config.security_token;
-          provedor = config.provedor || "zapi";
-        }
+      // Enforce tenant ownership of the unidade
+      const { data: uni } = await supabase
+        .from("unidades").select("empresa_id").eq("id", unidadeId).maybeSingle();
+      if (!uni?.empresa_id || !callerEmpresaId || uni.empresa_id !== callerEmpresaId) {
+        return new Response(JSON.stringify({ error: "Acesso negado a esta unidade" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      if (!instanceId) {
-        const { data: configs } = await supabase
-          .from("integracoes_whatsapp")
-          .select("instance_id, token, security_token, provedor")
-          .eq("ativo", true)
-          .limit(1);
+      // Load WhatsApp credentials strictly for the caller's unidade
+      const { data: config } = await supabase
+        .from("integracoes_whatsapp")
+        .select("instance_id, token, security_token, provedor")
+        .eq("unidade_id", unidadeId)
+        .eq("ativo", true)
+        .maybeSingle();
 
-        if (configs && configs.length === 1) {
-          instanceId = configs[0].instance_id;
-          zapToken = configs[0].token;
-          securityToken = configs[0].security_token;
-          provedor = configs[0].provedor || "zapi";
-        }
+      if (!config?.instance_id || !config?.token) {
+        return new Response(JSON.stringify({
+          error: "WhatsApp não configurado para esta unidade. Configure em Configurações › WhatsApp.",
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      if (!instanceId) {
-        instanceId = Deno.env.get("ZAPI_INSTANCE_ID") || null;
-        zapToken = Deno.env.get("ZAPI_TOKEN") || null;
-        securityToken = Deno.env.get("ZAPI_SECURITY_TOKEN") || null;
-        provedor = "zapi";
-      }
-
-      if (!instanceId || !zapToken) throw new Error("Credenciais WhatsApp não configuradas");
+      const instanceId = config.instance_id;
+      const zapToken = config.token;
+      const securityToken = config.security_token;
+      const provedor = config.provedor || "zapi";
 
       const cleanPhone = phone.replace(/\D/g, "");
 
       if (provedor === "uazapi") {
-        // UaZapi API
         const url = `https://free.uazapi.com/send/text`;
         const resp = await fetch(url, {
           method: "POST",
@@ -154,6 +168,11 @@ Deno.serve(async (req) => {
     // === Webhook (Zapier/n8n) ===
     if (action === "webhook") {
       if (!webhookUrl || !content) throw new Error("URL do webhook e conteúdo são obrigatórios");
+      if (!isSafeWebhookUrl(webhookUrl)) {
+        return new Response(JSON.stringify({
+          error: "URL de webhook inválida. Use apenas HTTPS para hosts públicos (sem endereços internos/privados).",
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
 
       const resp = await fetch(webhookUrl, {
         method: "POST",
@@ -165,6 +184,7 @@ Deno.serve(async (req) => {
           timestamp: new Date().toISOString(),
           source: "gasfacil-marketing-ia",
         }),
+        redirect: "manual",
       });
 
       return new Response(JSON.stringify({ ok: true, channel: "webhook", status: resp.status }), {
