@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Download, FileSpreadsheet, Filter, Megaphone, Package, RefreshCw, Truck, DollarSign, ShoppingCart } from "lucide-react";
+import { AlertTriangle, Download, FileSpreadsheet, Filter, Megaphone, Package, RefreshCw, Truck, DollarSign, ShoppingCart } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -20,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface PedidoRelatorio {
   id: string;
@@ -32,7 +32,7 @@ interface PedidoRelatorio {
   pedido_itens: Array<{
     quantidade: number;
     preco_unitario: number;
-    produtos: { nome: string } | null;
+    produtos: { nome: string; preco_custo: number | null } | null;
   }>;
 }
 
@@ -46,6 +46,34 @@ const canalLabels: Record<string, string> = {
 };
 
 const money = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+// Normaliza canal para evitar duplicidade por espaços/nulos residuais
+const normCanal = (c: string | null | undefined) => {
+  const trimmed = (c || "").trim();
+  return trimmed || "outros";
+};
+
+interface LinhaResumo {
+  nome: string;
+  qtd: number;
+  total: number;
+  custoTotal: number;
+  temCusto: boolean;
+  precoMedio: number;
+  custoMedio: number;
+  margem: number;
+  abaixoCusto: boolean;
+  margemBaixa: boolean;
+}
+
+const finalizar = (item: { nome: string; qtd: number; total: number; custoTotal: number; temCusto: boolean }): LinhaResumo => {
+  const precoMedio = item.qtd ? item.total / item.qtd : 0;
+  const custoMedio = item.qtd && item.temCusto ? item.custoTotal / item.qtd : 0;
+  const margem = item.temCusto ? precoMedio - custoMedio : 0;
+  const abaixoCusto = item.temCusto && custoMedio > 0 && precoMedio < custoMedio;
+  const margemBaixa = item.temCusto && custoMedio > 0 && !abaixoCusto && margem < custoMedio * 0.05;
+  return { ...item, precoMedio, custoMedio, margem, abaixoCusto, margemBaixa };
+};
 
 export default function RelatorioVendasSimplificado() {
   const { unidadeAtual } = useUnidade();
@@ -66,7 +94,7 @@ export default function RelatorioVendasSimplificado() {
         .select(`
           id, data_entrega, created_at, valor_total, status, canal_venda,
           entregadores (nome),
-          pedido_itens (quantidade, preco_unitario, produtos (nome))
+          pedido_itens (quantidade, preco_unitario, produtos (nome, preco_custo))
         `)
         .eq("unidade_id", unidadeAtual!.id)
         .gte("data_entrega", dataInicio)
@@ -79,70 +107,80 @@ export default function RelatorioVendasSimplificado() {
   });
 
   const entregadores = useMemo(() => Array.from(new Set(pedidos.map(p => p.entregadores?.nome || "Sem entregador"))).sort(), [pedidos]);
-  const canais = useMemo(() => Array.from(new Set(pedidos.map(p => p.canal_venda || "outros"))).sort(), [pedidos]);
+  const canais = useMemo(() => Array.from(new Set(pedidos.map(p => normCanal(p.canal_venda)))).sort(), [pedidos]);
 
   const pedidosFiltrados = useMemo(() => pedidos.filter(p => {
-    const canalOk = canalFiltro === "todos" || (p.canal_venda || "outros") === canalFiltro;
+    const canalOk = canalFiltro === "todos" || normCanal(p.canal_venda) === canalFiltro;
     const entregadorOk = entregadorFiltro === "todos" || (p.entregadores?.nome || "Sem entregador") === entregadorFiltro;
     return canalOk && entregadorOk;
   }), [pedidos, canalFiltro, entregadorFiltro]);
 
+  const acumular = (map: Map<string, { nome: string; qtd: number; total: number; custoTotal: number; temCusto: boolean }>, chave: string, nomeVisivel: string, qtd: number, preco: number, custo: number | null) => {
+    const atual = map.get(chave) || { nome: nomeVisivel, qtd: 0, total: 0, custoTotal: 0, temCusto: false };
+    atual.qtd += qtd;
+    atual.total += qtd * preco;
+    if (custo != null && custo > 0) {
+      atual.custoTotal += qtd * custo;
+      atual.temCusto = true;
+    }
+    map.set(chave, atual);
+  };
+
   const porProduto = useMemo(() => {
-    const map = new Map<string, { nome: string; qtd: number; total: number }>();
+    const map = new Map<string, { nome: string; qtd: number; total: number; custoTotal: number; temCusto: boolean }>();
     pedidosFiltrados.forEach(p => p.pedido_itens?.forEach(item => {
       const nome = item.produtos?.nome || "Produto sem nome";
-      const current = map.get(nome) || { nome, qtd: 0, total: 0 };
       const qtd = Number(item.quantidade) || 0;
-      current.qtd += qtd;
-      current.total += qtd * (Number(item.preco_unitario) || 0);
-      map.set(nome, current);
+      const preco = Number(item.preco_unitario) || 0;
+      const custo = item.produtos?.preco_custo != null ? Number(item.produtos.preco_custo) : null;
+      acumular(map, nome, nome, qtd, preco, custo);
     }));
     return Array.from(map.values())
-      .map(item => ({ ...item, precoMedio: item.qtd ? item.total / item.qtd : 0 }))
+      .map(finalizar)
       .filter(item => item.nome.toLowerCase().includes(produtoBusca.toLowerCase()))
       .sort((a, b) => b.total - a.total);
   }, [pedidosFiltrados, produtoBusca]);
 
   const porEntregador = useMemo(() => {
-    const map = new Map<string, { nome: string; qtd: number; total: number }>();
+    const map = new Map<string, { nome: string; qtd: number; total: number; custoTotal: number; temCusto: boolean }>();
     pedidosFiltrados.forEach(p => {
       const nome = p.entregadores?.nome || "Sem entregador";
-      const atual = map.get(nome) || { nome, qtd: 0, total: 0 };
       p.pedido_itens?.forEach(item => {
         const qtd = Number(item.quantidade) || 0;
-        atual.qtd += qtd;
-        atual.total += qtd * (Number(item.preco_unitario) || 0);
+        const preco = Number(item.preco_unitario) || 0;
+        const custo = item.produtos?.preco_custo != null ? Number(item.produtos.preco_custo) : null;
+        acumular(map, nome, nome, qtd, preco, custo);
       });
-      map.set(nome, atual);
     });
-    return Array.from(map.values()).map(item => ({ ...item, precoMedio: item.qtd ? item.total / item.qtd : 0 })).sort((a, b) => b.total - a.total);
+    return Array.from(map.values()).map(finalizar).sort((a, b) => b.total - a.total);
   }, [pedidosFiltrados]);
 
   const porCanal = useMemo(() => {
-    const map = new Map<string, { nome: string; qtd: number; total: number }>();
+    const map = new Map<string, { nome: string; qtd: number; total: number; custoTotal: number; temCusto: boolean }>();
     pedidosFiltrados.forEach(p => {
-      const canal = p.canal_venda || "outros";
-      const nome = canalLabels[canal] || canal;
-      const atual = map.get(canal) || { nome, qtd: 0, total: 0 };
+      const canal = normCanal(p.canal_venda);
+      const nomeVisivel = canalLabels[canal] || canal;
       p.pedido_itens?.forEach(item => {
         const qtd = Number(item.quantidade) || 0;
-        atual.qtd += qtd;
-        atual.total += qtd * (Number(item.preco_unitario) || 0);
+        const preco = Number(item.preco_unitario) || 0;
+        const custo = item.produtos?.preco_custo != null ? Number(item.produtos.preco_custo) : null;
+        acumular(map, canal, nomeVisivel, qtd, preco, custo);
       });
-      map.set(canal, atual);
     });
-    return Array.from(map.values()).map(item => ({ ...item, precoMedio: item.qtd ? item.total / item.qtd : 0 })).sort((a, b) => b.total - a.total);
+    return Array.from(map.values()).map(finalizar).sort((a, b) => b.total - a.total);
   }, [pedidosFiltrados]);
 
   const totalQtd = porProduto.reduce((sum, item) => sum + item.qtd, 0);
   const totalVenda = porProduto.reduce((sum, item) => sum + item.total, 0);
   const precoMedio = totalQtd ? totalVenda / totalQtd : 0;
+  const alertasAbaixoCusto = porProduto.filter(p => p.abaixoCusto).length + porCanal.filter(p => p.abaixoCusto).length + porEntregador.filter(p => p.abaixoCusto).length;
 
   const exportarExcel = () => {
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(porProduto.map(p => ({ Produto: p.nome, Quantidade: p.qtd, "Preço Médio": p.precoMedio, Total: p.total }))), "Produtos");
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(porEntregador.map(p => ({ Entregador: p.nome, Quantidade: p.qtd, "Preço Médio": p.precoMedio, Total: p.total }))), "Entregadores");
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(porCanal.map(p => ({ Canal: p.nome, Quantidade: p.qtd, "Preço Médio": p.precoMedio, Total: p.total }))), "Canais");
+    const linha = (p: LinhaResumo) => ({ Nome: p.nome, Quantidade: p.qtd, "Preço médio": p.precoMedio, "Custo médio": p.temCusto ? p.custoMedio : null, Margem: p.temCusto ? p.margem : null, Total: p.total, Alerta: p.abaixoCusto ? "ABAIXO DO CUSTO" : p.margemBaixa ? "MARGEM BAIXA" : "" });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(porProduto.map(linha)), "Produtos");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(porEntregador.map(linha)), "Entregadores");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(porCanal.map(linha)), "Canais");
     XLSX.writeFile(wb, `vendas-resumo-${dataInicio}-${dataFim}.xlsx`);
     toast({ title: "Excel exportado" });
   };
@@ -154,33 +192,85 @@ export default function RelatorioVendasSimplificado() {
     doc.text(`${format(parseISO(dataInicio), "dd/MM/yyyy")} a ${format(parseISO(dataFim), "dd/MM/yyyy")}`, 14, 23);
     autoTable(doc, {
       startY: 30,
-      head: [["Produto", "Qtd", "Preço médio", "Total"]],
-      body: porProduto.map(p => [p.nome, String(p.qtd), money(p.precoMedio), money(p.total)]),
+      head: [["Produto", "Qtd", "Preço médio", "Custo médio", "Margem", "Total"]],
+      body: porProduto.map(p => [p.nome, String(p.qtd), money(p.precoMedio), p.temCusto ? money(p.custoMedio) : "—", p.temCusto ? money(p.margem) : "—", money(p.total)]),
+      didParseCell: (data) => {
+        if (data.section === "body") {
+          const row = porProduto[data.row.index];
+          if (row?.abaixoCusto) data.cell.styles.textColor = [200, 30, 30];
+        }
+      },
     });
     doc.save(`vendas-resumo-${dataInicio}-${dataFim}.pdf`);
     toast({ title: "PDF exportado" });
   };
 
-  const TabelaResumo = ({ rows, titulo }: { rows: Array<{ nome: string; qtd: number; precoMedio: number; total: number }>; titulo: string }) => (
-    <Card className="w-full min-w-0">
-      <CardHeader className="pb-3"><CardTitle className="text-base">{titulo}</CardTitle></CardHeader>
-      <CardContent className="p-0 sm:p-6 sm:pt-0">
-        {isLoading ? <div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /></div> : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">Sem vendas no período.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table className="min-w-[420px]">
-              <TableHeader><TableRow><TableHead>{titulo.replace("Vendas por ", "")}</TableHead><TableHead className="text-right">Qtd</TableHead><TableHead className="text-right">Preço médio</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {rows.map(row => <TableRow key={row.nome}><TableCell className="font-medium max-w-[160px] truncate" title={row.nome}>{row.nome}</TableCell><TableCell className="text-right">{row.qtd.toLocaleString("pt-BR")}</TableCell><TableCell className="text-right whitespace-nowrap">{money(row.precoMedio)}</TableCell><TableCell className="text-right font-semibold whitespace-nowrap">{money(row.total)}</TableCell></TableRow>)}
-                <TableRow className="bg-muted/50 font-bold"><TableCell>Total</TableCell><TableCell className="text-right">{rows.reduce((s, r) => s + r.qtd, 0).toLocaleString("pt-BR")}</TableCell><TableCell className="text-right">{money(rows.reduce((s, r) => s + r.qtd, 0) ? rows.reduce((s, r) => s + r.total, 0) / rows.reduce((s, r) => s + r.qtd, 0) : 0)}</TableCell><TableCell className="text-right">{money(rows.reduce((s, r) => s + r.total, 0))}</TableCell></TableRow>
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
+  const TabelaResumo = ({ rows, titulo }: { rows: LinhaResumo[]; titulo: string }) => {
+    const totQtd = rows.reduce((s, r) => s + r.qtd, 0);
+    const totVal = rows.reduce((s, r) => s + r.total, 0);
+    const totCusto = rows.reduce((s, r) => s + r.custoTotal, 0);
+    const temCustoTotal = rows.some(r => r.temCusto);
+    const alertas = rows.filter(r => r.abaixoCusto).length;
+    return (
+      <Card className="w-full min-w-0">
+        <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base">{titulo}</CardTitle>
+          {alertas > 0 && (
+            <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />{alertas} abaixo do custo</Badge>
+          )}
+        </CardHeader>
+        <CardContent className="p-0 sm:p-6 sm:pt-0">
+          {isLoading ? <div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /></div> : rows.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">Sem vendas no período.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table className="min-w-[640px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{titulo.replace("Vendas por ", "")}</TableHead>
+                    <TableHead className="text-right">Qtd</TableHead>
+                    <TableHead className="text-right">Preço médio</TableHead>
+                    <TableHead className="text-right">Custo médio</TableHead>
+                    <TableHead className="text-right">Margem</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map(row => (
+                    <TableRow key={row.nome} className={cn(row.abaixoCusto && "bg-destructive/10")}>
+                      <TableCell className="font-medium max-w-[160px] truncate" title={row.nome}>
+                        <div className="flex items-center gap-1.5">
+                          {row.abaixoCusto && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+                          <span className="truncate">{row.nome}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">{row.qtd.toLocaleString("pt-BR")}</TableCell>
+                      <TableCell className={cn("text-right whitespace-nowrap", row.abaixoCusto && "text-destructive font-semibold")}>{money(row.precoMedio)}</TableCell>
+                      <TableCell className="text-right whitespace-nowrap text-muted-foreground">{row.temCusto ? money(row.custoMedio) : "—"}</TableCell>
+                      <TableCell className={cn(
+                        "text-right whitespace-nowrap font-medium",
+                        row.abaixoCusto && "text-destructive",
+                        row.margemBaixa && "text-amber-600 dark:text-amber-400",
+                      )}>{row.temCusto ? money(row.margem) : "—"}</TableCell>
+                      <TableCell className="text-right font-semibold whitespace-nowrap">{money(row.total)}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="bg-muted/50 font-bold">
+                    <TableCell>Total</TableCell>
+                    <TableCell className="text-right">{totQtd.toLocaleString("pt-BR")}</TableCell>
+                    <TableCell className="text-right">{money(totQtd ? totVal / totQtd : 0)}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{temCustoTotal && totQtd ? money(totCusto / totQtd) : "—"}</TableCell>
+                    <TableCell className="text-right">{temCustoTotal && totQtd ? money(totVal / totQtd - totCusto / totQtd) : "—"}</TableCell>
+                    <TableCell className="text-right">{money(totVal)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <MainLayout>
@@ -198,6 +288,18 @@ export default function RelatorioVendasSimplificado() {
             </div>
           </CardContent>
         </Card>
+
+        {alertasAbaixoCusto > 0 && (
+          <Card className="border-destructive/40 bg-destructive/5">
+            <CardContent className="p-3 sm:p-4 flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+              <div className="text-sm">
+                <p className="font-semibold text-destructive">{alertasAbaixoCusto} linha(s) com preço médio abaixo do custo</p>
+                <p className="text-muted-foreground text-xs mt-0.5">Verifique produtos, entregadores ou canais destacados em vermelho nas tabelas abaixo.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Card><CardContent className="p-3 sm:p-4"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Package className="h-4 w-4" />Itens vendidos</div><p className="text-xl sm:text-2xl font-bold mt-1">{totalQtd.toLocaleString("pt-BR")}</p></CardContent></Card>
