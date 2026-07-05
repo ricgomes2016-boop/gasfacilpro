@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +21,9 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const auth = await requireAuth(req, corsHeaders);
+    if (!auth.ok) return auth.response;
+
     const { unidade_id, numero_teste } = await req.json();
 
     if (!unidade_id) {
@@ -33,6 +37,27 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Tenant + role guard
+    if (!auth.isServiceRole) {
+      const { data: prof } = await supabaseAdmin
+        .from("profiles").select("empresa_id").eq("user_id", auth.userId).maybeSingle();
+      const { data: uni } = await supabaseAdmin
+        .from("unidades").select("empresa_id").eq("id", unidade_id).maybeSingle();
+      if (!prof?.empresa_id || !uni?.empresa_id || prof.empresa_id !== uni.empresa_id) {
+        return new Response(JSON.stringify({ error: "Acesso negado a esta unidade" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: roles } = await supabaseAdmin
+        .from("user_roles").select("role").eq("user_id", auth.userId);
+      const roleSet = new Set((roles ?? []).map((r: any) => r.role));
+      if (!(roleSet.has("admin") || roleSet.has("gestor") || roleSet.has("super_admin"))) {
+        return new Response(JSON.stringify({ error: "Requer perfil admin ou gestor" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Fetch credentials
     const { data: config, error: cfgErr } = await supabaseAdmin

@@ -4,6 +4,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +22,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req, corsHeaders);
+    if (!auth.ok) return auth.response;
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -29,8 +33,25 @@ serve(async (req) => {
     const body = await req.json();
     const { code, unidade_id, app_id } = body;
 
-    if (!code || !app_id) {
-      return json({ error: "Parâmetros obrigatórios: code, app_id" }, 400);
+    if (!code || !app_id || !unidade_id) {
+      return json({ error: "Parâmetros obrigatórios: code, app_id, unidade_id" }, 400);
+    }
+
+    // Tenant + role guard
+    if (!auth.isServiceRole) {
+      const { data: prof } = await supabase
+        .from("profiles").select("empresa_id").eq("user_id", auth.userId).maybeSingle();
+      const { data: uni } = await supabase
+        .from("unidades").select("empresa_id").eq("id", unidade_id).maybeSingle();
+      if (!prof?.empresa_id || !uni?.empresa_id || prof.empresa_id !== uni.empresa_id) {
+        return json({ error: "Acesso negado a esta unidade" }, 403);
+      }
+      const { data: roles } = await supabase
+        .from("user_roles").select("role").eq("user_id", auth.userId);
+      const roleSet = new Set((roles ?? []).map((r: any) => r.role));
+      if (!(roleSet.has("admin") || roleSet.has("gestor") || roleSet.has("super_admin"))) {
+        return json({ error: "Requer perfil admin ou gestor" }, 403);
+      }
     }
 
     // Buscar o App Secret nas variáveis de ambiente ou na tabela meta_app_config

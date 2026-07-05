@@ -16,20 +16,54 @@ Deno.serve(async (req) => {
     if (!auth.ok) return auth.response;
 
     const body = await req.json().catch(() => ({}));
-    const { empresa_id, dry_run = false } = body;
+    const { empresa_id: requestedEmpresaId, dry_run = false } = body;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Determine effective empresa_id + role check
+    let effectiveEmpresaId: string | null = null;
+    if (auth.isServiceRole) {
+      effectiveEmpresaId = requestedEmpresaId ?? null;
+    } else {
+      const { data: prof } = await supabase
+        .from("profiles").select("empresa_id").eq("user_id", auth.userId).maybeSingle();
+      const { data: roles } = await supabase
+        .from("user_roles").select("role").eq("user_id", auth.userId);
+      const roleSet = new Set((roles ?? []).map((r: any) => r.role));
+      const isSuperAdmin = roleSet.has("super_admin");
+      const canManage = isSuperAdmin || roleSet.has("admin") || roleSet.has("gestor") || roleSet.has("financeiro");
+      if (!canManage) {
+        return new Response(JSON.stringify({ error: "Acesso negado" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (isSuperAdmin) {
+        effectiveEmpresaId = requestedEmpresaId ?? prof?.empresa_id ?? null;
+      } else {
+        if (!prof?.empresa_id) {
+          return new Response(JSON.stringify({ error: "Empresa do usuário não encontrada" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (requestedEmpresaId && requestedEmpresaId !== prof.empresa_id) {
+          return new Response(JSON.stringify({ error: "Acesso negado a outra empresa" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        effectiveEmpresaId = prof.empresa_id;
+      }
+    }
+
     let q = supabase.from("notas_fiscais")
       .select("id, xml_url, data_emissao, unidade_id, numero")
       .not("xml_url", "is", null)
       .limit(2000);
 
-    if (empresa_id) {
-      const { data: unids } = await supabase.from("unidades").select("id").eq("empresa_id", empresa_id);
+    if (effectiveEmpresaId) {
+      const { data: unids } = await supabase.from("unidades").select("id").eq("empresa_id", effectiveEmpresaId);
       const ids = (unids ?? []).map((u: any) => u.id);
       if (ids.length === 0) {
         return new Response(JSON.stringify({ ok: true, total: 0, atualizados: 0 }), {

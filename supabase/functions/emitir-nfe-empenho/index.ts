@@ -1,10 +1,14 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { requireAuth } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req, corsHeaders);
+    if (!auth.ok) return auth.response;
+
     const { empenho_id } = await req.json();
     if (!empenho_id) {
       return new Response(JSON.stringify({ ok: false, error: 'empenho_id obrigatório' }), {
@@ -27,6 +31,19 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: false, error: 'Empenho não encontrado' }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Tenant guard: caller must belong to the same empresa as the empenho's unidade
+    if (!auth.isServiceRole) {
+      const { data: prof } = await supabase
+        .from('profiles').select('empresa_id').eq('user_id', auth.userId).maybeSingle();
+      const { data: uni } = await supabase
+        .from('unidades').select('empresa_id').eq('id', emp.unidade_id).maybeSingle();
+      if (!prof?.empresa_id || !uni?.empresa_id || prof.empresa_id !== uni.empresa_id) {
+        return new Response(JSON.stringify({ ok: false, error: 'Acesso negado ao empenho' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     const infoComplementar = `Ref. ao Empenho nº ${emp.numero_empenho}`;

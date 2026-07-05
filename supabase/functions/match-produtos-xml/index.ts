@@ -3,6 +3,7 @@
 // and returns, per item, the best matching produto_id or null.
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requireAuth } from "../_shared/auth.ts";
 
 interface XmlItem {
   index: number;
@@ -30,6 +31,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req, corsHeaders);
+    if (!auth.ok) return auth.response;
+
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
       return new Response(JSON.stringify({ ok: false, error: "LOVABLE_API_KEY ausente", matches: [] }), {

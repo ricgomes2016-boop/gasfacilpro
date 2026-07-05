@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,6 +51,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req, corsHeaders);
+    if (!auth.ok) return auth.response;
+
     const body = await req.json();
     const { social_account_id, image_url, caption } = body;
 
@@ -76,6 +80,18 @@ Deno.serve(async (req) => {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Tenant guard: caller's empresa must match the social account's empresa
+    if (!auth.isServiceRole) {
+      const { data: prof } = await supabase
+        .from("profiles").select("empresa_id").eq("user_id", auth.userId).maybeSingle();
+      if (!prof?.empresa_id || !account.empresa_id || prof.empresa_id !== account.empresa_id) {
+        return new Response(JSON.stringify({ error: "Acesso negado a esta conta social" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     if (account.conectado_via !== "oauth" || !account.access_token) {

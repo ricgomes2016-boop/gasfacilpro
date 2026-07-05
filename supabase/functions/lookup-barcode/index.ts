@@ -4,6 +4,7 @@
 // Sempre retorna 200 OK com { ok, encontrado, dados, fonte }.
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { requireAuth } from "../_shared/auth.ts";
 
 interface Dados {
   nome: string | null;
@@ -73,6 +74,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req, corsHeaders);
+    if (!auth.ok) return auth.response;
+
     const { codigo } = await req.json().catch(() => ({ codigo: "" }));
     const ean = String(codigo || "").replace(/\D/g, "");
 
