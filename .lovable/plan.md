@@ -1,59 +1,64 @@
-## Diagnóstico
+## Objetivo
+1. Fazer o "Preço médio" nas abas **Canal** e **Entregador** do Relatório de Vendas ser comparável ao **custo** e sinalizar visualmente quando estiver abaixo do custo.
+2. Eliminar duplicidade de canais de venda em Pedidos (ex.: `Disk/ Telefone` vs `Disk/Telefone`) e impedir que voltem a aparecer.
 
-### 1) Pedidos com "Produto sem nome" — 293 itens em 4 unidades
+---
 
-Mesmo problema que ocorreu na Forte Gás: `pedido_itens.produto_id` aponta para produtos cadastrados em **outra unidade**, então o RLS oculta o produto e o relatório cai no fallback "Produto sem nome".
+## Parte 1 — Preço médio vs Custo no Relatório de Vendas
 
-| Unidade do pedido | Itens afetados | Aponta para produtos de |
-|---|---|---|
-| Central Gas | 269 | Temgas (157), Sertaneja (47), Forte Gás (41), ABMF (22), Japa Gás (1), Morumbi (1) |
-| Japa Gás | 9 | Forte Gás (6), Central (1), Sertaneja (1), Temgas (1) |
-| Morumbi Gás | 4 | Central Gas (4) |
-| **Órfãos (sem unidade)** | **11** | — pedidos com `unidade_id = NULL` |
+**Diagnóstico atual:** As abas Canal e Entregador já foram corrigidas para calcular preço médio como `Σ(qtd × preço_unitário) / Σ qtd`. Ainda não existe base de custo na tela, então não há como o usuário perceber que o preço médio está abaixo do custo.
 
-Todos os produtos são "Gás P13", "Gás P20", "Gás P45" e "Água Mineral 20L" — todas as unidades já têm o produto equivalente cadastrado, então dá para remapear pelo nome.
+**Mudanças em `src/pages/vendas/RelatorioVendasSimplificado.tsx`:**
 
-### 2) Canais de venda — inconsistências
+- Ampliar o `select` da query para também carregar o custo do produto: `produtos (nome, preco_custo)`.
+- Ao agregar `porProduto`, `porEntregador` e `porCanal`, acumular também `custoTotal = Σ(qtd × preco_custo)` e derivar `custoMedio = custoTotal / qtd`.
+- Adicionar a coluna **"Custo médio"** na tabela de resumo (entre "Preço médio" e "Total") nas três abas.
+- Adicionar coluna **"Margem"** (`precoMedio - custoMedio`) com destaque visual:
+  - Vermelho + ícone de alerta quando `precoMedio < custoMedio` (preço abaixo do custo).
+  - Amarelo quando margem < 5% do custo (venda no limite).
+  - Neutro caso contrário.
+- Exibir um badge de resumo no topo com a contagem de linhas "abaixo do custo" quando houver, para chamar atenção.
+- Incluir as novas colunas nos exports Excel e PDF.
 
-Além dos custom cadastrados corretamente, há mistura de valores:
+**Observação técnica:** produtos sem `preco_custo` cadastrado entram como custo 0 — nesse caso a coluna mostra "—" e não gera alerta falso.
 
-- **459 pedidos com canal vazio/NULL** (Central 382, Forte 41, Morumbi 13, órfãos 12, Japa 9, Matriz 2).
-- **Legado do enum antigo** (minúsculas, não cadastrado): `telefone` (3), `whatsapp` (7), `portaria` (1).
-- **Duplicatas por caixa/typo**: `WhatsApp` (4) ↔ `whatsapp` (7); `Disk/Telefone` (10) ↔ `Disk/ Telefone` (4).
+---
 
-`pedidos.canal_venda` é texto livre — não FK — então o relatório agrupa cada variação como se fosse canal diferente.
+## Parte 2 — Deduplicação de canais de venda
 
-## Plano de correção
+**Diagnóstico atual (dados reais):**
+- Cadastro (`canais_venda`) contém `Disk/ Telefone` (com espaço) na unidade Forte Gás.
+- Pedidos (`pedidos.canal_venda`): 476 usam `Disk/Telefone` (sem espaço, valor normalizado antes), 4 ainda usam `Disk/ Telefone`, 3 estão `NULL`.
+- Resultado: o relatório mostra `Disk/Telefone` e `Disk/ Telefone` como linhas separadas.
+- O formulário de pedido lista canais a partir de `canais_venda`, então mesmo depois de normalizar os pedidos existentes, o valor `Disk/ Telefone` volta a ser gravado sempre que o usuário abre o combo.
 
-### Fase A — Produtos (executo automaticamente após aprovação)
+**Ações — migração de dados:**
+1. Renomear no cadastro: `UPDATE canais_venda SET nome = 'Disk/Telefone' WHERE nome = 'Disk/ Telefone'`.
+2. Padronizar pedidos remanescentes: `UPDATE pedidos SET canal_venda = 'Disk/Telefone' WHERE canal_venda = 'Disk/ Telefone' OR canal_venda IS NULL`.
+3. Fazer um `TRIM` geral em `canais_venda.nome` e `pedidos.canal_venda` para eliminar espaços extras futuros.
+4. Consolidar qualquer outro par que colapse após o trim (nenhum detectado hoje além do Disk).
 
-Para cada linha "produto de outra unidade", fazer `UPDATE pedido_itens.produto_id` para o produto de mesmo nome cadastrado na unidade do pedido. Cobre 282 itens de Central Gas, Japa Gás e Morumbi Gás.
+**Ações — prevenção estrutural:**
+5. Criar índice único case-insensitive por unidade em `canais_venda`:
+   `CREATE UNIQUE INDEX canais_venda_nome_unidade_uniq ON canais_venda (unidade_id, lower(btrim(nome)))`.
+   Impede cadastrar "Disk/Telefone" e "disk/telefone " na mesma unidade.
+6. Trigger `BEFORE INSERT/UPDATE` em `canais_venda` que aplica `btrim(nome)` para nunca mais gravar com espaço nas pontas.
+7. Trigger `BEFORE INSERT/UPDATE` em `pedidos` que faz `NULLIF(btrim(canal_venda), '')` — garante que o valor gravado bate exatamente com o cadastro.
 
-Restam **11 itens em pedidos órfãos** (`unidade_id = NULL`) — sem saber a unidade dona, não dá para escolher o produto certo. Sugestão: deixar como estão e listá-los aqui para você decidir manualmente (ou apagar se forem lixo de teste). Confirme qual caminho.
+**Ações — relatório defensivo:**
+8. No agrupamento por canal em `RelatorioVendasSimplificado.tsx`, aplicar `btrim` no `canal_venda` antes de compor a chave do mapa, para que qualquer resíduo antigo em backups importados ainda colapse na mesma linha.
 
-### Fase B — Canais de venda (precisa da sua decisão)
+---
 
-Duas partes independentes:
+## Detalhes técnicos
 
-**B1. Normalização de duplicatas** — mesclar variações que são claramente o mesmo canal:
-- `whatsapp` + `WhatsApp` → um único canal (qual grafia manter?)
-- `Disk/Telefone` + `Disk/ Telefone` → um único canal
-- `telefone` (legado) → mapear para algum canal cadastrado ou renomear?
-- `portaria` (legado) → mapear para "Portaria" (já cadastrado)?
+- Arquivo alterado: `src/pages/vendas/RelatorioVendasSimplificado.tsx` (colunas custo/margem, destaques, exports, `btrim` na chave).
+- Migração SQL: rename em `canais_venda`, updates em `pedidos`, índice único funcional, dois triggers de normalização.
+- Nenhuma mudança em fluxo de cadastro/UI de canais — a normalização acontece no banco.
+- Sem alteração de schema em `produtos` (usa `preco_custo` já existente).
 
-**B2. Pedidos com canal NULL** (459 pedidos): não há como inferir automaticamente. Opções:
-- (a) Deixar como está (aparece como "outros" no relatório).
-- (b) Preencher tudo com um canal padrão por unidade (ex: "Balcão" ou "Disk/Telefone") — arriscado, é chute.
-- (c) Deixar como está e criar uma tela/filtro para você classificar em lote depois.
+---
 
 ## Fora de escopo
-
-- Não vou converter `canal_venda` em FK para `canais_venda` (mudança de schema grande, quebra múltiplos formulários).
-- Não vou tocar em RLS de `produtos` (o modelo está correto — o problema é dado sujo).
-
-## Perguntas antes de executar
-
-1. Fase A: pode remapear os 282 itens automaticamente pelo nome? Os 11 órfãos eu listo para você decidir.
-2. B1: manter `WhatsApp` (capitalizado) e `Disk/Telefone` (sem espaço)? Confirma?
-3. B1: os 3 pedidos com `telefone` (minúsculo, legado) — mapear para `Disk/Telefone`?
-4. B2: os 459 pedidos sem canal — deixar como estão, ou preencher com um padrão?
+- Não altero o formulário de novo pedido nem a tela de cadastro de canais.
+- Não recalculo custo histórico do produto por data (usa custo atual cadastrado — comum em ERPs pequenos; se quiser custo por lote/data, é outro projeto).
