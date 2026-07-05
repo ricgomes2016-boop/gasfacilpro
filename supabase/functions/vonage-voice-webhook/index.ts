@@ -187,17 +187,14 @@ Deno.serve(async (req) => {
   // Normalize to digits only — both Vapi and Twilio tolerate plain digits.
   from = from.replace(/[^\d+]/g, '') || '0000000000';
 
-  // Optional digest auth for Vapi diagnostics — only attach if BOTH env vars are set.
-  const SIP_USER = Deno.env.get('VAPI_SIP_USERNAME') || '';
-  const SIP_PASS = Deno.env.get('VAPI_SIP_PASSWORD') || '';
-
+  // SIP credentials are NEVER embedded in the NCCO response body — this endpoint
+  // is public (Vonage callback) and returning them here leaks them to anyone
+  // hitting the URL. If the vapi route ever needs authenticated SIP, configure
+  // the credentials in the Vonage Application (SIP endpoint credentials) so
+  // Vonage itself supplies them out-of-band.
   const endpoint: any = route === 'vapi'
     ? { type: 'sip', uri: VAPI_SIP_URI }
     : { type: 'phone', number: TWILIO_BIA_NUMBER };
-  if (route === 'vapi' && SIP_USER && SIP_PASS) {
-    endpoint.username = SIP_USER;
-    endpoint.password = SIP_PASS;
-  }
 
   const ncco: any[] = [
     // Encaminhamento direto ao agente da Bia — sem mensagem intermediária.
@@ -211,10 +208,7 @@ Deno.serve(async (req) => {
     },
   ];
 
-  // Diagnostic log of the NCCO (without password)
-  const safeNcco = JSON.parse(JSON.stringify(ncco));
-  if (safeNcco?.[1]?.endpoint?.[0]?.password) safeNcco[1].endpoint[0].password = '***';
-  console.log('[VONAGE-WEBHOOK-NCCO]', JSON.stringify(safeNcco));
+  console.log('[VONAGE-WEBHOOK-NCCO]', JSON.stringify(ncco));
 
   return new Response(JSON.stringify(ncco), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
