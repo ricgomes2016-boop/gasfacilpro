@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth } from "date-fns";
-import { Brain, Download, Filter, RefreshCw, Search, TrendingUp, X, Trophy, Medal, Crown, UserRound, ShoppingCart } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AlertTriangle, Brain, Download, Filter, RefreshCw, Search, TrendingUp, X, Trophy, Medal, Crown, UserRound, ShoppingCart } from "lucide-react";
 import * as XLSX from "xlsx";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
