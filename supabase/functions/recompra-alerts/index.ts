@@ -16,12 +16,72 @@ serve(async (req) => {
     const auth = await requireAuth(req, corsHeaders);
     if (!auth.ok) return auth.response;
 
-    const { unidade_id } = await req.json();
+    const { unidade_id } = await req.json().catch(() => ({}));
 
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Tenant + role guard: only staff of the caller's empresa can request alerts,
+    // and only for unidades that belong to that empresa.
+    let allowedUnidadeIds: string[] = [];
+    if (!auth.isServiceRole) {
+      if (!auth.userId) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: profile } = await sb
+        .from("profiles")
+        .select("empresa_id")
+        .eq("id", auth.userId)
+        .maybeSingle();
+
+      const empresaId = profile?.empresa_id;
+      if (!empresaId) {
+        return new Response(JSON.stringify({ error: "Forbidden: no empresa" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const staffRoles = ["admin", "gestor", "operacional", "super_admin"] as const;
+      const { data: roles } = await sb
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", auth.userId)
+        .in("role", staffRoles as unknown as string[]);
+
+      if (!roles || roles.length === 0) {
+        return new Response(JSON.stringify({ error: "Forbidden: staff role required" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: unidades } = await sb
+        .from("unidades")
+        .select("id")
+        .eq("empresa_id", empresaId);
+      allowedUnidadeIds = (unidades || []).map((u: any) => u.id);
+
+      if (allowedUnidadeIds.length === 0) {
+        return new Response(JSON.stringify({ alerts: [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // If caller supplied a unidade_id, it MUST belong to their empresa.
+      if (unidade_id && !allowedUnidadeIds.includes(unidade_id)) {
+        return new Response(JSON.stringify({ error: "Forbidden: unidade fora da empresa" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Get all orders from last 6 months, grouped by client
     const sixMonthsAgo = new Date();
@@ -37,6 +97,9 @@ serve(async (req) => {
 
     if (unidade_id) {
       query = query.eq("unidade_id", unidade_id);
+    } else if (!auth.isServiceRole) {
+      // No specific unidade: scope to all unidades of the caller's empresa
+      query = query.in("unidade_id", allowedUnidadeIds);
     }
 
     const { data: pedidos, error } = await query.limit(2000);
