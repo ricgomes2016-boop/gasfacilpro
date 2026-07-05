@@ -135,7 +135,7 @@ export default function RelatorioDetalhadoVendas() {
         .select(`
           id, data_entrega, created_at, valor_total, status, canal_venda,
           entregadores (nome),
-          pedido_itens (quantidade, preco_unitario, produtos (nome))
+          pedido_itens (quantidade, preco_unitario, produtos (id, nome, preco_custo))
         `)
         .eq("unidade_id", unidadeAtual!.id)
         .neq("status", "cancelado")
@@ -149,6 +149,36 @@ export default function RelatorioDetalhadoVendas() {
     },
   });
 
+  const novaLinha = (entregador: string, produto: string, canal: string): LinhaDetalhe => ({
+    entregador, produto, canal,
+    qtd: 0, qtdComCusto: 0, custoMedio: 0, vendaMedia: 0,
+    totalCusto: 0, totalVenda: 0, vendaSemCusto: 0, lucro: 0, margem: 0,
+    temCustoIncompleto: false,
+  });
+
+  const finalizarLinha = (l: LinhaDetalhe): LinhaDetalhe => {
+    const lucro = l.totalVenda - l.totalCusto;
+    // Margem calculada apenas sobre venda com custo conhecido (evita distorção).
+    const baseMargem = l.totalVenda - l.vendaSemCusto;
+    return {
+      ...l,
+      custoMedio: l.qtdComCusto ? l.totalCusto / l.qtdComCusto : 0,
+      vendaMedia: l.qtd ? l.totalVenda / l.qtd : 0,
+      lucro,
+      margem: baseMargem > 0 ? ((baseMargem - l.totalCusto) / baseMargem) * 100 : 0,
+      temCustoIncompleto: l.vendaSemCusto > 0,
+    };
+  };
+
+  const produtosSemCusto = useMemo(() => {
+    const set = new Set<string>();
+    pedidos.forEach((p) => p.pedido_itens?.forEach((i) => {
+      const custo = Number(i.produtos?.preco_custo) || 0;
+      if (custo <= 0 && i.produtos?.nome) set.add(i.produtos.nome);
+    }));
+    return Array.from(set).sort();
+  }, [pedidos]);
+
   const linhas = useMemo<LinhaDetalhe[]>(() => {
     const map = new Map<string, LinhaDetalhe>();
     pedidos.forEach((pedido) => {
@@ -159,19 +189,21 @@ export default function RelatorioDetalhadoVendas() {
         const produto = item.produtos?.nome || "Produto sem nome";
         const qtd = Number(item.quantidade) || 0;
         const vendaUnit = Number(item.preco_unitario) || 0;
-        const custoUnit = custoPadrao(produto);
+        const custoUnit = Number(item.produtos?.preco_custo) || 0;
         const key = `${entregador}|||${produto}|||${canal}`;
-        const atual = map.get(key) || { entregador, produto, canal, qtd: 0, custoMedio: 0, vendaMedia: 0, totalCusto: 0, totalVenda: 0, lucro: 0, margem: 0 };
+        const atual = map.get(key) || novaLinha(entregador, produto, canal);
         atual.qtd += qtd;
         atual.totalVenda += qtd * vendaUnit;
-        atual.totalCusto += qtd * custoUnit;
+        if (custoUnit > 0) {
+          atual.qtdComCusto += qtd;
+          atual.totalCusto += qtd * custoUnit;
+        } else {
+          atual.vendaSemCusto += qtd * vendaUnit;
+        }
         map.set(key, atual);
       });
     });
-    return Array.from(map.values()).map((l) => {
-      const lucro = l.totalVenda - l.totalCusto;
-      return { ...l, custoMedio: l.qtd ? l.totalCusto / l.qtd : 0, vendaMedia: l.qtd ? l.totalVenda / l.qtd : 0, lucro, margem: l.totalVenda ? (lucro / l.totalVenda) * 100 : 0 };
-    }).sort((a, b) => b.totalVenda - a.totalVenda);
+    return Array.from(map.values()).map(finalizarLinha).sort((a, b) => b.totalVenda - a.totalVenda);
   }, [pedidos]);
 
   const opcoesEntregador = useMemo(() => Array.from(new Set(linhas.map(l => l.entregador))).sort(), [linhas]);
