@@ -636,14 +636,16 @@ export default function AcertoEntregador() {
       const out: { forma: string; valor: number }[] = [];
       let restante = total;
       const semValor: string[] = [];
-      parts.forEach((part) => {
-        const m = part.trim().match(/^(.+?)\s+R?\$?\s*([\d.,]+)$/);
+      parts.forEach((partRaw) => {
+        // Remove marker [op:...|cta:...] antes de parsear
+        const part = partRaw.trim().replace(/\s*\[[^\]]+\]\s*$/, "");
+        const m = part.match(/^(.+?)\s+R?\$?\s*([\d.,]+)$/);
         if (m) {
           const v = parseValorBR(m[2]);
           out.push({ forma: m[1].trim(), valor: v });
           restante -= v;
         } else {
-          semValor.push(part.trim());
+          semValor.push(part);
         }
       });
       if (semValor.length > 0) {
