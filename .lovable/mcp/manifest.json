@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "gasfacil-mcp",
+      "version": "0.1.0",
+      "title": "Gás Fácil MCP"
+    },
+    "tools": [
+      {
+        "name": "health_check",
+        "title": "Health check",
+        "description": "Verify connectivity to the Gás Fácil MCP server and echo an optional message.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string",
+              "description": "Optional message to echo back."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
