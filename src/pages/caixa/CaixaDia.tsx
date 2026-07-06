@@ -504,21 +504,28 @@ export default function CaixaDia() {
     else { toast.success("Caixa reaberto! Operações desbloqueadas para edição."); fetchData(); }
   };
 
-  const totalEntradas = movs.filter(m => m.tipo === "entrada").reduce((a, m) => a + Number(m.valor), 0);
-  const totalSaidas = movs.filter(m => m.tipo === "saida").reduce((a, m) => a + Number(m.valor), 0);
+  // Vouchers de vale-gás (categoria "Vale Ultragaz", "Vale Central gas", "Vale Gás" etc.)
+  // não entram no total do caixa físico — permanecem visíveis na tabela para rastreio,
+  // mas não somam em Entradas/Saídas/Saldo do Dia nem no Total em Caixa.
+  const isVoucherOuValeGas = (c?: string | null) => !!c && /^vale(\s|$)/i.test(String(c).trim());
+  const movsCaixaFisico = movs.filter(m => !isVoucherOuValeGas(m.categoria));
+  const totalEntradas = movsCaixaFisico.filter(m => m.tipo === "entrada").reduce((a, m) => a + Number(m.valor), 0);
+  const totalSaidas = movsCaixaFisico.filter(m => m.tipo === "saida").reduce((a, m) => a + Number(m.valor), 0);
   const saldo = totalEntradas - totalSaidas;
   const movimentacoesExtrato = useMemo(() => {
-    let total = 0;
+    let total = Number(sessao?.valor_abertura || 0);
     return [...movs]
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
       .map((mov) => {
         const valor = Number(mov.valor || 0);
+        const isVoucher = isVoucherOuValeGas(mov.categoria);
         const entrada = mov.tipo === "entrada" ? valor : 0;
         const saida = mov.tipo === "saida" ? valor : 0;
-        total += entrada - saida;
+        // Voucher de vale-gás não altera saldo em caixa físico.
+        if (!isVoucher) total += entrada - saida;
         return { ...mov, entrada, saida, total };
       });
-  }, [movs]);
+  }, [movs, sessao]);
   const totalVendas = pedidos.reduce((a, p) => a + Number(p.valor_total || 0), 0);
   const qtdPedidos = pedidos.length;
   const dataFormatada = format(dataSelecionada, "dd/MM/yyyy");
