@@ -375,7 +375,7 @@ export default function CaixaDia() {
     if (errContas) console.error("[CaixaDia] Erro ao carregar contas bancárias:", errContas);
     else setContas((contasData as ContaBancaria[]) || []);
     const desde = subDays(new Date(), 30).toISOString();
-    let qChart = supabase.from("movimentacoes_caixa").select("*").gte("created_at", desde).neq("categoria", "Vale Gás").order("created_at", { ascending: false });
+    let qChart = supabase.from("movimentacoes_caixa").select("*").gte("created_at", desde).order("created_at", { ascending: false });
     if (unidadeAtual?.id) qChart = qChart.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
     const { data: cData, error: errChart } = await qChart;
     if (errChart) console.error("[CaixaDia] Erro ao carregar gráfico 30d:", errChart);
