@@ -478,17 +478,36 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
       default: {
         // Formas customizadas cadastradas em Financeiro → Formas de Pagamento
         if (pag.forma?.startsWith("custom_avista_")) {
-          // À vista: se houver conta bancária destino cadastrada, credita direto.
+          // À vista: se houver conta bancária destino (custom.conta ou config), credita direto.
           // Caso contrário, entra no caixa da loja.
           promises.push((async () => {
             const { data: custom } = await (supabase as any)
               .from("formas_pagamento_custom")
-              .select("nome, conta_bancaria_id")
+              .select("nome")
               .eq("slug", pag.forma)
               .maybeSingle();
             const nome = custom?.nome || "Personalizado";
-            const contaId = custom?.conta_bancaria_id || null;
-            if (contaId) {
+            const contaId = await resolverContaDestino({
+              unidadeId,
+              forma: pag.forma,
+              contaExplicita: pag.conta_bancaria_id,
+            });
+            // Só credita banco se a conta veio de custom ou config (não do fallback "primeira ativa").
+            // Para saber, resolvemos de novo sem fallback usando lookup direto:
+            const { data: cfg } = unidadeId ? await supabase
+              .from("config_destino_pagamento")
+              .select("conta_bancaria_id, ativo")
+              .eq("unidade_id", unidadeId)
+              .eq("forma_pagamento", pag.forma)
+              .maybeSingle() : { data: null } as any;
+            const { data: customConta } = await (supabase as any)
+              .from("formas_pagamento_custom")
+              .select("conta_bancaria_id")
+              .eq("slug", pag.forma)
+              .maybeSingle();
+            const temDestinoExplicito = !!(pag.conta_bancaria_id || customConta?.conta_bancaria_id || (cfg?.ativo !== false && cfg?.conta_bancaria_id));
+
+            if (contaId && temDestinoExplicito) {
               await criarMovimentacaoBancaria({
                 contaBancariaId: contaId,
                 valor: pag.valor,
@@ -520,6 +539,11 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
               .eq("slug", pag.forma)
               .maybeSingle();
             const nome = custom?.nome || "Personalizado";
+            const contaDestino = await resolverContaDestino({
+              unidadeId,
+              forma: pag.forma,
+              contaExplicita: pag.conta_bancaria_id,
+            });
             await insertContasReceber({
               cliente: clienteNome || "Cliente não identificado",
               descricao: `${nome} - Pedido #${pedidoRef}`,
@@ -530,6 +554,7 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
               pedido_id: pedidoId,
               unidade_id: unidadeId || null,
               cliente_id: clienteId || null,
+              conta_bancaria_destino_id: contaDestino,
             });
           })());
         }
