@@ -755,16 +755,30 @@ export default function AcertoEntregador() {
           const totalEntrega = Number(entrega.valor_total) || 0;
           let pagamentos: PagamentoRoteamento[] = [];
 
+          // Extrai marker [op:...|cta:...] anexado à parte
+          const extractMarker = (raw: string): { clean: string; operadora_id?: string; conta_bancaria_id?: string } => {
+            const m = raw.match(/^(.*?)\s*\[([^\]]+)\]\s*$/);
+            if (!m) return { clean: raw };
+            const out: { clean: string; operadora_id?: string; conta_bancaria_id?: string } = { clean: m[1].trim() };
+            m[2].split("|").forEach((tok) => {
+              const [k, v] = tok.split(":");
+              if (k === "op" && v) out.operadora_id = v;
+              if (k === "cta" && v) out.conta_bancaria_id = v;
+            });
+            return out;
+          };
+
           const isMultiplo = /^m[uú]ltiplos?:/i.test(fp) || fp.includes(", ") || /\+/.test(fp);
           if (isMultiplo) {
             const cleanFp = fp.replace(/^m[uú]ltiplos?:\s*/i, "");
             const parts = cleanFp.split(/,\s*|\s*\+\s*/).filter(Boolean);
-            const parsed: { forma: string; valor: number | null }[] = parts.map((part: string) => {
-              const match = part.trim().match(/^(.+?)\s+R?\$?\s*([\d.,]+)$/);
+            const parsed: { forma: string; valor: number | null; operadora_id?: string; conta_bancaria_id?: string }[] = parts.map((part: string) => {
+              const { clean, operadora_id, conta_bancaria_id } = extractMarker(part.trim());
+              const match = clean.match(/^(.+?)\s+R?\$?\s*([\d.,]+)$/);
               if (match) {
-                return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseValorBR(match[2]) };
+                return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseValorBR(match[2]), operadora_id, conta_bancaria_id };
               }
-              return { forma: normalizarFormaPagamento(part.trim()), valor: null };
+              return { forma: normalizarFormaPagamento(clean), valor: null, operadora_id, conta_bancaria_id };
             });
             const somaExplicita = parsed.reduce((a, p) => a + (p.valor ?? 0), 0);
             const semValor = parsed.filter((p) => p.valor === null);
@@ -773,9 +787,12 @@ export default function AcertoEntregador() {
             pagamentos = parsed.map((p) => ({
               forma: p.forma,
               valor: p.valor !== null ? p.valor : divididoEntreSemValor,
+              operadora_id: p.operadora_id,
+              conta_bancaria_id: p.conta_bancaria_id,
             }));
           } else if (fp) {
-            pagamentos = [{ forma: normalizarFormaPagamento(fp), valor: totalEntrega }];
+            const { clean, operadora_id, conta_bancaria_id } = extractMarker(fp);
+            pagamentos = [{ forma: normalizarFormaPagamento(clean), valor: totalEntrega, operadora_id, conta_bancaria_id }];
           } else {
             pagamentos = [{ forma: "dinheiro", valor: totalEntrega }];
           }
