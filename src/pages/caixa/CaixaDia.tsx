@@ -1166,6 +1166,59 @@ export default function CaixaDia() {
           onOpenChange={setAcertoPendenteDialogOpen}
           detalhes={acertoPendenteDetalhes}
         />
+
+        {/* Editar movimentação */}
+        <Dialog open={!!editMov} onOpenChange={(o) => !o && setEditMov(null)}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Editar Movimentação</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Tipo</Label>
+                <Select value={editForm.tipo} onValueChange={(v) => setEditForm({ ...editForm, tipo: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="entrada">Entrada</SelectItem>
+                    <SelectItem value="saida">Saída</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Descrição</Label>
+                <Input value={editForm.descricao} onChange={(e) => setEditForm({ ...editForm, descricao: e.target.value })} />
+              </div>
+              <div>
+                <Label>Valor</Label>
+                <Input type="number" step="0.01" value={editForm.valor} onChange={(e) => setEditForm({ ...editForm, valor: e.target.value })} />
+              </div>
+              <div>
+                <Label>Categoria</Label>
+                <Input value={editForm.categoria} onChange={(e) => setEditForm({ ...editForm, categoria: e.target.value })} placeholder="Opcional" />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setEditMov(null)}>Cancelar</Button>
+                <Button onClick={handleUpdateMov}>Salvar</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirmar exclusão */}
+        <AlertDialog open={!!deleteMovId} onOpenChange={(o) => !o && setDeleteMovId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir movimentação?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. A movimentação será removida do caixa do dia.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteMov} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </MainLayout>
   );
