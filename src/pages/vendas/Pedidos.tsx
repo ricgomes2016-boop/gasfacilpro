@@ -58,6 +58,7 @@ import { getBrasiliaDate } from "@/lib/utils";
 import { format as fnsFormat } from "date-fns";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { getOrigemMeta, ORIGEM_PEDIDO_META, ORIGENS_PEDIDO, type OrigemPedido } from "@/lib/pedidos/origem";
+import { EditarPagamentoPedidoDialog } from "@/components/vendas/EditarPagamentoPedidoDialog";
 
 function OrigemBadge({ origem }: { origem?: string | null }) {
   const meta = getOrigemMeta(origem);
