@@ -224,6 +224,7 @@ export default function ContasReceber() {
         boleto_url: c.boleto_url || null,
         pix_qrcode: c.pix_qrcode || null,
         pix_copia_cola: c.pix_copia_cola || null,
+        conta_bancaria_destino_id: c.conta_bancaria_destino_id || null,
       })));
     }
     setLoading(false);
