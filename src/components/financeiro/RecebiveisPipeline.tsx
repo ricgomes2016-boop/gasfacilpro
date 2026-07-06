@@ -276,14 +276,15 @@ export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {
     if (error) { toast.error("Erro ao liquidar"); return; }
 
     try {
-      const { data: conta } = await supabase.from("contas_bancarias")
-        .select("id").eq("ativo", true)
-        .eq("unidade_id", unidadeAtual?.id || "")
-        .limit(1).maybeSingle();
-      if (conta) {
+      const contaId = await resolverContaDestino({
+        unidadeId: unidadeAtual?.id || null,
+        forma: row.forma_pagamento || "cartao_credito",
+        contaExplicita: row.conta_bancaria_destino_id,
+      });
+      if (contaId) {
         const { data: { user } } = await supabase.auth.getUser();
         await criarMovimentacaoBancaria({
-          contaBancariaId: conta.id,
+          contaBancariaId: contaId,
           valor: valorLiq > 0 ? valorLiq : Number(row.valor),
           descricao: `Liquidação Cartão: ${row.descricao}`,
           categoria: "liquidacao_cartao",
