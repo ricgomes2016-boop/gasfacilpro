@@ -1250,6 +1250,27 @@ export default function Pedidos() {
                         </TableCell>
                         <TableCell className="font-medium text-sm text-right whitespace-nowrap">R$ {pedido.valor.toFixed(2)}</TableCell>
                         <TableCell>
+                          <button
+                            type="button"
+                            onClick={() => { setPedidoEditarPagamento(pedido); setEditarPagamentoAberto(true); }}
+                            className="inline-flex items-center gap-1 group outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                            title="Clique para editar forma de pagamento, operadora ou chave PIX"
+                          >
+                            {pedido.forma_pagamento ? (
+                              <Badge variant="outline" className="text-xs cursor-pointer group-hover:bg-accent gap-1">
+                                <CreditCard className="h-3 w-3" />
+                                <span className="truncate max-w-[110px]">{formaLabel(pedido.forma_pagamento)}</span>
+                                <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs cursor-pointer border-warning/50 text-warning bg-warning/10 hover:bg-warning/20 gap-1">
+                                <CreditCard className="h-3 w-3" />
+                                Definir
+                              </Badge>
+                            )}
+                          </button>
+                        </TableCell>
+                        <TableCell>
                           <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
                         </TableCell>
                         <TableCell className="text-right pr-3">
