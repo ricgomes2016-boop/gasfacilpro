@@ -275,7 +275,11 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
 
       case "pix": {
         promises.push(
-          getContaPrincipal(unidadeId).then(contaId => {
+          resolverContaDestino({
+            unidadeId,
+            forma: "pix",
+            contaExplicita: pag.conta_bancaria_id,
+          }).then(contaId => {
             if (contaId) {
               return criarMovimentacaoBancaria({
                 contaBancariaId: contaId,
