@@ -155,6 +155,8 @@ export default function Pedidos() {
   const [dialogAberto, setDialogAberto] = useState(false);
   const [viewDialogAberto, setViewDialogAberto] = useState(false);
   const [pedidoView, setPedidoView] = useState<PedidoFormatado | null>(null);
+  const [pedidoEditarPagamento, setPedidoEditarPagamento] = useState<PedidoFormatado | null>(null);
+  const [editarPagamentoAberto, setEditarPagamentoAberto] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState<string>(filtrosPersistidosIniciais.filtroStatus ?? "todos");
   const [filtroEntregador, setFiltroEntregador] = useState<string>(filtrosPersistidosIniciais.filtroEntregador ?? "todos");
   const [filtroOrigem, setFiltroOrigem] = useState<string>(filtrosPersistidosIniciais.filtroOrigem ?? "todos");
