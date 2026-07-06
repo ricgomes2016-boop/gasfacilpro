@@ -50,6 +50,7 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 2000,
     },
     plugins: [
+      mcpPlugin(),
       react(),
       mode === "development" && componentTagger(),
       VitePWA({
