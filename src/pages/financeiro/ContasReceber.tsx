@@ -424,12 +424,8 @@ export default function ContasReceber() {
     fetchContas();
   };
 
-  // Helper para buscar conta principal
-  const getContaPrincipal = async () => {
-    const { data } = await supabase.from("contas_bancarias").select("id")
-      .eq("ativo", true).eq("unidade_id", unidadeAtual?.id || "").limit(1).maybeSingle();
-    return data?.id || null;
-  };
+
+
 
   // Bulk liquidation handler
   const handleBulkReceber = async () => {
