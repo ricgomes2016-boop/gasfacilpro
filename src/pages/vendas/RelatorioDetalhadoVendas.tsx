@@ -158,15 +158,16 @@ export default function RelatorioDetalhadoVendas() {
   });
 
   const finalizarLinha = (l: LinhaDetalhe): LinhaDetalhe => {
-    const lucro = l.totalVenda - l.totalCusto;
-    // Margem calculada apenas sobre venda com custo conhecido (evita distorção).
+    // Base = apenas a venda cujos itens têm custo cadastrado.
+    // Assim, itens sem preco_custo NÃO inflam lucro nem margem.
     const baseMargem = l.totalVenda - l.vendaSemCusto;
+    const lucro = baseMargem > 0 ? baseMargem - l.totalCusto : 0;
     return {
       ...l,
       custoMedio: l.qtdComCusto ? l.totalCusto / l.qtdComCusto : 0,
       vendaMedia: l.qtd ? l.totalVenda / l.qtd : 0,
       lucro,
-      margem: baseMargem > 0 ? ((baseMargem - l.totalCusto) / baseMargem) * 100 : 0,
+      margem: baseMargem > 0 ? (lucro / baseMargem) * 100 : 0,
       temCustoIncompleto: l.vendaSemCusto > 0,
     };
   };
@@ -223,8 +224,10 @@ export default function RelatorioDetalhadoVendas() {
     const qtd = filtradas.reduce((s, l) => s + l.qtd, 0);
     const totalVenda = filtradas.reduce((s, l) => s + l.totalVenda, 0);
     const totalCusto = filtradas.reduce((s, l) => s + l.totalCusto, 0);
-    const lucro = totalVenda - totalCusto;
-    return { qtd, totalVenda, totalCusto, lucro, vendaMedia: qtd ? totalVenda / qtd : 0, margem: totalVenda ? (lucro / totalVenda) * 100 : 0 };
+    const vendaSemCusto = filtradas.reduce((s, l) => s + l.vendaSemCusto, 0);
+    const baseMargem = totalVenda - vendaSemCusto;
+    const lucro = baseMargem > 0 ? baseMargem - totalCusto : 0;
+    return { qtd, totalVenda, totalCusto, lucro, vendaMedia: qtd ? totalVenda / qtd : 0, margem: baseMargem > 0 ? (lucro / baseMargem) * 100 : 0 };
   }, [filtradas]);
 
   const agregado = (campo: "entregador" | "produto" | "canal") => {
@@ -324,7 +327,9 @@ export default function RelatorioDetalhadoVendas() {
     const totQtd = rows.reduce((s, r) => s + r.qtd, 0);
     const totVenda = rows.reduce((s, r) => s + r.totalVenda, 0);
     const totCusto = rows.reduce((s, r) => s + r.totalCusto, 0);
-    const totLucro = totVenda - totCusto;
+    const totSemCusto = rows.reduce((s, r) => s + r.vendaSemCusto, 0);
+    const baseTot = totVenda - totSemCusto;
+    const totLucro = baseTot > 0 ? baseTot - totCusto : 0;
     return (
     <Card><CardHeader className="pb-3"><CardTitle className="text-base">{titulo}</CardTitle></CardHeader><CardContent className="p-0 sm:p-6 sm:pt-0">
       {isLoading ? <div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /></div> : rows.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">Sem dados.</p> : <div className="overflow-x-auto"><Table className="min-w-[720px]"><TableHeader><TableRow><TableHead>{campo === "produto" ? "Produto" : "Canal"}</TableHead><TableHead className="text-right">Qt</TableHead><TableHead className="text-right">Custo médio</TableHead><TableHead className="text-right">Preço médio</TableHead><TableHead className="text-right">Total</TableHead><TableHead className="text-right">Lucro</TableHead></TableRow></TableHeader><TableBody>{rows.map((l, i) => <TableRow key={`${campo}-${i}`} className={campo === "produto" ? "cursor-pointer hover:bg-muted/60" : ""} onClick={campo === "produto" ? () => setProdutoAberto(l) : undefined}><TableCell className="font-medium">{campo === "produto" ? l.produto : l.canal}{l.temCustoIncompleto && <Badge variant="outline" className="ml-2 text-[10px]">custo parcial</Badge>}</TableCell><TableCell className="text-right">{l.qtd}</TableCell><TableCell className="text-right">{l.custoMedio > 0 ? money(l.custoMedio) : <span className="text-xs text-muted-foreground italic">sem custo</span>}</TableCell><TableCell className="text-right">{money(l.vendaMedia)}</TableCell><TableCell className="text-right font-semibold">{money(l.totalVenda)}</TableCell><TableCell className="text-right text-emerald-700">{l.custoMedio > 0 ? money(l.lucro) : "—"}</TableCell></TableRow>)}<TableRow className="bg-muted/50 font-bold"><TableCell>Total</TableCell><TableCell className="text-right">{totQtd.toLocaleString("pt-BR")}</TableCell><TableCell className="text-right">—</TableCell><TableCell className="text-right">{money(totQtd ? totVenda / totQtd : 0)}</TableCell><TableCell className="text-right">{money(totVenda)}</TableCell><TableCell className="text-right text-emerald-700">{money(totLucro)}</TableCell></TableRow></TableBody></Table></div>}

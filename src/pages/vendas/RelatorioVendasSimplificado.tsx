@@ -145,12 +145,19 @@ export default function RelatorioVendasSimplificado() {
     const map = new Map<string, { nome: string; qtd: number; total: number; custoTotal: number; temCusto: boolean }>();
     pedidosFiltrados.forEach(p => {
       const nome = p.entregadores?.nome || "Sem entregador";
+      const atual = map.get(nome) || { nome, qtd: 0, total: 0, custoTotal: 0, temCusto: false };
+      // Total do pedido inclui taxas/descontos — usar valor_total para bater com caixa.
+      atual.total += Number(p.valor_total) || 0;
       p.pedido_itens?.forEach(item => {
         const qtd = Number(item.quantidade) || 0;
-        const preco = Number(item.preco_unitario) || 0;
         const custo = item.produtos?.preco_custo != null ? Number(item.produtos.preco_custo) : null;
-        acumular(map, nome, nome, qtd, preco, custo);
+        atual.qtd += qtd;
+        if (custo != null && custo > 0) {
+          atual.custoTotal += qtd * custo;
+          atual.temCusto = true;
+        }
       });
+      map.set(nome, atual);
     });
     return Array.from(map.values()).map(finalizar).sort((a, b) => b.total - a.total);
   }, [pedidosFiltrados]);
@@ -160,18 +167,25 @@ export default function RelatorioVendasSimplificado() {
     pedidosFiltrados.forEach(p => {
       const canal = normCanal(p.canal_venda);
       const nomeVisivel = canalLabels[canal] || canal;
+      const atual = map.get(canal) || { nome: nomeVisivel, qtd: 0, total: 0, custoTotal: 0, temCusto: false };
+      atual.total += Number(p.valor_total) || 0;
       p.pedido_itens?.forEach(item => {
         const qtd = Number(item.quantidade) || 0;
-        const preco = Number(item.preco_unitario) || 0;
         const custo = item.produtos?.preco_custo != null ? Number(item.produtos.preco_custo) : null;
-        acumular(map, canal, nomeVisivel, qtd, preco, custo);
+        atual.qtd += qtd;
+        if (custo != null && custo > 0) {
+          atual.custoTotal += qtd * custo;
+          atual.temCusto = true;
+        }
       });
+      map.set(canal, atual);
     });
     return Array.from(map.values()).map(finalizar).sort((a, b) => b.total - a.total);
   }, [pedidosFiltrados]);
 
   const totalQtd = porProduto.reduce((sum, item) => sum + item.qtd, 0);
-  const totalVenda = porProduto.reduce((sum, item) => sum + item.total, 0);
+  // Total vendido = soma de valor_total dos pedidos (bate com caixa/relatórios).
+  const totalVenda = pedidosFiltrados.reduce((sum, p) => sum + (Number(p.valor_total) || 0), 0);
   const precoMedio = totalQtd ? totalVenda / totalQtd : 0;
   const alertasAbaixoCusto = porProduto.filter(p => p.abaixoCusto).length + porCanal.filter(p => p.abaixoCusto).length + porEntregador.filter(p => p.abaixoCusto).length;
 
