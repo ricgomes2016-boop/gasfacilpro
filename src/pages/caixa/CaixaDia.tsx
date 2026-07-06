@@ -220,7 +220,9 @@ export default function CaixaDia() {
       
       // Normaliza nome da forma de pagamento para evitar duplicatas (ex: "Dinheiro" vs "dinheiro")
       const normalizarForma = (f: string): string => {
-        const lower = f.trim().toLowerCase().replace(/_/g, " ");
+        const raw = f.trim();
+        if (!raw) return raw;
+        const lower = raw.toLowerCase().replace(/_/g, " ");
         const map: Record<string, string> = {
           dinheiro: "Dinheiro", pix: "PIX",
           "cartão crédito": "Cartão Crédito", "cartao credito": "Cartão Crédito",
@@ -231,7 +233,9 @@ export default function CaixaDia() {
           "pix maquininha": "PIX Maquininha",
           boleto: "Boleto",
         };
-        return map[lower] || f.trim();
+        if (map[lower]) return map[lower];
+        // Formas customizadas / desconhecidas: resolve pelo helper (nome amigável)
+        return formaLabel(raw);
       };
 
       const pendingDetails: typeof acertoPendenteDetalhes = [];
