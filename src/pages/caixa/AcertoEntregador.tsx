@@ -496,6 +496,13 @@ export default function AcertoEntregador() {
         setIsSavingEdit(false);
         return;
       }
+      // Bloqueia salvar se cartão/PIX maquininha sem operadora
+      const semOperadora = pagamentos.find(p => cardTipoDaForma(p.forma) && !p.operadora_id);
+      if (semOperadora) {
+        toast.error(`Selecione a operadora para ${semOperadora.forma} antes de salvar`);
+        setIsSavingEdit(false);
+        return;
+      }
       const totalPagamentos = pagamentos.reduce((a, p) => a + p.valor, 0);
       if (Math.abs(novoTotal - totalPagamentos) > 0.01) {
         toast.error("A soma dos pagamentos não confere com o total da entrega");
@@ -503,12 +510,20 @@ export default function AcertoEntregador() {
         return;
       }
 
+      const encodeMarker = (p: PagamentoMultiplo) => {
+        const parts: string[] = [];
+        if (p.operadora_id) parts.push(`op:${p.operadora_id}`);
+        if (p.conta_bancaria_id) parts.push(`cta:${p.conta_bancaria_id}`);
+        return parts.length ? ` [${parts.join("|")}]` : "";
+      };
+
       let formaPgtoSalvar: string;
       if (pagamentos.length === 1) {
-        formaPgtoSalvar = pagamentos[0].forma;
+        const p = pagamentos[0];
+        formaPgtoSalvar = `${p.forma}${encodeMarker(p)}`;
       } else {
         formaPgtoSalvar = pagamentos
-          .map(p => `${p.forma} R$${p.valor.toFixed(2)}`)
+          .map(p => `${p.forma} R$${p.valor.toFixed(2)}${encodeMarker(p)}`)
           .join(", ");
       }
 
