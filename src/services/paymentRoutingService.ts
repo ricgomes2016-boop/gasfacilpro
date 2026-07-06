@@ -32,7 +32,9 @@ interface RotearPagamentosParams {
 }
 
 /**
- * Busca a conta bancária principal da unidade (primeira conta ativa)
+ * Busca a conta bancária principal da unidade (primeira conta ativa) — FALLBACK APENAS.
+ * Nunca deve ser chamada diretamente pelos fluxos de venda/recebimento.
+ * Use `resolverContaDestino` que aplica a precedência correta.
  */
 async function getContaPrincipal(unidadeId?: string | null): Promise<string | null> {
   if (!unidadeId) return null;
@@ -44,6 +46,69 @@ async function getContaPrincipal(unidadeId?: string | null): Promise<string | nu
     .limit(1)
     .maybeSingle();
   return data?.id || null;
+}
+
+/**
+ * Resolve a conta bancária de destino para QUALQUER forma de pagamento.
+ *
+ * Precedência única (fonte de verdade financeira):
+ *   1. Explícito na chamada    (contaExplicita — escolha do atendente/entregador no ato)
+ *   2. Terminal cartão          (terminais_cartao.conta_bancaria_id)
+ *   3. Operadora                (operadoras_cartao.conta_bancaria_id — passado como operadoraContaId)
+ *   4. Config por forma/unidade (config_destino_pagamento onde forma_pagamento = forma)
+ *   5. Fallback: primeira conta ativa da unidade
+ *
+ * Para custom_avista_X / custom_aprazo_X, também consulta formas_pagamento_custom.conta_bancaria_id
+ * antes do config_destino_pagamento.
+ */
+export async function resolverContaDestino(params: {
+  unidadeId?: string | null;
+  forma: string;
+  contaExplicita?: string | null;
+  terminalId?: string | null;
+  operadoraContaId?: string | null;
+}): Promise<string | null> {
+  const { unidadeId, forma, contaExplicita, terminalId, operadoraContaId } = params;
+
+  // 1. Explícito
+  if (contaExplicita) return contaExplicita;
+
+  // 2. Terminal
+  if (terminalId) {
+    const { data } = await supabase
+      .from("terminais_cartao")
+      .select("conta_bancaria_id")
+      .eq("id", terminalId)
+      .maybeSingle();
+    if ((data as any)?.conta_bancaria_id) return (data as any).conta_bancaria_id as string;
+  }
+
+  // 3. Operadora (só faz sentido para cartão/pix_maq)
+  if (operadoraContaId) return operadoraContaId;
+
+  // 3.5 Forma customizada tem conta própria
+  if (forma?.startsWith("custom_")) {
+    const { data: custom } = await (supabase as any)
+      .from("formas_pagamento_custom")
+      .select("conta_bancaria_id")
+      .eq("slug", forma)
+      .maybeSingle();
+    if (custom?.conta_bancaria_id) return custom.conta_bancaria_id as string;
+  }
+
+  // 4. Config por forma/unidade
+  if (unidadeId) {
+    const { data: cfg } = await supabase
+      .from("config_destino_pagamento")
+      .select("conta_bancaria_id, ativo")
+      .eq("unidade_id", unidadeId)
+      .eq("forma_pagamento", forma)
+      .maybeSingle();
+    if (cfg?.ativo !== false && cfg?.conta_bancaria_id) return cfg.conta_bancaria_id as string;
+  }
+
+  // 5. Fallback
+  return getContaPrincipal(unidadeId);
 }
 
 /**
@@ -80,23 +145,6 @@ async function getOperadoraConfig(unidadeId: string | null, tipo: string, operad
   }
 
   return { id: data.id, nome: data.nome, taxa, prazo, conta_bancaria_id: (data as any).conta_bancaria_id as string | null };
-}
-
-/**
- * Resolve a conta bancária de destino para um pagamento de cartão/PIX maq.
- * Precedência: pag.conta_bancaria_id > terminal.conta_bancaria_id > operadora.conta_bancaria_id.
- */
-async function resolveContaDestinoCartao(pag: PagamentoRoteamento, opContaId: string | null): Promise<string | null> {
-  if (pag.conta_bancaria_id) return pag.conta_bancaria_id;
-  if (pag.terminal_id) {
-    const { data } = await supabase
-      .from("terminais_cartao")
-      .select("conta_bancaria_id")
-      .eq("id", pag.terminal_id)
-      .maybeSingle();
-    if ((data as any)?.conta_bancaria_id) return (data as any).conta_bancaria_id as string;
-  }
-  return opContaId || null;
 }
 
 /**
