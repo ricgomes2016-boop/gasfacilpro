@@ -1,25 +1,31 @@
+## Problema
 
-## Objetivo
+Em `src/pages/vendas/Pedidos.tsx`, os filtros de data (`dataInicio`/`dataFim`) são inicializados sempre com o dia atual (`hoje`). Ao clicar em "Editar", a rota muda para `/vendas/pedidos/:id/editar` e o componente `Pedidos` é desmontado. Ao voltar, o estado é recriado e cai novamente em "hoje", forçando o usuário a reabrir Filtros e escolher a data.
 
-Permitir editar a **data** da movimentação de caixa dentro do diálogo de edição em **Caixa → Caixa do Dia**.
+## Solução
 
-## Contexto técnico
+Persistir os filtros da tela de Pedidos em `sessionStorage` para que, ao voltar da tela de edição (ou de qualquer outra), a data selecionada seja preservada durante a sessão do navegador.
 
-A tabela `movimentacoes_caixa` não tem coluna `data` separada — a data exibida em todas as telas é o `created_at`. Portanto, editar a data = atualizar `created_at`. Como todas as telas que compartilham essa informação (Fluxo de Caixa, Despesas, Aprovar Despesas, Acerto Entregador, Fluxo Projetado, Previsão de Caixa, Exportação Contábil, Dashboards) já leem/filtram por `created_at`, elas passam a refletir a nova data automaticamente — nenhuma alteração adicional é necessária nessas telas.
+### Alterações em `src/pages/vendas/Pedidos.tsx`
 
-## Alterações em `src/pages/caixa/CaixaDia.tsx`
+1. Criar uma chave única, por unidade, ex.: `pedidos:filtros:v1:<unidadeId>`.
+2. Ler o estado inicial de `sessionStorage` (fallback = `hoje`) para:
+   - `dataInicio`
+   - `dataFim`
+   - `filtroStatus`
+   - `filtroEntregador`
+   - `filtroOrigem`
+   - `busca`
+3. `useEffect` que grava o objeto de filtros no `sessionStorage` sempre que qualquer um deles muda.
+4. Manter o botão "Limpar filtros" atual: além de resetar o estado, também limpa a chave do `sessionStorage`.
+5. Não alterar o efeito que zera a paginação nem o efeito que força `dataInicio = hoje` quando `filtroStatus === "agendado"` (comportamento intencional).
 
-1. **Estado**: adicionar `data` ao `editForm` (`{ tipo, descricao, valor, categoria, data }`).
-2. **`openEditMov`**: preencher `data` com `format(new Date(mov.created_at), "yyyy-MM-dd'T'HH:mm")` para o input `datetime-local`.
-3. **Diálogo de edição**: adicionar um campo `<Input type="datetime-local">` com rótulo "Data e hora", logo após o campo Tipo.
-4. **`handleUpdateMov`**:
-   - Validar a data.
-   - Bloquear se a nova data cair em um dia com caixa fechado (`caixa_dia_bloqueado`) — mostra `toast.error` e cancela.
-   - Incluir `created_at: new Date(editForm.data).toISOString()` no `update`.
-5. Após salvar, recarregar a lista (já é feito) — a movimentação some/aparece conforme o filtro do dia atual da tela.
+### Fora de escopo
 
-## Fora do escopo
+- Não persistir entre abas/dias diferentes: usar `sessionStorage` (não `localStorage`), então ao fechar o navegador volta ao padrão "hoje".
+- Não mexer na tela `EditarPedido.tsx`, `PedidosKanban.tsx` nem no hook `usePedidos`.
+- Não alterar comportamento visual dos filtros (badge de "filtros ativos" continua funcionando).
 
-- Não altero `Despesas.tsx`, `AprovarDespesas.tsx`, `EntregadorDespesas.tsx` nem qualquer relatório: eles já usam `created_at` e refletirão a nova data automaticamente.
-- Não crio coluna nova no banco.
-- Não mexo em regras de bloqueio do caixa — apenas respeito a existente para a nova data escolhida.
+## Resultado esperado
+
+Ao filtrar 01/07 → editar um pedido → salvar → voltar para Pedidos: a lista continua em 01/07, sem precisar reabrir o painel de filtros.
