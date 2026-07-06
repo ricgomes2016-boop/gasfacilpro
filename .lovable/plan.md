@@ -1,31 +1,43 @@
-## Problema
+## Objetivo
 
-Em `src/pages/vendas/Pedidos.tsx`, os filtros de data (`dataInicio`/`dataFim`) são inicializados sempre com o dia atual (`hoje`). Ao clicar em "Editar", a rota muda para `/vendas/pedidos/:id/editar` e o componente `Pedidos` é desmontado. Ao voltar, o estado é recriado e cai novamente em "hoje", forçando o usuário a reabrir Filtros e escolher a data.
+Alterar o card **💰 Total em Caixa** na tela `Caixa do Dia` para mostrar o **saldo acumulado até a data selecionada** (em vez do saldo histórico total de todos os tempos).
 
-## Solução
+Assim, ao navegar entre os dias:
+- Dia 01/07 → mostra só o que entrou/saiu no dia 01
+- Dia 02/07 → mostra dia 01 + dia 02 (menos saídas)
+- Dia 03/07 → mostra dia 01 + 02 + 03 (menos saídas)
+- E assim por diante, acumulando
 
-Persistir os filtros da tela de Pedidos em `sessionStorage` para que, ao voltar da tela de edição (ou de qualquer outra), a data selecionada seja preservada durante a sessão do navegador.
+Como as vendas anteriores a 01/07 já foram zeradas, o card começa do zero e cresce dia a dia conforme as movimentações reais.
 
-### Alterações em `src/pages/vendas/Pedidos.tsx`
+## O que muda
 
-1. Criar uma chave única, por unidade, ex.: `pedidos:filtros:v1:<unidadeId>`.
-2. Ler o estado inicial de `sessionStorage` (fallback = `hoje`) para:
-   - `dataInicio`
-   - `dataFim`
-   - `filtroStatus`
-   - `filtroEntregador`
-   - `filtroOrigem`
-   - `busca`
-3. `useEffect` que grava o objeto de filtros no `sessionStorage` sempre que qualquer um deles muda.
-4. Manter o botão "Limpar filtros" atual: além de resetar o estado, também limpa a chave do `sessionStorage`.
-5. Não alterar o efeito que zera a paginação nem o efeito que força `dataInicio = hoje` quando `filtroStatus === "agendado"` (comportamento intencional).
+Arquivo: `src/pages/caixa/CaixaDia.tsx`
 
-### Fora de escopo
+Na função `fetchTesouraria` (linhas 349–356), a consulta que calcula `saldoTotalCaixa` passa a filtrar por `created_at <= fim do dia selecionado` (23:59:59 no fuso de Brasília), em vez de somar tudo sem filtro de data.
 
-- Não persistir entre abas/dias diferentes: usar `sessionStorage` (não `localStorage`), então ao fechar o navegador volta ao padrão "hoje".
-- Não mexer na tela `EditarPedido.tsx`, `PedidosKanban.tsx` nem no hook `usePedidos`.
-- Não alterar comportamento visual dos filtros (badge de "filtros ativos" continua funcionando).
+```text
+Antes:  Σ(entradas) − Σ(saídas) de TODA a base
+Depois: Σ(entradas) − Σ(saídas) COM created_at ≤ fim do dia selecionado
+```
+
+Também adicionar `dataSelecionada` como dependência do `useEffect` que chama `fetchTesouraria` (hoje só depende de `unidadeAtual`), para que o card recalcule ao trocar a data.
+
+Regras mantidas sem alteração:
+- Continua ignorando a categoria `Vale Gás`
+- Continua filtrando pela unidade atual (`unidade_id = atual OR NULL`)
+- O card **Saldo do Dia** continua mostrando apenas as movimentações do dia selecionado
+- Contas bancárias, gráfico dos últimos 30 dias e movimentações bancárias de hoje não mudam
 
 ## Resultado esperado
 
-Ao filtrar 01/07 → editar um pedido → salvar → voltar para Pedidos: a lista continua em 01/07, sem precisar reabrir o painel de filtros.
+- 01/07 selecionado → Total em Caixa = movimentações do dia 01/07
+- 02/07 selecionado → Total em Caixa = 01/07 + 02/07
+- Hoje selecionado → Total em Caixa = tudo acumulado desde 01/07 (que é o novo "zero")
+- Se selecionar uma data futura, mostra o acumulado até o fim daquele dia (na prática, igual ao total atual)
+
+## Escopo fora deste plano
+
+- Não altera nenhuma outra tela (Fluxo de Caixa, DRE, Contas Bancárias)
+- Não mexe em movimentações, sessões nem em regras de fechamento
+- Não muda o cálculo do card "Saldo do Dia" nem o "Valor Esperado" na conferência de fechamento

@@ -347,7 +347,13 @@ export default function CaixaDia() {
 
   // === Tesouraria: saldo acumulado total + contas bancárias ===
   const fetchTesouraria = async () => {
-    let qTotal = supabase.from("movimentacoes_caixa").select("tipo, valor").neq("categoria", "Vale Gás");
+    // Saldo acumulado até o fim do dia selecionado (Brasília -03:00)
+    const fimDoDiaSelecionado = `${dataSelecionada}T23:59:59-03:00`;
+    let qTotal = supabase
+      .from("movimentacoes_caixa")
+      .select("tipo, valor")
+      .neq("categoria", "Vale Gás")
+      .lte("created_at", fimDoDiaSelecionado);
     if (unidadeAtual?.id) qTotal = qTotal.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
     const { data: allMovs } = await qTotal;
     if (allMovs) {
