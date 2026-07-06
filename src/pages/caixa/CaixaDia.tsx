@@ -197,7 +197,7 @@ export default function CaixaDia() {
     let qMov = supabase.from("movimentacoes_caixa").select("*").gte("created_at", inicio).lte("created_at", fim).neq("categoria", "Vale Gás").order("created_at", { ascending: false });
     if (unidadeAtual?.id) qMov = qMov.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
 
-    let qPed = supabase.from("pedidos").select("id, valor_total, forma_pagamento, status, created_at, entregador_id, canal_venda, responsavel_acerto, entregadores(nome)").gte("created_at", inicio).lte("created_at", fim);
+    let qPed = supabase.from("pedidos").select("id, valor_total, forma_pagamento, status, created_at, entregador_id, canal_venda, responsavel_acerto, entregadores(nome)").gte("created_at", inicio).lte("created_at", fim).not("status", "in", "(cancelado,rejeitado)");
     if (unidadeAtual?.id) qPed = qPed.eq("unidade_id", unidadeAtual.id);
 
     let qSes = supabase.from("caixa_sessoes").select("*").eq("data", dataStr).order("created_at", { ascending: false }).limit(1);
