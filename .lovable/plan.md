@@ -1,39 +1,62 @@
-## Problema
+## Objetivo
 
-O card **💰 Total em Caixa** está zerado porque o filtro de data foi construído de forma inválida.
+Corrigir 3 problemas do Caixa do Dia + tornar a edição de pagamento no Acerto Diário tão completa quanto a de Pedidos/Nova Venda.
 
-Em `src/pages/caixa/CaixaDia.tsx` linha 351:
+---
 
-```ts
-const fimDoDiaSelecionado = `${dataSelecionada}T23:59:59-03:00`;
-```
+## 1. Aba "Pagamento" mostra slug cru `custom_avista_vale_ultragaz`
 
-`dataSelecionada` é um objeto `Date`, não uma string. A interpolação gera algo como `Mon Jul 06 2026 00:00:00 GMT-0300 (...)T23:59:59-03:00`, que **não é um ISO válido**. O PostgREST então:
-- ou rejeita silenciosamente (query volta vazia → soma = 0)
-- ou compara string por string e ignora tudo
+**Arquivo:** `src/pages/caixa/CaixaDia.tsx` (linhas 217–283).
 
-Resultado: `saldoTotalCaixa` fica em 0 em qualquer dia selecionado.
+- Hoje o agregador usa `normalizarForma()`, um mapa hard-coded que não conhece formas customizadas → o slug técnico vai direto para o `Map` e aparece na UI.
+- Ele também não sabe reconhecer `custom_avista_*` dentro de pagamento composto (`"custom_avista_vale_ultragaz R$50,00, PIX R$20,00"`).
 
-## Correção (mínima, focada, sem efeito colateral)
+**Correção:**
+- Trocar `normalizarForma` pelo helper oficial `useFormaPagamentoLabel()` (já usado em `AcertoEntregador.tsx`), que resolve builtin + custom via `useFormasPagamentoCustom`.
+- Agregar internamente pelo `slug` (chave estável) e só exibir `formaLabel(slug)` na UI/PDF/Excel. Assim "Vale Ultragaz" aparece bonito e a soma não duplica quando o mesmo slug vem escrito de duas formas.
 
-Arquivo único: `src/pages/caixa/CaixaDia.tsx`, função `fetchTesouraria` (linhas 349–382).
+---
 
-1. Trocar a construção do limite superior por **`getBrasiliaEndOfDay(dataSelecionada)`** — helper já usado em `fetchData` (linha 191) que devolve ISO string correto no fuso de Brasília. Garante consistência entre o card "Saldo do Dia" e o "Total em Caixa".
+## 2. Aba "Produtos" com quantidade de P13 divergente
 
-2. Adicionar guarda: se o `.select()` retornar `error`, logar e **não zerar** o estado (hoje ele nem checa o erro; se o Supabase falhar, o card também vira 0 silenciosamente).
+**Causa provável:** a consulta em `fetchData` (linha 198) puxa `pedidos` **sem filtrar status**, então inclui `cancelado`/`rejeitado`. Os itens desses pedidos entram no somatório de P13 na aba Produtos, enquanto os relatórios de venda descartam cancelados → divergência.
 
-3. Mesma proteção para as outras queries dentro de `fetchTesouraria` (contas bancárias, chart 30 dias, movimentações bancárias): logar erros em vez de engolir.
+Também no somatório por forma de pagamento o mesmo problema infla contagem.
 
-4. Confirmar que o `useEffect` da linha 385 continua com `[unidadeAtual, dataSelecionada]` — já está correto, só documentar.
+**Correção:**
+- Adicionar filtro `.not("status", "in", "(cancelado,rejeitado)")` (mesma convenção usada em `RelatorioVendas`) na query `qPed`.
+- Aplicar o filtro uma única vez — as três agregações (formas, produtos, acerto pendente) passam a bater com Relatório de Vendas e com Acerto do Entregador.
 
-## Validação depois do fix
+Sem mexer em lógica de saldo/tesouraria.
 
-- Selecionar 01/07 → card mostra soma de entradas − saídas do dia 01/07 (mesmo valor que "Saldo do Dia" quando só existir movimentação nesse dia).
-- Selecionar hoje → card mostra acumulado desde 01/07 até 23:59:59 de hoje.
-- Selecionar data futura → mostra o acumulado atual (nada muda depois de hoje).
-- Console sem erros vermelhos vindos de `movimentacoes_caixa`.
+---
 
-## Fora do escopo
+## 3. Edição de forma de pagamento em "Entregas Detalhadas" (Acerto Diário)
 
-- Nenhuma alteração em `fetchData`, "Saldo do Dia", conferência de fechamento, DRE, Fluxo de Caixa, contas bancárias ou regras de bloqueio de caixa.
-- Nenhuma migration — o problema é 100% frontend (montagem incorreta do filtro).
+**Arquivo:** `src/pages/caixa/AcertoEntregador.tsx` — dialog "Editar Entrega" (linhas 1470–1560), linhas de `pagamentos_multiplos`.
+
+Hoje é só um `<Select>` de forma + input de valor. Precisa espelhar o fluxo de **Nova Venda / Pedidos** (`src/components/vendas/PaymentSection.tsx` e `PDVPayment.tsx`), que usam `CardOperatorSelectorModal`.
+
+**Correção — para cada linha de pagamento no dialog:**
+1. Detectar tipo pelo slug: `cartao_debito`, `cartao_credito`, `pix_maquininha`.
+2. Ao selecionar/confirmar uma dessas formas, abrir automaticamente `CardOperatorSelectorModal` (o mesmo componente já existente) passando `valor`, `tipoCartao`, `unidadeId`.
+3. Guardar no state da linha: `operadora_id`, `operadora_nome`, `taxa`, `prazo`, `conta_bancaria_id`, `valor_liquido` — além dos campos já existentes.
+4. Exibir badge "Operadora: X · D+Y · Recebe em: Conta Z" abaixo da linha, com botão "Trocar" que reabre o modal.
+5. Bloquear salvar enquanto uma linha de cartão/PIX-maquininha estiver sem operadora selecionada (mesma UX do PaymentSection).
+6. No `handleSalvarEdicao` (perto da linha 501) enviar os campos de operadora/conta para as tabelas de pagamento (`pagamentos_cartao` quando houver operadora; senão só `pedidos.forma_pagamento` como hoje). Reaproveitar o helper de gravação já usado em Nova Venda para não duplicar regra.
+
+Formas à vista puras (dinheiro, PIX) continuam com o input simples atual — sem modal.
+
+---
+
+## Fora de escopo
+
+- Card "Total em Caixa", DRE, Fluxo de Caixa, Conferência, Contas Bancárias.
+- Alterações em RelatorioVendas, PedidosKanban, Nova Venda.
+- Qualquer migration — todas as tabelas envolvidas (`operadoras_cartao`, `pagamentos_cartao`, `contas_bancarias`) já existem.
+
+## Validação
+
+- Aba Pagamento: forma custom aparece como "🎫 Vale Ultragaz", não como slug.
+- Aba Produtos: total P13 = soma de itens de pedidos **não cancelados** do dia — deve bater com Relatório de Vendas para a mesma unidade/data.
+- Entregas Detalhadas → Editar → escolher "Cartão Crédito": modal de operadora abre; após confirmar, a linha mostra operadora + conta; salvar cria registro em `pagamentos_cartao`.
