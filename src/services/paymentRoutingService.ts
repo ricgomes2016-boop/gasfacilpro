@@ -376,32 +376,40 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
 
       case "fiado": {
         const vencimento = pag.data_vencimento_fiado || format(addDays(new Date(), 30), "yyyy-MM-dd");
-        promises.push(insertContasReceber({
-          cliente: clienteNome || "Cliente não identificado",
-          descricao: `Venda a prazo (Fiado) - Pedido #${pedidoRef}`,
-          valor: pag.valor,
-          vencimento,
-          status: "pendente",
-          forma_pagamento: "fiado",
-          pedido_id: pedidoId,
-          unidade_id: unidadeId || null,
-          cliente_id: clienteId || null,
-        }));
+        promises.push((async () => {
+          const contaDestino = await resolverContaDestino({ unidadeId, forma: "fiado", contaExplicita: pag.conta_bancaria_id });
+          await insertContasReceber({
+            cliente: clienteNome || "Cliente não identificado",
+            descricao: `Venda a prazo (Fiado) - Pedido #${pedidoRef}`,
+            valor: pag.valor,
+            vencimento,
+            status: "pendente",
+            forma_pagamento: "fiado",
+            pedido_id: pedidoId,
+            unidade_id: unidadeId || null,
+            cliente_id: clienteId || null,
+            conta_bancaria_destino_id: contaDestino,
+          });
+        })());
         break;
       }
 
       case "boleto": {
-        promises.push(insertContasReceber({
-          cliente: clienteNome || "Cliente não identificado",
-          descricao: `Boleto - Venda #${pedidoRef}`,
-          valor: pag.valor,
-          vencimento: format(addDays(new Date(), 30), "yyyy-MM-dd"),
-          status: "pendente",
-          forma_pagamento: "boleto",
-          pedido_id: pedidoId,
-          unidade_id: unidadeId || null,
-          cliente_id: clienteId || null,
-        }));
+        promises.push((async () => {
+          const contaDestino = await resolverContaDestino({ unidadeId, forma: "boleto", contaExplicita: pag.conta_bancaria_id });
+          await insertContasReceber({
+            cliente: clienteNome || "Cliente não identificado",
+            descricao: `Boleto - Venda #${pedidoRef}`,
+            valor: pag.valor,
+            vencimento: format(addDays(new Date(), 30), "yyyy-MM-dd"),
+            status: "pendente",
+            forma_pagamento: "boleto",
+            pedido_id: pedidoId,
+            unidade_id: unidadeId || null,
+            cliente_id: clienteId || null,
+            conta_bancaria_destino_id: contaDestino,
+          });
+        })());
         break;
       }
 
