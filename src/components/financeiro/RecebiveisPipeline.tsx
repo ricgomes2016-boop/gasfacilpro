@@ -175,6 +175,7 @@ export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {
         conciliacao_id: conf?.id || null,
         conciliacao_valor_recebido: conf?.valor_liquido_recebido || null,
         conciliacao_data_deposito: conf?.data_deposito_real || null,
+        conta_bancaria_destino_id: d.conta_bancaria_destino_id || null,
       };
     });
 
