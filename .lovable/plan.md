@@ -1,43 +1,39 @@
-## Objetivo
+## Problema
 
-Alterar o card **💰 Total em Caixa** na tela `Caixa do Dia` para mostrar o **saldo acumulado até a data selecionada** (em vez do saldo histórico total de todos os tempos).
+O card **💰 Total em Caixa** está zerado porque o filtro de data foi construído de forma inválida.
 
-Assim, ao navegar entre os dias:
-- Dia 01/07 → mostra só o que entrou/saiu no dia 01
-- Dia 02/07 → mostra dia 01 + dia 02 (menos saídas)
-- Dia 03/07 → mostra dia 01 + 02 + 03 (menos saídas)
-- E assim por diante, acumulando
+Em `src/pages/caixa/CaixaDia.tsx` linha 351:
 
-Como as vendas anteriores a 01/07 já foram zeradas, o card começa do zero e cresce dia a dia conforme as movimentações reais.
-
-## O que muda
-
-Arquivo: `src/pages/caixa/CaixaDia.tsx`
-
-Na função `fetchTesouraria` (linhas 349–356), a consulta que calcula `saldoTotalCaixa` passa a filtrar por `created_at <= fim do dia selecionado` (23:59:59 no fuso de Brasília), em vez de somar tudo sem filtro de data.
-
-```text
-Antes:  Σ(entradas) − Σ(saídas) de TODA a base
-Depois: Σ(entradas) − Σ(saídas) COM created_at ≤ fim do dia selecionado
+```ts
+const fimDoDiaSelecionado = `${dataSelecionada}T23:59:59-03:00`;
 ```
 
-Também adicionar `dataSelecionada` como dependência do `useEffect` que chama `fetchTesouraria` (hoje só depende de `unidadeAtual`), para que o card recalcule ao trocar a data.
+`dataSelecionada` é um objeto `Date`, não uma string. A interpolação gera algo como `Mon Jul 06 2026 00:00:00 GMT-0300 (...)T23:59:59-03:00`, que **não é um ISO válido**. O PostgREST então:
+- ou rejeita silenciosamente (query volta vazia → soma = 0)
+- ou compara string por string e ignora tudo
 
-Regras mantidas sem alteração:
-- Continua ignorando a categoria `Vale Gás`
-- Continua filtrando pela unidade atual (`unidade_id = atual OR NULL`)
-- O card **Saldo do Dia** continua mostrando apenas as movimentações do dia selecionado
-- Contas bancárias, gráfico dos últimos 30 dias e movimentações bancárias de hoje não mudam
+Resultado: `saldoTotalCaixa` fica em 0 em qualquer dia selecionado.
 
-## Resultado esperado
+## Correção (mínima, focada, sem efeito colateral)
 
-- 01/07 selecionado → Total em Caixa = movimentações do dia 01/07
-- 02/07 selecionado → Total em Caixa = 01/07 + 02/07
-- Hoje selecionado → Total em Caixa = tudo acumulado desde 01/07 (que é o novo "zero")
-- Se selecionar uma data futura, mostra o acumulado até o fim daquele dia (na prática, igual ao total atual)
+Arquivo único: `src/pages/caixa/CaixaDia.tsx`, função `fetchTesouraria` (linhas 349–382).
 
-## Escopo fora deste plano
+1. Trocar a construção do limite superior por **`getBrasiliaEndOfDay(dataSelecionada)`** — helper já usado em `fetchData` (linha 191) que devolve ISO string correto no fuso de Brasília. Garante consistência entre o card "Saldo do Dia" e o "Total em Caixa".
 
-- Não altera nenhuma outra tela (Fluxo de Caixa, DRE, Contas Bancárias)
-- Não mexe em movimentações, sessões nem em regras de fechamento
-- Não muda o cálculo do card "Saldo do Dia" nem o "Valor Esperado" na conferência de fechamento
+2. Adicionar guarda: se o `.select()` retornar `error`, logar e **não zerar** o estado (hoje ele nem checa o erro; se o Supabase falhar, o card também vira 0 silenciosamente).
+
+3. Mesma proteção para as outras queries dentro de `fetchTesouraria` (contas bancárias, chart 30 dias, movimentações bancárias): logar erros em vez de engolir.
+
+4. Confirmar que o `useEffect` da linha 385 continua com `[unidadeAtual, dataSelecionada]` — já está correto, só documentar.
+
+## Validação depois do fix
+
+- Selecionar 01/07 → card mostra soma de entradas − saídas do dia 01/07 (mesmo valor que "Saldo do Dia" quando só existir movimentação nesse dia).
+- Selecionar hoje → card mostra acumulado desde 01/07 até 23:59:59 de hoje.
+- Selecionar data futura → mostra o acumulado atual (nada muda depois de hoje).
+- Console sem erros vermelhos vindos de `movimentacoes_caixa`.
+
+## Fora do escopo
+
+- Nenhuma alteração em `fetchData`, "Saldo do Dia", conferência de fechamento, DRE, Fluxo de Caixa, contas bancárias ou regras de bloqueio de caixa.
+- Nenhuma migration — o problema é 100% frontend (montagem incorreta do filtro).

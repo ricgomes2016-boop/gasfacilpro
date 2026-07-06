@@ -348,27 +348,31 @@ export default function CaixaDia() {
   // === Tesouraria: saldo acumulado total + contas bancárias ===
   const fetchTesouraria = async () => {
     // Saldo acumulado até o fim do dia selecionado (Brasília -03:00)
-    const fimDoDiaSelecionado = `${dataSelecionada}T23:59:59-03:00`;
+    const fimDoDiaSelecionado = getBrasiliaEndOfDay(dataSelecionada);
     let qTotal = supabase
       .from("movimentacoes_caixa")
       .select("tipo, valor")
       .neq("categoria", "Vale Gás")
       .lte("created_at", fimDoDiaSelecionado);
     if (unidadeAtual?.id) qTotal = qTotal.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
-    const { data: allMovs } = await qTotal;
-    if (allMovs) {
+    const { data: allMovs, error: errTotal } = await qTotal;
+    if (errTotal) {
+      console.error("[CaixaDia] Erro ao calcular Total em Caixa:", errTotal);
+    } else if (allMovs) {
       const total = allMovs.reduce((acc: number, m: any) => acc + (m.tipo === "entrada" ? Number(m.valor) : -Number(m.valor)), 0);
       setSaldoTotalCaixa(total);
     }
     let qContas = supabase.from("contas_bancarias").select("id, nome, banco, saldo_atual").eq("ativo", true);
     if (unidadeAtual?.id) qContas = qContas.eq("unidade_id", unidadeAtual.id);
-    const { data: contasData } = await qContas;
-    setContas((contasData as ContaBancaria[]) || []);
+    const { data: contasData, error: errContas } = await qContas;
+    if (errContas) console.error("[CaixaDia] Erro ao carregar contas bancárias:", errContas);
+    else setContas((contasData as ContaBancaria[]) || []);
     const desde = subDays(new Date(), 30).toISOString();
     let qChart = supabase.from("movimentacoes_caixa").select("*").gte("created_at", desde).neq("categoria", "Vale Gás").order("created_at", { ascending: false });
     if (unidadeAtual?.id) qChart = qChart.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
-    const { data: cData } = await qChart;
-    setChartMovs((cData as Mov[]) || []);
+    const { data: cData, error: errChart } = await qChart;
+    if (errChart) console.error("[CaixaDia] Erro ao carregar gráfico 30d:", errChart);
+    else setChartMovs((cData as Mov[]) || []);
 
     // Movimentações bancárias de hoje (para mostrar status "Conectada" + extrato resumido)
     const hojeISO = format(new Date(), "yyyy-MM-dd");
@@ -377,8 +381,9 @@ export default function CaixaDia() {
       .eq("data", hojeISO)
       .order("created_at", { ascending: false });
     if (unidadeAtual?.id) qMovBanc = qMovBanc.eq("unidade_id", unidadeAtual.id);
-    const { data: mbData } = await qMovBanc;
-    setMovsBancariasHoje((mbData as any) || []);
+    const { data: mbData, error: errMB } = await qMovBanc;
+    if (errMB) console.error("[CaixaDia] Erro ao carregar movimentações bancárias:", errMB);
+    else setMovsBancariasHoje((mbData as any) || []);
   };
 
 
