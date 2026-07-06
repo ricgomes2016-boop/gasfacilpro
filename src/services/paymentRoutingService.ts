@@ -577,3 +577,38 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
     user_id: userId || "",
   }).then(r => { if (r.error) console.error("Erro notificação:", r.error); });
 }
+
+/**
+ * Remove todas as movimentações financeiras vinculadas a um pedido e recria
+ * a partir da lista de pagamentos fornecida. Útil quando o usuário edita a
+ * forma de pagamento de um pedido já entregue/pago.
+ *
+ * Apaga:
+ *  - movimentacoes_caixa (pedido_id = pedidoId)
+ *  - movimentacoes_bancarias (referencia_id = pedidoId AND referencia_tipo = 'pedido')
+ *  - contas_receber (pedido_id = pedidoId AND status != 'recebido')
+ *  - cheques (pedido_id = pedidoId AND status = 'pendente')
+ * E então chama `rotearPagamentosVenda`.
+ */
+export async function rerotearPagamentosPedido(
+  params: RotearPagamentosParams
+): Promise<void> {
+  const { pedidoId } = params;
+
+  await Promise.all([
+    supabase.from("movimentacoes_caixa").delete().eq("pedido_id", pedidoId),
+    supabase
+      .from("movimentacoes_bancarias")
+      .delete()
+      .eq("referencia_id", pedidoId)
+      .eq("referencia_tipo", "pedido"),
+    supabase
+      .from("contas_receber")
+      .delete()
+      .eq("pedido_id", pedidoId)
+      .neq("status", "recebido"),
+    supabase.from("cheques").delete().eq("pedido_id", pedidoId).eq("status", "pendente"),
+  ]);
+
+  await rotearPagamentosVenda(params);
+}
