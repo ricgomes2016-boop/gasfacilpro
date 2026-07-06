@@ -122,23 +122,56 @@ function formatarItensComQtd(pedido: PedidoFormatado): string {
   return pedido.produtos || "";
 }
 
+const PEDIDOS_FILTROS_STORAGE_KEY = "pedidos:filtros:v1";
+
+type PedidosFiltrosPersistidos = {
+  dataInicio?: string;
+  dataFim?: string;
+  filtroStatus?: string;
+  filtroEntregador?: string;
+  filtroOrigem?: string;
+  busca?: string;
+};
+
+function lerFiltrosPersistidos(): PedidosFiltrosPersistidos {
+  try {
+    const raw = sessionStorage.getItem(PEDIDOS_FILTROS_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as PedidosFiltrosPersistidos) : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function Pedidos() {
   const navigate = useNavigate();
   const hoje = (() => {const d = getBrasiliaDate();return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;})();
   const formaLabel = useFormaPagamentoLabel();
-  const [dataInicio, setDataInicio] = useState(hoje);
-  const [dataFim, setDataFim] = useState(hoje);
+  const filtrosPersistidosIniciais = (() => lerFiltrosPersistidos())();
+  const [dataInicio, setDataInicio] = useState(filtrosPersistidosIniciais.dataInicio ?? hoje);
+  const [dataFim, setDataFim] = useState(filtrosPersistidosIniciais.dataFim ?? hoje);
   const { pedidos, isLoading, atualizarStatus, atribuirEntregador, excluirPedido, atualizarStatusLote, atribuirEntregadorLote, marcarPortaria, marcarPortariaLote, isUpdating, isDeleting } = usePedidos({ dataInicio, dataFim });
   const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoFormatado | null>(null);
   const [dialogAberto, setDialogAberto] = useState(false);
   const [viewDialogAberto, setViewDialogAberto] = useState(false);
   const [pedidoView, setPedidoView] = useState<PedidoFormatado | null>(null);
-  const [filtroStatus, setFiltroStatus] = useState<string>("todos");
-  const [filtroEntregador, setFiltroEntregador] = useState<string>("todos");
-  const [filtroOrigem, setFiltroOrigem] = useState<string>("todos");
+  const [filtroStatus, setFiltroStatus] = useState<string>(filtrosPersistidosIniciais.filtroStatus ?? "todos");
+  const [filtroEntregador, setFiltroEntregador] = useState<string>(filtrosPersistidosIniciais.filtroEntregador ?? "todos");
+  const [filtroOrigem, setFiltroOrigem] = useState<string>(filtrosPersistidosIniciais.filtroOrigem ?? "todos");
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
-  const [busca, setBusca] = useState("");
+  const [busca, setBusca] = useState(filtrosPersistidosIniciais.busca ?? "");
   const [paginaAtual, setPaginaAtual] = useState(1);
+
+  // Persistir filtros na sessão para preservar ao navegar (ex.: editar pedido e voltar)
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        PEDIDOS_FILTROS_STORAGE_KEY,
+        JSON.stringify({ dataInicio, dataFim, filtroStatus, filtroEntregador, filtroOrigem, busca }),
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [dataInicio, dataFim, filtroStatus, filtroEntregador, filtroOrigem, busca]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { hasAnyRole } = useAuth();
