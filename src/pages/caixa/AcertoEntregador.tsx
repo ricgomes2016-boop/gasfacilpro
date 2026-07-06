@@ -1496,16 +1496,31 @@ export default function AcertoEntregador() {
                 <Label className="text-sm font-medium flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-primary" /> Formas de Pagamento
                 </Label>
-                {editingEntrega.pagamentos_multiplos.map((pg, idx) => (
-                  <div key={idx} className="grid grid-cols-[1fr_100px_32px] gap-2 items-end">
+                {editingEntrega.pagamentos_multiplos.map((pg, idx) => {
+                  const tipoCartao = cardTipoDaForma(pg.forma);
+                  const precisaOperadora = !!tipoCartao;
+                  const operadoraFaltando = precisaOperadora && !pg.operadora_id;
+                  return (
+                  <div key={idx} className="space-y-1">
+                  <div className="grid grid-cols-[1fr_100px_32px] gap-2 items-end">
                     <div>
                       <Label className="text-[10px] text-muted-foreground">Forma</Label>
                       <Select
                         value={pg.forma}
                         onValueChange={(v) => {
                           const novos = [...editingEntrega.pagamentos_multiplos];
-                          novos[idx] = { ...novos[idx], forma: v };
+                          const mudouTipoCartao = cardTipoDaForma(v) !== cardTipoDaForma(novos[idx].forma);
+                          novos[idx] = {
+                            ...novos[idx],
+                            forma: v,
+                            // Se mudou para outro tipo, limpa operadora antiga
+                            ...(mudouTipoCartao ? { operadora_id: undefined, operadora_nome: undefined, conta_bancaria_id: undefined, taxa: undefined, prazo: undefined } : {}),
+                          };
                           setEditingEntrega({ ...editingEntrega, pagamentos_multiplos: novos });
+                          // Se virou cartão/PIX maq. e ainda sem operadora, abre modal
+                          if (cardTipoDaForma(v) && !novos[idx].operadora_id) {
+                            setCardModalIdx(idx);
+                          }
                         }}
                       >
                         <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
@@ -1544,7 +1559,32 @@ export default function AcertoEntregador() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                ))}
+                  {precisaOperadora && (
+                    pg.operadora_id ? (
+                      <div className="flex items-center justify-between text-[11px] rounded border border-primary/20 bg-primary/5 px-2 py-1">
+                        <span className="truncate">
+                          <span className="font-medium">{pg.operadora_nome}</span>
+                          {typeof pg.taxa === "number" && <> · Taxa {pg.taxa.toFixed(2)}%</>}
+                          {typeof pg.prazo === "number" && <> · D+{pg.prazo}</>}
+                        </span>
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={() => setCardModalIdx(idx)}>
+                          Trocar
+                        </Button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setCardModalIdx(idx)}
+                        className="w-full text-left text-[11px] rounded border border-destructive/40 bg-destructive/5 text-destructive px-2 py-1 flex items-center justify-between hover:bg-destructive/10"
+                      >
+                        <span className="flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Selecione a operadora</span>
+                        <span className="underline">Escolher</span>
+                      </button>
+                    )
+                  )}
+                  </div>
+                  );
+                })}
                 <Button
                   variant="outline"
                   size="sm"
