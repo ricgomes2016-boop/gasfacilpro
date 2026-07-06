@@ -285,16 +285,19 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
       }
 
       case "cheque": {
-        promises.push(insertCaixa({
-          tipo: "entrada",
-          descricao: `Venda #${pedidoRef} - Cheque #${pag.cheque_numero || "s/n"}`,
-          valor: pag.valor,
-          categoria: "Cheque",
-          status: "aprovada",
-          pedido_id: pedidoId,
-          unidade_id: unidadeId || null,
-          entregador_id: entregadorId || null,
-        }));
+        promises.push((async () => {
+          if (await jaTemMovCaixa("Cheque")) return;
+          await insertCaixa({
+            tipo: "entrada",
+            descricao: `Venda #${pedidoRef} - Cheque #${pag.cheque_numero || "s/n"}`,
+            valor: pag.valor,
+            categoria: "Cheque",
+            status: "aprovada",
+            pedido_id: pedidoId,
+            unidade_id: unidadeId || null,
+            entregador_id: entregadorId || null,
+          });
+        })());
         if (userId && pag.cheque_numero && pag.cheque_banco) {
           promises.push(insertCheque({
             numero_cheque: pag.cheque_numero,
