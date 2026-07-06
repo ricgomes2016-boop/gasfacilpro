@@ -404,6 +404,7 @@ export default function CaixaDia() {
       days[d] = { entradas: 0, saidas: 0 };
     }
     chartMovs.forEach(m => {
+      if (/^vale(\s|$)/i.test(String(m.categoria || "").trim())) return; // ignora vouchers
       const d = format(new Date(m.created_at), "dd/MM");
       if (days[d]) {
         if (m.tipo === "entrada") days[d].entradas += Number(m.valor);
