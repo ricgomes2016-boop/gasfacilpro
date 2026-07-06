@@ -1,107 +1,109 @@
 ## Objetivo
 
-Corrigir a aba **Movimentações** do Caixa do Dia — tabela "Movimentações do Dia" e cards **Entradas / Saídas / Saldo do Dia** — para que toda movimentação de dinheiro apareça uma única vez e o total bata com a realidade.
+Garantir que TODA venda, recebimento e acerto caia **exatamente na conta bancária que o usuário definiu por forma de pagamento** — Cartão/PIX Maquininha → PagBank, PIX chave CNPJ → Itaú, Boleto/Asaas → conta Asaas, Dinheiro → Caixa Forte Gás — usando uma única fonte de verdade: `config_destino_pagamento` (por unidade + forma) + `operadoras_cartao.conta_bancaria_id` (por maquininha).
 
 ---
 
-## Diagnóstico (dados reais checados na base)
+## Diagnóstico — por que os saldos estão errados hoje
 
-Checagem no banco na unidade atual (Central Gás), dia 06/07/2026:
+Auditoria dos 4 pontos que gravam dinheiro em conta bancária:
 
-- **15** movimentações de caixa deveriam aparecer (13 "Venda Dinheiro" + 2 "Vale Ultragaz/Central"), somando **R$ 2.206** de entradas em dinheiro.
-- Existe **duplicidade real**: o pedido `290baa1f-…` gerou 2 registros em `movimentacoes_caixa`. Vários "Venda #187", "Venda #116", "Venda #113"… aparecem 2× no mesmo dia com o mesmo `pedido_id` e mesmo valor. Isso infla o total e polui a tabela.
-- Existem `movimentacoes_caixa` de venda em dinheiro sem `pedido` correspondente na tabela `pedidos` do dia — sinal de reprocessamento (`rotearPagamentosVenda` sendo chamado mais de uma vez para o mesmo pedido: PDV + finalização + acerto).
+### 1. `src/services/paymentRoutingService.ts` (roteia venda nova)
+- **PIX** chama `getContaPrincipal(unidadeId)` que faz `select id from contas_bancarias where unidade_id = X and ativo limit 1`. Sempre pega a **primeira ativa da unidade**, ignorando a preferência do usuário → PIX cai em qualquer conta, normalmente na Forte Gás em vez do Itaú.
+- **Cartão débito/crédito/PIX maquininha** só olha `operadora.conta_bancaria_id`. Se a operadora não estiver com conta vinculada (caso comum: cadastrada antes da PagBank), o valor vira `contas_receber` sem destino → ao liquidar cai na "primeira conta" (idem PIX). Nunca chega na PagBank.
+- **Dinheiro** só grava em `movimentacoes_caixa` — correto (é a "Forte Gás Caixa"). Sem mudança.
+- **Boleto / Fiado / custom_aprazo** grava `contas_receber` sem `conta_bancaria_destino_id`. Ao liquidar, o pipeline não sabe a conta → cai na primeira.
 
-Além disso, três bugs no `CaixaDia.tsx` fazem o painel divergir do que existe no banco:
+### 2. `src/pages/financeiro/ContasReceber.tsx`
+- Tem função local `getContaPrincipal()` (linha 418) idêntica ao serviço: pega a primeira ativa. Usada nos 3 fluxos de baixa (individual, avulsa, em lote — linhas 370, 384, 447, 467). PIX baixado aqui vira crédito em conta errada.
+- Nunca respeita `contas_receber.conta_bancaria_destino_id` que já é gravado por cartão.
 
-1. **Filtro `.neq("categoria","Vale Gás")`** (linha 197). No PostgREST, `neq` **também exclui linhas com `categoria = NULL`**. Toda sangria/entrada manual salva sem categoria some da tabela — e some do card "Saldo do Dia".
-2. **Coluna "Total" da tabela** (`movimentacoesExtrato`, linha 509) começa em 0, ignorando `sessao.valor_abertura`. O saldo acumulado exibido nunca fecha com o valor real do caixa.
-3. As descrições "Vale Ultragaz / Vale Central gas" **contam como entrada de dinheiro** nos cards, misturando voucher com caixa físico. O filtro atual só pega o literal "Vale Gás", que ninguém mais usa.
+### 3. `src/components/financeiro/RecebiveisPipeline.tsx` (baixa da conciliação de cartão)
+- `handleLiquidar` (linha 277) também faz `.limit(1).maybeSingle()` → ignora `row.operadora_id → operadora.conta_bancaria_id` e ignora `row.conta_bancaria_destino_id` gravado na criação. Cartão que era pra cair na PagBank cai na Forte Gás.
+
+### 4. Ausência de fallback configurável
+- Existe a tabela `config_destino_pagamento(unidade_id, forma_pagamento, conta_bancaria_id, ativo)` e a UI `ConfigDestinoPagamento.tsx` já salva PIX/Boleto/Cheque/Transferência/Dinheiro. **Ninguém consulta essa tabela em runtime.** É configuração morta.
 
 ---
 
-## Correções
+## Correções (uma fonte de verdade)
 
-### 1. `src/services/paymentRoutingService.ts` — parar de duplicar `movimentacoes_caixa`
+### A. Novo helper `resolverContaDestino` em `paymentRoutingService.ts`
 
-No `rotearPagamentosVenda`, antes de inserir linha de **dinheiro** ou **cheque** referente a um `pedidoId`, verificar se já existe:
+Precedência única, usada em TODOS os pontos de baixa/roteamento:
 
+```
+1. Explícito na chamada        (pag.conta_bancaria_id)          — usuário escolheu no ato
+2. Terminal cartão              (terminais_cartao.conta_bancaria_id)
+3. Operadora                    (operadoras_cartao.conta_bancaria_id)
+4. Config por forma/unidade     (config_destino_pagamento onde forma_pagamento = X)
+5. Conta Asaas ativa            (se forma = boleto/pix_asaas — via provedor)
+6. Primeira ativa da unidade    (fallback atual — só se nada acima resolver)
+```
+
+Assinatura:
 ```ts
-const jaExiste = await supabase
-  .from("movimentacoes_caixa")
-  .select("id")
-  .eq("pedido_id", pedidoId)
-  .eq("categoria", "Venda Dinheiro")   // ou "Venda Cheque"
-  .maybeSingle();
-if (jaExiste.data) continue;           // idempotente — não insere de novo
+resolverContaDestino(params: {
+  unidadeId: string | null;
+  forma: string;                // "pix", "cartao_credito", "boleto", "custom_avista_X"...
+  contaExplicita?: string | null;
+  terminalId?: string | null;
+  operadoraContaId?: string | null;
+}): Promise<string | null>
 ```
 
-Aplicar a mesma proteção para PIX (`movimentacoes_bancarias` pela mesma chave `pedido_id + categoria='venda'`) para evitar duplicar PIX se a finalização for reexecutada.
+### B. `paymentRoutingService.ts` — usar o helper em todos os cases
 
-Escopo: apenas `rotearPagamentosVenda` — sem alterar contas a receber nem operadoras.
+- **`case "pix"`**: trocar `getContaPrincipal(unidadeId)` por `resolverContaDestino({unidadeId, forma:"pix"})`. Assim, se o usuário configurou "PIX → Itaú", o PIX de venda entra no Itaú, não na Forte Gás.
+- **`case cartao_debito/credito/pix_maquininha`**: já resolve por operadora — passar o resultado por `resolverContaDestino` para respeitar override manual da linha (`pag.conta_bancaria_id`) e cair no config da forma se a operadora não tiver conta.
+- **`case boleto`**: gravar `conta_bancaria_destino_id = resolverContaDestino({forma:"boleto"})` já na criação de `contas_receber`. Se a integração Asaas estiver ligada, esse resolver retorna a conta marcada como "provedor Asaas".
+- **`default` (custom_avista/custom_aprazo)**: hoje só olha `formas_pagamento_custom.conta_bancaria_id`. Adicionar fallback via `resolverContaDestino` com `forma = slug`, e gravar `conta_bancaria_destino_id` no `contas_receber` do custom_aprazo.
 
-### 2. Limpar duplicatas já gravadas (uma vez só, via SQL)
+### C. `ContasReceber.tsx` — respeitar o destino ao baixar
 
-Migration que remove `movimentacoes_caixa` duplicadas mantendo o registro mais antigo por (`pedido_id`, `categoria`) quando `pedido_id` não é nulo. Mesma coisa para `movimentacoes_bancarias` categoria `venda`. Sem tocar em lançamentos manuais (pedido_id null).
+Substituir todas as chamadas locais `getContaPrincipal()` pelo helper novo, passando `forma: fp.forma` (ou a forma da baixa em lote) e `contaExplicita: receberConta.conta_bancaria_destino_id`. Se o boleto foi criado apontando pra Asaas/Itaú, a baixa vai pro Itaú — sem exceção.
 
-Depois adicionar índice único parcial:
+Também: no fluxo "Liquidar / Receber" individual, mostrar um `<Select>` opcional "Creditar em" pré-preenchido com a conta resolvida, para o operador poder trocar em casos pontuais (troco em outra conta).
 
-```
-CREATE UNIQUE INDEX movimentacoes_caixa_pedido_categoria_uniq
-  ON movimentacoes_caixa(pedido_id, categoria)
-  WHERE pedido_id IS NOT NULL;
-```
+### D. `RecebiveisPipeline.tsx` — cartão sempre para a conta da maquininha
 
-para o banco reforçar a idempotência da correção 1.
+Em `handleLiquidar`, ler `row.conta_bancaria_destino_id` (já gravado pelo `insertContasReceber` do fluxo cartão), e, se null, `resolverContaDestino({unidadeId, forma: row.forma_pagamento, operadoraContaId: operadora.conta_bancaria_id})`. Nunca mais cair no `limit(1)`.
 
-### 3. `src/pages/caixa/CaixaDia.tsx` — filtro que preserva NULL
+### E. `AcertoEntregador.tsx` — "Acertar todos"
 
-Trocar em `fetchData` (linha 197) e em `fetchTesouraria` (linhas 361 e 377):
+Hoje o acerto já monta `PagamentoRoteamento[]` com `operadora_id` e `conta_bancaria_id` (via marker `[op:...|cta:...]`). Como `rotearPagamentosVenda` passará a usar o helper novo, o acerto em massa **automaticamente** creditará na conta certa (PagBank/Itaú/Asaas) — sem mudança no acerto em si.
 
-```ts
-.neq("categoria", "Vale Gás")
-```
+Adicionar apenas: badge por linha "→ Recebe em: {conta}" resolvido em tempo real via `resolverContaDestino`, para o operador conferir antes de clicar "Acertar todos". Bloqueia salvar se alguma linha ficar sem conta destino resolvida (a menos que seja dinheiro/cheque/fiado, que não vão para banco).
 
-por:
+### F. UI de `ConfigDestinoPagamento.tsx` (Contas Bancárias)
 
-```ts
-.or("categoria.is.null,categoria.not.in.(Vale Gás)")
-```
+Já existe. Ajustes mínimos:
+- Sinalizar com badge "Integração Asaas" / "PagBank" quando a conta selecionada tem provedor (usa `getBankProvider(conta.banco)` que já é importado).
+- Bloco de teste "Simular venda R$ 100": mostra, para cada forma ativa, em qual conta o valor cairá segundo o helper. Serve de "diagnóstico" para o gestor conferir que Boleto→Asaas, PIX→Itaú, Dinheiro→Caixa, Cartão→PagBank.
 
-Assim entrada/saída manual sem categoria volta a aparecer na tabela e a compor o "Saldo do Dia" e o "Total em Caixa".
+### G. Migration única (idempotente)
 
-### 4. `CaixaDia.tsx` — coluna "Total" com saldo real
+- `contas_receber.conta_bancaria_destino_id`: já existe. Nenhuma coluna nova.
+- Backfill leve: preencher `conta_bancaria_destino_id` em contas_receber **ainda pendentes** usando `resolverContaDestino` no servidor via função SQL simples (opcional; se preferir, só corrige daqui pra frente e deixa histórico como está).
+- Sem alterar RLS, sem alterar tabelas de contas ou operadoras.
 
-Em `movimentacoesExtrato` (linha 509), iniciar o acumulador com o saldo de abertura da sessão do dia:
+---
 
-```ts
-let total = Number(sessao?.valor_abertura || 0);
-```
+## Fora de escopo
 
-e adicionar `sessao` às dependências do `useMemo`. O footer "TOTAL GERAL" continua exibindo `totalEntradas / totalSaidas / saldo` (saldo puro do dia, sem abertura) — só a coluna running muda.
-
-### 5. `CaixaDia.tsx` — separar vouchers de vale-gás dos cards de caixa
-
-Nos cálculos de `totalEntradas`, `totalSaidas`, `saldo` e no gráfico de tesouraria, excluir também categorias que começam com `Vale ` (ex.: "Vale Ultragaz", "Vale Central gas") do somatório de **caixa físico**. Elas continuam listadas na tabela (para rastreio) mas com badge "voucher" e sem entrar no total do dia. Regra:
-
-```ts
-const isVoucherVale = (c?: string | null) =>
-  !!c && /^vale\s/i.test(c);
-```
-
-Usada para excluir em `totalEntradas`/`totalSaidas`, em `saldoTotalCaixa` (fetchTesouraria) e no `chartMovs`.
+- Recalcular saldos históricos das contas bancárias. Apenas garante que **daqui pra frente** cada crédito cai na conta certa.
+- Conciliação bancária automática (OFX), Gestão de Cartões, DRE, Fluxo de Caixa — só se beneficiam indiretamente porque as movimentações passarão a nascer certas.
+- Nova Venda / PDV / Kanban / vale-gás — o serviço centralizado já é chamado por eles, nenhum toque na UI de venda.
 
 ---
 
 ## Validação
 
-- Recarregar `caixa/dia` → tabela "Movimentações do Dia" mostra 1 linha por venda em dinheiro (sem duplicata).
-- Card **Saldo do Dia** = `valor_abertura + entradas_caixa − saídas_caixa` (sem vales, sem duplicatas).
-- Sangria manual sem categoria volta a aparecer na tabela.
-- Reprocessar a mesma venda (ex.: reabrir e finalizar de novo no PDV) não cria nova linha em `movimentacoes_caixa`.
-- Índice único no banco impede regressão silenciosa.
+Cenário real Central Gás, após a mudança, com config: PIX→Itaú, Boleto→Asaas, Cartão(op. PagBank)→PagBank, Dinheiro→Caixa Forte Gás.
 
-## Fora de escopo
-
-- Aba Produtos, Pagamentos, Tesouraria (só o filtro de categoria e o gráfico entram, para consistência) e Acerto Diário.
-- Nova Venda / Kanban / Contas a Receber / conciliação cartão.
+1. Registrar venda R$ 100 PIX → `movimentacoes_bancarias` no **Itaú** (não Forte Gás), saldo Itaú sobe R$ 100.
+2. Registrar venda R$ 200 cartão crédito PagBank → `contas_receber` com `conta_bancaria_destino_id = PagBank`. Ao liquidar em `RecebiveisPipeline`, saldo **PagBank** sobe R$ 200 − taxa.
+3. Registrar venda R$ 50 boleto → `contas_receber` com destino **Asaas**. Ao marcar como recebida, saldo Asaas sobe R$ 50.
+4. Registrar venda R$ 30 dinheiro → `movimentacoes_caixa` (Forte Gás), nada em banco.
+5. Acerto do entregador com 6 vendas mistas → clicar "Acertar todos" credita cada linha na conta que o badge mostrou; nenhum valor cai na Forte Gás por engano.
+6. Diagnóstico em Contas Bancárias → "Simular venda R$ 100" mostra as 4 formas → 4 contas distintas, cada uma na certa.
