@@ -366,8 +366,12 @@ export default function ContasReceber() {
           unidade_id: unidadeAtual?.id || null,
         });
       } else if (formaLower === "pix") {
-        // PIX → Conta Bancária
-        const contaId = await getContaPrincipal();
+        // PIX → conta definida em Config (ex.: Itaú); respeita destino gravado na conta
+        const contaId = await resolverContaDestino({
+          unidadeId: unidadeAtual?.id || null,
+          forma: "pix",
+          contaExplicita: receberConta.conta_bancaria_destino_id || null,
+        });
         if (contaId) {
           await criarMovimentacaoBancaria({
             contaBancariaId: contaId,
@@ -380,8 +384,12 @@ export default function ContasReceber() {
           });
         }
       } else {
-        // Cartão/outros → Creditar direto na conta bancária
-        const contaId = await getContaPrincipal();
+        // Cartão/outros → conta resolvida (destino gravado > config > primeira)
+        const contaId = await resolverContaDestino({
+          unidadeId: unidadeAtual?.id || null,
+          forma: fp.forma,
+          contaExplicita: receberConta.conta_bancaria_destino_id || null,
+        });
         if (contaId) {
           await criarMovimentacaoBancaria({
             contaBancariaId: contaId,
