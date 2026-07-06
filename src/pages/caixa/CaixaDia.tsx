@@ -382,7 +382,7 @@ export default function CaixaDia() {
   };
 
 
-  useEffect(() => { fetchTesouraria(); }, [unidadeAtual]);
+  useEffect(() => { fetchTesouraria(); }, [unidadeAtual, dataSelecionada]);
 
   const chartData = useMemo(() => {
     const daysBack = periodoChart === "7dias" ? 6 : 29;
