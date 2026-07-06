@@ -37,6 +37,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 
 interface Mov {
   id: string;
@@ -100,6 +101,7 @@ export default function CaixaDia() {
   const { unidadeAtual, unidades } = useUnidade();
   const { user, hasAnyRole } = useAuth();
   const isGestor = hasAnyRole(["admin", "gestor"]);
+  const formaLabel = useFormaPagamentoLabel();
   const [form, setForm] = useState({ tipo: "entrada", descricao: "", valor: "", categoria: "" });
   const [aberturaForm, setAberturaForm] = useState({ valor: "", obs: "" });
   const [fechamentoForm, setFechamentoForm] = useState({ valor: "", obs: "" });
@@ -195,7 +197,7 @@ export default function CaixaDia() {
     let qMov = supabase.from("movimentacoes_caixa").select("*").gte("created_at", inicio).lte("created_at", fim).neq("categoria", "Vale Gás").order("created_at", { ascending: false });
     if (unidadeAtual?.id) qMov = qMov.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
 
-    let qPed = supabase.from("pedidos").select("id, valor_total, forma_pagamento, status, created_at, entregador_id, canal_venda, responsavel_acerto, entregadores(nome)").gte("created_at", inicio).lte("created_at", fim);
+    let qPed = supabase.from("pedidos").select("id, valor_total, forma_pagamento, status, created_at, entregador_id, canal_venda, responsavel_acerto, entregadores(nome)").gte("created_at", inicio).lte("created_at", fim).not("status", "in", "(cancelado,rejeitado)");
     if (unidadeAtual?.id) qPed = qPed.eq("unidade_id", unidadeAtual.id);
 
     let qSes = supabase.from("caixa_sessoes").select("*").eq("data", dataStr).order("created_at", { ascending: false }).limit(1);
@@ -218,7 +220,9 @@ export default function CaixaDia() {
       
       // Normaliza nome da forma de pagamento para evitar duplicatas (ex: "Dinheiro" vs "dinheiro")
       const normalizarForma = (f: string): string => {
-        const lower = f.trim().toLowerCase().replace(/_/g, " ");
+        const raw = f.trim();
+        if (!raw) return raw;
+        const lower = raw.toLowerCase().replace(/_/g, " ");
         const map: Record<string, string> = {
           dinheiro: "Dinheiro", pix: "PIX",
           "cartão crédito": "Cartão Crédito", "cartao credito": "Cartão Crédito",
@@ -229,7 +233,9 @@ export default function CaixaDia() {
           "pix maquininha": "PIX Maquininha",
           boleto: "Boleto",
         };
-        return map[lower] || f.trim();
+        if (map[lower]) return map[lower];
+        // Formas customizadas / desconhecidas: resolve pelo helper (nome amigável)
+        return formaLabel(raw);
       };
 
       const pendingDetails: typeof acertoPendenteDetalhes = [];
