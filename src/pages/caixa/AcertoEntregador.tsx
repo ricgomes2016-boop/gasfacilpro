@@ -184,7 +184,13 @@ interface EditingEntrega {
 export default function AcertoEntregador() {
   const { unidadeAtual } = useUnidade();
   const { data: formasCustom = [] } = useFormasPagamentoCustom({ onlyActive: true });
-  const formaLabel = useFormaPagamentoLabel();
+  const formaLabelRaw = useFormaPagamentoLabel();
+  // Remove marker técnico [op:UUID|cta:UUID] antes de rotular
+  const formaLabel = useCallback((raw: string | null | undefined) => {
+    if (!raw) return formaLabelRaw(raw);
+    const cleaned = String(raw).replace(/\s*\[[^\]]+\]\s*/g, "").trim();
+    return formaLabelRaw(cleaned);
+  }, [formaLabelRaw]);
   const formasPagamento = useMemo(
     () => [
       ...FORMAS_PAGAMENTO_BUILTIN.map((f) => ({ value: f, label: f })),
