@@ -357,15 +357,16 @@ export default function CaixaDia() {
     const fimDoDiaSelecionado = getBrasiliaEndOfDay(dataSelecionada);
     let qTotal = supabase
       .from("movimentacoes_caixa")
-      .select("tipo, valor")
-      .neq("categoria", "Vale Gás")
+      .select("tipo, valor, categoria")
       .lte("created_at", fimDoDiaSelecionado);
     if (unidadeAtual?.id) qTotal = qTotal.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
     const { data: allMovs, error: errTotal } = await qTotal;
     if (errTotal) {
       console.error("[CaixaDia] Erro ao calcular Total em Caixa:", errTotal);
     } else if (allMovs) {
-      const total = allMovs.reduce((acc: number, m: any) => acc + (m.tipo === "entrada" ? Number(m.valor) : -Number(m.valor)), 0);
+      const total = allMovs
+        .filter((m: any) => !isVoucherOuValeGas(m.categoria))
+        .reduce((acc: number, m: any) => acc + (m.tipo === "entrada" ? Number(m.valor) : -Number(m.valor)), 0);
       setSaldoTotalCaixa(total);
     }
     let qContas = supabase.from("contas_bancarias").select("id, nome, banco, saldo_atual").eq("ativo", true);
