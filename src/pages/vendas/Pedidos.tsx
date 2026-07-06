@@ -1180,6 +1180,7 @@ export default function Pedidos() {
                       <TableHead className="w-[150px]">Entregador</TableHead>
                       <TableHead className="w-[140px]">Canal</TableHead>
                       <TableHead className="w-[96px] text-right">Valor</TableHead>
+                      <TableHead className="w-[140px]">Pagamento</TableHead>
                       <TableHead className="w-[120px]">Status</TableHead>
                       <TableHead className="w-12 text-right">Ações</TableHead>
                     </TableRow>
