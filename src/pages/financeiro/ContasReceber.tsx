@@ -74,6 +74,7 @@ interface ContaReceber {
   boleto_url?: string | null;
   pix_qrcode?: string | null;
   pix_copia_cola?: string | null;
+  conta_bancaria_destino_id?: string | null;
 }
 
 const FORMAS_PAGAMENTO_BUILTIN = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque", "Vale Gás"];
