@@ -18,7 +18,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, TrendingUp, TrendingDown, Plus, ShoppingCart, Package, CreditCard, CalendarIcon, DoorOpen, DoorClosed, FileDown, FileSpreadsheet, Users, AlertTriangle, Clock, Eye, Lock, Unlock, ShieldAlert, Landmark, ArrowRightLeft, Banknote, RefreshCw } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Plus, ShoppingCart, Package, CreditCard, CalendarIcon, DoorOpen, DoorClosed, FileDown, FileSpreadsheet, Users, AlertTriangle, Clock, Eye, Lock, Unlock, ShieldAlert, Landmark, ArrowRightLeft, Banknote, RefreshCw, Pencil, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -119,6 +120,47 @@ export default function CaixaDia() {
   const [sangriasPendentes, setSangriasPendentes] = useState(0);
   const [acertoPendenteDetalhes, setAcertoPendenteDetalhes] = useState<{ entregador: string; canal: string; pedidoId: string; valor: number; data: string }[]>([]);
   const [acertoPendenteDialogOpen, setAcertoPendenteDialogOpen] = useState(false);
+
+  // Editar / excluir movimentação
+  const [editMov, setEditMov] = useState<Mov | null>(null);
+  const [editForm, setEditForm] = useState({ tipo: "entrada", descricao: "", valor: "", categoria: "" });
+  const [deleteMovId, setDeleteMovId] = useState<string | null>(null);
+  const caixaBloqueado = !!(sessao && (sessao as any).bloqueado);
+
+  const openEditMov = (mov: Mov) => {
+    setEditMov(mov);
+    setEditForm({
+      tipo: mov.tipo,
+      descricao: mov.descricao || "",
+      valor: String(mov.valor ?? ""),
+      categoria: mov.categoria || "",
+    });
+  };
+
+  const handleUpdateMov = async () => {
+    if (!editMov) return;
+    const valor = parseFloat(editForm.valor);
+    if (!editForm.descricao || !valor || valor <= 0) { toast.error("Preencha descrição e valor"); return; }
+    const { error } = await supabase.from("movimentacoes_caixa").update({
+      tipo: editForm.tipo,
+      descricao: editForm.descricao,
+      valor,
+      categoria: editForm.categoria || null,
+    }).eq("id", editMov.id);
+    if (error) { toast.error("Erro ao atualizar movimentação"); console.error(error); return; }
+    toast.success("Movimentação atualizada");
+    setEditMov(null);
+    fetchData();
+  };
+
+  const handleDeleteMov = async () => {
+    if (!deleteMovId) return;
+    const { error } = await supabase.from("movimentacoes_caixa").delete().eq("id", deleteMovId);
+    if (error) { toast.error("Erro ao excluir movimentação"); console.error(error); return; }
+    toast.success("Movimentação excluída");
+    setDeleteMovId(null);
+    fetchData();
+  };
 
   const fetchData = async () => {
     setLoading(true);
