@@ -1615,6 +1615,23 @@ export default function Pedidos() {
         onOpenChange={setAgendamentoDialogAberto}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ["pedidos"] })}
       />
+
+      <EditarPagamentoPedidoDialog
+        open={editarPagamentoAberto}
+        onOpenChange={setEditarPagamentoAberto}
+        pedido={pedidoEditarPagamento ? {
+          id: pedidoEditarPagamento.id,
+          numero_sequencial: pedidoEditarPagamento.numero_sequencial,
+          cliente: pedidoEditarPagamento.cliente,
+          cliente_id: pedidoEditarPagamento.cliente_id,
+          valor: pedidoEditarPagamento.valor,
+          status: pedidoEditarPagamento.status,
+          forma_pagamento: pedidoEditarPagamento.forma_pagamento,
+          entregador_id: pedidoEditarPagamento.entregador_id,
+          itens: pedidoEditarPagamento.itens,
+        } : null}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["pedidos"] })}
+      />
     </MainLayout>);
 
 }
