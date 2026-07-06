@@ -18,7 +18,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, TrendingUp, TrendingDown, Plus, ShoppingCart, Package, CreditCard, CalendarIcon, DoorOpen, DoorClosed, FileDown, FileSpreadsheet, Users, AlertTriangle, Clock, Eye, Lock, Unlock, ShieldAlert, Landmark, ArrowRightLeft, Banknote, RefreshCw } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, Plus, ShoppingCart, Package, CreditCard, CalendarIcon, DoorOpen, DoorClosed, FileDown, FileSpreadsheet, Users, AlertTriangle, Clock, Eye, Lock, Unlock, ShieldAlert, Landmark, ArrowRightLeft, Banknote, RefreshCw, Pencil, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -119,6 +120,47 @@ export default function CaixaDia() {
   const [sangriasPendentes, setSangriasPendentes] = useState(0);
   const [acertoPendenteDetalhes, setAcertoPendenteDetalhes] = useState<{ entregador: string; canal: string; pedidoId: string; valor: number; data: string }[]>([]);
   const [acertoPendenteDialogOpen, setAcertoPendenteDialogOpen] = useState(false);
+
+  // Editar / excluir movimentação
+  const [editMov, setEditMov] = useState<Mov | null>(null);
+  const [editForm, setEditForm] = useState({ tipo: "entrada", descricao: "", valor: "", categoria: "" });
+  const [deleteMovId, setDeleteMovId] = useState<string | null>(null);
+  const caixaBloqueado = !!(sessao && (sessao as any).bloqueado);
+
+  const openEditMov = (mov: Mov) => {
+    setEditMov(mov);
+    setEditForm({
+      tipo: mov.tipo,
+      descricao: mov.descricao || "",
+      valor: String(mov.valor ?? ""),
+      categoria: mov.categoria || "",
+    });
+  };
+
+  const handleUpdateMov = async () => {
+    if (!editMov) return;
+    const valor = parseFloat(editForm.valor);
+    if (!editForm.descricao || !valor || valor <= 0) { toast.error("Preencha descrição e valor"); return; }
+    const { error } = await supabase.from("movimentacoes_caixa").update({
+      tipo: editForm.tipo,
+      descricao: editForm.descricao,
+      valor,
+      categoria: editForm.categoria || null,
+    }).eq("id", editMov.id);
+    if (error) { toast.error("Erro ao atualizar movimentação"); console.error(error); return; }
+    toast.success("Movimentação atualizada");
+    setEditMov(null);
+    fetchData();
+  };
+
+  const handleDeleteMov = async () => {
+    if (!deleteMovId) return;
+    const { error } = await supabase.from("movimentacoes_caixa").delete().eq("id", deleteMovId);
+    if (error) { toast.error("Erro ao excluir movimentação"); console.error(error); return; }
+    toast.success("Movimentação excluída");
+    setDeleteMovId(null);
+    fetchData();
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -816,6 +858,7 @@ export default function CaixaDia() {
                           <TableHead className="w-[130px] text-right">Entrada</TableHead>
                           <TableHead className="w-[130px] text-right">Saída</TableHead>
                           <TableHead className="w-[140px] text-right">Total</TableHead>
+                          <TableHead className="w-[90px] text-center">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody className="tabular-nums">
@@ -841,6 +884,30 @@ export default function CaixaDia() {
                             <TableCell className={cn("text-right font-semibold whitespace-nowrap", mov.total < 0 && "text-destructive")}>
                               R$ {mov.total.toFixed(2)}
                             </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  disabled={caixaBloqueado}
+                                  title={caixaBloqueado ? "Caixa bloqueado — reabra para editar" : "Editar"}
+                                  onClick={() => openEditMov(mov)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:text-destructive"
+                                  disabled={caixaBloqueado}
+                                  title={caixaBloqueado ? "Caixa bloqueado — reabra para excluir" : "Excluir"}
+                                  onClick={() => setDeleteMovId(mov.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -850,6 +917,7 @@ export default function CaixaDia() {
                           <TableCell className="text-right text-success whitespace-nowrap">R$ {totalEntradas.toFixed(2)}</TableCell>
                           <TableCell className="text-right text-destructive whitespace-nowrap">R$ {totalSaidas.toFixed(2)}</TableCell>
                           <TableCell className={cn("text-right whitespace-nowrap", saldo < 0 && "text-destructive")}>R$ {saldo.toFixed(2)}</TableCell>
+                          <TableCell />
                         </TableRow>
                       </TableFooter>
                     </Table>
@@ -1098,6 +1166,59 @@ export default function CaixaDia() {
           onOpenChange={setAcertoPendenteDialogOpen}
           detalhes={acertoPendenteDetalhes}
         />
+
+        {/* Editar movimentação */}
+        <Dialog open={!!editMov} onOpenChange={(o) => !o && setEditMov(null)}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Editar Movimentação</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Tipo</Label>
+                <Select value={editForm.tipo} onValueChange={(v) => setEditForm({ ...editForm, tipo: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="entrada">Entrada</SelectItem>
+                    <SelectItem value="saida">Saída</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Descrição</Label>
+                <Input value={editForm.descricao} onChange={(e) => setEditForm({ ...editForm, descricao: e.target.value })} />
+              </div>
+              <div>
+                <Label>Valor</Label>
+                <Input type="number" step="0.01" value={editForm.valor} onChange={(e) => setEditForm({ ...editForm, valor: e.target.value })} />
+              </div>
+              <div>
+                <Label>Categoria</Label>
+                <Input value={editForm.categoria} onChange={(e) => setEditForm({ ...editForm, categoria: e.target.value })} placeholder="Opcional" />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setEditMov(null)}>Cancelar</Button>
+                <Button onClick={handleUpdateMov}>Salvar</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirmar exclusão */}
+        <AlertDialog open={!!deleteMovId} onOpenChange={(o) => !o && setDeleteMovId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir movimentação?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. A movimentação será removida do caixa do dia.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteMov} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </MainLayout>
   );
