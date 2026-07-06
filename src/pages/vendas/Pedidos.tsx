@@ -58,6 +58,7 @@ import { getBrasiliaDate } from "@/lib/utils";
 import { format as fnsFormat } from "date-fns";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { getOrigemMeta, ORIGEM_PEDIDO_META, ORIGENS_PEDIDO, type OrigemPedido } from "@/lib/pedidos/origem";
+import { EditarPagamentoPedidoDialog } from "@/components/vendas/EditarPagamentoPedidoDialog";
 
 function OrigemBadge({ origem }: { origem?: string | null }) {
   const meta = getOrigemMeta(origem);
@@ -154,6 +155,8 @@ export default function Pedidos() {
   const [dialogAberto, setDialogAberto] = useState(false);
   const [viewDialogAberto, setViewDialogAberto] = useState(false);
   const [pedidoView, setPedidoView] = useState<PedidoFormatado | null>(null);
+  const [pedidoEditarPagamento, setPedidoEditarPagamento] = useState<PedidoFormatado | null>(null);
+  const [editarPagamentoAberto, setEditarPagamentoAberto] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState<string>(filtrosPersistidosIniciais.filtroStatus ?? "todos");
   const [filtroEntregador, setFiltroEntregador] = useState<string>(filtrosPersistidosIniciais.filtroEntregador ?? "todos");
   const [filtroOrigem, setFiltroOrigem] = useState<string>(filtrosPersistidosIniciais.filtroOrigem ?? "todos");
@@ -1177,6 +1180,7 @@ export default function Pedidos() {
                       <TableHead className="w-[150px]">Entregador</TableHead>
                       <TableHead className="w-[140px]">Canal</TableHead>
                       <TableHead className="w-[96px] text-right">Valor</TableHead>
+                      <TableHead className="w-[140px]">Pagamento</TableHead>
                       <TableHead className="w-[120px]">Status</TableHead>
                       <TableHead className="w-12 text-right">Ações</TableHead>
                     </TableRow>
@@ -1245,6 +1249,27 @@ export default function Pedidos() {
                           <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>}
                         </TableCell>
                         <TableCell className="font-medium text-sm text-right whitespace-nowrap">R$ {pedido.valor.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <button
+                            type="button"
+                            onClick={() => { setPedidoEditarPagamento(pedido); setEditarPagamentoAberto(true); }}
+                            className="inline-flex items-center gap-1 group outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                            title="Clique para editar forma de pagamento, operadora ou chave PIX"
+                          >
+                            {pedido.forma_pagamento ? (
+                              <Badge variant="outline" className="text-xs cursor-pointer group-hover:bg-accent gap-1">
+                                <CreditCard className="h-3 w-3" />
+                                <span className="truncate max-w-[110px]">{formaLabel(pedido.forma_pagamento)}</span>
+                                <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs cursor-pointer border-warning/50 text-warning bg-warning/10 hover:bg-warning/20 gap-1">
+                                <CreditCard className="h-3 w-3" />
+                                Definir
+                              </Badge>
+                            )}
+                          </button>
+                        </TableCell>
                         <TableCell>
                           <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
                         </TableCell>
@@ -1588,6 +1613,23 @@ export default function Pedidos() {
         pedido={pedidoAgendamento}
         open={agendamentoDialogAberto}
         onOpenChange={setAgendamentoDialogAberto}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["pedidos"] })}
+      />
+
+      <EditarPagamentoPedidoDialog
+        open={editarPagamentoAberto}
+        onOpenChange={setEditarPagamentoAberto}
+        pedido={pedidoEditarPagamento ? {
+          id: pedidoEditarPagamento.id,
+          numero_sequencial: pedidoEditarPagamento.numero_sequencial,
+          cliente: pedidoEditarPagamento.cliente,
+          cliente_id: pedidoEditarPagamento.cliente_id,
+          valor: pedidoEditarPagamento.valor,
+          status: pedidoEditarPagamento.status,
+          forma_pagamento: pedidoEditarPagamento.forma_pagamento,
+          entregador_id: pedidoEditarPagamento.entregador_id,
+          itens: pedidoEditarPagamento.itens,
+        } : null}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ["pedidos"] })}
       />
     </MainLayout>);
