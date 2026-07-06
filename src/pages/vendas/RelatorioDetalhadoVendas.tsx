@@ -224,8 +224,10 @@ export default function RelatorioDetalhadoVendas() {
     const qtd = filtradas.reduce((s, l) => s + l.qtd, 0);
     const totalVenda = filtradas.reduce((s, l) => s + l.totalVenda, 0);
     const totalCusto = filtradas.reduce((s, l) => s + l.totalCusto, 0);
-    const lucro = totalVenda - totalCusto;
-    return { qtd, totalVenda, totalCusto, lucro, vendaMedia: qtd ? totalVenda / qtd : 0, margem: totalVenda ? (lucro / totalVenda) * 100 : 0 };
+    const vendaSemCusto = filtradas.reduce((s, l) => s + l.vendaSemCusto, 0);
+    const baseMargem = totalVenda - vendaSemCusto;
+    const lucro = baseMargem > 0 ? baseMargem - totalCusto : 0;
+    return { qtd, totalVenda, totalCusto, lucro, vendaMedia: qtd ? totalVenda / qtd : 0, margem: baseMargem > 0 ? (lucro / baseMargem) * 100 : 0 };
   }, [filtradas]);
 
   const agregado = (campo: "entregador" | "produto" | "canal") => {
