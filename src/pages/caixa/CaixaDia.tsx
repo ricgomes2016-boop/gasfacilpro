@@ -194,7 +194,7 @@ export default function CaixaDia() {
     const dataStr = format(dataSelecionada, "yyyy-MM-dd");
 
     // Fetch movimentações, pedidos and sessão in parallel
-    let qMov = supabase.from("movimentacoes_caixa").select("*").gte("created_at", inicio).lte("created_at", fim).neq("categoria", "Vale Gás").order("created_at", { ascending: false });
+    let qMov = supabase.from("movimentacoes_caixa").select("*").gte("created_at", inicio).lte("created_at", fim).order("created_at", { ascending: false });
     if (unidadeAtual?.id) qMov = qMov.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
 
     let qPed = supabase.from("pedidos").select("id, valor_total, forma_pagamento, status, created_at, entregador_id, canal_venda, responsavel_acerto, entregadores(nome)").gte("created_at", inicio).lte("created_at", fim).not("status", "in", "(cancelado,rejeitado)");
