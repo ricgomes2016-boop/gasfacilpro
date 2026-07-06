@@ -157,6 +157,20 @@ interface PagamentoMultiplo {
   vale_gas_parceiro_nome?: string;
   vale_gas_numero?: number;
   vale_gas_codigo?: string;
+  operadora_id?: string;
+  operadora_nome?: string;
+  conta_bancaria_id?: string;
+  taxa?: number;
+  prazo?: number;
+}
+
+/** Retorna tipo de cartão se a forma exigir seleção de operadora, senão null. */
+function cardTipoDaForma(forma: string): "debito" | "credito" | "pix_maquininha" | null {
+  const s = (forma || "").toString().trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (s === "cartao debito" || s === "cartao_debito" || s === "debito") return "debito";
+  if (s === "cartao credito" || s === "cartao_credito" || s === "credito") return "credito";
+  if (s === "pix maquininha" || s === "pix_maquininha") return "pix_maquininha";
+  return null;
 }
 
 interface EditingEntrega {
