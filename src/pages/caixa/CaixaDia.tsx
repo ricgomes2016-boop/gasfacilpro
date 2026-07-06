@@ -858,6 +858,7 @@ export default function CaixaDia() {
                           <TableHead className="w-[130px] text-right">Entrada</TableHead>
                           <TableHead className="w-[130px] text-right">Saída</TableHead>
                           <TableHead className="w-[140px] text-right">Total</TableHead>
+                          <TableHead className="w-[90px] text-center">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody className="tabular-nums">
@@ -883,6 +884,30 @@ export default function CaixaDia() {
                             <TableCell className={cn("text-right font-semibold whitespace-nowrap", mov.total < 0 && "text-destructive")}>
                               R$ {mov.total.toFixed(2)}
                             </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  disabled={caixaBloqueado}
+                                  title={caixaBloqueado ? "Caixa bloqueado — reabra para editar" : "Editar"}
+                                  onClick={() => openEditMov(mov)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:text-destructive"
+                                  disabled={caixaBloqueado}
+                                  title={caixaBloqueado ? "Caixa bloqueado — reabra para excluir" : "Excluir"}
+                                  onClick={() => setDeleteMovId(mov.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -892,6 +917,7 @@ export default function CaixaDia() {
                           <TableCell className="text-right text-success whitespace-nowrap">R$ {totalEntradas.toFixed(2)}</TableCell>
                           <TableCell className="text-right text-destructive whitespace-nowrap">R$ {totalSaidas.toFixed(2)}</TableCell>
                           <TableCell className={cn("text-right whitespace-nowrap", saldo < 0 && "text-destructive")}>R$ {saldo.toFixed(2)}</TableCell>
+                          <TableCell />
                         </TableRow>
                       </TableFooter>
                     </Table>
