@@ -32,7 +32,9 @@ interface RotearPagamentosParams {
 }
 
 /**
- * Busca a conta bancária principal da unidade (primeira conta ativa)
+ * Busca a conta bancária principal da unidade (primeira conta ativa) — FALLBACK APENAS.
+ * Nunca deve ser chamada diretamente pelos fluxos de venda/recebimento.
+ * Use `resolverContaDestino` que aplica a precedência correta.
  */
 async function getContaPrincipal(unidadeId?: string | null): Promise<string | null> {
   if (!unidadeId) return null;
@@ -44,6 +46,69 @@ async function getContaPrincipal(unidadeId?: string | null): Promise<string | nu
     .limit(1)
     .maybeSingle();
   return data?.id || null;
+}
+
+/**
+ * Resolve a conta bancária de destino para QUALQUER forma de pagamento.
+ *
+ * Precedência única (fonte de verdade financeira):
+ *   1. Explícito na chamada    (contaExplicita — escolha do atendente/entregador no ato)
+ *   2. Terminal cartão          (terminais_cartao.conta_bancaria_id)
+ *   3. Operadora                (operadoras_cartao.conta_bancaria_id — passado como operadoraContaId)
+ *   4. Config por forma/unidade (config_destino_pagamento onde forma_pagamento = forma)
+ *   5. Fallback: primeira conta ativa da unidade
+ *
+ * Para custom_avista_X / custom_aprazo_X, também consulta formas_pagamento_custom.conta_bancaria_id
+ * antes do config_destino_pagamento.
+ */
+export async function resolverContaDestino(params: {
+  unidadeId?: string | null;
+  forma: string;
+  contaExplicita?: string | null;
+  terminalId?: string | null;
+  operadoraContaId?: string | null;
+}): Promise<string | null> {
+  const { unidadeId, forma, contaExplicita, terminalId, operadoraContaId } = params;
+
+  // 1. Explícito
+  if (contaExplicita) return contaExplicita;
+
+  // 2. Terminal
+  if (terminalId) {
+    const { data } = await supabase
+      .from("terminais_cartao")
+      .select("conta_bancaria_id")
+      .eq("id", terminalId)
+      .maybeSingle();
+    if ((data as any)?.conta_bancaria_id) return (data as any).conta_bancaria_id as string;
+  }
+
+  // 3. Operadora (só faz sentido para cartão/pix_maq)
+  if (operadoraContaId) return operadoraContaId;
+
+  // 3.5 Forma customizada tem conta própria
+  if (forma?.startsWith("custom_")) {
+    const { data: custom } = await (supabase as any)
+      .from("formas_pagamento_custom")
+      .select("conta_bancaria_id")
+      .eq("slug", forma)
+      .maybeSingle();
+    if (custom?.conta_bancaria_id) return custom.conta_bancaria_id as string;
+  }
+
+  // 4. Config por forma/unidade
+  if (unidadeId) {
+    const { data: cfg } = await supabase
+      .from("config_destino_pagamento")
+      .select("conta_bancaria_id, ativo")
+      .eq("unidade_id", unidadeId)
+      .eq("forma_pagamento", forma)
+      .maybeSingle();
+    if (cfg?.ativo !== false && cfg?.conta_bancaria_id) return cfg.conta_bancaria_id as string;
+  }
+
+  // 5. Fallback
+  return getContaPrincipal(unidadeId);
 }
 
 /**
@@ -80,23 +145,6 @@ async function getOperadoraConfig(unidadeId: string | null, tipo: string, operad
   }
 
   return { id: data.id, nome: data.nome, taxa, prazo, conta_bancaria_id: (data as any).conta_bancaria_id as string | null };
-}
-
-/**
- * Resolve a conta bancária de destino para um pagamento de cartão/PIX maq.
- * Precedência: pag.conta_bancaria_id > terminal.conta_bancaria_id > operadora.conta_bancaria_id.
- */
-async function resolveContaDestinoCartao(pag: PagamentoRoteamento, opContaId: string | null): Promise<string | null> {
-  if (pag.conta_bancaria_id) return pag.conta_bancaria_id;
-  if (pag.terminal_id) {
-    const { data } = await supabase
-      .from("terminais_cartao")
-      .select("conta_bancaria_id")
-      .eq("id", pag.terminal_id)
-      .maybeSingle();
-    if ((data as any)?.conta_bancaria_id) return (data as any).conta_bancaria_id as string;
-  }
-  return opContaId || null;
 }
 
 /**
@@ -227,7 +275,11 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
 
       case "pix": {
         promises.push(
-          getContaPrincipal(unidadeId).then(contaId => {
+          resolverContaDestino({
+            unidadeId,
+            forma: "pix",
+            contaExplicita: pag.conta_bancaria_id,
+          }).then(contaId => {
             if (contaId) {
               return criarMovimentacaoBancaria({
                 contaBancariaId: contaId,
@@ -261,7 +313,13 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
             const tipoLabel = pag.forma.includes("debito") || pag.forma === "debito"
               ? "Débito" : pag.forma === "pix_maquininha" ? "PIX Maq." : "Crédito";
 
-            const contaDestino = await resolveContaDestinoCartao(pag, op?.conta_bancaria_id || null);
+            const contaDestino = await resolverContaDestino({
+              unidadeId,
+              forma: pag.forma,
+              contaExplicita: pag.conta_bancaria_id,
+              terminalId: pag.terminal_id,
+              operadoraContaId: op?.conta_bancaria_id || null,
+            });
 
             await insertContasReceber({
               cliente: op?.nome || clienteNome || "Operadora Cartão",
@@ -318,32 +376,40 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
 
       case "fiado": {
         const vencimento = pag.data_vencimento_fiado || format(addDays(new Date(), 30), "yyyy-MM-dd");
-        promises.push(insertContasReceber({
-          cliente: clienteNome || "Cliente não identificado",
-          descricao: `Venda a prazo (Fiado) - Pedido #${pedidoRef}`,
-          valor: pag.valor,
-          vencimento,
-          status: "pendente",
-          forma_pagamento: "fiado",
-          pedido_id: pedidoId,
-          unidade_id: unidadeId || null,
-          cliente_id: clienteId || null,
-        }));
+        promises.push((async () => {
+          const contaDestino = await resolverContaDestino({ unidadeId, forma: "fiado", contaExplicita: pag.conta_bancaria_id });
+          await insertContasReceber({
+            cliente: clienteNome || "Cliente não identificado",
+            descricao: `Venda a prazo (Fiado) - Pedido #${pedidoRef}`,
+            valor: pag.valor,
+            vencimento,
+            status: "pendente",
+            forma_pagamento: "fiado",
+            pedido_id: pedidoId,
+            unidade_id: unidadeId || null,
+            cliente_id: clienteId || null,
+            conta_bancaria_destino_id: contaDestino,
+          });
+        })());
         break;
       }
 
       case "boleto": {
-        promises.push(insertContasReceber({
-          cliente: clienteNome || "Cliente não identificado",
-          descricao: `Boleto - Venda #${pedidoRef}`,
-          valor: pag.valor,
-          vencimento: format(addDays(new Date(), 30), "yyyy-MM-dd"),
-          status: "pendente",
-          forma_pagamento: "boleto",
-          pedido_id: pedidoId,
-          unidade_id: unidadeId || null,
-          cliente_id: clienteId || null,
-        }));
+        promises.push((async () => {
+          const contaDestino = await resolverContaDestino({ unidadeId, forma: "boleto", contaExplicita: pag.conta_bancaria_id });
+          await insertContasReceber({
+            cliente: clienteNome || "Cliente não identificado",
+            descricao: `Boleto - Venda #${pedidoRef}`,
+            valor: pag.valor,
+            vencimento: format(addDays(new Date(), 30), "yyyy-MM-dd"),
+            status: "pendente",
+            forma_pagamento: "boleto",
+            pedido_id: pedidoId,
+            unidade_id: unidadeId || null,
+            cliente_id: clienteId || null,
+            conta_bancaria_destino_id: contaDestino,
+          });
+        })());
         break;
       }
 
@@ -412,17 +478,36 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
       default: {
         // Formas customizadas cadastradas em Financeiro → Formas de Pagamento
         if (pag.forma?.startsWith("custom_avista_")) {
-          // À vista: se houver conta bancária destino cadastrada, credita direto.
+          // À vista: se houver conta bancária destino (custom.conta ou config), credita direto.
           // Caso contrário, entra no caixa da loja.
           promises.push((async () => {
             const { data: custom } = await (supabase as any)
               .from("formas_pagamento_custom")
-              .select("nome, conta_bancaria_id")
+              .select("nome")
               .eq("slug", pag.forma)
               .maybeSingle();
             const nome = custom?.nome || "Personalizado";
-            const contaId = custom?.conta_bancaria_id || null;
-            if (contaId) {
+            const contaId = await resolverContaDestino({
+              unidadeId,
+              forma: pag.forma,
+              contaExplicita: pag.conta_bancaria_id,
+            });
+            // Só credita banco se a conta veio de custom ou config (não do fallback "primeira ativa").
+            // Para saber, resolvemos de novo sem fallback usando lookup direto:
+            const { data: cfg } = unidadeId ? await supabase
+              .from("config_destino_pagamento")
+              .select("conta_bancaria_id, ativo")
+              .eq("unidade_id", unidadeId)
+              .eq("forma_pagamento", pag.forma)
+              .maybeSingle() : { data: null } as any;
+            const { data: customConta } = await (supabase as any)
+              .from("formas_pagamento_custom")
+              .select("conta_bancaria_id")
+              .eq("slug", pag.forma)
+              .maybeSingle();
+            const temDestinoExplicito = !!(pag.conta_bancaria_id || customConta?.conta_bancaria_id || (cfg?.ativo !== false && cfg?.conta_bancaria_id));
+
+            if (contaId && temDestinoExplicito) {
               await criarMovimentacaoBancaria({
                 contaBancariaId: contaId,
                 valor: pag.valor,
@@ -454,6 +539,11 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
               .eq("slug", pag.forma)
               .maybeSingle();
             const nome = custom?.nome || "Personalizado";
+            const contaDestino = await resolverContaDestino({
+              unidadeId,
+              forma: pag.forma,
+              contaExplicita: pag.conta_bancaria_id,
+            });
             await insertContasReceber({
               cliente: clienteNome || "Cliente não identificado",
               descricao: `${nome} - Pedido #${pedidoRef}`,
@@ -464,6 +554,7 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
               pedido_id: pedidoId,
               unidade_id: unidadeId || null,
               cliente_id: clienteId || null,
+              conta_bancaria_destino_id: contaDestino,
             });
           })());
         }

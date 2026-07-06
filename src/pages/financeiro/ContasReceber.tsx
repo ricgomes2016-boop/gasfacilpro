@@ -42,7 +42,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { SmartImportButtons } from "@/components/import/SmartImportButtons";
 import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
-import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
+import { criarMovimentacaoBancaria, resolverContaDestino } from "@/services/paymentRoutingService";
 import { useAuth } from "@/contexts/AuthContext";
 import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 import { ClienteAutocompleteInput } from "@/components/clientes/ClienteAutocompleteInput";
@@ -74,6 +74,7 @@ interface ContaReceber {
   boleto_url?: string | null;
   pix_qrcode?: string | null;
   pix_copia_cola?: string | null;
+  conta_bancaria_destino_id?: string | null;
 }
 
 const FORMAS_PAGAMENTO_BUILTIN = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque", "Vale Gás"];
@@ -223,6 +224,7 @@ export default function ContasReceber() {
         boleto_url: c.boleto_url || null,
         pix_qrcode: c.pix_qrcode || null,
         pix_copia_cola: c.pix_copia_cola || null,
+        conta_bancaria_destino_id: c.conta_bancaria_destino_id || null,
       })));
     }
     setLoading(false);
@@ -366,8 +368,12 @@ export default function ContasReceber() {
           unidade_id: unidadeAtual?.id || null,
         });
       } else if (formaLower === "pix") {
-        // PIX → Conta Bancária
-        const contaId = await getContaPrincipal();
+        // PIX → conta definida em Config (ex.: Itaú); respeita destino gravado na conta
+        const contaId = await resolverContaDestino({
+          unidadeId: unidadeAtual?.id || null,
+          forma: "pix",
+          contaExplicita: receberConta.conta_bancaria_destino_id || null,
+        });
         if (contaId) {
           await criarMovimentacaoBancaria({
             contaBancariaId: contaId,
@@ -380,8 +386,12 @@ export default function ContasReceber() {
           });
         }
       } else {
-        // Cartão/outros → Creditar direto na conta bancária
-        const contaId = await getContaPrincipal();
+        // Cartão/outros → conta resolvida (destino gravado > config > primeira)
+        const contaId = await resolverContaDestino({
+          unidadeId: unidadeAtual?.id || null,
+          forma: fp.forma,
+          contaExplicita: receberConta.conta_bancaria_destino_id || null,
+        });
         if (contaId) {
           await criarMovimentacaoBancaria({
             contaBancariaId: contaId,
@@ -414,12 +424,8 @@ export default function ContasReceber() {
     fetchContas();
   };
 
-  // Helper para buscar conta principal
-  const getContaPrincipal = async () => {
-    const { data } = await supabase.from("contas_bancarias").select("id")
-      .eq("ativo", true).eq("unidade_id", unidadeAtual?.id || "").limit(1).maybeSingle();
-    return data?.id || null;
-  };
+
+
 
   // Bulk liquidation handler
   const handleBulkReceber = async () => {
@@ -444,7 +450,6 @@ export default function ContasReceber() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const formaLower = bulkFormaPagamento.toLowerCase();
-      const contaId = formaLower !== "dinheiro" ? await getContaPrincipal() : null;
       let successCount = 0;
 
       for (const conta of selectedContas) {
@@ -463,16 +468,24 @@ export default function ContasReceber() {
             pedido_id: conta.pedido_id || null,
             unidade_id: unidadeAtual?.id || null,
           });
-        } else if (contaId) {
-          await criarMovimentacaoBancaria({
-            contaBancariaId: contaId,
-            valor,
-            descricao: `Pgto Lote #${ref} - ${bulkFormaPagamento}`,
-            categoria: "recebimento_fiado",
-            unidadeId: unidadeAtual?.id,
-            userId: user?.id,
-            pedidoId: conta.pedido_id || undefined,
+        } else {
+          // Resolve conta por conta: respeita destino já gravado (boleto→Asaas, etc.)
+          const contaId = await resolverContaDestino({
+            unidadeId: unidadeAtual?.id || null,
+            forma: bulkFormaPagamento,
+            contaExplicita: conta.conta_bancaria_destino_id || null,
           });
+          if (contaId) {
+            await criarMovimentacaoBancaria({
+              contaBancariaId: contaId,
+              valor,
+              descricao: `Pgto Lote #${ref} - ${bulkFormaPagamento}`,
+              categoria: "recebimento_fiado",
+              unidadeId: unidadeAtual?.id,
+              userId: user?.id,
+              pedidoId: conta.pedido_id || undefined,
+            });
+          }
         }
 
         // Mark as received

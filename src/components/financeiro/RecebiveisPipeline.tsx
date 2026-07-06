@@ -24,7 +24,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getBrasiliaDateString } from "@/lib/utils";
-import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
+import { criarMovimentacaoBancaria, resolverContaDestino } from "@/services/paymentRoutingService";
 import { formatFormaPagamentoLabel } from "@/lib/financeiro/formaPagamento";
 import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
 
@@ -48,6 +48,7 @@ interface RecebiveisRow {
   conciliacao_id: string | null;
   conciliacao_valor_recebido: number | null;
   conciliacao_data_deposito: string | null;
+  conta_bancaria_destino_id: string | null;
 }
 
 // Visual stage indicator
@@ -174,6 +175,7 @@ export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {
         conciliacao_id: conf?.id || null,
         conciliacao_valor_recebido: conf?.valor_liquido_recebido || null,
         conciliacao_data_deposito: conf?.data_deposito_real || null,
+        conta_bancaria_destino_id: d.conta_bancaria_destino_id || null,
       };
     });
 
@@ -274,14 +276,15 @@ export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {
     if (error) { toast.error("Erro ao liquidar"); return; }
 
     try {
-      const { data: conta } = await supabase.from("contas_bancarias")
-        .select("id").eq("ativo", true)
-        .eq("unidade_id", unidadeAtual?.id || "")
-        .limit(1).maybeSingle();
-      if (conta) {
+      const contaId = await resolverContaDestino({
+        unidadeId: unidadeAtual?.id || null,
+        forma: row.forma_pagamento || "cartao_credito",
+        contaExplicita: row.conta_bancaria_destino_id,
+      });
+      if (contaId) {
         const { data: { user } } = await supabase.auth.getUser();
         await criarMovimentacaoBancaria({
-          contaBancariaId: conta.id,
+          contaBancariaId: contaId,
           valor: valorLiq > 0 ? valorLiq : Number(row.valor),
           descricao: `Liquidação Cartão: ${row.descricao}`,
           categoria: "liquidacao_cartao",
