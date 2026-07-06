@@ -194,7 +194,7 @@ export default function CaixaDia() {
     const dataStr = format(dataSelecionada, "yyyy-MM-dd");
 
     // Fetch movimentações, pedidos and sessão in parallel
-    let qMov = supabase.from("movimentacoes_caixa").select("*").gte("created_at", inicio).lte("created_at", fim).neq("categoria", "Vale Gás").order("created_at", { ascending: false });
+    let qMov = supabase.from("movimentacoes_caixa").select("*").gte("created_at", inicio).lte("created_at", fim).order("created_at", { ascending: false });
     if (unidadeAtual?.id) qMov = qMov.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
 
     let qPed = supabase.from("pedidos").select("id, valor_total, forma_pagamento, status, created_at, entregador_id, canal_venda, responsavel_acerto, entregadores(nome)").gte("created_at", inicio).lte("created_at", fim).not("status", "in", "(cancelado,rejeitado)");
@@ -357,15 +357,16 @@ export default function CaixaDia() {
     const fimDoDiaSelecionado = getBrasiliaEndOfDay(dataSelecionada);
     let qTotal = supabase
       .from("movimentacoes_caixa")
-      .select("tipo, valor")
-      .neq("categoria", "Vale Gás")
+      .select("tipo, valor, categoria")
       .lte("created_at", fimDoDiaSelecionado);
     if (unidadeAtual?.id) qTotal = qTotal.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
     const { data: allMovs, error: errTotal } = await qTotal;
     if (errTotal) {
       console.error("[CaixaDia] Erro ao calcular Total em Caixa:", errTotal);
     } else if (allMovs) {
-      const total = allMovs.reduce((acc: number, m: any) => acc + (m.tipo === "entrada" ? Number(m.valor) : -Number(m.valor)), 0);
+      const total = allMovs
+        .filter((m: any) => !isVoucherOuValeGas(m.categoria))
+        .reduce((acc: number, m: any) => acc + (m.tipo === "entrada" ? Number(m.valor) : -Number(m.valor)), 0);
       setSaldoTotalCaixa(total);
     }
     let qContas = supabase.from("contas_bancarias").select("id, nome, banco, saldo_atual").eq("ativo", true);
@@ -374,7 +375,7 @@ export default function CaixaDia() {
     if (errContas) console.error("[CaixaDia] Erro ao carregar contas bancárias:", errContas);
     else setContas((contasData as ContaBancaria[]) || []);
     const desde = subDays(new Date(), 30).toISOString();
-    let qChart = supabase.from("movimentacoes_caixa").select("*").gte("created_at", desde).neq("categoria", "Vale Gás").order("created_at", { ascending: false });
+    let qChart = supabase.from("movimentacoes_caixa").select("*").gte("created_at", desde).order("created_at", { ascending: false });
     if (unidadeAtual?.id) qChart = qChart.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
     const { data: cData, error: errChart } = await qChart;
     if (errChart) console.error("[CaixaDia] Erro ao carregar gráfico 30d:", errChart);
@@ -403,6 +404,7 @@ export default function CaixaDia() {
       days[d] = { entradas: 0, saidas: 0 };
     }
     chartMovs.forEach(m => {
+      if (/^vale(\s|$)/i.test(String(m.categoria || "").trim())) return; // ignora vouchers
       const d = format(new Date(m.created_at), "dd/MM");
       if (days[d]) {
         if (m.tipo === "entrada") days[d].entradas += Number(m.valor);
@@ -503,21 +505,28 @@ export default function CaixaDia() {
     else { toast.success("Caixa reaberto! Operações desbloqueadas para edição."); fetchData(); }
   };
 
-  const totalEntradas = movs.filter(m => m.tipo === "entrada").reduce((a, m) => a + Number(m.valor), 0);
-  const totalSaidas = movs.filter(m => m.tipo === "saida").reduce((a, m) => a + Number(m.valor), 0);
+  // Vouchers de vale-gás (categoria "Vale Ultragaz", "Vale Central gas", "Vale Gás" etc.)
+  // não entram no total do caixa físico — permanecem visíveis na tabela para rastreio,
+  // mas não somam em Entradas/Saídas/Saldo do Dia nem no Total em Caixa.
+  const isVoucherOuValeGas = (c?: string | null) => !!c && /^vale(\s|$)/i.test(String(c).trim());
+  const movsCaixaFisico = movs.filter(m => !isVoucherOuValeGas(m.categoria));
+  const totalEntradas = movsCaixaFisico.filter(m => m.tipo === "entrada").reduce((a, m) => a + Number(m.valor), 0);
+  const totalSaidas = movsCaixaFisico.filter(m => m.tipo === "saida").reduce((a, m) => a + Number(m.valor), 0);
   const saldo = totalEntradas - totalSaidas;
   const movimentacoesExtrato = useMemo(() => {
-    let total = 0;
+    let total = Number(sessao?.valor_abertura || 0);
     return [...movs]
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
       .map((mov) => {
         const valor = Number(mov.valor || 0);
+        const isVoucher = isVoucherOuValeGas(mov.categoria);
         const entrada = mov.tipo === "entrada" ? valor : 0;
         const saida = mov.tipo === "saida" ? valor : 0;
-        total += entrada - saida;
+        // Voucher de vale-gás não altera saldo em caixa físico.
+        if (!isVoucher) total += entrada - saida;
         return { ...mov, entrada, saida, total };
       });
-  }, [movs]);
+  }, [movs, sessao]);
   const totalVendas = pedidos.reduce((a, p) => a + Number(p.valor_total || 0), 0);
   const qtdPedidos = pedidos.length;
   const dataFormatada = format(dataSelecionada, "dd/MM/yyyy");

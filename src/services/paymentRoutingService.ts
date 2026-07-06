@@ -119,6 +119,20 @@ export async function criarMovimentacaoBancaria(params: {
 
   if (!conta) return;
 
+  // Idempotência: se já existe uma movimentação bancária para este pedido nesta conta
+  // (mesmo referencia_tipo/categoria), não duplica.
+  if (params.pedidoId) {
+    const { data: jaExiste } = await supabase
+      .from("movimentacoes_bancarias")
+      .select("id")
+      .eq("referencia_id", params.pedidoId)
+      .eq("referencia_tipo", "pedido")
+      .eq("categoria", params.categoria)
+      .eq("conta_bancaria_id", params.contaBancariaId)
+      .maybeSingle();
+    if (jaExiste) return;
+  }
+
   const novoSaldo = Number(conta.saldo_atual) + params.valor;
 
   await supabase.from("movimentacoes_bancarias").insert({
@@ -134,6 +148,7 @@ export async function criarMovimentacaoBancaria(params: {
     user_id: params.userId || null,
     unidade_id: params.unidadeId || null,
   });
+
 
   await supabase
     .from("contas_bancarias")
@@ -178,21 +193,37 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
   const totalVenda = pagamentos.reduce((acc, p) => acc + p.valor, 0);
   const formasUsadas = pagamentos.map(p => p.forma).join(", ");
 
+  // Helper de idempotência: evita duplicar movimentacoes_caixa quando a mesma venda
+  // passa por rotearPagamentosVenda mais de uma vez (PDV → finalização → acerto).
+  const jaTemMovCaixa = async (categoria: string): Promise<boolean> => {
+    const { data } = await supabase
+      .from("movimentacoes_caixa")
+      .select("id")
+      .eq("pedido_id", pedidoId)
+      .eq("categoria", categoria)
+      .maybeSingle();
+    return !!data;
+  };
+
   for (const pag of pagamentos) {
     switch (pag.forma) {
       case "dinheiro": {
-        promises.push(insertCaixa({
-          tipo: "entrada",
-          descricao: `Venda #${pedidoRef} - Dinheiro`,
-          valor: pag.valor,
-          categoria: "Venda Dinheiro",
-          status: "aprovada",
-          pedido_id: pedidoId,
-          unidade_id: unidadeId || null,
-          entregador_id: entregadorId || null,
-        }));
+        promises.push((async () => {
+          if (await jaTemMovCaixa("Venda Dinheiro")) return;
+          await insertCaixa({
+            tipo: "entrada",
+            descricao: `Venda #${pedidoRef} - Dinheiro`,
+            valor: pag.valor,
+            categoria: "Venda Dinheiro",
+            status: "aprovada",
+            pedido_id: pedidoId,
+            unidade_id: unidadeId || null,
+            entregador_id: entregadorId || null,
+          });
+        })());
         break;
       }
+
 
       case "pix": {
         promises.push(
@@ -254,16 +285,19 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
       }
 
       case "cheque": {
-        promises.push(insertCaixa({
-          tipo: "entrada",
-          descricao: `Venda #${pedidoRef} - Cheque #${pag.cheque_numero || "s/n"}`,
-          valor: pag.valor,
-          categoria: "Cheque",
-          status: "aprovada",
-          pedido_id: pedidoId,
-          unidade_id: unidadeId || null,
-          entregador_id: entregadorId || null,
-        }));
+        promises.push((async () => {
+          if (await jaTemMovCaixa("Cheque")) return;
+          await insertCaixa({
+            tipo: "entrada",
+            descricao: `Venda #${pedidoRef} - Cheque #${pag.cheque_numero || "s/n"}`,
+            valor: pag.valor,
+            categoria: "Cheque",
+            status: "aprovada",
+            pedido_id: pedidoId,
+            unidade_id: unidadeId || null,
+            entregador_id: entregadorId || null,
+          });
+        })());
         if (userId && pag.cheque_numero && pag.cheque_banco) {
           promises.push(insertCheque({
             numero_cheque: pag.cheque_numero,
