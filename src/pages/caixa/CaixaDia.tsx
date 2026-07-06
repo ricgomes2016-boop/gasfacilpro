@@ -37,6 +37,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 
 interface Mov {
   id: string;
