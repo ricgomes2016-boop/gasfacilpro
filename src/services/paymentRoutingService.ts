@@ -193,21 +193,37 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
   const totalVenda = pagamentos.reduce((acc, p) => acc + p.valor, 0);
   const formasUsadas = pagamentos.map(p => p.forma).join(", ");
 
+  // Helper de idempotência: evita duplicar movimentacoes_caixa quando a mesma venda
+  // passa por rotearPagamentosVenda mais de uma vez (PDV → finalização → acerto).
+  const jaTemMovCaixa = async (categoria: string): Promise<boolean> => {
+    const { data } = await supabase
+      .from("movimentacoes_caixa")
+      .select("id")
+      .eq("pedido_id", pedidoId)
+      .eq("categoria", categoria)
+      .maybeSingle();
+    return !!data;
+  };
+
   for (const pag of pagamentos) {
     switch (pag.forma) {
       case "dinheiro": {
-        promises.push(insertCaixa({
-          tipo: "entrada",
-          descricao: `Venda #${pedidoRef} - Dinheiro`,
-          valor: pag.valor,
-          categoria: "Venda Dinheiro",
-          status: "aprovada",
-          pedido_id: pedidoId,
-          unidade_id: unidadeId || null,
-          entregador_id: entregadorId || null,
-        }));
+        promises.push((async () => {
+          if (await jaTemMovCaixa("Venda Dinheiro")) return;
+          await insertCaixa({
+            tipo: "entrada",
+            descricao: `Venda #${pedidoRef} - Dinheiro`,
+            valor: pag.valor,
+            categoria: "Venda Dinheiro",
+            status: "aprovada",
+            pedido_id: pedidoId,
+            unidade_id: unidadeId || null,
+            entregador_id: entregadorId || null,
+          });
+        })());
         break;
       }
+
 
       case "pix": {
         promises.push(
