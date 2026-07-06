@@ -48,6 +48,7 @@ interface RecebiveisRow {
   conciliacao_id: string | null;
   conciliacao_valor_recebido: number | null;
   conciliacao_data_deposito: string | null;
+  conta_bancaria_destino_id: string | null;
 }
 
 // Visual stage indicator
