@@ -225,6 +225,7 @@ export default function AcertoEntregador() {
   const [boletoPromptOpen, setBoletoPromptOpen] = useState(false);
   const [boletoConta, setBoletoConta] = useState<any>(null);
   const [boletoDialogOpen, setBoletoDialogOpen] = useState(false);
+  const [cardModalIdx, setCardModalIdx] = useState<number | null>(null);
 
   const podeEditar = hasAnyRole(["admin", "gestor"]);
 
