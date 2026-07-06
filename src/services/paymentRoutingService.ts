@@ -309,7 +309,13 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
             const tipoLabel = pag.forma.includes("debito") || pag.forma === "debito"
               ? "Débito" : pag.forma === "pix_maquininha" ? "PIX Maq." : "Crédito";
 
-            const contaDestino = await resolveContaDestinoCartao(pag, op?.conta_bancaria_id || null);
+            const contaDestino = await resolverContaDestino({
+              unidadeId,
+              forma: pag.forma,
+              contaExplicita: pag.conta_bancaria_id,
+              terminalId: pag.terminal_id,
+              operadoraContaId: op?.conta_bancaria_id || null,
+            });
 
             await insertContasReceber({
               cliente: op?.nome || clienteNome || "Operadora Cartão",
