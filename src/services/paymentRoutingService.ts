@@ -119,6 +119,20 @@ export async function criarMovimentacaoBancaria(params: {
 
   if (!conta) return;
 
+  // Idempotência: se já existe uma movimentação bancária para este pedido nesta conta
+  // (mesmo referencia_tipo/categoria), não duplica.
+  if (params.pedidoId) {
+    const { data: jaExiste } = await supabase
+      .from("movimentacoes_bancarias")
+      .select("id")
+      .eq("referencia_id", params.pedidoId)
+      .eq("referencia_tipo", "pedido")
+      .eq("categoria", params.categoria)
+      .eq("conta_bancaria_id", params.contaBancariaId)
+      .maybeSingle();
+    if (jaExiste) return;
+  }
+
   const novoSaldo = Number(conta.saldo_atual) + params.valor;
 
   await supabase.from("movimentacoes_bancarias").insert({
@@ -134,6 +148,7 @@ export async function criarMovimentacaoBancaria(params: {
     user_id: params.userId || null,
     unidade_id: params.unidadeId || null,
   });
+
 
   await supabase
     .from("contas_bancarias")
