@@ -101,6 +101,7 @@ export default function CaixaDia() {
   const { unidadeAtual, unidades } = useUnidade();
   const { user, hasAnyRole } = useAuth();
   const isGestor = hasAnyRole(["admin", "gestor"]);
+  const formaLabel = useFormaPagamentoLabel();
   const [form, setForm] = useState({ tipo: "entrada", descricao: "", valor: "", categoria: "" });
   const [aberturaForm, setAberturaForm] = useState({ valor: "", obs: "" });
   const [fechamentoForm, setFechamentoForm] = useState({ valor: "", obs: "" });
