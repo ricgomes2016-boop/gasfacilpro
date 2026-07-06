@@ -375,27 +375,42 @@ export default function AcertoEntregador() {
     setAcertoConfirmado(false);
   };
 
+  // Extrai marker [op:UUID|cta:UUID] do fim da string e retorna {clean, operadora_id, conta_bancaria_id}
+  const stripMarker = (raw: string): { clean: string; operadora_id?: string; conta_bancaria_id?: string } => {
+    const m = raw.match(/^(.*?)\s*\[([^\]]+)\]\s*$/);
+    if (!m) return { clean: raw };
+    const clean = m[1].trim();
+    const out: { clean: string; operadora_id?: string; conta_bancaria_id?: string } = { clean };
+    m[2].split("|").forEach((tok) => {
+      const [k, v] = tok.split(":");
+      if (k === "op" && v) out.operadora_id = v;
+      if (k === "cta" && v) out.conta_bancaria_id = v;
+    });
+    return out;
+  };
+
   // Open edit dialog
   const abrirEdicao = (entrega: any) => {
     const totalEntrega = Number(entrega.valor_total || 0);
     let pagamentos: PagamentoMultiplo[] = [];
     const fp = entrega.forma_pagamento || "";
+    const parseOne = (part: string, fallbackValor: number): PagamentoMultiplo => {
+      const { clean, operadora_id, conta_bancaria_id } = stripMarker(part);
+      const match = clean.match(/^(.+?)\s+R\$(\d+[\.,]?\d*)$/);
+      if (match) {
+        return { forma: match[1].trim(), valor: parseFloat(match[2].replace(",", ".")), operadora_id, conta_bancaria_id };
+      }
+      return { forma: clean, valor: fallbackValor, operadora_id, conta_bancaria_id };
+    };
     if (fp.startsWith("Múltiplos: ")) {
       const parts = fp.replace("Múltiplos: ", "").split(" + ");
-      pagamentos = parts.map((part: string) => {
-        const match = part.match(/^(.+?)\s+R\$(\d+[\.,]?\d*)$/);
-        if (match) return { forma: match[1], valor: parseFloat(match[2].replace(",", ".")) };
-        return { forma: part, valor: 0 };
-      });
+      pagamentos = parts.map((p: string) => parseOne(p, 0));
     } else if (fp.includes(", ")) {
       const parts = fp.split(", ");
-      pagamentos = parts.map((part: string) => {
-        const match = part.match(/^(.+?)\s+R\$(\d+[\.,]?\d*)$/);
-        if (match) return { forma: match[1], valor: parseFloat(match[2].replace(",", ".")) };
-        return { forma: part, valor: totalEntrega / parts.length };
-      });
+      pagamentos = parts.map((p: string) => parseOne(p, totalEntrega / parts.length));
     } else if (fp) {
-      pagamentos = [{ forma: fp, valor: totalEntrega }];
+      const { clean, operadora_id, conta_bancaria_id } = stripMarker(fp);
+      pagamentos = [{ forma: clean, valor: totalEntrega, operadora_id, conta_bancaria_id }];
     } else {
       pagamentos = [{ forma: "Dinheiro", valor: totalEntrega }];
     }
