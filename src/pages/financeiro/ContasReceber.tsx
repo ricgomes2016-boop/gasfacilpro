@@ -454,7 +454,6 @@ export default function ContasReceber() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const formaLower = bulkFormaPagamento.toLowerCase();
-      const contaId = formaLower !== "dinheiro" ? await getContaPrincipal() : null;
       let successCount = 0;
 
       for (const conta of selectedContas) {
@@ -473,16 +472,24 @@ export default function ContasReceber() {
             pedido_id: conta.pedido_id || null,
             unidade_id: unidadeAtual?.id || null,
           });
-        } else if (contaId) {
-          await criarMovimentacaoBancaria({
-            contaBancariaId: contaId,
-            valor,
-            descricao: `Pgto Lote #${ref} - ${bulkFormaPagamento}`,
-            categoria: "recebimento_fiado",
-            unidadeId: unidadeAtual?.id,
-            userId: user?.id,
-            pedidoId: conta.pedido_id || undefined,
+        } else {
+          // Resolve conta por conta: respeita destino já gravado (boleto→Asaas, etc.)
+          const contaId = await resolverContaDestino({
+            unidadeId: unidadeAtual?.id || null,
+            forma: bulkFormaPagamento,
+            contaExplicita: conta.conta_bancaria_destino_id || null,
           });
+          if (contaId) {
+            await criarMovimentacaoBancaria({
+              contaBancariaId: contaId,
+              valor,
+              descricao: `Pgto Lote #${ref} - ${bulkFormaPagamento}`,
+              categoria: "recebimento_fiado",
+              unidadeId: unidadeAtual?.id,
+              userId: user?.id,
+              pedidoId: conta.pedido_id || undefined,
+            });
+          }
         }
 
         // Mark as received
