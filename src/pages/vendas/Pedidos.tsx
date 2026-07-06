@@ -875,7 +875,7 @@ export default function Pedidos() {
               </div>
             </div>
             <ResponsiveDialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => {setBusca("");setDataInicio(hoje);setDataFim(hoje);setFiltroStatus("todos");setFiltroEntregador("todos");setFiltroOrigem("todos");}}>
+              <Button variant="outline" onClick={() => {setBusca("");setDataInicio(hoje);setDataFim(hoje);setFiltroStatus("todos");setFiltroEntregador("todos");setFiltroOrigem("todos");try { sessionStorage.removeItem(PEDIDOS_FILTROS_STORAGE_KEY); } catch { /* ignore */ }}}>
                 <RefreshCw className="h-3.5 w-3.5 mr-1" /> Limpar
               </Button>
               <Button onClick={() => setFiltrosAbertos(false)}>Aplicar</Button>
