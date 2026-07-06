@@ -1791,6 +1791,35 @@ export default function AcertoEntregador() {
           onSuccess={() => queryClient.invalidateQueries({ queryKey: ["acerto-entregas"] })}
         />
       )}
+
+      {/* Modal de seleção de operadora para linhas de cartão / PIX maquininha */}
+      {cardModalIdx !== null && editingEntrega && (() => {
+        const pg = editingEntrega.pagamentos_multiplos[cardModalIdx];
+        if (!pg) return null;
+        const tipo = cardTipoDaForma(pg.forma);
+        if (!tipo) return null;
+        return (
+          <CardOperatorSelectorModal
+            open
+            onClose={() => setCardModalIdx(null)}
+            valor={pg.valor || 0}
+            tipoCartao={tipo}
+            unidadeId={unidadeAtual?.id}
+            onSelect={(op) => {
+              const novos = [...editingEntrega.pagamentos_multiplos];
+              novos[cardModalIdx] = {
+                ...novos[cardModalIdx],
+                operadora_id: op.id,
+                operadora_nome: op.nome,
+                conta_bancaria_id: op.conta_bancaria_id || undefined,
+                taxa: op.taxa,
+                prazo: op.prazo,
+              };
+              setEditingEntrega({ ...editingEntrega, pagamentos_multiplos: novos });
+            }}
+          />
+        );
+      })()}
     </MainLayout>
 
   );
