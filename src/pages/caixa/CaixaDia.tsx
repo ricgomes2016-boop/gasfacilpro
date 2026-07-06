@@ -123,9 +123,15 @@ export default function CaixaDia() {
 
   // Editar / excluir movimentação
   const [editMov, setEditMov] = useState<Mov | null>(null);
-  const [editForm, setEditForm] = useState({ tipo: "entrada", descricao: "", valor: "", categoria: "" });
+  const [editForm, setEditForm] = useState({ tipo: "entrada", descricao: "", valor: "", categoria: "", data: "" });
   const [deleteMovId, setDeleteMovId] = useState<string | null>(null);
   const caixaBloqueado = !!(sessao && (sessao as any).bloqueado);
+
+  const toLocalInput = (iso: string) => {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
 
   const openEditMov = (mov: Mov) => {
     setEditMov(mov);
@@ -134,6 +140,7 @@ export default function CaixaDia() {
       descricao: mov.descricao || "",
       valor: String(mov.valor ?? ""),
       categoria: mov.categoria || "",
+      data: toLocalInput((mov as any).created_at || new Date().toISOString()),
     });
   };
 
@@ -141,17 +148,33 @@ export default function CaixaDia() {
     if (!editMov) return;
     const valor = parseFloat(editForm.valor);
     if (!editForm.descricao || !valor || valor <= 0) { toast.error("Preencha descrição e valor"); return; }
+    if (!editForm.data) { toast.error("Informe a data"); return; }
+    const novaData = new Date(editForm.data);
+    if (isNaN(novaData.getTime())) { toast.error("Data inválida"); return; }
+
+    // Bloqueio caixa: verifica se o dia da nova data está bloqueado para esta unidade
+    const dataYmd = `${novaData.getFullYear()}-${String(novaData.getMonth() + 1).padStart(2, "0")}-${String(novaData.getDate()).padStart(2, "0")}`;
+    const unidadeMov = (editMov as any).unidade_id || unidadeAtual?.id || null;
+    const { data: bloq, error: errBloq } = await supabase.rpc("caixa_dia_bloqueado", {
+      _data: dataYmd,
+      _unidade_id: unidadeMov,
+    });
+    if (errBloq) { console.error(errBloq); }
+    if (bloq === true) { toast.error("Caixa daquele dia está fechado. Reabra para lançar nesta data."); return; }
+
     const { error } = await supabase.from("movimentacoes_caixa").update({
       tipo: editForm.tipo,
       descricao: editForm.descricao,
       valor,
       categoria: editForm.categoria || null,
+      created_at: novaData.toISOString(),
     }).eq("id", editMov.id);
     if (error) { toast.error("Erro ao atualizar movimentação"); console.error(error); return; }
     toast.success("Movimentação atualizada");
     setEditMov(null);
     fetchData();
   };
+
 
   const handleDeleteMov = async () => {
     if (!deleteMovId) return;
