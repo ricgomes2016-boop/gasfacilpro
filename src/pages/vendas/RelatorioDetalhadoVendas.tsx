@@ -158,15 +158,16 @@ export default function RelatorioDetalhadoVendas() {
   });
 
   const finalizarLinha = (l: LinhaDetalhe): LinhaDetalhe => {
-    const lucro = l.totalVenda - l.totalCusto;
-    // Margem calculada apenas sobre venda com custo conhecido (evita distorção).
+    // Base = apenas a venda cujos itens têm custo cadastrado.
+    // Assim, itens sem preco_custo NÃO inflam lucro nem margem.
     const baseMargem = l.totalVenda - l.vendaSemCusto;
+    const lucro = baseMargem > 0 ? baseMargem - l.totalCusto : 0;
     return {
       ...l,
       custoMedio: l.qtdComCusto ? l.totalCusto / l.qtdComCusto : 0,
       vendaMedia: l.qtd ? l.totalVenda / l.qtd : 0,
       lucro,
-      margem: baseMargem > 0 ? ((baseMargem - l.totalCusto) / baseMargem) * 100 : 0,
+      margem: baseMargem > 0 ? (lucro / baseMargem) * 100 : 0,
       temCustoIncompleto: l.vendaSemCusto > 0,
     };
   };
