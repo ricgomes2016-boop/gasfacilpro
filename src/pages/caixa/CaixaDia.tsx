@@ -1206,9 +1206,14 @@ export default function CaixaDia() {
                 </Select>
               </div>
               <div>
+                <Label>Data e hora</Label>
+                <Input type="datetime-local" value={editForm.data} onChange={(e) => setEditForm({ ...editForm, data: e.target.value })} />
+              </div>
+              <div>
                 <Label>Descrição</Label>
                 <Input value={editForm.descricao} onChange={(e) => setEditForm({ ...editForm, descricao: e.target.value })} />
               </div>
+
               <div>
                 <Label>Valor</Label>
                 <Input type="number" step="0.01" value={editForm.valor} onChange={(e) => setEditForm({ ...editForm, valor: e.target.value })} />
