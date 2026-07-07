@@ -1416,6 +1416,8 @@ export default function Compras() {
                             <SelectItem value="credito">💳 Cartão de Crédito</SelectItem>
                             <SelectItem value="boleto">📄 Boleto pago</SelectItem>
                             <SelectItem value="cheque">📝 Cheque</SelectItem>
+                            <SelectItem value="vale_central_gas">🎟️ Vale Central Gás</SelectItem>
+                            <SelectItem value="vale_ultragaz">🎟️ Vale Ultragaz</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
