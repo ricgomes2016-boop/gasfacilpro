@@ -34,13 +34,14 @@ import { atualizarEstoqueCompra } from "@/services/estoqueService";
 import { OutlookImportButton } from "@/components/estoque/OutlookImportButton";
 import { ComprasListaTableEstoque } from "@/components/estoque/ComprasListaTableEstoque";
 import { ConfirmarNovosProdutosDialog, NovoProdutoCandidato, DecisaoItem } from "@/components/estoque/ConfirmarNovosProdutosDialog";
+import { registrarPagamentoCompra, reverterPagamentoCompra, type FormaPagamentoCompra } from "@/services/compraFinanceiroService";
 
 interface Compra {
   id: string;
   valor_total: number;
   valor_frete: number | null;
   status: string;
-  data_prevista: string | null;
+  
   data_compra: string | null;
   data_pagamento: string | null;
   numero_nota_fiscal: string | null;
@@ -136,11 +137,30 @@ export default function Compras() {
     numero_nota_fiscal: "",
     chave_nfe: "",
     data_compra: getBrasiliaDateString(),
-    data_prevista: "",
     data_pagamento: "",
     valor_frete: "",
     observacoes: "",
   });
+
+  const [pagamento, setPagamento] = useState<{
+    situacao: "avista" | "aprazo";
+    forma: FormaPagamentoCompra;
+    conta_bancaria_id: string;
+    parcelas: number;
+    numero_cheque: string;
+    banco_cheque: string;
+    bom_para: string;
+  }>({
+    situacao: "avista",
+    forma: "dinheiro",
+    conta_bancaria_id: "",
+    parcelas: 1,
+    numero_cheque: "",
+    banco_cheque: "",
+    bom_para: "",
+  });
+
+  const [contasBancarias, setContasBancarias] = useState<Array<{ id: string; nome: string; banco: string | null; saldo_atual: number | null }>>([]);
 
   const [itens, setItens] = useState<ItemCompra[]>([]);
   const [novoItem, setNovoItem] = useState({ produto_id: "", quantidade: "1", preco_unitario: "" });
@@ -185,6 +205,16 @@ export default function Compras() {
     setProdutos(data || []);
   };
 
+  const fetchContasBancarias = async () => {
+    let q = supabase
+      .from("contas_bancarias")
+      .select("id, nome, banco, saldo_atual")
+      .eq("ativo", true);
+    if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+    const { data } = await q.order("nome");
+    setContasBancarias((data || []) as any);
+  };
+
   useEffect(() => {
     fetchFornecedores();
   }, []);
@@ -192,6 +222,7 @@ export default function Compras() {
   useEffect(() => {
     fetchCompras();
     fetchProdutos();
+    fetchContasBancarias();
   }, [unidadeAtual?.id]);
 
   const subtotalItens = itens.reduce((a, i) => a + i.preco_unitario * i.quantidade, 0);
@@ -218,7 +249,11 @@ export default function Compras() {
     setForm({
       fornecedor_id: "", fornecedor_novo: null, numero_nota_fiscal: "", chave_nfe: "",
       data_compra: getBrasiliaDateString(),
-      data_prevista: "", data_pagamento: "", valor_frete: "", observacoes: "",
+      data_pagamento: "", valor_frete: "", observacoes: "",
+    });
+    setPagamento({
+      situacao: "avista", forma: "dinheiro", conta_bancaria_id: "",
+      parcelas: 1, numero_cheque: "", banco_cheque: "", bom_para: "",
     });
     setItens([]);
     setNovoItem({ produto_id: "", quantidade: "1", preco_unitario: "" });
@@ -320,7 +355,10 @@ export default function Compras() {
       numero_nota_fiscal: form.numero_nota_fiscal || null,
       chave_nfe: form.chave_nfe || null,
       data_compra: form.data_compra || null,
-      data_prevista: form.data_prevista || null,
+      forma_pagamento: pagamento.situacao === "aprazo" ? "a_prazo" : pagamento.forma,
+      origem_pagamento: pagamento.situacao === "aprazo" ? "fatura" : (pagamento.forma === "dinheiro" ? "caixa" : (pagamento.forma === "credito" ? "fatura" : "banco")),
+      conta_bancaria_id: pagamento.conta_bancaria_id || null,
+      parcelas: pagamento.parcelas || 1,
       data_pagamento: form.data_pagamento || null,
       observacoes: form.observacoes || null,
       status: "pendente",
@@ -383,18 +421,28 @@ export default function Compras() {
       );
     }
 
-    // Criar conta a pagar se tem data de pagamento
-    if (form.data_pagamento && compra) {
+    // Rota financeira do pagamento
+    if (compra) {
       const fornecedor = fornecedores.find(f => f.id === fornecedorId);
-      await supabase.from("contas_pagar").insert({
-        descricao: `Compra NF ${form.numero_nota_fiscal || "S/N"} - ${fornecedor?.razao_social || form.fornecedor_novo?.razao_social || ""}`,
-        fornecedor: fornecedor?.razao_social || form.fornecedor_novo?.razao_social || "",
-        valor: totalCompra,
-        vencimento: form.data_pagamento,
-        categoria: "compras",
-        unidade_id: unidadeAtual?.id || null,
-        status: "pendente",
-      });
+      const fornecedorNome = fornecedor?.razao_social || form.fornecedor_novo?.razao_social || "";
+      const descricao = `Compra NF ${form.numero_nota_fiscal || "S/N"} - ${fornecedorNome}`;
+      try {
+        await registrarPagamentoCompra(compra.id, {
+          forma: pagamento.situacao === "aprazo" ? "a_prazo" : pagamento.forma,
+          valor: totalCompra,
+          data_pagamento: form.data_pagamento || form.data_compra || null,
+          conta_bancaria_id: pagamento.conta_bancaria_id || null,
+          parcelas: pagamento.parcelas,
+          numero_cheque: pagamento.numero_cheque || null,
+          banco_cheque: pagamento.banco_cheque || null,
+          bom_para: pagamento.bom_para || null,
+          descricao,
+          fornecedor: fornecedorNome,
+          unidade_id: unidadeAtual?.id || null,
+        });
+      } catch (e: any) {
+        toast.error("Compra salva, mas houve erro no lançamento financeiro: " + e.message);
+      }
     }
 
     toast.success("Compra registrada!");
@@ -403,10 +451,18 @@ export default function Compras() {
     fetchCompras();
     fetchFornecedores();
     fetchProdutos();
+    fetchContasBancarias();
   };
 
   const handleDeleteCompra = async () => {
     if (!deleteId) return;
+
+    // Reverter lançamentos financeiros antes de apagar a compra
+    try {
+      await reverterPagamentoCompra(deleteId);
+    } catch (e: any) {
+      console.error("Erro ao reverter financeiro da compra:", e);
+    }
 
     // Delete items first then the purchase
     const { error: itensErr } = await supabase.from("compra_itens").delete().eq("compra_id", deleteId);
@@ -415,9 +471,11 @@ export default function Compras() {
     const { error } = await supabase.from("compras").delete().eq("id", deleteId);
     if (error) { toast.error("Erro ao excluir: " + error.message); return; }
 
+
     toast.success("Compra excluída!");
     setDeleteId(null);
     fetchCompras();
+    fetchContasBancarias();
   };
 
   const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1205,18 +1263,14 @@ export default function Compras() {
                   />
                 </div>
 
-                {/* Datas */}
-                <div className="grid grid-cols-3 gap-4">
+                {/* Data da compra */}
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Data da Compra</Label>
                     <Input type="date" value={form.data_compra} onChange={e => setForm({ ...form, data_compra: e.target.value })} />
                   </div>
                   <div>
-                    <Label>Previsão Entrega</Label>
-                    <Input type="date" value={form.data_prevista} onChange={e => setForm({ ...form, data_prevista: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Data Pagamento</Label>
+                    <Label>{pagamento.situacao === "aprazo" ? "Vencimento" : "Data do Pagamento"}</Label>
                     <Input type="date" value={form.data_pagamento} onChange={e => setForm({ ...form, data_pagamento: e.target.value })} />
                   </div>
                 </div>
@@ -1318,11 +1372,134 @@ export default function Compras() {
                   <Textarea value={form.observacoes} onChange={e => setForm({ ...form, observacoes: e.target.value })} placeholder="Observações adicionais..." rows={2} />
                 </div>
 
-                {form.data_pagamento && (
-                  <p className="text-xs text-muted-foreground bg-muted p-2 rounded">
-                    ℹ️ Uma conta a pagar será criada automaticamente com vencimento em {new Date(form.data_pagamento + "T12:00:00").toLocaleDateString("pt-BR")}.
-                  </p>
-                )}
+                {/* Pagamento */}
+                <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" /> Pagamento
+                  </h3>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant={pagamento.situacao === "avista" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPagamento({ ...pagamento, situacao: "avista" })}
+                    >
+                      À vista
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={pagamento.situacao === "aprazo" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPagamento({ ...pagamento, situacao: "aprazo", forma: "a_prazo" })}
+                    >
+                      A prazo
+                    </Button>
+                  </div>
+
+                  {pagamento.situacao === "avista" && (
+                    <>
+                      <div>
+                        <Label className="text-xs">Forma de pagamento</Label>
+                        <Select
+                          value={pagamento.forma}
+                          onValueChange={(v: FormaPagamentoCompra) =>
+                            setPagamento({ ...pagamento, forma: v, conta_bancaria_id: "" })
+                          }
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="dinheiro">💵 Dinheiro (caixa da loja)</SelectItem>
+                            <SelectItem value="pix">⚡ PIX</SelectItem>
+                            <SelectItem value="ted">🏦 TED / Transferência</SelectItem>
+                            <SelectItem value="debito">💳 Cartão de Débito</SelectItem>
+                            <SelectItem value="credito">💳 Cartão de Crédito</SelectItem>
+                            <SelectItem value="boleto">📄 Boleto pago</SelectItem>
+                            <SelectItem value="cheque">📝 Cheque</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {pagamento.forma === "dinheiro" && (
+                        <div className="text-xs bg-amber-500/10 border border-amber-500/30 rounded p-2 text-amber-900 dark:text-amber-200">
+                          A saída será lançada no caixa da loja ({unidadeAtual?.nome || "unidade atual"}) e reduzirá o saldo em caixa.
+                        </div>
+                      )}
+
+                      {["pix", "ted", "debito", "boleto", "credito", "cheque"].includes(pagamento.forma) && (
+                        <div>
+                          <Label className="text-xs">
+                            {pagamento.forma === "credito"
+                              ? "Cartão / conta da fatura"
+                              : pagamento.forma === "cheque"
+                              ? "Conta bancária (opcional)"
+                              : "Conta bancária de origem"}
+                          </Label>
+                          <Select
+                            value={pagamento.conta_bancaria_id || "nenhum"}
+                            onValueChange={(v) => setPagamento({ ...pagamento, conta_bancaria_id: v === "nenhum" ? "" : v })}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
+                            <SelectContent>
+                              {pagamento.forma === "cheque" && <SelectItem value="nenhum">— Sem vínculo bancário —</SelectItem>}
+                              {contasBancarias.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.banco || c.nome} · {c.nome}
+                                  {c.saldo_atual != null && ` · saldo R$ ${Number(c.saldo_atual).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {contasBancarias.length === 0 && (
+                            <p className="text-xs text-destructive mt-1">
+                              Nenhuma conta bancária ativa nesta unidade. Cadastre em Financeiro › Contas Bancárias.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {pagamento.forma === "credito" && (
+                        <div>
+                          <Label className="text-xs">Parcelas</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={24}
+                            value={pagamento.parcelas}
+                            onChange={(e) => setPagamento({ ...pagamento, parcelas: Math.max(1, Number(e.target.value) || 1) })}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Serão criadas {pagamento.parcelas}x contas a pagar mensais.
+                          </p>
+                        </div>
+                      )}
+
+                      {pagamento.forma === "cheque" && (
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <Label className="text-xs">Nº cheque</Label>
+                            <Input value={pagamento.numero_cheque} onChange={(e) => setPagamento({ ...pagamento, numero_cheque: e.target.value })} />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Banco</Label>
+                            <Input value={pagamento.banco_cheque} onChange={(e) => setPagamento({ ...pagamento, banco_cheque: e.target.value })} />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Bom para</Label>
+                            <Input type="date" value={pagamento.bom_para} onChange={(e) => setPagamento({ ...pagamento, bom_para: e.target.value })} />
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {pagamento.situacao === "aprazo" && (
+                    <div className="text-xs bg-muted p-2 rounded">
+                      Uma conta a pagar será criada com vencimento em{" "}
+                      <strong>{form.data_pagamento ? new Date(form.data_pagamento + "T12:00:00").toLocaleDateString("pt-BR") : "— informe a data acima"}</strong>.
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="outline" onClick={() => { setOpen(false); resetForm(); }}>Cancelar</Button>
