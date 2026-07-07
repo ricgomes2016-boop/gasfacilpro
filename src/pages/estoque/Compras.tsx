@@ -410,18 +410,28 @@ export default function Compras() {
       );
     }
 
-    // Criar conta a pagar se tem data de pagamento
-    if (form.data_pagamento && compra) {
+    // Rota financeira do pagamento
+    if (compra) {
       const fornecedor = fornecedores.find(f => f.id === fornecedorId);
-      await supabase.from("contas_pagar").insert({
-        descricao: `Compra NF ${form.numero_nota_fiscal || "S/N"} - ${fornecedor?.razao_social || form.fornecedor_novo?.razao_social || ""}`,
-        fornecedor: fornecedor?.razao_social || form.fornecedor_novo?.razao_social || "",
-        valor: totalCompra,
-        vencimento: form.data_pagamento,
-        categoria: "compras",
-        unidade_id: unidadeAtual?.id || null,
-        status: "pendente",
-      });
+      const fornecedorNome = fornecedor?.razao_social || form.fornecedor_novo?.razao_social || "";
+      const descricao = `Compra NF ${form.numero_nota_fiscal || "S/N"} - ${fornecedorNome}`;
+      try {
+        await registrarPagamentoCompra(compra.id, {
+          forma: pagamento.situacao === "aprazo" ? "a_prazo" : pagamento.forma,
+          valor: totalCompra,
+          data_pagamento: form.data_pagamento || form.data_compra || null,
+          conta_bancaria_id: pagamento.conta_bancaria_id || null,
+          parcelas: pagamento.parcelas,
+          numero_cheque: pagamento.numero_cheque || null,
+          banco_cheque: pagamento.banco_cheque || null,
+          bom_para: pagamento.bom_para || null,
+          descricao,
+          fornecedor: fornecedorNome,
+          unidade_id: unidadeAtual?.id || null,
+        });
+      } catch (e: any) {
+        toast.error("Compra salva, mas houve erro no lançamento financeiro: " + e.message);
+      }
     }
 
     toast.success("Compra registrada!");
