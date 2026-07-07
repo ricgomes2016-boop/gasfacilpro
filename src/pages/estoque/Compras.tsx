@@ -1428,13 +1428,15 @@ export default function Compras() {
                         </div>
                       )}
 
-                      {["pix", "ted", "debito", "boleto", "credito", "cheque"].includes(pagamento.forma) && (
+                      {["pix", "ted", "debito", "boleto", "credito", "cheque", "vale_central_gas", "vale_ultragaz"].includes(pagamento.forma) && (
                         <div>
                           <Label className="text-xs">
                             {pagamento.forma === "credito"
                               ? "Cartão / conta da fatura"
                               : pagamento.forma === "cheque"
                               ? "Conta bancária (opcional)"
+                              : pagamento.forma === "vale_central_gas" || pagamento.forma === "vale_ultragaz"
+                              ? "Conta do vale (ex.: Vale Gás)"
                               : "Conta bancária de origem"}
                           </Label>
                           <Select
