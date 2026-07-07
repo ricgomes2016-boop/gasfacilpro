@@ -8,6 +8,8 @@ export type FormaPagamentoCompra =
   | "credito"
   | "boleto"
   | "cheque"
+  | "vale_central_gas"
+  | "vale_ultragaz"
   | "a_prazo";
 
 export interface DadosPagamentoCompra {
@@ -35,6 +37,8 @@ const LABEL: Record<FormaPagamentoCompra, string> = {
   credito: "Cartão de Crédito",
   boleto: "Boleto",
   cheque: "Cheque",
+  vale_central_gas: "Vale Central Gás",
+  vale_ultragaz: "Vale Ultragaz",
   a_prazo: "A prazo",
 };
 
