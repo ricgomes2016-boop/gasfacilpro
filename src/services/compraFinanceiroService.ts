@@ -8,6 +8,8 @@ export type FormaPagamentoCompra =
   | "credito"
   | "boleto"
   | "cheque"
+  | "vale_central_gas"
+  | "vale_ultragaz"
   | "a_prazo";
 
 export interface DadosPagamentoCompra {
@@ -35,6 +37,8 @@ const LABEL: Record<FormaPagamentoCompra, string> = {
   credito: "Cartão de Crédito",
   boleto: "Boleto",
   cheque: "Cheque",
+  vale_central_gas: "Vale Central Gás",
+  vale_ultragaz: "Vale Ultragaz",
   a_prazo: "A prazo",
 };
 
@@ -65,8 +69,8 @@ export async function registrarPagamentoCompra(
     return;
   }
 
-  // PIX, TED, Débito, Boleto pago → movimentacoes_bancarias (saída)
-  if (["pix", "ted", "debito", "boleto"].includes(d.forma)) {
+  // PIX, TED, Débito, Boleto, Vale Central Gás, Vale Ultragaz → movimentacoes_bancarias (saída)
+  if (["pix", "ted", "debito", "boleto", "vale_central_gas", "vale_ultragaz"].includes(d.forma)) {
     if (!d.conta_bancaria_id) throw new Error("Selecione a conta bancária de origem.");
 
     const { data: conta } = await supabase
