@@ -40,7 +40,7 @@ interface Compra {
   valor_total: number;
   valor_frete: number | null;
   status: string;
-  data_prevista: string | null;
+  
   data_compra: string | null;
   data_pagamento: string | null;
   numero_nota_fiscal: string | null;
