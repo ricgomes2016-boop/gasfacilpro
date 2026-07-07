@@ -252,18 +252,16 @@ ${TABLES_SCHEMA}`,
       if (fnName === "generate_sql") {
         const sqlQuery = args.sql || "";
         queryDescription = args.description || "";
-        if (sqlQuery.trim().toUpperCase().startsWith("SELECT")) {
-          // SECURITY: SQL must reference validated unidade_id to prevent cross-tenant leakage.
-          if (!unidade_id || !sqlQuery.includes(String(unidade_id))) {
-            queryError = "Consulta rejeitada: filtro de unidade obrigatório.";
-          } else {
-            try {
-              const { data, error } = await supabase.rpc("execute_readonly_query", { query_text: sqlQuery });
-              if (error) queryError = error.message;
-              else queryData = data;
-            } catch (e) {
-              queryError = e instanceof Error ? e.message : "Erro";
-            }
+        const validationError = validateEntregadorSql(sqlQuery, unidade_id);
+        if (validationError) {
+          queryError = validationError;
+        } else {
+          try {
+            const { data, error } = await supabase.rpc("execute_readonly_query", { query_text: sqlQuery });
+            if (error) queryError = error.message;
+            else queryData = data;
+          } catch (e) {
+            queryError = e instanceof Error ? e.message : "Erro";
           }
         }
       } else {
@@ -489,4 +487,28 @@ async function executeAction(supabase: any, action: string, params: any, unidade
     console.error(`Action error [${action}]:`, e);
     return `❌ Erro: ${e instanceof Error ? e.message : "erro desconhecido"}`;
   }
+}
+
+function validateEntregadorSql(sqlQuery: string, unidadeId: string | null | undefined): string | null {
+  const blocked = "Consulta rejeitada: filtro de unidade obrigatório.";
+  const normalized = (sqlQuery || "").trim();
+  if (!normalized) return blocked;
+  const upper = normalized.toUpperCase();
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!unidadeId || !UUID_RE.test(String(unidadeId))) return blocked;
+  if (!upper.startsWith("SELECT") && !upper.startsWith("WITH")) return blocked;
+  if (normalized.includes(";") || normalized.includes("--") || normalized.includes("/*") || normalized.includes("*/")) return blocked;
+  if (/\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|MERGE|CALL|DO|EXECUTE|COPY|SET|RESET|VACUUM|ANALYZE|LOCK|LISTEN|NOTIFY|BEGIN|COMMIT|ROLLBACK|SAVEPOINT)\b/i.test(normalized)) return blocked;
+  if (!/\bWHERE\b/i.test(normalized)) return blocked;
+  const eq = new RegExp(`unidade_id\\s*=\\s*'${String(unidadeId).replace(/-/g, "\\-")}'`, "i");
+  if (!eq.test(normalized)) return blocked;
+  const foreignUuids = normalized.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi) || [];
+  for (const u of foreignUuids) {
+    if (u.toLowerCase() !== String(unidadeId).toLowerCase()) return blocked;
+  }
+  const fromJoinCount = (normalized.match(/\b(FROM|JOIN)\b/gi) || []).length;
+  const unidadeIdMentions = (normalized.match(/\bunidade_id\b/gi) || []).length;
+  if (unidadeIdMentions < fromJoinCount) return blocked;
+  if (/\bSELECT\b[\s\S]*\bSELECT\b/i.test(normalized)) return blocked;
+  return null;
 }

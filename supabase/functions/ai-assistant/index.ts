@@ -840,14 +840,32 @@ function validateGeneratedSql(sqlQuery: string, unidadeId: string): string | nul
   const normalized = sqlQuery.trim();
   const upper = normalized.toUpperCase();
   const blocked = "Consulta rejeitada: filtro de unidade obrigatorio.";
-  if (!upper.startsWith("SELECT")) return blocked;
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(unidadeId)) return blocked;
+  if (!upper.startsWith("SELECT") && !upper.startsWith("WITH")) return blocked;
   if (normalized.includes(";") || normalized.includes("--") || normalized.includes("/*") || normalized.includes("*/")) {
     return blocked;
   }
-  if (/\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|MERGE|CALL|DO|EXECUTE)\b/i.test(normalized)) {
+  if (/\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|MERGE|CALL|DO|EXECUTE|COPY|SET|RESET|VACUUM|ANALYZE|LOCK|LISTEN|NOTIFY|BEGIN|COMMIT|ROLLBACK|SAVEPOINT)\b/i.test(normalized)) {
     return blocked;
   }
-  if (!normalized.includes(unidadeId)) return blocked;
+  // Must contain a WHERE clause
+  if (!/\bWHERE\b/i.test(normalized)) return blocked;
+  // Must contain an equality predicate to caller's unidade_id (quoted literal)
+  const eq = new RegExp(`unidade_id\\s*=\\s*'${unidadeId.replace(/-/g, "\\-")}'`, "i");
+  if (!eq.test(normalized)) return blocked;
+  // Reject any other UUIDs anywhere in the query (prevents cross-tenant literals)
+  const foreignUuids = normalized.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi) || [];
+  for (const u of foreignUuids) {
+    if (u.toLowerCase() !== unidadeId.toLowerCase()) return blocked;
+  }
+  // Require one unidade_id filter reference per FROM/JOIN target to prevent
+  // unscoped joins leaking cross-tenant rows.
+  const fromJoinCount = (normalized.match(/\b(FROM|JOIN)\b/gi) || []).length;
+  const unidadeIdMentions = (normalized.match(/\bunidade_id\b/gi) || []).length;
+  if (unidadeIdMentions < fromJoinCount) return blocked;
+  // Disallow subqueries / CTEs which our simple validator cannot fully analyze
+  if (/\bSELECT\b[\s\S]*\bSELECT\b/i.test(normalized)) return blocked;
   return null;
 }
 
