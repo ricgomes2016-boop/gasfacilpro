@@ -457,12 +457,20 @@ export default function Compras() {
   const handleDeleteCompra = async () => {
     if (!deleteId) return;
 
+    // Reverter lançamentos financeiros antes de apagar a compra
+    try {
+      await reverterPagamentoCompra(deleteId);
+    } catch (e: any) {
+      console.error("Erro ao reverter financeiro da compra:", e);
+    }
+
     // Delete items first then the purchase
     const { error: itensErr } = await supabase.from("compra_itens").delete().eq("compra_id", deleteId);
     if (itensErr) { toast.error("Erro ao excluir itens: " + itensErr.message); return; }
 
     const { error } = await supabase.from("compras").delete().eq("id", deleteId);
     if (error) { toast.error("Erro ao excluir: " + error.message); return; }
+
 
     toast.success("Compra excluída!");
     setDeleteId(null);
