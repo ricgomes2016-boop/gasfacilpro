@@ -1242,18 +1242,14 @@ export default function Compras() {
                   />
                 </div>
 
-                {/* Datas */}
-                <div className="grid grid-cols-3 gap-4">
+                {/* Data da compra */}
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Data da Compra</Label>
                     <Input type="date" value={form.data_compra} onChange={e => setForm({ ...form, data_compra: e.target.value })} />
                   </div>
                   <div>
-                    <Label>Previsão Entrega</Label>
-                    <Input type="date" value={form.data_prevista} onChange={e => setForm({ ...form, data_prevista: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Data Pagamento</Label>
+                    <Label>{pagamento.situacao === "aprazo" ? "Vencimento" : "Data do Pagamento"}</Label>
                     <Input type="date" value={form.data_pagamento} onChange={e => setForm({ ...form, data_pagamento: e.target.value })} />
                   </div>
                 </div>
