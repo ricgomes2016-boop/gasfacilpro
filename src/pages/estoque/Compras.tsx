@@ -1351,11 +1351,134 @@ export default function Compras() {
                   <Textarea value={form.observacoes} onChange={e => setForm({ ...form, observacoes: e.target.value })} placeholder="Observações adicionais..." rows={2} />
                 </div>
 
-                {form.data_pagamento && (
-                  <p className="text-xs text-muted-foreground bg-muted p-2 rounded">
-                    ℹ️ Uma conta a pagar será criada automaticamente com vencimento em {new Date(form.data_pagamento + "T12:00:00").toLocaleDateString("pt-BR")}.
-                  </p>
-                )}
+                {/* Pagamento */}
+                <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" /> Pagamento
+                  </h3>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant={pagamento.situacao === "avista" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPagamento({ ...pagamento, situacao: "avista" })}
+                    >
+                      À vista
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={pagamento.situacao === "aprazo" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPagamento({ ...pagamento, situacao: "aprazo", forma: "a_prazo" })}
+                    >
+                      A prazo
+                    </Button>
+                  </div>
+
+                  {pagamento.situacao === "avista" && (
+                    <>
+                      <div>
+                        <Label className="text-xs">Forma de pagamento</Label>
+                        <Select
+                          value={pagamento.forma}
+                          onValueChange={(v: FormaPagamentoCompra) =>
+                            setPagamento({ ...pagamento, forma: v, conta_bancaria_id: "" })
+                          }
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="dinheiro">💵 Dinheiro (caixa da loja)</SelectItem>
+                            <SelectItem value="pix">⚡ PIX</SelectItem>
+                            <SelectItem value="ted">🏦 TED / Transferência</SelectItem>
+                            <SelectItem value="debito">💳 Cartão de Débito</SelectItem>
+                            <SelectItem value="credito">💳 Cartão de Crédito</SelectItem>
+                            <SelectItem value="boleto">📄 Boleto pago</SelectItem>
+                            <SelectItem value="cheque">📝 Cheque</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {pagamento.forma === "dinheiro" && (
+                        <div className="text-xs bg-amber-500/10 border border-amber-500/30 rounded p-2 text-amber-900 dark:text-amber-200">
+                          A saída será lançada no caixa da loja ({unidadeAtual?.nome || "unidade atual"}) e reduzirá o saldo em caixa.
+                        </div>
+                      )}
+
+                      {["pix", "ted", "debito", "boleto", "credito", "cheque"].includes(pagamento.forma) && (
+                        <div>
+                          <Label className="text-xs">
+                            {pagamento.forma === "credito"
+                              ? "Cartão / conta da fatura"
+                              : pagamento.forma === "cheque"
+                              ? "Conta bancária (opcional)"
+                              : "Conta bancária de origem"}
+                          </Label>
+                          <Select
+                            value={pagamento.conta_bancaria_id || "nenhum"}
+                            onValueChange={(v) => setPagamento({ ...pagamento, conta_bancaria_id: v === "nenhum" ? "" : v })}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
+                            <SelectContent>
+                              {pagamento.forma === "cheque" && <SelectItem value="nenhum">— Sem vínculo bancário —</SelectItem>}
+                              {contasBancarias.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.banco || c.nome} · {c.nome}
+                                  {c.saldo_atual != null && ` · saldo R$ ${Number(c.saldo_atual).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {contasBancarias.length === 0 && (
+                            <p className="text-xs text-destructive mt-1">
+                              Nenhuma conta bancária ativa nesta unidade. Cadastre em Financeiro › Contas Bancárias.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {pagamento.forma === "credito" && (
+                        <div>
+                          <Label className="text-xs">Parcelas</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={24}
+                            value={pagamento.parcelas}
+                            onChange={(e) => setPagamento({ ...pagamento, parcelas: Math.max(1, Number(e.target.value) || 1) })}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Serão criadas {pagamento.parcelas}x contas a pagar mensais.
+                          </p>
+                        </div>
+                      )}
+
+                      {pagamento.forma === "cheque" && (
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <Label className="text-xs">Nº cheque</Label>
+                            <Input value={pagamento.numero_cheque} onChange={(e) => setPagamento({ ...pagamento, numero_cheque: e.target.value })} />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Banco</Label>
+                            <Input value={pagamento.banco_cheque} onChange={(e) => setPagamento({ ...pagamento, banco_cheque: e.target.value })} />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Bom para</Label>
+                            <Input type="date" value={pagamento.bom_para} onChange={(e) => setPagamento({ ...pagamento, bom_para: e.target.value })} />
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {pagamento.situacao === "aprazo" && (
+                    <div className="text-xs bg-muted p-2 rounded">
+                      Uma conta a pagar será criada com vencimento em{" "}
+                      <strong>{form.data_pagamento ? new Date(form.data_pagamento + "T12:00:00").toLocaleDateString("pt-BR") : "— informe a data acima"}</strong>.
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="outline" onClick={() => { setOpen(false); resetForm(); }}>Cancelar</Button>
