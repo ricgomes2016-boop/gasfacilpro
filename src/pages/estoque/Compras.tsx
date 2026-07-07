@@ -205,6 +205,16 @@ export default function Compras() {
     setProdutos(data || []);
   };
 
+  const fetchContasBancarias = async () => {
+    let q = supabase
+      .from("contas_bancarias")
+      .select("id, nome, banco, saldo_atual")
+      .eq("ativo", true);
+    if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+    const { data } = await q.order("nome");
+    setContasBancarias((data || []) as any);
+  };
+
   useEffect(() => {
     fetchFornecedores();
   }, []);
@@ -212,6 +222,7 @@ export default function Compras() {
   useEffect(() => {
     fetchCompras();
     fetchProdutos();
+    fetchContasBancarias();
   }, [unidadeAtual?.id]);
 
   const subtotalItens = itens.reduce((a, i) => a + i.preco_unitario * i.quantidade, 0);
