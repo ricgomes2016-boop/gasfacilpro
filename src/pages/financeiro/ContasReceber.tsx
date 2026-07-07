@@ -47,6 +47,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 import { ClienteAutocompleteInput } from "@/components/clientes/ClienteAutocompleteInput";
 import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
+import { LiquidarRecebivelModal } from "@/components/financeiro/LiquidarRecebivelModal";
 
 interface ContaReceber {
   id: string;
