@@ -1,80 +1,85 @@
 ## Objetivo
 
-Adicionar pagamento profissional no cadastro de compras (Estoque › Compras › Nova Compra), com escolha de origem do dinheiro (banco / caixa da loja), e remover o campo "Previsão Entrega".
+Deixar o módulo Financeiro no nível "premium":
 
-## Mudanças na tela "Registrar Nova Compra"
+1. Liquidar/Receber em Contas a Receber deve reaproveitar o **fluxo completo de pagamento** já usado em Nova Venda (seleção de operadora + terminal + parcelas para cartão, seleção de chave PIX + conta bancária, seleção de banco para transferência etc.).
+2. Contas geradas por vendas em **cartão crédito, cartão débito, PIX e PIX maquininha** devem nascer **já liquidadas** em Contas a Receber (não ficam "pendentes"). Somente **Fiado** (e Vale Gás) continuam pendentes e, ao serem quitados depois, seguem o mesmo fluxo completo de pagamento — inclusive podendo ser pagos em cartão/PIX/dinheiro, exatamente como no lançamento de pedido.
+3. Análise + melhorias finas em Contas a Pagar, Fluxo de Caixa e Dashboard Financeiro para acompanhar o novo modelo.
 
-### Remover
-- Campo **Previsão Entrega** (`data_prevista`) — inputs, label e envio ao banco.
+## Diagnóstico atual
 
-### Nova seção "Pagamento"
-Substitui o campo isolado "Data Pagamento" por um bloco completo:
+- `ContasReceber.tsx` já roteia dinheiro → caixa e PIX/cartão → conta bancária via `paymentRoutingService`, mas o modal "Liquidar / Receber" é um formulário minimalista (só forma + valor). Não abre a seleção de operadora, terminal, parcelas nem chave PIX.
+- `isFormaAVista()` em `src/lib/financeiro/formaPagamento.ts` trata **apenas dinheiro e PIX puro** como à vista. Cartão débito, cartão crédito e PIX maquininha são classificados como `a_prazo` e ficam pendentes em Contas a Receber (comentário atual: "recebível do adquirente D+1/D+30, tratado na Conciliação Cartão").
+- Já existem `CardOperatorSelectorModal.tsx` e `PixKeySelectorModal.tsx` (usados em `PaymentSection`, `PDVPayment`, `FinalizarEntrega`, `AcertoEntregador`). Reaproveitáveis.
+- Fluxo de Caixa (`FluxoCaixa.tsx`, `FluxoCaixaConsolidado.tsx`, `FluxoCaixaProjetado.tsx`) e Dashboard Financeiro consomem `contas_receber` + `contas_pagar` + `movimentacoes_*`. Precisam refletir o novo comportamento.
 
-1. **Situação do pagamento** (radio/segmented):
-   - `À vista` (pago no ato) — libera bloco de origem do pagamento
-   - `A prazo` (gerar conta a pagar) — mantém `Data de vencimento` e cria em `contas_pagar` como hoje
-   - `Parcelado` (2ª fase, opcional) — várias parcelas em `contas_pagar`
+## Escopo das mudanças
 
-2. **Forma de pagamento** (select) — quando "À vista":
-   - Dinheiro
-   - PIX
-   - Transferência / TED
-   - Cartão de débito
-   - Cartão de crédito
-   - Boleto pago
-   - Cheque
+### 1. Contas a Receber — liquidar como no Nova Venda
 
-3. **Origem do dinheiro** (condicional à forma):
-   - Se **Dinheiro** → select `Caixa` (usa a sessão de caixa aberta da unidade — `caixa_sessoes` ativa; se não houver, avisa e bloqueia).
-   - Se **PIX / TED / Débito / Boleto** → select `Conta bancária` (lista de `contas_bancarias` ativas da unidade, mostrando banco + saldo atual).
-   - Se **Cartão de crédito** → select conta + campo `Parcelas` (gera lançamento em `contas_pagar` na fatura).
-   - Se **Cheque** → select conta bancária + nº cheque + data bom-para (registra em `cheques` como "emitido").
+Novo componente `src/components/financeiro/LiquidarRecebivelModal.tsx` (ou refator do dialog existente):
 
-4. **Data do pagamento** — default = data da compra.
+- Cabeçalho compacto: cliente, descrição, valor a receber, dias em aberto.
+- Data do recebimento (default hoje, min = data da venda, max = hoje) — igual hoje.
+- Lista de "Formas de pagamento" (multi‑forma, mantendo divisão parcial). Para cada linha:
+  - **Dinheiro** → nada extra (vai para caixa da loja da sessão aberta).
+  - **PIX** → abre `PixKeySelectorModal` para escolher chave/banco. Guarda `conta_bancaria_id` e `chave_pix` no lançamento.
+  - **PIX Maquininha** → abre `CardOperatorSelectorModal` (operadora + terminal), grava `operadora_id`, `terminal_id`, `valor_liquido`, `taxa`, `prazo`. Cria recebível de cartão em `pagamentos_cartao` (mesma pipeline do PDV/Nova Venda) e baixa a linha em Contas a Receber já como recebida.
+  - **Cartão Débito / Cartão Crédito** → `CardOperatorSelectorModal` com campo Parcelas (só para crédito). Também cria `pagamentos_cartao` + parcelas em `fatura_cartao_itens`, marca Contas a Receber como recebida.
+  - **Transferência/TED** → seleção de conta bancária de destino.
+  - **Boleto pago** → seleção de conta bancária.
+  - **Cheque** → conta bancária + nº cheque + bom‑para → grava em `cheques`.
+- Painel resumo: total pago, restante (parcial), destino de cada linha.
+- Botão "Confirmar Recebimento" chama um novo serviço `liquidarRecebivelService.liquidar(contaId, linhas[])` que centraliza:
+  - `movimentacoes_caixa` (dinheiro)
+  - `movimentacoes_bancarias` via `criarMovimentacaoBancaria` (PIX/TED/boleto/cheque)
+  - `pagamentos_cartao` + itens de fatura (cartão + PIX maquininha)
+  - `cheques` (cheque)
+  - Atualiza `contas_receber` para `recebida` com `forma_pagamento` composta, `data_recebimento`, `conta_bancaria_destino_id`.
+- Bulk "Liquidar em lote" ganha o mesmo seletor de destino (operadora/banco/chave) — uma vez, aplicado a todas.
 
-5. Painel resumo mostra: valor, forma, origem e saldo restante após lançamento.
+### 2. Regra "cartão/PIX já nasce liquidado" em Contas a Receber
 
-### Layout
-O dialog atual passa a ter 3 abas ou 3 blocos colapsáveis para não ficar denso:
-`Fornecedor & NF` · `Itens` · `Pagamento`.
-Mantém importar XML / foto NF no topo.
+- `getFormaGrupo()`/`isFormaAVista()` em `src/lib/financeiro/formaPagamento.ts`: passar `cartao_debito`, `cartao_credito`, `pix_maquininha` para `a_vista`. Fiado, Vale Gás, Boleto e Cheque continuam `a_prazo`.
+- Efeitos:
+  - Pedidos pagos em cartão/PIX/dinheiro → `contas_receber` já é inserida com `status = 'recebida'` e `data_recebimento = data_venda` (o `handleSubmit` de `ContasReceber` e os pontos onde o Nova Venda cria a conta já usam essa flag — só precisamos ajustar a lista e revisar `hooks/usePedidos` para não duplicar).
+  - Cartão continua alimentando `pagamentos_cartao` (D+1/D+30) — a "Conciliação de Cartão" fica sendo a visão do recebível do adquirente; **Contas a Receber** vira só a visão do cliente. Isso remove o double‑pending confuso.
+- Somente **Fiado**, **Vale Gás**, **Boleto**, **Cheque** aparecem em "A Receber". Ao liquidar Fiado no novo modal, o cliente pode escolher qualquer forma (cartão etc.), gerando os mesmos side‑effects do pedido — exatamente o que o usuário pediu.
+- Filtro/UI: renomear a aba padrão para "Pendentes (Fiado, Vale, Boleto, Cheque)" e manter aba "Recebidas" mostrando os liquidados históricos (inclusive os que já nascem recebidos).
 
-## Efeitos financeiros (ao salvar)
+### 3. Análise + polimento premium
 
-Dependendo da forma escolhida, além de inserir em `compras`:
+**Contas a Pagar (`ContasPagar.tsx`)**
 
-- **Dinheiro (à vista)** → `movimentacoes_caixa` (tipo `saida`, categoria `compras`, vínculo `compra_id`), reduz saldo do caixa. Marca `compras.pago = true`, `data_pagamento` preenchida.
-- **PIX / TED / Débito / Boleto pago (à vista)** → `movimentacoes_bancarias` (tipo `saida`, `conta_bancaria_id`, vínculo `compra_id`), atualiza `saldo_atual` da conta. Marca `pago = true`.
-- **Cheque** → `cheques` (emitido, `conta_bancaria_id`, `bom_para`) + `contas_pagar` com vencimento igual ao bom-para.
-- **Cartão de crédito** → `contas_pagar` (uma por parcela, categoria `compras`, `conta_bancaria_id` da fatura).
-- **A prazo (sem forma)** → mantém comportamento atual: cria `contas_pagar` com `vencimento = data_pagamento`.
+- Padronizar o mesmo modal "Liquidar" (escolher origem: caixa da loja / conta bancária) reaproveitando o `compraFinanceiroService` recém-criado.
+- Adicionar coluna de status "Programada / Vencida / Paga" com semáforo e agrupamento por vencimento.
+- Suporte a pagamento parcial (paridade com Contas a Receber).
 
-Reversão: no `handleDeleteCompra`, apagar também as `movimentacoes_caixa` / `movimentacoes_bancarias` / `contas_pagar` / `cheques` vinculadas àquela compra (por `compra_id`).
+**Fluxo de Caixa (`FluxoCaixa.tsx` + Consolidado + Projetado)**
 
-## Persistência
+- Considerar que cartão/PIX vira caixa efetivo pela data de liquidação do adquirente (usar `pagamentos_cartao.data_liquidacao`), não pela data do pedido.
+- Fiado projetado: usar `data_vencimento` do `contas_receber` para o Projetado.
+- Dashboard consolidado: KPIs "Entradas confirmadas hoje", "A receber (fiado+vale)", "A vencer 7d/30d", "Recebíveis de cartão em D+X", "Saldo bancário líquido projetado".
 
-Nova migração adiciona à tabela `compras`:
+**Dashboard Financeiro (`DashboardFinanceiro.tsx`)**
 
-- `forma_pagamento text` (dinheiro | pix | ted | debito | credito | boleto | cheque | a_prazo | parcelado)
-- `origem_pagamento text` (caixa | banco | fatura)
-- `conta_bancaria_id uuid` → `contas_bancarias(id)` (nullable)
-- `caixa_sessao_id uuid` → `caixa_sessoes(id)` (nullable)
-- `parcelas integer default 1`
-- Índices em `conta_bancaria_id` e `caixa_sessao_id`.
+- Cards: Saldo Consolidado (caixa + bancos), Entradas do dia, Saídas do dia, Recebíveis do cartão em pipeline, Inadimplência fiado (>30d, >60d, >90d), Ticket médio de recebimento.
+- Gráfico de barras entradas × saídas dos últimos 30 dias.
+- Alertas: contas vencendo em 3 dias, sessão de caixa aberta há mais de X horas, chave PIX sem conta vinculada, operadora sem taxa cadastrada.
 
-Vínculo reverso já existente:
-- `movimentacoes_caixa.compra_id` e `movimentacoes_bancarias.compra_id` — criar coluna se não existir.
-- `contas_pagar.compra_id` — criar coluna se não existir (para reversão).
+## Arquivos afetados
 
-RLS: manter policies existentes de `compras`; novas colunas herdam. GRANTs já existem nas tabelas afetadas.
-
-## Arquivos a alterar
-
-- `src/pages/estoque/Compras.tsx` — remover `data_prevista`, adicionar seção Pagamento, novo estado `pagamento`, novo `handleSave` chamando helper de rota financeira, ajuste do `handleDeleteCompra` para limpar movimentações.
-- **Novo** `src/services/compraFinanceiroService.ts` — funções `registrarPagamentoCompra(compraId, dadosPagamento)` e `reverterPagamentoCompra(compraId)`, centralizando a criação/remoção de `movimentacoes_caixa`, `movimentacoes_bancarias`, `contas_pagar` e `cheques`.
-- **Nova migração** — colunas em `compras` + colunas `compra_id` faltantes.
+- `src/lib/financeiro/formaPagamento.ts` — reclassificar cartões e PIX maquininha como à vista.
+- `src/pages/financeiro/ContasReceber.tsx` — substituir o dialog "Liquidar / Receber" pelo novo componente; ajustar filtros padrão e mensagens.
+- **Novo** `src/components/financeiro/LiquidarRecebivelModal.tsx` — modal completo, multi-forma, com selects de operadora/PIX/banco.
+- **Novo** `src/services/liquidarRecebivelService.ts` — centraliza os side-effects (`movimentacoes_caixa`, `movimentacoes_bancarias`, `pagamentos_cartao`, `cheques`, update em `contas_receber`).
+- `src/pages/financeiro/ContasPagar.tsx` — modal de liquidação com escolha caixa/banco (reuso do padrão de Compras).
+- `src/pages/financeiro/FluxoCaixa.tsx`, `FluxoCaixaConsolidado.tsx`, `FluxoCaixaProjetado.tsx` — usar `pagamentos_cartao.data_liquidacao` para entradas de cartão; separar "confirmado" vs "projetado".
+- `src/pages/financeiro/DashboardFinanceiro.tsx` — novos KPIs, gráficos e alertas.
+- (Sem migração de schema — todas as colunas necessárias já existem: `pagamentos_cartao.*`, `contas_receber.conta_bancaria_destino_id`, `contas_receber.data_recebimento`, `cheques.*`.)
 
 ## Fora de escopo
 
-- Não altera a listagem de compras nem KPIs (só o card `Total em Compras` continua igual).
-- Não muda o fluxo de importação XML — apenas herda os novos campos com defaults (`a_prazo` se `data_pagamento` foi preenchida, senão vazio para o usuário decidir).
+- Não altera a criação de pedido em si (Nova Venda continua como está — só passa a marcar a conta como recebida por causa da mudança em `isFormaAVista`).
+- Não mexe em Vale Gás nem no fluxo de Compras (já refatorado).
+- Não muda regras de RLS nem cria tabelas novas.

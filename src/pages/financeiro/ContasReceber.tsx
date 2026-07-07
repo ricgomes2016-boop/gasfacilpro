@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Wallet, Search, Plus, AlertCircle, CheckCircle2, Clock, MoreHorizontal,
-  Pencil, Trash2, DollarSign, Download, X,
+  Pencil, Trash2, DollarSign, Download, X, CreditCard,
   Banknote, CheckSquare, RefreshCw, Eye, SlidersHorizontal,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -47,6 +47,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 import { ClienteAutocompleteInput } from "@/components/clientes/ClienteAutocompleteInput";
 import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
+import { LiquidarRecebivelModal } from "@/components/financeiro/LiquidarRecebivelModal";
 
 interface ContaReceber {
   id: string;
@@ -597,10 +598,26 @@ export default function ContasReceber() {
   };
 
 
+  // Formas que representam RECEBÍVEIS DO ADQUIRENTE (cartão/pix maq/Gás do Povo).
+  // Elas vivem em "Conciliação Cartão", não devem poluir "A Receber" enquanto pendentes.
+  // Aparecem aqui só quando já estão como `recebida` (histórico).
+  const FORMAS_ADQUIRENTE = new Set([
+    "cartao_credito",
+    "cartao_debito",
+    "credito",
+    "debito",
+    "pix_maquininha",
+    "gas_do_povo",
+  ]);
+
   // Filtragem unificada (busca + período + status + formas)
   const baseFiltered = useMemo(() => {
     const termo = filtroNome.toLowerCase();
     return contas.filter(c => {
+      // Oculta recebíveis do adquirente enquanto pendentes (vivem em Conciliação Cartão).
+      if (c.status !== "recebida" && FORMAS_ADQUIRENTE.has((c.forma_pagamento || "").toLowerCase())) {
+        return false;
+      }
       const matchNome = !filtroNome
         || c.cliente.toLowerCase().includes(termo)
         || (c.parceiro_nome || "").toLowerCase().includes(termo)
@@ -622,6 +639,7 @@ export default function ContasReceber() {
       return matchNome && matchDataIni && matchDataFim && matchStatus && matchForma;
     });
   }, [contas, filtroNome, dataInicial, dataFinal, filtroStatus, filtroFormas, hoje]);
+
 
   const filtered = baseFiltered;
 
@@ -1088,6 +1106,22 @@ export default function ContasReceber() {
           </div>
         )}
 
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-info/10 border border-info/20 text-xs">
+          <CreditCard className="h-4 w-4 text-info shrink-0 mt-0.5" />
+          <span className="text-muted-foreground">
+            Recebíveis de <strong>Cartão de Crédito, Débito, PIX Maquininha e Gás do Povo</strong> não aparecem aqui como pendentes — eles são gerenciados em{" "}
+            <button
+              type="button"
+              className="text-info underline underline-offset-2 font-medium"
+              onClick={() => setConferenciaDialogOpen(true)}
+            >
+              Conferência de Cartão
+            </button>{" "}
+            (fluxo D+1/D+30 do adquirente). Aqui ficam apenas <strong>Fiado, Vale Gás, Boleto, Cheque, Dinheiro e PIX</strong>.
+          </span>
+        </div>
+
+
         {/* Painel operacional */}
         <div className="rounded-xl border bg-card/90 p-3 shadow-sm">
           <div className="flex flex-col gap-3">
@@ -1442,77 +1476,31 @@ export default function ContasReceber() {
         </Dialog>
 
 
-        {/* Dialog Receber */}
-        <Dialog open={receberDialogOpen} onOpenChange={setReceberDialogOpen}>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Liquidar / Receber</DialogTitle></DialogHeader>
-            {receberConta && (
-              <div className="space-y-4 pt-2">
-                <div className="p-3 rounded-lg bg-muted/50 space-y-1">
-                  <p className="text-sm font-medium">{receberConta.cliente}</p>
-                  <p className="text-xs text-muted-foreground">{receberConta.descricao}</p>
-                  <p className="text-lg font-bold">R$ {Number(receberConta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-                </div>
-                <div>
-                  <Label className="text-sm">Data do Recebimento *</Label>
-                  <Input
-                    type="date"
-                    className="mt-1"
-                    min={(receberConta.data_venda || receberConta.created_at || "").slice(0, 10) || undefined}
-                    max={getBrasiliaDateString()}
-                    value={receberForm.dataRecebimento}
-                    onChange={e => setReceberForm(prev => ({ ...prev, dataRecebimento: e.target.value }))}
-                  />
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Entre a data da venda e hoje.
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label className="font-medium">Formas de Pagamento</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={addFormaPagamento}>+ Forma</Button>
-                  </div>
-                  {receberForm.formasPagamento.map((fp, idx) => (
-                    <div key={idx} className="flex gap-2 items-end">
-                      <div className="flex-1">
-                        <Select value={fp.forma} onValueChange={v => updateFormaPagamento(idx, "forma", v)}>
-                          <SelectTrigger><SelectValue placeholder="Forma" /></SelectTrigger>
-                          <SelectContent>
-                            {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="w-[120px]">
-                        <Input type="number" step="0.01" placeholder="Valor" value={fp.valor}
-                          onChange={e => updateFormaPagamento(idx, "valor", e.target.value)} />
-                      </div>
-                      {receberForm.formasPagamento.length > 1 && (
-                        <Button variant="ghost" size="icon" onClick={() => removeFormaPagamento(idx)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                  <p className="text-sm text-muted-foreground">
-                    Total: <span className="font-medium text-foreground">
-                      R$ {receberForm.formasPagamento.reduce((s, f) => s + (parseFloat(f.valor) || 0), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </span>
-                    {receberForm.formasPagamento.reduce((s, f) => s + (parseFloat(f.valor) || 0), 0) < Number(receberConta.valor) - 0.01 && (
-                      <span className="ml-2 text-warning">(parcial)</span>
-                    )}
-                  </p>
-                </div>
-                <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                  Ao confirmar, o valor será creditado automaticamente na conta bancária principal da unidade.
-                </p>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setReceberDialogOpen(false)}>Cancelar</Button>
-                  <Button onClick={handleReceber}>Confirmar Recebimento</Button>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        {/* Dialog Receber — fluxo completo com escolha de operadora/banco/chave PIX */}
+        <LiquidarRecebivelModal
+          open={receberDialogOpen}
+          onClose={() => setReceberDialogOpen(false)}
+          conta={
+            receberConta
+              ? {
+                  id: receberConta.id,
+                  cliente: receberConta.cliente,
+                  cliente_id: (receberConta as any).cliente_id || null,
+                  descricao: receberConta.descricao,
+                  pedido_id: receberConta.pedido_id,
+                  unidade_id: unidadeAtual?.id || null,
+                  valor: Number(receberConta.valor),
+                  forma_pagamento: receberConta.forma_pagamento,
+                  observacoes: receberConta.observacoes,
+                }
+              : null
+          }
+          dataMinima={
+            (receberConta?.data_venda || receberConta?.created_at || "").slice(0, 10) || undefined
+          }
+          onSuccess={fetchContas}
+        />
+
 
         {/* Bulk Liquidation Dialog */}
         <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
