@@ -451,6 +451,7 @@ export default function Compras() {
     fetchCompras();
     fetchFornecedores();
     fetchProdutos();
+    fetchContasBancarias();
   };
 
   const handleDeleteCompra = async () => {
