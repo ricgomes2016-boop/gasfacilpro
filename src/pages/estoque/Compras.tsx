@@ -238,7 +238,11 @@ export default function Compras() {
     setForm({
       fornecedor_id: "", fornecedor_novo: null, numero_nota_fiscal: "", chave_nfe: "",
       data_compra: getBrasiliaDateString(),
-      data_prevista: "", data_pagamento: "", valor_frete: "", observacoes: "",
+      data_pagamento: "", valor_frete: "", observacoes: "",
+    });
+    setPagamento({
+      situacao: "avista", forma: "dinheiro", conta_bancaria_id: "",
+      parcelas: 1, numero_cheque: "", banco_cheque: "", bom_para: "",
     });
     setItens([]);
     setNovoItem({ produto_id: "", quantidade: "1", preco_unitario: "" });
