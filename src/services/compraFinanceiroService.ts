@@ -69,8 +69,8 @@ export async function registrarPagamentoCompra(
     return;
   }
 
-  // PIX, TED, Débito, Boleto pago → movimentacoes_bancarias (saída)
-  if (["pix", "ted", "debito", "boleto"].includes(d.forma)) {
+  // PIX, TED, Débito, Boleto, Vale Central Gás, Vale Ultragaz → movimentacoes_bancarias (saída)
+  if (["pix", "ted", "debito", "boleto", "vale_central_gas", "vale_ultragaz"].includes(d.forma)) {
     if (!d.conta_bancaria_id) throw new Error("Selecione a conta bancária de origem.");
 
     const { data: conta } = await supabase
