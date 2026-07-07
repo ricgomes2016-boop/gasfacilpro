@@ -137,11 +137,30 @@ export default function Compras() {
     numero_nota_fiscal: "",
     chave_nfe: "",
     data_compra: getBrasiliaDateString(),
-    data_prevista: "",
     data_pagamento: "",
     valor_frete: "",
     observacoes: "",
   });
+
+  const [pagamento, setPagamento] = useState<{
+    situacao: "avista" | "aprazo";
+    forma: FormaPagamentoCompra;
+    conta_bancaria_id: string;
+    parcelas: number;
+    numero_cheque: string;
+    banco_cheque: string;
+    bom_para: string;
+  }>({
+    situacao: "avista",
+    forma: "dinheiro",
+    conta_bancaria_id: "",
+    parcelas: 1,
+    numero_cheque: "",
+    banco_cheque: "",
+    bom_para: "",
+  });
+
+  const [contasBancarias, setContasBancarias] = useState<Array<{ id: string; nome: string; banco: string | null; saldo_atual: number | null }>>([]);
 
   const [itens, setItens] = useState<ItemCompra[]>([]);
   const [novoItem, setNovoItem] = useState({ produto_id: "", quantidade: "1", preco_unitario: "" });
