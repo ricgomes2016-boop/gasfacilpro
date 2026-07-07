@@ -1688,6 +1688,7 @@ export type Database = {
           agencia: string | null
           banco_emitente: string
           cliente_id: string | null
+          compra_id: string | null
           conta: string | null
           created_at: string
           data_compensacao: string | null
@@ -1710,6 +1711,7 @@ export type Database = {
           agencia?: string | null
           banco_emitente: string
           cliente_id?: string | null
+          compra_id?: string | null
           conta?: string | null
           created_at?: string
           data_compensacao?: string | null
@@ -1732,6 +1734,7 @@ export type Database = {
           agencia?: string | null
           banco_emitente?: string
           cliente_id?: string | null
+          compra_id?: string | null
           conta?: string | null
           created_at?: string
           data_compensacao?: string | null
@@ -1756,6 +1759,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
             referencedColumns: ["id"]
           },
           {
@@ -2552,17 +2562,20 @@ export type Database = {
         Row: {
           base_icms: number | null
           base_icms_st: number | null
+          caixa_sessao_id: string | null
           cfop_predominante: string | null
           chave_nfe: string | null
           conferida: boolean
           conferida_em: string | null
           conferida_por: string | null
+          conta_bancaria_id: string | null
           created_at: string
           data_compra: string | null
           data_pagamento: string | null
           data_prevista: string | null
           data_recebimento: string | null
           data_vencimento: string | null
+          forma_pagamento: string | null
           fornecedor_id: string | null
           id: string
           modalidade_frete: string | null
@@ -2570,7 +2583,9 @@ export type Database = {
           natureza_operacao: string | null
           numero_nota_fiscal: string | null
           observacoes: string | null
+          origem_pagamento: string | null
           pago: boolean
+          parcelas: number
           placa_veiculo: string | null
           serie: string | null
           status: string | null
@@ -2595,17 +2610,20 @@ export type Database = {
         Insert: {
           base_icms?: number | null
           base_icms_st?: number | null
+          caixa_sessao_id?: string | null
           cfop_predominante?: string | null
           chave_nfe?: string | null
           conferida?: boolean
           conferida_em?: string | null
           conferida_por?: string | null
+          conta_bancaria_id?: string | null
           created_at?: string
           data_compra?: string | null
           data_pagamento?: string | null
           data_prevista?: string | null
           data_recebimento?: string | null
           data_vencimento?: string | null
+          forma_pagamento?: string | null
           fornecedor_id?: string | null
           id?: string
           modalidade_frete?: string | null
@@ -2613,7 +2631,9 @@ export type Database = {
           natureza_operacao?: string | null
           numero_nota_fiscal?: string | null
           observacoes?: string | null
+          origem_pagamento?: string | null
           pago?: boolean
+          parcelas?: number
           placa_veiculo?: string | null
           serie?: string | null
           status?: string | null
@@ -2638,17 +2658,20 @@ export type Database = {
         Update: {
           base_icms?: number | null
           base_icms_st?: number | null
+          caixa_sessao_id?: string | null
           cfop_predominante?: string | null
           chave_nfe?: string | null
           conferida?: boolean
           conferida_em?: string | null
           conferida_por?: string | null
+          conta_bancaria_id?: string | null
           created_at?: string
           data_compra?: string | null
           data_pagamento?: string | null
           data_prevista?: string | null
           data_recebimento?: string | null
           data_vencimento?: string | null
+          forma_pagamento?: string | null
           fornecedor_id?: string | null
           id?: string
           modalidade_frete?: string | null
@@ -2656,7 +2679,9 @@ export type Database = {
           natureza_operacao?: string | null
           numero_nota_fiscal?: string | null
           observacoes?: string | null
+          origem_pagamento?: string | null
           pago?: boolean
+          parcelas?: number
           placa_veiculo?: string | null
           serie?: string | null
           status?: string | null
@@ -2679,6 +2704,27 @@ export type Database = {
           xml_content?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "compras_caixa_sessao_id_fkey"
+            columns: ["caixa_sessao_id"]
+            isOneToOne: false
+            referencedRelation: "caixa_sessoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compras_caixa_sessao_id_fkey"
+            columns: ["caixa_sessao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conferencia_caixa"
+            referencedColumns: ["sessao_id"]
+          },
+          {
+            foreignKeyName: "compras_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "compras_fornecedor_id_fkey"
             columns: ["fornecedor_id"]
@@ -3405,6 +3451,7 @@ export type Database = {
           boleto_linha_digitavel: string | null
           boleto_url: string | null
           categoria: string | null
+          compra_id: string | null
           conta_bancaria_id: string | null
           created_at: string
           data_pagamento: string | null
@@ -3429,6 +3476,7 @@ export type Database = {
           boleto_linha_digitavel?: string | null
           boleto_url?: string | null
           categoria?: string | null
+          compra_id?: string | null
           conta_bancaria_id?: string | null
           created_at?: string
           data_pagamento?: string | null
@@ -3453,6 +3501,7 @@ export type Database = {
           boleto_linha_digitavel?: string | null
           boleto_url?: string | null
           categoria?: string | null
+          compra_id?: string | null
           conta_bancaria_id?: string | null
           created_at?: string
           data_pagamento?: string | null
@@ -3473,6 +3522,13 @@ export type Database = {
           vencimento?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contas_pagar_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contas_pagar_conta_bancaria_id_fkey"
             columns: ["conta_bancaria_id"]
@@ -7068,6 +7124,7 @@ export type Database = {
       movimentacoes_caixa: {
         Row: {
           categoria: string | null
+          compra_id: string | null
           created_at: string
           descricao: string
           entregador_id: string | null
@@ -7086,6 +7143,7 @@ export type Database = {
         }
         Insert: {
           categoria?: string | null
+          compra_id?: string | null
           created_at?: string
           descricao: string
           entregador_id?: string | null
@@ -7104,6 +7162,7 @@ export type Database = {
         }
         Update: {
           categoria?: string | null
+          compra_id?: string | null
           created_at?: string
           descricao?: string
           entregador_id?: string | null
@@ -7121,6 +7180,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "movimentacoes_caixa_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "movimentacoes_caixa_entregador_id_fkey"
             columns: ["entregador_id"]
