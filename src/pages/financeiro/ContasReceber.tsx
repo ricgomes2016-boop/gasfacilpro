@@ -1106,6 +1106,22 @@ export default function ContasReceber() {
           </div>
         )}
 
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-info/10 border border-info/20 text-xs">
+          <CreditCard className="h-4 w-4 text-info shrink-0 mt-0.5" />
+          <span className="text-muted-foreground">
+            Recebíveis de <strong>Cartão de Crédito, Débito, PIX Maquininha e Gás do Povo</strong> não aparecem aqui como pendentes — eles são gerenciados em{" "}
+            <button
+              type="button"
+              className="text-info underline underline-offset-2 font-medium"
+              onClick={() => setConferenciaDialogOpen(true)}
+            >
+              Conferência de Cartão
+            </button>{" "}
+            (fluxo D+1/D+30 do adquirente). Aqui ficam apenas <strong>Fiado, Vale Gás, Boleto, Cheque, Dinheiro e PIX</strong>.
+          </span>
+        </div>
+
+
         {/* Painel operacional */}
         <div className="rounded-xl border bg-card/90 p-3 shadow-sm">
           <div className="flex flex-col gap-3">
