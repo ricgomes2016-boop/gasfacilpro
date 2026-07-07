@@ -252,18 +252,16 @@ ${TABLES_SCHEMA}`,
       if (fnName === "generate_sql") {
         const sqlQuery = args.sql || "";
         queryDescription = args.description || "";
-        if (sqlQuery.trim().toUpperCase().startsWith("SELECT")) {
-          // SECURITY: SQL must reference validated unidade_id to prevent cross-tenant leakage.
-          if (!unidade_id || !sqlQuery.includes(String(unidade_id))) {
-            queryError = "Consulta rejeitada: filtro de unidade obrigatório.";
-          } else {
-            try {
-              const { data, error } = await supabase.rpc("execute_readonly_query", { query_text: sqlQuery });
-              if (error) queryError = error.message;
-              else queryData = data;
-            } catch (e) {
-              queryError = e instanceof Error ? e.message : "Erro";
-            }
+        const validationError = validateEntregadorSql(sqlQuery, unidade_id);
+        if (validationError) {
+          queryError = validationError;
+        } else {
+          try {
+            const { data, error } = await supabase.rpc("execute_readonly_query", { query_text: sqlQuery });
+            if (error) queryError = error.message;
+            else queryData = data;
+          } catch (e) {
+            queryError = e instanceof Error ? e.message : "Erro";
           }
         }
       } else {
