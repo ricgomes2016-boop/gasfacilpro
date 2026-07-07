@@ -598,10 +598,26 @@ export default function ContasReceber() {
   };
 
 
+  // Formas que representam RECEBÍVEIS DO ADQUIRENTE (cartão/pix maq/Gás do Povo).
+  // Elas vivem em "Conciliação Cartão", não devem poluir "A Receber" enquanto pendentes.
+  // Aparecem aqui só quando já estão como `recebida` (histórico).
+  const FORMAS_ADQUIRENTE = new Set([
+    "cartao_credito",
+    "cartao_debito",
+    "credito",
+    "debito",
+    "pix_maquininha",
+    "gas_do_povo",
+  ]);
+
   // Filtragem unificada (busca + período + status + formas)
   const baseFiltered = useMemo(() => {
     const termo = filtroNome.toLowerCase();
     return contas.filter(c => {
+      // Oculta recebíveis do adquirente enquanto pendentes (vivem em Conciliação Cartão).
+      if (c.status !== "recebida" && FORMAS_ADQUIRENTE.has((c.forma_pagamento || "").toLowerCase())) {
+        return false;
+      }
       const matchNome = !filtroNome
         || c.cliente.toLowerCase().includes(termo)
         || (c.parceiro_nome || "").toLowerCase().includes(termo)
@@ -623,6 +639,7 @@ export default function ContasReceber() {
       return matchNome && matchDataIni && matchDataFim && matchStatus && matchForma;
     });
   }, [contas, filtroNome, dataInicial, dataFinal, filtroStatus, filtroFormas, hoje]);
+
 
   const filtered = baseFiltered;
 
