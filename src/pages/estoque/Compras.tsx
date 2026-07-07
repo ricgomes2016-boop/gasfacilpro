@@ -475,6 +475,7 @@ export default function Compras() {
     toast.success("Compra excluída!");
     setDeleteId(null);
     fetchCompras();
+    fetchContasBancarias();
   };
 
   const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
