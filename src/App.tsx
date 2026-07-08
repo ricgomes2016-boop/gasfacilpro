@@ -134,6 +134,7 @@ const App = () => (
                             <Route path="/" element={<RootRedirect />} />
                             <Route path="/auth" element={<Auth />} />
                             <Route path="/reset-password" element={<ResetPassword />} />
+                            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                             <Route path="/centralgascp" element={<CentralGasCP />} />
                             <Route path="/fortegas" element={<ForteGas />} />
                             <Route path="/japagas" element={<JapaGas />} />
