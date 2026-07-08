@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth, AppRole } from "@/contexts/AuthContext";
 import { useAuthForm } from "@/hooks/useAuthForm";
 import { supabase } from "@/integrations/supabase/client";
