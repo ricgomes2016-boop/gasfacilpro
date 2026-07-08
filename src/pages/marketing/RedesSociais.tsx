@@ -40,6 +40,37 @@ export default function RedesSociais() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [conectarModalOpen, setConectarModalOpen] = useState(false);
   const [form, setForm] = useState({ plataforma: "instagram", nome_conta: "", username: "" });
+  const [statusMap, setStatusMap] = useState<Record<string, { status: string; message: string; expires_in_days: number | null }>>({});
+  const [testingId, setTestingId] = useState<string | "all" | null>(null);
+
+  const testConnection = async (accountId?: string) => {
+    if (!empresaId) return;
+    setTestingId(accountId || "all");
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-test-connection", {
+        body: accountId ? { account_id: accountId } : { empresa_id: empresaId },
+      });
+      if (error) throw error;
+      const results = (data as any)?.results || [];
+      const next: typeof statusMap = { ...statusMap };
+      for (const r of results) {
+        next[r.id] = { status: r.status, message: r.message, expires_in_days: r.expires_in_days };
+      }
+      setStatusMap(next);
+      const ok = results.filter((r: any) => r.status === "connected").length;
+      const warn = results.filter((r: any) => r.status === "expiring").length;
+      const bad = results.filter((r: any) => r.status === "needs_reauth").length;
+      toast({
+        title: accountId ? "Conexão testada" : "Contas testadas",
+        description: `${ok} ok · ${warn} expirando · ${bad} reautenticar`,
+      });
+      refresh();
+    } catch (e: any) {
+      toast({ title: "Erro ao testar", description: e.message, variant: "destructive" });
+    } finally {
+      setTestingId(null);
+    }
+  };
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ["social-accounts", empresaId],
