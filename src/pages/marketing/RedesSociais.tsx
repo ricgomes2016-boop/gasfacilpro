@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Share2, Instagram, Facebook, Youtube, Music2, Check, X, Sparkles, Zap, CheckCircle2, Link2 } from "lucide-react";
+import { Plus, Trash2, Share2, Instagram, Facebook, Youtube, Music2, Check, X, Sparkles, Zap, CheckCircle2, Link2, RefreshCw, AlertTriangle, XCircle, Loader2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -40,6 +40,37 @@ export default function RedesSociais() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [conectarModalOpen, setConectarModalOpen] = useState(false);
   const [form, setForm] = useState({ plataforma: "instagram", nome_conta: "", username: "" });
+  const [statusMap, setStatusMap] = useState<Record<string, { status: string; message: string; expires_in_days: number | null }>>({});
+  const [testingId, setTestingId] = useState<string | "all" | null>(null);
+
+  const testConnection = async (accountId?: string) => {
+    if (!empresaId) return;
+    setTestingId(accountId || "all");
+    try {
+      const { data, error } = await supabase.functions.invoke("meta-test-connection", {
+        body: accountId ? { account_id: accountId } : { empresa_id: empresaId },
+      });
+      if (error) throw error;
+      const results = (data as any)?.results || [];
+      const next: typeof statusMap = { ...statusMap };
+      for (const r of results) {
+        next[r.id] = { status: r.status, message: r.message, expires_in_days: r.expires_in_days };
+      }
+      setStatusMap(next);
+      const ok = results.filter((r: any) => r.status === "connected").length;
+      const warn = results.filter((r: any) => r.status === "expiring").length;
+      const bad = results.filter((r: any) => r.status === "needs_reauth").length;
+      toast({
+        title: accountId ? "Conexão testada" : "Contas testadas",
+        description: `${ok} ok · ${warn} expirando · ${bad} reautenticar`,
+      });
+      refresh();
+    } catch (e: any) {
+      toast({ title: "Erro ao testar", description: e.message, variant: "destructive" });
+    } finally {
+      setTestingId(null);
+    }
+  };
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ["social-accounts", empresaId],
@@ -140,11 +171,22 @@ export default function RedesSociais() {
         </Card>
 
         {/* Lista de contas */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center flex-wrap gap-2">
           <p className="text-sm text-muted-foreground">{accounts.length} conta(s) cadastrada(s)</p>
-          <Button onClick={() => setDialogOpen(true)} size="sm" variant="outline">
-            <Plus className="h-4 w-4 mr-1" /> Adicionar manualmente
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => testConnection()}
+              size="sm"
+              variant="outline"
+              disabled={testingId !== null || accounts.length === 0}
+            >
+              {testingId === "all" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+              Testar todas
+            </Button>
+            <Button onClick={() => setDialogOpen(true)} size="sm" variant="outline">
+              <Plus className="h-4 w-4 mr-1" /> Adicionar manualmente
+            </Button>
+          </div>
         </div>
 
         {accounts.length === 0 && !isLoading ? (
@@ -203,9 +245,47 @@ export default function RedesSociais() {
                         <Badge variant={acc.ativo ? "default" : "outline"} className="text-[10px]">
                           {acc.ativo ? "Ativa" : "Inativa"}
                         </Badge>
+                        {isOAuth && statusMap[acc.id] && (
+                          <>
+                            {statusMap[acc.id].status === "connected" && (
+                              <Badge className="gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[10px]">
+                                <CheckCircle2 className="h-3 w-3" /> Testado
+                              </Badge>
+                            )}
+                            {statusMap[acc.id].status === "expiring" && (
+                              <Badge className="gap-1 bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10px]">
+                                <AlertTriangle className="h-3 w-3" /> Expirando
+                              </Badge>
+                            )}
+                            {statusMap[acc.id].status === "needs_reauth" && (
+                              <Badge className="gap-1 bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30 text-[10px]">
+                                <XCircle className="h-3 w-3" /> Reautenticar
+                              </Badge>
+                            )}
+                          </>
+                        )}
                       </div>
+                      {isOAuth && statusMap[acc.id]?.message && (
+                        <p className="text-[10px] text-muted-foreground mt-1">{statusMap[acc.id].message}</p>
+                      )}
                     </div>
                     <div className="flex flex-col gap-1">
+                      {isOAuth && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Testar conexão"
+                          disabled={testingId !== null}
+                          onClick={() => testConnection(acc.id)}
+                        >
+                          {testingId === acc.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
