@@ -37,7 +37,7 @@ export default function AuthErp() {
     if (roles.length === 0) return;
 
     if (roles.includes("super_admin")) {
-      navigate("/admin");
+      navigate(safeNext ?? "/admin");
       return;
     }
 
@@ -47,8 +47,8 @@ export default function AuthErp() {
       setRoleError(true);
       return;
     }
-    navigate("/dashboard");
-  }, [user, loading, roles, navigate, signOut]);
+    navigate(safeNext ?? "/dashboard");
+  }, [user, loading, roles, navigate, signOut, safeNext]);
 
   const handlePasswordReset = async () => {
     form.setErrors({});
