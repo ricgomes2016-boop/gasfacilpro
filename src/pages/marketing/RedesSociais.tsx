@@ -171,11 +171,22 @@ export default function RedesSociais() {
         </Card>
 
         {/* Lista de contas */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center flex-wrap gap-2">
           <p className="text-sm text-muted-foreground">{accounts.length} conta(s) cadastrada(s)</p>
-          <Button onClick={() => setDialogOpen(true)} size="sm" variant="outline">
-            <Plus className="h-4 w-4 mr-1" /> Adicionar manualmente
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => testConnection()}
+              size="sm"
+              variant="outline"
+              disabled={testingId !== null || accounts.length === 0}
+            >
+              {testingId === "all" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+              Testar todas
+            </Button>
+            <Button onClick={() => setDialogOpen(true)} size="sm" variant="outline">
+              <Plus className="h-4 w-4 mr-1" /> Adicionar manualmente
+            </Button>
+          </div>
         </div>
 
         {accounts.length === 0 && !isLoading ? (
