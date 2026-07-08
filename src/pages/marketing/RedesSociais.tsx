@@ -245,9 +245,47 @@ export default function RedesSociais() {
                         <Badge variant={acc.ativo ? "default" : "outline"} className="text-[10px]">
                           {acc.ativo ? "Ativa" : "Inativa"}
                         </Badge>
+                        {isOAuth && statusMap[acc.id] && (
+                          <>
+                            {statusMap[acc.id].status === "connected" && (
+                              <Badge className="gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[10px]">
+                                <CheckCircle2 className="h-3 w-3" /> Testado
+                              </Badge>
+                            )}
+                            {statusMap[acc.id].status === "expiring" && (
+                              <Badge className="gap-1 bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10px]">
+                                <AlertTriangle className="h-3 w-3" /> Expirando
+                              </Badge>
+                            )}
+                            {statusMap[acc.id].status === "needs_reauth" && (
+                              <Badge className="gap-1 bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30 text-[10px]">
+                                <XCircle className="h-3 w-3" /> Reautenticar
+                              </Badge>
+                            )}
+                          </>
+                        )}
                       </div>
+                      {isOAuth && statusMap[acc.id]?.message && (
+                        <p className="text-[10px] text-muted-foreground mt-1">{statusMap[acc.id].message}</p>
+                      )}
                     </div>
                     <div className="flex flex-col gap-1">
+                      {isOAuth && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Testar conexão"
+                          disabled={testingId !== null}
+                          onClick={() => testConnection(acc.id)}
+                        >
+                          {testingId === acc.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
