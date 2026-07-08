@@ -53,6 +53,7 @@ const ForteGas = lazy(() => import("./pages/publico/ForteGas"));
 const JapaGas = lazy(() => import("./pages/publico/JapaGas"));
 const DiagnosticoFontes = lazy(() => import("./pages/DiagnosticoFontes"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 
 const ContadorDashboard = lazy(() => import("./pages/contador/ContadorDashboard"));
 const ContadorXML = lazy(() => import("./pages/contador/ContadorXML"));
