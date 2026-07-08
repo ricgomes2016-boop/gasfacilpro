@@ -3,7 +3,7 @@
 // supabase function: mcp
 // Bundled from src/lib/mcp/index.ts by @lovable.dev/mcp-js.
 // src/lib/mcp/index.ts
-import { defineMcp } from "npm:@lovable.dev/mcp-js@0.20.0";
+import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.20.0";
 
 // src/lib/mcp/tools/health.ts
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.20.0";
@@ -27,11 +27,16 @@ var health_default = defineTool({
 });
 
 // src/lib/mcp/index.ts
+var projectRef = "scqenurznkatvrqxqjmt";
 var mcp_default = defineMcp({
   name: "gasfacil-mcp",
   title: "G\xE1s F\xE1cil MCP",
   version: "0.1.0",
   instructions: "MCP server for the G\xE1s F\xE1cil ERP. Use `health_check` to verify connectivity. Additional tools can be added under src/lib/mcp/tools/.",
+  auth: auth.oauth.issuer({
+    issuer: `https://${projectRef}.supabase.co/auth/v1`,
+    acceptedAudiences: "authenticated"
+  }),
   tools: [health_default]
 });
 

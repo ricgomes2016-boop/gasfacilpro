@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth, AppRole } from "@/contexts/AuthContext";
 import { useAuthForm } from "@/hooks/useAuthForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,9 @@ const ERP_ROLES: AppRole[] = ["admin", "gestor", "financeiro", "operacional"];
 
 export default function AuthErp() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextParam = searchParams.get("next");
+  const safeNext = nextParam && /^\/[^/].*$/.test(nextParam) ? nextParam : null;
   const { user, roles, loading, signOut } = useAuth();
   const form = useAuthForm();
   const setLoginMethod = form.setLoginMethod;
@@ -34,7 +37,7 @@ export default function AuthErp() {
     if (roles.length === 0) return;
 
     if (roles.includes("super_admin")) {
-      navigate("/admin");
+      navigate(safeNext ?? "/admin");
       return;
     }
 
@@ -44,8 +47,8 @@ export default function AuthErp() {
       setRoleError(true);
       return;
     }
-    navigate("/dashboard");
-  }, [user, loading, roles, navigate, signOut]);
+    navigate(safeNext ?? "/dashboard");
+  }, [user, loading, roles, navigate, signOut, safeNext]);
 
   const handlePasswordReset = async () => {
     form.setErrors({});
