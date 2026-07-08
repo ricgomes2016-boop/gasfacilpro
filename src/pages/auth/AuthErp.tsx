@@ -15,6 +15,9 @@ const ERP_ROLES: AppRole[] = ["admin", "gestor", "financeiro", "operacional"];
 
 export default function AuthErp() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextParam = searchParams.get("next");
+  const safeNext = nextParam && /^\/[^/].*$/.test(nextParam) ? nextParam : null;
   const { user, roles, loading, signOut } = useAuth();
   const form = useAuthForm();
   const setLoginMethod = form.setLoginMethod;
