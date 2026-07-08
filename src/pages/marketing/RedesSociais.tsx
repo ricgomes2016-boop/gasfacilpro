@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Share2, Instagram, Facebook, Youtube, Music2, Check, X, Sparkles, Zap, CheckCircle2, Link2 } from "lucide-react";
+import { Plus, Trash2, Share2, Instagram, Facebook, Youtube, Music2, Check, X, Sparkles, Zap, CheckCircle2, Link2, RefreshCw, AlertTriangle, XCircle, Loader2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
