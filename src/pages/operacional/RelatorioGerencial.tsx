@@ -331,10 +331,10 @@ export default function RelatorioGerencial() {
   const topProdutos = useMemo(
     () =>
       produtos
-        .filter((p) => p.preco_venda && p.preco_custo)
+        .filter((p) => p.preco && p.preco_custo)
         .map((p) => ({
           nome: p.nome || "Produto",
-          margem: ((asNumber(p.preco_venda) - asNumber(p.preco_custo)) / asNumber(p.preco_venda)) * 100,
+          margem: ((asNumber(p.preco) - asNumber(p.preco_custo)) / asNumber(p.preco)) * 100,
           estoque: p.estoque_atual || 0,
         }))
         .filter((p) => Number.isFinite(p.margem))
