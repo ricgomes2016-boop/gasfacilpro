@@ -63,7 +63,7 @@ type DespesaRow = {
 type ProdutoRow = {
   id: string;
   nome: string | null;
-  preco_venda: number | string | null;
+  preco: number | string | null;
   preco_custo: number | string | null;
   estoque_atual: number | null;
 };
