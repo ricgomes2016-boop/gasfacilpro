@@ -12,6 +12,7 @@ import {
   identifyContact,
   processCancelTagInReply,
   stripPedidoConfirmadoBlock,
+  handleBiaPausedGuard,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
