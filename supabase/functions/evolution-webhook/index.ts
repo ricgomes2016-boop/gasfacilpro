@@ -115,6 +115,13 @@ serve(async (req) => {
     // Dedup
     if (await isDuplicate(supabase, conversationId, messageKey)) return OK({ ok: true, skipped: "duplicate" });
 
+    // BIA PAUSADA (empresa em manutenção): responder mensagem fixa e encerrar
+    if (await handleBiaPausedGuard(supabase, config, phone, conversationId, "evolution-webhook", messageText, messageKey)) {
+      return OK({ ok: true, skipped: "bia_paused" });
+    }
+
+
+
     // Send typing indicator
     sendTyping(config, phone);
 
