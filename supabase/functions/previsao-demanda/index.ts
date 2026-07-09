@@ -84,8 +84,8 @@ serve(async (req) => {
         AND p.created_at >= NOW() - interval '30 days'
        GROUP BY pi.produto_nome ORDER BY qtd DESC LIMIT 10`,
       // Estoque atual dos top produtos
-      `SELECT nome, estoque, estoque_minimo FROM produtos
-       WHERE ativo = true ${unidadeFilter} ORDER BY estoque ASC LIMIT 15`,
+      `SELECT nome, estoque, estoque_minimo_calculado AS estoque_minimo FROM vw_previsao_ruptura
+       WHERE 1=1 ${unidadeFilter} ORDER BY estoque ASC LIMIT 15`,
       // Entregadores ativos e média de entregas/dia
       `SELECT e.nome, COUNT(p.id) as total_entregas,
         COUNT(DISTINCT p.created_at::date) as dias_ativos
