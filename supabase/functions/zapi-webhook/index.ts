@@ -11,6 +11,7 @@ import {
   getOffHoursMessage,
   identifyContact, checkRateLimit, processCancelTagInReply, stripPedidoConfirmadoBlock,
   ORDER_CONFIRMATION_REGEX, recoverOrderBlock,
+  handleBiaPausedGuard,
   type BiaConfig,
 } from "../_shared/bia-core.ts";
 import { handleEntregadorMessage } from "../_shared/bia-entregador.ts";
