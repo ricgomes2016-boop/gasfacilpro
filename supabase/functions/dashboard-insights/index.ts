@@ -91,7 +91,7 @@ serve(async (req) => {
         COUNT(CASE WHEN created_at::date = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date AND status = 'pendente' THEN 1 END) as pendentes_hoje
       FROM pedidos WHERE status != 'cancelado' ${unidadeFilter}
         AND created_at >= (NOW() AT TIME ZONE 'America/Sao_Paulo' - interval '2 days')`,
-      `SELECT nome, estoque, estoque_minimo FROM produtos WHERE ativo = true AND estoque <= estoque_minimo ${unidadeFilter} LIMIT 5`,
+      `SELECT nome, estoque, estoque_minimo_calculado AS estoque_minimo FROM vw_previsao_ruptura WHERE situacao IN ('critico','sem_estoque') ${unidadeFilter} LIMIT 5`,
       `SELECT pi.produto_nome, SUM(pi.quantidade) as qtd FROM pedido_itens pi
         JOIN pedidos p ON p.id = pi.pedido_id
         WHERE p.status != 'cancelado' ${unidadeFilter.replace('unidade_id', 'p.unidade_id')}
