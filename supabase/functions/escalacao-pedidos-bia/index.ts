@@ -58,6 +58,15 @@ serve(async (req) => {
 
     for (const p of pedidos) {
       try {
+        // BIA PAUSADA: pular escalação para empresas em manutenção
+        if (await isBiaPaused(supabase, p.unidade_id)) {
+          await supabase
+            .from("pedidos")
+            .update({ escalado_em: new Date().toISOString(), escalado_para: "bia_pausada" })
+            .eq("id", p.id);
+          continue;
+        }
+
         const ref = p.numero_sequencial ?? String(p.id).slice(0, 8).toUpperCase();
 
         // Verifica se existe notificação relacionada NÃO LIDA para este pedido.
