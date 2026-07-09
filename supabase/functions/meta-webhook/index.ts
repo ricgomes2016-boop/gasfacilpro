@@ -11,6 +11,7 @@ import {
   downloadAudio, transcribeAudio, getEntregadorLocation, collectBufferedMessages,
   identifyContact, buildLocalSalesFallbackReply,
   stripPedidoConfirmadoBlock, processCancelTagInReply,
+  handleBiaPausedGuard,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
