@@ -586,7 +586,7 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
  * Apaga:
  *  - movimentacoes_caixa (pedido_id = pedidoId)
  *  - movimentacoes_bancarias (referencia_id = pedidoId AND referencia_tipo = 'pedido')
- *  - contas_receber (pedido_id = pedidoId AND status != 'recebido')
+ *  - contas_receber (pedido_id = pedidoId AND status NOT IN ('recebida','recebido','conciliada'))
  *  - cheques (pedido_id = pedidoId AND status = 'pendente')
  * E então chama `rotearPagamentosVenda`.
  */
@@ -606,7 +606,7 @@ export async function rerotearPagamentosPedido(
       .from("contas_receber")
       .delete()
       .eq("pedido_id", pedidoId)
-      .neq("status", "recebido"),
+      .not("status", "in", "(recebida,recebido,conciliada)"),
     supabase.from("cheques").delete().eq("pedido_id", pedidoId).eq("status", "pendente"),
   ]);
 
