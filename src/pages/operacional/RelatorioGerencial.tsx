@@ -63,7 +63,7 @@ type DespesaRow = {
 type ProdutoRow = {
   id: string;
   nome: string | null;
-  preco_venda: number | string | null;
+  preco: number | string | null;
   preco_custo: number | string | null;
   estoque_atual: number | null;
 };
@@ -204,7 +204,7 @@ export default function RelatorioGerencial() {
         .lte("vencimento", fim);
       if (unidadeAtual?.id) despQ = despQ.eq("unidade_id", unidadeAtual.id);
 
-      let prodQ = supabase.from("produtos").select("id, nome, preco_venda, preco_custo, estoque_atual");
+      let prodQ = supabase.from("produtos").select("id, nome, preco, preco_custo, estoque_atual");
       if (unidadeAtual?.id) prodQ = prodQ.eq("unidade_id", unidadeAtual.id);
 
       const cliQ = supabase.from("clientes").select("id, nome, created_at");
@@ -331,10 +331,10 @@ export default function RelatorioGerencial() {
   const topProdutos = useMemo(
     () =>
       produtos
-        .filter((p) => p.preco_venda && p.preco_custo)
+        .filter((p) => p.preco && p.preco_custo)
         .map((p) => ({
           nome: p.nome || "Produto",
-          margem: ((asNumber(p.preco_venda) - asNumber(p.preco_custo)) / asNumber(p.preco_venda)) * 100,
+          margem: ((asNumber(p.preco) - asNumber(p.preco_custo)) / asNumber(p.preco)) * 100,
           estoque: p.estoque_atual || 0,
         }))
         .filter((p) => Number.isFinite(p.margem))

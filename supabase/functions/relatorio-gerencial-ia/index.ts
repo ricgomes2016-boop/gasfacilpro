@@ -105,8 +105,8 @@ serve(async (req) => {
       `SELECT COUNT(*) as novos_clientes FROM clientes
        WHERE created_at >= NOW() - interval '${intervalo}' ${clienteFilter}`,
       // Estoque crítico
-      `SELECT nome, estoque, estoque_minimo FROM produtos
-       WHERE ativo = true AND estoque <= estoque_minimo ${unidadeFilter}`,
+      `SELECT nome, estoque, estoque_minimo_calculado AS estoque_minimo FROM vw_previsao_ruptura
+       WHERE situacao IN ('critico','sem_estoque') ${unidadeFilter}`,
     ];
 
     const results = await Promise.all(

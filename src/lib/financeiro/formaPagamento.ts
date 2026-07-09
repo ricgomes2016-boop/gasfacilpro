@@ -126,7 +126,9 @@ export function formatFormaPagamentoLabel(
   opts?: { withIcon?: boolean }
 ): string {
   if (!raw) return "—";
-  const s = String(raw).trim();
+  // Remove marker técnico [op:UUID|cta:UUID] (ou variações parciais) anexado pelo
+  // fluxo de Acerto do Entregador — nunca deve vazar para UI/PDF/exportações.
+  const s = String(raw).replace(/\s*\[(?:op|cta)[^\]]*\]/gi, "").trim();
   if (!s) return "—";
   const lower = norm(s);
 

@@ -105,14 +105,37 @@ Deno.serve(async (req) => {
         const data = await r.json();
 
         if (!r.ok || data.error) {
-          base.status = "needs_reauth";
-          base.provider_ok = false;
-          base.message = "Token inválido ou revogado — reconecte a conta.";
-          base.error = data?.error?.message || `HTTP ${r.status}`;
+          const errCode = Number(data?.error?.code);
+          const errSub = Number(data?.error?.error_subcode);
+          // Erros PERMANENTES do Meta (token inválido/expirado/revogado):
+          //  190 = OAuthException (token expirado/inválido)
+          //  102 = API Session (sessão inválida)
+          //  10 / 200 / 803 = permissões revogadas
+          // Subcodes 458/459/460/463/464/467 = token expirado ou senha alterada
+          const permanentCodes = new Set([190, 102, 10, 200, 803]);
+          const permanentSubcodes = new Set([458, 459, 460, 463, 464, 467]);
+          const isPermanent =
+            permanentCodes.has(errCode) ||
+            permanentSubcodes.has(errSub) ||
+            r.status === 401 ||
+            r.status === 403;
+          // Transientes (429 rate limit, 5xx, network) NÃO devem desativar a conta.
+          const isTransient = !isPermanent && (r.status === 429 || r.status >= 500);
 
-          // Marca inativa se ainda estiver ativa
-          if (c.ativo) {
-            await supabase.from("social_accounts").update({ ativo: false }).eq("id", c.id);
+          if (isTransient) {
+            base.status = "unknown";
+            base.provider_ok = false;
+            base.message = "Falha temporária ao contatar Meta (rate limit ou instabilidade). Conta mantida ativa.";
+            base.error = data?.error?.message || `HTTP ${r.status}`;
+          } else {
+            base.status = "needs_reauth";
+            base.provider_ok = false;
+            base.message = "Token inválido ou revogado — reconecte a conta.";
+            base.error = data?.error?.message || `HTTP ${r.status}`;
+            // Só marca inativa em erro PERMANENTE confirmado.
+            if (isPermanent && c.ativo) {
+              await supabase.from("social_accounts").update({ ativo: false }).eq("id", c.id);
+            }
           }
           results.push(base);
           continue;
