@@ -2,7 +2,7 @@
 // permanece em 'pendente' por mais de 10min e ninguém leu a notificação.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { resolveConfig, sendMessage } from "../_shared/bia-core.ts";
+import { resolveConfig, sendMessage, isBiaPaused } from "../_shared/bia-core.ts";
 import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
@@ -58,6 +58,15 @@ serve(async (req) => {
 
     for (const p of pedidos) {
       try {
+        // BIA PAUSADA: pular escalação para empresas em manutenção
+        if (await isBiaPaused(supabase, p.unidade_id)) {
+          await supabase
+            .from("pedidos")
+            .update({ escalado_em: new Date().toISOString(), escalado_para: "bia_pausada" })
+            .eq("id", p.id);
+          continue;
+        }
+
         const ref = p.numero_sequencial ?? String(p.id).slice(0, 8).toUpperCase();
 
         // Verifica se existe notificação relacionada NÃO LIDA para este pedido.

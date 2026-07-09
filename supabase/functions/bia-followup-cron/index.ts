@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   createSupabase, resolveConfig, checkBusinessHours,
-  findCliente, sendMessage, saveMessage,
+  findCliente, sendMessage, saveMessage, isBiaPaused,
 } from "../_shared/bia-core.ts";
 import { requireAuth } from "../_shared/auth.ts";
 
@@ -44,6 +44,13 @@ serve(async (req) => {
         await supabase.from("bia_followups").update({ status: "cancelado" }).eq("id", fu.id);
         skipped++; continue;
       }
+
+      // BIA PAUSADA: cancela follow-ups de empresas em manutenção
+      if (await isBiaPaused(supabase, fu.unidade_id)) {
+        await supabase.from("bia_followups").update({ status: "cancelado" }).eq("id", fu.id);
+        skipped++; continue;
+      }
+
 
       // Pedido recente já criado? marca convertido
       const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();

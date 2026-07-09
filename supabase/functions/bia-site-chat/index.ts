@@ -44,6 +44,20 @@ serve(async (req) => {
     const tenant = SLUG_TO_TENANT[unidadeSlug];
     const nomeLoja = tenant.nomeLoja;
 
+    // BIA PAUSADA (empresa em manutenção): retornar mensagem fixa sem consultar IA.
+    // Enquanto o slug da empresa-mãe estiver em BIA_PAUSED_EMPRESA_SLUGS, o chat
+    // do site institucional responde apenas o aviso abaixo.
+    const BIA_PAUSED_EMPRESA_SLUGS = ["central-gas"];
+    if (BIA_PAUSED_EMPRESA_SLUGS.includes(tenant.empresaSlug)) {
+      return new Response(
+        JSON.stringify({
+          reply: "Este WhatsApp está indisponível, por favor envie mensagem para o número 43 99966-1816. Obrigada.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+
     // Resolve empresa + unidade pelo nome EXATO da unidade dentro da empresa-mãe.
     const { data: empresa } = await supabase
       .from("empresas")

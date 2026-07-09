@@ -9,6 +9,7 @@ import {
   createOrder, sendTyping, sendMessage, sendLocation, registerCall, getEntregadorLocation,
   downloadAudio, transcribeAudio, collectBufferedMessages, getOffHoursMessage,
   identifyContact, checkRateLimit, processCancelTagInReply, stripPedidoConfirmadoBlock,
+  handleBiaPausedGuard,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -113,6 +114,13 @@ serve(async (req) => {
 
     // Dedup
     if (await isDuplicate(supabase, conversationId, messageKey)) return OK({ ok: true, skipped: "duplicate" });
+
+    // BIA PAUSADA (empresa em manutenção): responder mensagem fixa e encerrar
+    if (await handleBiaPausedGuard(supabase, config, phone, conversationId, "evolution-webhook", messageText, messageKey)) {
+      return OK({ ok: true, skipped: "bia_paused" });
+    }
+
+
 
     // Send typing indicator
     sendTyping(config, phone);

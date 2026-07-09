@@ -12,6 +12,7 @@ import {
   identifyContact,
   processCancelTagInReply,
   stripPedidoConfirmadoBlock,
+  handleBiaPausedGuard,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -72,6 +73,13 @@ serve(async (req) => {
     if (await isDuplicate(supabase, conversationId, messageId)) {
       return OK({ ok: true, skipped: "duplicate" });
     }
+
+    // BIA PAUSADA (empresa em manutenção): responder mensagem fixa e encerrar
+    if (await handleBiaPausedGuard(supabase, config, phone, conversationId, "gateway-webhook", messageText, messageId)) {
+      return OK({ ok: true, skipped: "bia_paused" });
+    }
+
+
 
     // Send typing
     sendTyping(config, phone);

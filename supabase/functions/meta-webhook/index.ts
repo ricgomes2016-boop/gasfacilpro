@@ -11,6 +11,7 @@ import {
   downloadAudio, transcribeAudio, getEntregadorLocation, collectBufferedMessages,
   identifyContact, buildLocalSalesFallbackReply,
   stripPedidoConfirmadoBlock, processCancelTagInReply,
+  handleBiaPausedGuard,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -298,6 +299,13 @@ serve(async (req) => {
 
           // Dedup
           if (await isDuplicate(supabase, conversationId, messageId)) continue;
+
+          // BIA PAUSADA (empresa em manutenção): responder mensagem fixa e encerrar
+          if (await handleBiaPausedGuard(supabase, config, phone, conversationId, "meta-webhook", messageText, messageId)) {
+            continue;
+          }
+
+
 
           // Send typing (no-op for Meta but keeps consistency)
           sendTyping(config, phone);

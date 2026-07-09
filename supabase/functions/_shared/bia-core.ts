@@ -60,6 +60,73 @@ export function createSupabase() {
   );
 }
 
+// ========== BIA PAUSED (temporário) ==========
+// Empresas cuja Bia está pausada temporariamente. Enquanto o slug estiver
+// nesta lista, qualquer webhook/chat da Bia responderá apenas a mensagem
+// fixa BIA_PAUSED_MESSAGE. Para reativar, remova o slug daqui e faça deploy
+// das edge functions afetadas.
+export const BIA_PAUSED_EMPRESA_SLUGS: string[] = ["central-gas"];
+export const BIA_PAUSED_MESSAGE =
+  "Este WhatsApp está indisponível, por favor envie mensagem para o número 43 99966-1816. Obrigada.";
+
+const _biaPausedCache = new Map<string, boolean>();
+export async function isBiaPaused(supabase: any, unidadeId: string | null | undefined): Promise<boolean> {
+  if (!unidadeId) return false;
+  if (_biaPausedCache.has(unidadeId)) return _biaPausedCache.get(unidadeId)!;
+  try {
+    const { data: u } = await supabase
+      .from("unidades")
+      .select("empresa_id")
+      .eq("id", unidadeId)
+      .maybeSingle();
+    if (!u?.empresa_id) { _biaPausedCache.set(unidadeId, false); return false; }
+    const { data: emp } = await supabase
+      .from("empresas")
+      .select("slug")
+      .eq("id", u.empresa_id)
+      .maybeSingle();
+    const paused = !!emp?.slug && BIA_PAUSED_EMPRESA_SLUGS.includes(emp.slug);
+    _biaPausedCache.set(unidadeId, paused);
+    return paused;
+  } catch (e) {
+    console.error("isBiaPaused error:", e);
+    return false;
+  }
+}
+
+/**
+ * Guard helper para webhooks WhatsApp: se a Bia da empresa dona da unidade
+ * está pausada, envia a mensagem fixa, salva no histórico e retorna true —
+ * o chamador deve encerrar imediatamente. Retorna false quando não pausado.
+ */
+export async function handleBiaPausedGuard(
+  supabase: any,
+  config: BiaConfig,
+  phone: string,
+  conversationId: string | null,
+  source: string,
+  userMessageText?: string,
+  messageKey?: string,
+): Promise<boolean> {
+  if (!(await isBiaPaused(supabase, config.unidadeId))) return false;
+  try {
+    if (conversationId) {
+      if (userMessageText) {
+        await saveMessage(supabase, conversationId, "user", userMessageText, {
+          source, message_id: messageKey, bia_paused: true,
+        });
+      }
+      await saveMessage(supabase, conversationId, "assistant", BIA_PAUSED_MESSAGE, {
+        source, bia_paused: true,
+      });
+    }
+  } catch (e) {
+    console.error("handleBiaPausedGuard save error:", e);
+  }
+  await sendMessage(config, phone, BIA_PAUSED_MESSAGE);
+  return true;
+}
+
 // ========== RESOLVE CONFIG ==========
 export async function resolveConfig(
   supabase: any,
