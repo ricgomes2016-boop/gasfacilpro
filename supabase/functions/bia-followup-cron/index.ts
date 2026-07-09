@@ -45,6 +45,13 @@ serve(async (req) => {
         skipped++; continue;
       }
 
+      // BIA PAUSADA: cancela follow-ups de empresas em manutenção
+      if (await isBiaPaused(supabase, fu.unidade_id)) {
+        await supabase.from("bia_followups").update({ status: "cancelado" }).eq("id", fu.id);
+        skipped++; continue;
+      }
+
+
       // Pedido recente já criado? marca convertido
       const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();
       const { data: recent } = await supabase.from("pedidos").select("id")
