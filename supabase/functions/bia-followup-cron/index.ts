@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   createSupabase, resolveConfig, checkBusinessHours,
-  findCliente, sendMessage, saveMessage,
+  findCliente, sendMessage, saveMessage, isBiaPaused,
 } from "../_shared/bia-core.ts";
 import { requireAuth } from "../_shared/auth.ts";
 
