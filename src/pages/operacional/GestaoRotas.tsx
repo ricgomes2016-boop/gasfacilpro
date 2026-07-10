@@ -168,8 +168,48 @@ export default function GestaoRotas() {
       for (const c of data) {
         const { data: itensData } = await supabase
           .from("carregamento_rota_itens")
-          .select("*, produtos(nome)")
+          .select("*, produtos(nome, preco_custo)")
           .eq("carregamento_id", c.id) as any;
+
+        const itens: CarregamentoItem[] = (itensData || []).map((i: any) => ({
+          id: i.id,
+          produto_id: i.produto_id,
+          produto_nome: i.produtos?.nome || "—",
+          preco_custo: Number(i.produtos?.preco_custo || 0),
+          quantidade_saida: i.quantidade_saida,
+          quantidade_retorno: i.quantidade_retorno,
+          quantidade_vendida: i.quantidade_vendida,
+          quantidade_transferida: i.quantidade_transferida,
+        }));
+
+        // Financeiro por carregamento
+        const dtIni = c.data_saida;
+        const dtFim = c.data_retorno || new Date().toISOString();
+        const [{ data: pedidosEnt }, { data: abast }, { data: cpEnt }] = await Promise.all([
+          supabase.from("pedidos")
+            .select("valor_total")
+            .eq("entregador_id", c.entregador_id)
+            .eq("status", "entregue")
+            .gte("created_at", dtIni)
+            .lte("created_at", dtFim),
+          supabase.from("abastecimentos")
+            .select("valor")
+            .eq("entregador_id", c.entregador_id)
+            .gte("data", dtIni.slice(0, 10))
+            .lte("data", dtFim.slice(0, 10)),
+          supabase.from("contas_pagar")
+            .select("valor, categoria")
+            .ilike("categoria", "%rota%")
+            .gte("vencimento", dtIni.slice(0, 10))
+            .lte("vencimento", dtFim.slice(0, 10)),
+        ]);
+
+        const receita = (pedidosEnt || []).reduce((s: number, p: any) => s + Number(p.valor_total || 0), 0);
+        const custo_produto = itens.reduce((s, i) => s + (Number(i.quantidade_vendida || 0) * i.preco_custo), 0);
+        const despesa_rota = (abast || []).reduce((s: number, a: any) => s + Number(a.valor || 0), 0)
+          + (cpEnt || []).reduce((s: number, x: any) => s + Number(x.valor || 0), 0);
+        const margem = receita - custo_produto - despesa_rota;
+        const margem_pct = receita > 0 ? (margem / receita) * 100 : 0;
 
         carregs.push({
           id: c.id,
@@ -177,17 +217,16 @@ export default function GestaoRotas() {
           entregador_nome: c.entregadores?.nome || "—",
           rota_nome: c.rotas_definidas?.nome || null,
           unidade_nome: c.unidades?.nome || null,
+          unidade_id: c.unidade_id || null,
           data_saida: c.data_saida,
           data_retorno: c.data_retorno,
           status: c.status,
-          itens: (itensData || []).map((i: any) => ({
-            id: i.id,
-            produto_nome: i.produtos?.nome || "—",
-            quantidade_saida: i.quantidade_saida,
-            quantidade_retorno: i.quantidade_retorno,
-            quantidade_vendida: i.quantidade_vendida,
-            quantidade_transferida: i.quantidade_transferida,
-          })),
+          itens,
+          receita,
+          custo_produto,
+          despesa_rota,
+          margem,
+          margem_pct,
         });
       }
       setCarregamentos(carregs);
