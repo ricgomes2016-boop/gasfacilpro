@@ -280,6 +280,22 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
                   </div>
                 )}
 
+                {formaPagamento === "gas_do_povo" && (
+                  <div className="space-y-2 p-2 rounded-lg border border-dashed">
+                    <Label className="text-xs">Taxa de entrega (opcional)</Label>
+                    <Input
+                      type="text"
+                      placeholder="0,00"
+                      value={taxaEntregaGasPovo}
+                      onChange={(e) => setTaxaEntregaGasPovo(e.target.value)}
+                      className="text-base text-center font-mono"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Cobrada à parte do Gás do Povo. Após adicionar, escolha a forma de recebimento da taxa.
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>Valor</Label>
                   <div className="flex gap-2">
