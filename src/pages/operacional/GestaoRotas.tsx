@@ -684,8 +684,6 @@ export default function GestaoRotas() {
                           <TableHead className="text-right">Custo</TableHead>
                           <TableHead className="text-right">Despesas</TableHead>
                           <TableHead className="text-right">Margem</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
