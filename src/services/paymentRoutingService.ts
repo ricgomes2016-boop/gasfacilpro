@@ -301,7 +301,9 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
       case "cartao_credito":
       case "credito":
       case "pix_maquininha": {
-        // Cartões e PIX Maquininha → contas_receber com operadora + taxa + prazo
+        // Cartões e PIX Maquininha → contas_receber da operadora com prazo D+N.
+        // D+0 com conta destino: nasce já recebido + crédito imediato no banco da operadora.
+        // D+N: cron diário liquida no vencimento.
         promises.push(
           (async () => {
             const op = await getOperadoraConfig(unidadeId || null, pag.forma, pag.operadora_id);
@@ -321,13 +323,19 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
               operadoraContaId: op?.conta_bancaria_id || null,
             });
 
+            const formaNorm = pag.forma === "debito" ? "cartao_debito"
+              : pag.forma === "credito" ? "cartao_credito" : pag.forma;
+            const liquidaAgora = prazo === 0 && !!contaDestino;
+            const vencimento = format(addDays(new Date(), prazo), "yyyy-MM-dd");
+
             await insertContasReceber({
               cliente: op?.nome || clienteNome || "Operadora Cartão",
               descricao: `${tipoLabel} - Venda #${pedidoRef}`,
               valor: pag.valor,
-              vencimento: format(addDays(new Date(), prazo), "yyyy-MM-dd"),
-              status: "pendente",
-              forma_pagamento: pag.forma === "debito" ? "cartao_debito" : pag.forma === "credito" ? "cartao_credito" : pag.forma,
+              vencimento,
+              status: liquidaAgora ? "recebido" : "pendente",
+              data_recebimento: liquidaAgora ? hoje : null,
+              forma_pagamento: formaNorm,
               pedido_id: pedidoId,
               unidade_id: unidadeId || null,
               operadora_id: op?.id || null,
@@ -337,6 +345,18 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
               cliente_id: clienteId || null,
               conta_bancaria_destino_id: contaDestino,
             });
+
+            if (liquidaAgora && contaDestino) {
+              await criarMovimentacaoBancaria({
+                contaBancariaId: contaDestino,
+                valor: valorLiquido,
+                descricao: `${tipoLabel} ${op?.nome || ""} - Venda #${pedidoRef}`.trim(),
+                categoria: "liquidacao_operadora",
+                unidadeId,
+                userId,
+                pedidoId,
+              });
+            }
           })()
         );
         break;
