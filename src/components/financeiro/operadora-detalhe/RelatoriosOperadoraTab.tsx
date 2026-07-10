@@ -30,16 +30,17 @@ export function RelatoriosOperadoraTab({ operadoraId }: { operadoraId: string })
   const [fim, setFim] = useState(hoje.toISOString().slice(0, 10));
 
   const { data: rows = [] } = useQuery({
-    queryKey: ["relatorio-operadora", operadoraId, unidadeAtual?.id, modo, inicio, fim],
+    queryKey: ["relatorio-operadora-cr", operadoraId, unidadeAtual?.id, modo, inicio, fim],
     queryFn: async () => {
       let q = supabase
-        .from("conferencia_cartao")
-        .select("data_venda,data_prevista_deposito,data_deposito_real,tipo,bandeira,valor_bruto,valor_taxa,valor_liquido_esperado,valor_liquido_recebido")
-        .eq("operadora_id", operadoraId);
+        .from("contas_receber")
+        .select("created_at,vencimento,data_recebimento,forma_pagamento,valor,valor_taxa,valor_liquido,status")
+        .eq("operadora_id", operadoraId)
+        .in("forma_pagamento", ["cartao_credito", "cartao_debito", "pix_maquininha"]);
       if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
-      if (modo === "vendi") q = q.gte("data_venda", inicio).lte("data_venda", fim);
-      if (modo === "futuro") q = q.is("data_deposito_real", null).gte("data_prevista_deposito", inicio).lte("data_prevista_deposito", fim);
-      if (modo === "recebido") q = q.not("data_deposito_real", "is", null).gte("data_deposito_real", inicio).lte("data_deposito_real", fim);
+      if (modo === "vendi") q = q.gte("created_at", `${inicio}T00:00:00`).lte("created_at", `${fim}T23:59:59`);
+      if (modo === "futuro") q = q.in("status", ["pendente"]).gte("vencimento", inicio).lte("vencimento", fim);
+      if (modo === "recebido") q = q.in("status", ["recebido", "recebida"]).gte("data_recebimento", inicio).lte("data_recebimento", fim);
       const { data, error } = await q;
       if (error) throw error;
       return data || [];
@@ -47,13 +48,16 @@ export function RelatoriosOperadoraTab({ operadoraId }: { operadoraId: string })
   });
 
   const grouped = useMemo(() => {
-    const key = modo === "vendi" ? "data_venda" : modo === "futuro" ? "data_prevista_deposito" : "data_deposito_real";
+    const keyFor = (r: any) => {
+      const src = modo === "vendi" ? r.created_at : modo === "futuro" ? r.vencimento : r.data_recebimento;
+      return src ? String(src).slice(0, 10) : "—";
+    };
     const map = new Map<string, { bruto: number; liq: number; n: number }>();
     rows.forEach((r: any) => {
-      const k = r[key] || "—";
-      const liq = Number(r.valor_liquido_recebido || r.valor_liquido_esperado || 0);
+      const k = keyFor(r);
+      const liq = Number(r.valor_liquido ?? (Number(r.valor) - Number(r.valor_taxa || 0)));
       const cur = map.get(k) || { bruto: 0, liq: 0, n: 0 };
-      cur.bruto += Number(r.valor_bruto || 0);
+      cur.bruto += Number(r.valor || 0);
       cur.liq += liq;
       cur.n += 1;
       map.set(k, cur);

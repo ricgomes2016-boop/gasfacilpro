@@ -1,30 +1,45 @@
-## Objetivo
-No passo de pagamento da Nova Venda, quando a forma "Gás do Povo" for selecionada, permitir incluir uma **taxa de entrega** adicional (paga em outra forma), já que o valor do Gás do Povo é fixo (R$ 101,08) e não cobre frete.
+## Diagnóstico
 
-## Contexto atual
-- `src/components/pdv/PDVPayment.tsx` já bloqueia Gás do Povo para exigir carrinho = 1× Gás P13 e valor fixo em `gasDoPovoValor`.
-- Hoje, se houver taxa de entrega no pedido, o total fica acima de R$ 101,08 e o cliente/entregador não tem um fluxo claro para lançar a diferença.
+Vendas em cartão crédito, débito e PIX Maquininha já são gravadas corretamente em `contas_receber` (89 registros da Forte Gás) pelo `paymentRoutingService` — com `operadora_id`, `taxa_percentual`, `valor_taxa`, `valor_liquido`, `conta_bancaria_destino_id` e `vencimento` calculado a partir do prazo da operadora.
 
-## Mudanças (somente UI/estado local do modal de pagamento)
+O problema é que as telas do **Portal da Operadora de Cartão** (Vendas / Recebíveis / métricas do cabeçalho) e o dashboard de **Gestão de Cartões** leem da tabela `conferencia_cartao`, que só é populada em fluxos específicos (Gás do Povo e PagBank) — por isso aparecem vazias, apesar do dinheiro existir em Contas a Receber.
 
-1. **Campo "Taxa de entrega"** no `PDVPayment` quando a forma selecionada for `gas_do_povo`:
-   - Input numérico (R$), default 0,00.
-   - Ao adicionar o pagamento Gás do Povo:
-     - Lança 1 pagamento `gas_do_povo` no valor fixo `gasDoPovoValor` (mantém a validação atual).
-     - Se `taxa_entrega > 0`, abre automaticamente a seleção da 2ª forma (Dinheiro/PIX/Cartão) com o valor da taxa já pré-preenchido, para o operador confirmar como a taxa foi recebida.
-   - `info` do pagamento Gás do Povo passa a mostrar: `Programa Gás do Povo — R$ 101,08 (D+2) + Taxa entrega R$ X,XX`.
+`conferencia_cartao` deve continuar existindo apenas como ferramenta de conferência manual (extrato x sistema).
 
-2. **Validação**:
-   - Taxa de entrega é opcional (pode ser 0).
-   - Se informada, obriga selecionar a forma de recebimento da taxa antes de finalizar.
-   - Gás do Povo continua exigindo carrinho elegível (1× Gás P13).
+## Padronização (fonte única = `contas_receber`)
 
-3. **Sem mudanças em backend, tabelas, RLS ou schema** — os pagamentos já são um array e o sistema financeiro já sabe processar múltiplas formas por venda.
+Refatorar as consultas das telas de operadora para lerem de `contas_receber` filtrando por `operadora_id`, `forma_pagamento IN ('cartao_credito','cartao_debito','pix_maquininha')` e `unidade_id`.
 
-## Arquivos afetados
-- `src/components/pdv/PDVPayment.tsx` (único arquivo alterado)
+### Arquivos alterados (somente frontend, sem migrations, sem mudar `paymentRoutingService`)
 
-## Fora do escopo
-- Não altero regras do programa Gás do Povo (valor fixo, D+2, elegibilidade).
-- Não crio nova forma de pagamento nem coluna nova.
-- Não mexo no fluxo do PDV/Entregador além do modal de pagamento.
+1. **`src/components/financeiro/operadora-detalhe/VendasOperadoraTab.tsx`**
+   - Trocar `from("conferencia_cartao")` por `from("contas_receber")` filtrando por operadora, período (`created_at`/`data_venda` derivado), unidade.
+   - Mapear colunas: `data_venda` ← `created_at`, `valor_bruto` ← `valor`, `valor_liquido_recebido` ← `valor_liquido` quando `status='recebido'`, senão `valor_liquido_esperado`.
+   - `tipo` derivado de `forma_pagamento` (credito/debito/pix_maq).
+
+2. **`src/components/financeiro/operadora-detalhe/RecebiveisOperadoraTab.tsx`**
+   - Ler `contas_receber` da mesma forma. Separar `recebido` (`status='recebido'` com `data_recebimento`) e `a receber` (`status='pendente'` com `vencimento`).
+
+3. **`src/components/financeiro/operadora-detalhe/RelatoriosOperadoraTab.tsx`**
+   - Trocar fonte para `contas_receber` para gráficos/relatórios do mês.
+
+4. **`src/pages/financeiro/OperadoraCartaoDetalhe.tsx`** (métricas do cabeçalho)
+   - Métrica "Vendas do mês / A receber / Recebido" passa a somar `contas_receber` da operadora no período.
+
+5. **`src/pages/financeiro/GestaoCartoes.tsx`** (grid de operadoras)
+   - Métrica por operadora (a receber / recebido) passa a somar `contas_receber` por `operadora_id` — remove o mapeamento indireto via `pagamentos_cartao.maquininha_serial → terminais_cartao`.
+
+### Fora do escopo (não mexer)
+
+- `paymentRoutingService.ts`: já grava certo, mantido.
+- `ConferenciaCartao.tsx`: continua sendo o formulário manual de conferência (extrato x sistema); segue lendo/escrevendo `conferencia_cartao`.
+- `pagamentos_cartao` (PagBank/PlugPag): fluxo próprio, não interfere.
+- Schema do banco, RLS e migrations: nenhuma alteração.
+
+### Backfill
+
+Não é necessário — os dados já existem em `contas_receber`. As telas passarão a mostrá-los imediatamente após o deploy.
+
+### Validação
+
+Após implantar, o Portal da operadora de cartão deve exibir as 54 vendas de crédito, 29 de débito e 6 de PIX-maquininha da Forte Gás separadas por operadora, batendo com Contas a Receber e com o card "Recebíveis por Banco" do Dashboard Financeiro.
