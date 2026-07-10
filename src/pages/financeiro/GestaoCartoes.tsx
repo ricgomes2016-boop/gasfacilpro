@@ -62,37 +62,28 @@ export default function GestaoCartoes() {
     },
   });
 
-  // métricas a receber por operadora (pagamentos_cartao pendentes de liquidação)
+  // Métricas a receber/recebido por operadora — fonte única: contas_receber
   const { data: metricsByOp = {} } = useQuery({
-    queryKey: ["operadoras-cartao-metrics", unidadeAtual?.id, operadoras.map(o => o.id).join(",")],
+    queryKey: ["operadoras-cartao-metrics-cr", unidadeAtual?.id, operadoras.map(o => o.id).join(",")],
     enabled: operadoras.length > 0,
     queryFn: async () => {
-      // pagamentos não têm operadora_id direto, então vamos via terminais
       const opIds = operadoras.map(o => o.id);
-      const { data: terms } = await supabase
-        .from("terminais_cartao")
-        .select("numero_serie, operadora_id")
-        .in("operadora_id", opIds);
-      const serialToOp: Record<string, string> = {};
-      (terms || []).forEach((t: any) => {
-        if (t.numero_serie && t.operadora_id) serialToOp[t.numero_serie] = t.operadora_id;
-      });
-
-      let pq = supabase
-        .from("pagamentos_cartao")
-        .select("maquininha_serial, valor_liquido, liquidado")
-        .eq("status", "aprovado");
-      if (unidadeAtual?.id) pq = pq.eq("unidade_id", unidadeAtual.id);
-      const { data: pags } = await pq;
+      let cq = supabase
+        .from("contas_receber")
+        .select("operadora_id,valor,valor_taxa,valor_liquido,status")
+        .in("operadora_id", opIds)
+        .in("forma_pagamento", ["cartao_credito", "cartao_debito", "pix_maquininha"]);
+      if (unidadeAtual?.id) cq = cq.eq("unidade_id", unidadeAtual.id);
+      const { data: rows } = await cq;
 
       const acc: Record<string, { aReceber: number; recebido: number }> = {};
       opIds.forEach(id => { acc[id] = { aReceber: 0, recebido: 0 }; });
-      (pags || []).forEach((p: any) => {
-        const opId = serialToOp[p.maquininha_serial || ""];
+      (rows || []).forEach((r: any) => {
+        const opId = r.operadora_id;
         if (!opId || !acc[opId]) return;
-        const v = Number(p.valor_liquido || 0);
-        if (p.liquidado) acc[opId].recebido += v;
-        else acc[opId].aReceber += v;
+        const liq = Number(r.valor_liquido ?? (Number(r.valor) - Number(r.valor_taxa || 0)));
+        if (r.status === "recebido" || r.status === "recebida") acc[opId].recebido += liq;
+        else acc[opId].aReceber += liq;
       });
       return acc;
     },
