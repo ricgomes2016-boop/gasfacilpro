@@ -202,6 +202,92 @@ export default function DashboardFinanceiro() {
           </Card>
         )}
 
+        {/* Recebíveis por Banco (cartão / PIX máquina / boleto pendentes) */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle className="text-base">Recebíveis por Banco</CardTitle>
+              <p className="text-xs text-muted-foreground">Cartão, PIX-maquininha e boletos aguardando depósito</p>
+            </div>
+            <Button
+              size="sm"
+              variant="default"
+              onClick={async () => {
+                const hoje2 = getBrasiliaDateString();
+                const aLiquidar = receberPendente.filter((c: any) => c.vencimento <= hoje2 && c.conta_bancaria_destino_id);
+                if (!aLiquidar.length) { alert("Nenhum recebível vencido para liquidar hoje."); return; }
+                if (!confirm(`Liquidar ${aLiquidar.length} recebível(is) vencido(s) — R$ ${aLiquidar.reduce((s: number, c: any) => s + Number(c.valor_liquido || c.valor), 0).toFixed(2)}?`)) return;
+                const { criarMovimentacaoBancaria } = await import("@/services/paymentRoutingService");
+                for (const c of aLiquidar) {
+                  const liquido = Number(c.valor_liquido || c.valor);
+                  await criarMovimentacaoBancaria({
+                    contaBancariaId: c.conta_bancaria_destino_id,
+                    valor: liquido,
+                    descricao: `Liquidação ${c.forma_pagamento} — ${c.descricao || ""}`.trim(),
+                    categoria: "recebimento_cartao",
+                    unidadeId: unidadeAtual?.id || null,
+                  });
+                  await supabase.from("contas_receber").update({ status: "recebido", data_recebimento: hoje2 } as any).eq("id", c.id);
+                }
+                await refetchReceber();
+                alert(`${aLiquidar.length} recebível(is) liquidado(s) com sucesso.`);
+              }}
+            >
+              Liquidar vencidos hoje
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const grupos: Record<string, { nome: string; banco: string; hoje: number; d7: number; d30: number; total: number; count: number }> = {};
+              const semBanco = { nome: "⚠ Sem banco vinculado", banco: "", hoje: 0, d7: 0, d30: 0, total: 0, count: 0 };
+              const d7 = format(addDays(new Date(), 7), "yyyy-MM-dd");
+              const d30 = format(addDays(new Date(), 30), "yyyy-MM-dd");
+              receberPendente.forEach((c: any) => {
+                const cbId = c.conta_bancaria_destino_id;
+                const target = cbId
+                  ? (grupos[cbId] ||= { nome: contasBancarias.find((b: any) => b.id === cbId)?.nome || "Conta", banco: contasBancarias.find((b: any) => b.id === cbId)?.banco || "", hoje: 0, d7: 0, d30: 0, total: 0, count: 0 })
+                  : semBanco;
+                const val = Number(c.valor_liquido || c.valor);
+                target.total += val;
+                target.count += 1;
+                if (c.vencimento <= hoje) target.hoje += val;
+                else if (c.vencimento <= d7) target.d7 += val;
+                else if (c.vencimento <= d30) target.d30 += val;
+              });
+              const lista = Object.values(grupos);
+              if (semBanco.count > 0) lista.push(semBanco);
+              if (!lista.length) return <p className="text-sm text-muted-foreground text-center py-4">Sem recebíveis pendentes.</p>;
+              return (
+                <div className="space-y-2">
+                  {lista.map((g, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                      <div>
+                        <p className="font-medium text-sm">{g.nome} {g.banco && <span className="text-xs text-muted-foreground ml-1">({g.banco})</span>}</p>
+                        <p className="text-xs text-muted-foreground">{g.count} título(s) · Total {fmt(g.total)}</p>
+                      </div>
+                      <div className="flex gap-2 text-right">
+                        <div className="text-xs">
+                          <p className="text-muted-foreground">Hoje/vencido</p>
+                          <p className="font-semibold text-orange-600">{fmt(g.hoje)}</p>
+                        </div>
+                        <div className="text-xs">
+                          <p className="text-muted-foreground">Até 7d</p>
+                          <p className="font-semibold">{fmt(g.d7)}</p>
+                        </div>
+                        <div className="text-xs">
+                          <p className="text-muted-foreground">Até 30d</p>
+                          <p className="font-semibold">{fmt(g.d30)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+
+
         {/* Gráficos */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Card className="lg:col-span-2">
