@@ -227,7 +227,7 @@ export default function DashboardFinanceiro() {
                     categoria: "recebimento_cartao",
                     unidadeId: unidadeAtual?.id || null,
                   });
-                  await supabase.from("contas_receber").update({ status: "recebido", data_recebimento: hoje2 } as any).eq("id", c.id);
+                  await supabase.from("contas_receber").update({ status: "recebida", data_recebimento: hoje2 } as any).eq("id", c.id).eq("status", "pendente");
                 }
                 await refetchReceber();
                 alert(`${aLiquidar.length} recebível(is) liquidado(s) com sucesso.`);
