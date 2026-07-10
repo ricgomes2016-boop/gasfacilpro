@@ -64,14 +64,15 @@ export default function OperadoraCartaoDetalhe() {
   }, []);
 
   const { data: metricsRaw } = useQuery({
-    queryKey: ["operadora-metrics", operadoraId, unidadeAtual?.id, inicioMes],
+    queryKey: ["operadora-metrics-cr", operadoraId, unidadeAtual?.id, inicioMes],
     enabled: !!op,
     queryFn: async () => {
       let q = supabase
-        .from("conferencia_cartao")
-        .select("valor_bruto,valor_liquido_esperado,valor_liquido_recebido,data_venda,data_deposito_real,status")
+        .from("contas_receber")
+        .select("valor,valor_taxa,valor_liquido,status,data_recebimento,created_at")
         .eq("operadora_id", operadoraId!)
-        .gte("data_venda", inicioMes);
+        .in("forma_pagamento", ["cartao_credito", "cartao_debito", "pix_maquininha"])
+        .gte("created_at", `${inicioMes}T00:00:00`);
       if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
       const { data } = await q;
 
@@ -86,14 +87,15 @@ export default function OperadoraCartaoDetalhe() {
 
   const metrics = useMemo(() => {
     const rows = metricsRaw?.rows || [];
-    const vendasMes = rows.reduce((s: number, r: any) => s + Number(r.valor_bruto || 0), 0);
+    const isRec = (s: string) => s === "recebido" || s === "recebida";
+    const vendasMes = rows.reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
     const recebido = rows
-      .filter((r: any) => r.data_deposito_real)
-      .reduce((s: number, r: any) => s + Number(r.valor_liquido_recebido || r.valor_liquido_esperado || 0), 0);
+      .filter((r: any) => isRec(r.status))
+      .reduce((s: number, r: any) => s + Number(r.valor_liquido ?? (Number(r.valor) - Number(r.valor_taxa || 0))), 0);
     const aReceber = rows
-      .filter((r: any) => !r.data_deposito_real)
-      .reduce((s: number, r: any) => s + Number(r.valor_liquido_esperado || 0), 0);
-    const conferencias = rows.filter((r: any) => r.status !== "confirmado").length;
+      .filter((r: any) => !isRec(r.status))
+      .reduce((s: number, r: any) => s + Number(r.valor_liquido ?? (Number(r.valor) - Number(r.valor_taxa || 0))), 0);
+    const conferencias = rows.filter((r: any) => !isRec(r.status)).length;
     return {
       vendasMes,
       recebido,
