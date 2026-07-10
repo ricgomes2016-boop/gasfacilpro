@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
         // 1. Marca recebido
         await supabase
           .from("contas_receber")
-          .update({ status: "recebido", data_recebimento: r.vencimento })
+          .update({ status: "recebida", data_recebimento: r.vencimento })
           .eq("id", r.id);
 
         // 2. Cria movimentação bancária (se ainda não existe)
