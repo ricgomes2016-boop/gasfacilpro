@@ -48,6 +48,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
   const [pagamentos, setPagamentos] = useState<PDVPagamento[]>([]);
   const [formaPagamento, setFormaPagamento] = useState("dinheiro");
   const [valorParcial, setValorParcial] = useState("");
+  const [taxaEntregaGasPovo, setTaxaEntregaGasPovo] = useState("");
   const [pixModalOpen, setPixModalOpen] = useState(false);
   const [cardModalOpen, setCardModalOpen] = useState(false);
   const [pendingExtras, setPendingExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string; info?: string } | null>(null);
@@ -78,6 +79,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
       setPagamentos([]);
       setFormaPagamento("dinheiro");
       setValorParcial("");
+      setTaxaEntregaGasPovo("");
       setPendingExtras(null);
     }
   }, [open]);
@@ -153,6 +155,29 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
         });
         return;
       }
+      const taxaNum = parseFloat(taxaEntregaGasPovo.replace(",", ".")) || 0;
+      const infoTaxa = taxaNum > 0 ? ` + Taxa entrega R$ ${taxaNum.toFixed(2)}` : "";
+      setPagamentos((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          forma: formaPagamento,
+          valor: valorParcialNum,
+          operadora_id: pendingExtras?.operadora_id,
+          conta_bancaria_id: pendingExtras?.conta_bancaria_id,
+          info: `Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2)${infoTaxa}`,
+        },
+      ]);
+      setPendingExtras(null);
+      if (taxaNum > 0) {
+        // Prepara próxima entrada para a forma escolher onde a taxa foi recebida
+        setFormaPagamento("dinheiro");
+        setValorParcial(taxaNum.toFixed(2).replace(".", ","));
+      } else {
+        setFormaPagamento("dinheiro");
+      }
+      setTaxaEntregaGasPovo("");
+      return;
     }
     setPagamentos((prev) => [
       ...prev,
@@ -252,6 +277,22 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
                 {pendingExtras?.info && (
                   <div className="p-2 rounded-lg bg-success/10 text-success text-xs text-center font-medium">
                     {pendingExtras.info}
+                  </div>
+                )}
+
+                {formaPagamento === "gas_do_povo" && (
+                  <div className="space-y-2 p-2 rounded-lg border border-dashed">
+                    <Label className="text-xs">Taxa de entrega (opcional)</Label>
+                    <Input
+                      type="text"
+                      placeholder="0,00"
+                      value={taxaEntregaGasPovo}
+                      onChange={(e) => setTaxaEntregaGasPovo(e.target.value)}
+                      className="text-base text-center font-mono"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Cobrada à parte do Gás do Povo. Após adicionar, escolha a forma de recebimento da taxa.
+                    </p>
                   </div>
                 )}
 
