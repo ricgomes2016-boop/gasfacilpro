@@ -719,7 +719,13 @@ export default function GestaoRotas() {
                                 })}
                               </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="text-right text-sm tabular-nums">R$ {c.receita.toFixed(2)}</TableCell>
+                            <TableCell className="text-right text-sm tabular-nums text-orange-600">R$ {c.custo_produto.toFixed(2)}</TableCell>
+                            <TableCell className="text-right text-sm tabular-nums text-red-600">R$ {c.despesa_rota.toFixed(2)}</TableCell>
+                            <TableCell className={`text-right text-sm tabular-nums font-semibold ${c.margem >= 0 ? "text-green-600" : "text-red-600"}`}>
+                              R$ {c.margem.toFixed(2)}
+                              <div className="text-[10px] text-muted-foreground">{c.margem_pct.toFixed(1)}%</div>
+                            </TableCell>
                               {c.status === "em_rota" ? (
                                 <Badge variant="default">Em Rota</Badge>
                               ) : (
