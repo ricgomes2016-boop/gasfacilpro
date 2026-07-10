@@ -41,6 +41,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       const mesesCalc: string[] = [];
       const receitaBruta: number[] = [];
       const cmv: number[] = [];
+      const comprasComprometidas: number[] = [];
       const despOp: number[] = [];
       const despAdmin: number[] = [];
       const despPessoal: number[] = [];
@@ -60,29 +61,61 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
         let dq = supabase.from("movimentacoes_bancarias").select("valor, categoria").eq("tipo", "saida").gte("data", inicioDate).lte("data", fimDate);
         if (unidadeAtual?.id) dq = dq.eq("unidade_id", unidadeAtual.id);
 
-        let cpq = supabase.from("contas_pagar").select("valor, categoria").eq("status", "pago").gte("vencimento", inicioDate).lte("vencimento", fimDate);
+        // Regime competência: contas_pagar por vencimento (independe do status)
+        let cpq = supabase.from("contas_pagar").select("valor, categoria, status").gte("vencimento", inicioDate).lte("vencimento", fimDate);
         if (unidadeAtual?.id) cpq = cpq.eq("unidade_id", unidadeAtual.id);
 
-        const [{ data: pedidos }, { data: despesasBanco }, { data: contasPagas }] = await Promise.all([pq, dq, cpq]);
+        // Compras (CMV real) — por data_compra
+        let compq = supabase.from("compras").select("valor_total, valor_frete, pago, tipo_produto").gte("data_compra", inicioDate).lte("data_compra", fimDate);
+        if (unidadeAtual?.id) compq = compq.eq("unidade_id", unidadeAtual.id);
+
+        // Despesas contábeis registradas
+        let dcq = supabase.from("despesas_contabeis").select("valor, categoria").gte("data_vencimento", inicioDate).lte("data_vencimento", fimDate);
+        if (unidadeAtual?.id) dcq = dcq.eq("unidade_id", unidadeAtual.id);
+
+        const [
+          { data: pedidos },
+          { data: despesasBanco },
+          { data: contasPagar },
+          { data: compras },
+          { data: despesasContabeis },
+        ] = await Promise.all([pq, dq, cpq, compq, dcq]);
 
         receitaBruta.push(pedidos?.reduce((s, p) => s + (p.valor_total || 0), 0) || 0);
 
+        // CMV = total das compras do período (regime competência)
+        let custoCompras = 0;
+        let custoComprometido = 0;
+        (compras || []).forEach((c: any) => {
+          const val = Number(c.valor_total || 0);
+          custoCompras += val;
+          if (c.pago === false) custoComprometido += val;
+        });
+        cmv.push(custoCompras);
+        comprasComprometidas.push(custoComprometido);
+
+        // Contas a pagar (excluindo as ligadas a compras — já contadas em CMV)
+        // + movimentações bancárias de saída + despesas contábeis
         const todasDespesas = [
-          ...(despesasBanco || []).map(d => ({ categoria: d.categoria, valor: Number(d.valor) })),
-          ...(contasPagas || []).map(d => ({ categoria: (d as any).categoria, valor: Number(d.valor) })),
+          ...(despesasBanco || []).map((d: any) => ({ categoria: d.categoria, valor: Number(d.valor) })),
+          ...(contasPagar || [])
+            .filter((d: any) => {
+              const c = (d.categoria || "").toLowerCase();
+              return !(c.includes("compra") || c.includes("mercadoria") || c.includes("estoque"));
+            })
+            .map((d: any) => ({ categoria: d.categoria, valor: Number(d.valor) })),
+          ...(despesasContabeis || []).map((d: any) => ({ categoria: d.categoria, valor: Number(d.valor) })),
         ];
 
-        let op = 0, admin = 0, pessoal = 0, fin = 0, custo = 0;
+        let op = 0, admin = 0, pessoal = 0, fin = 0;
         todasDespesas.forEach(d => {
           const cat = (d.categoria || "").toLowerCase();
           const val = d.valor || 0;
-          if (cat.includes("mercadoria") || cat.includes("compra") || cat.includes("estoque")) custo += val;
-          else if (cat.includes("pessoal") || cat.includes("salário") || cat.includes("salario")) pessoal += val;
-          else if (cat.includes("financ")) fin += val;
-          else if (cat.includes("admin")) admin += val;
+          if (cat.includes("pessoal") || cat.includes("salário") || cat.includes("salario") || cat.includes("folha") || cat.includes("comiss")) pessoal += val;
+          else if (cat.includes("financ") || cat.includes("juros") || cat.includes("tarifa")) fin += val;
+          else if (cat.includes("admin") || cat.includes("escrit") || cat.includes("contab")) admin += val;
           else op += val;
         });
-        cmv.push(custo);
         despOp.push(op);
         despAdmin.push(admin);
         despPessoal.push(pessoal);
@@ -99,11 +132,16 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       const lucroOp = lucroBruto.map((r, i) => r - totalDespOp[i]);
       const lucroLiquido = lucroOp.map((r, i) => r - despFin[i]);
 
-      setDre([
+      const linhas: DRELine[] = [
         { categoria: "Receita Bruta de Vendas", valores: receitaBruta, tipo: "receita" },
         { categoria: "Deduções sobre Receita", valores: deducoes.map(v => -v), tipo: "deducao", indent: true },
         { categoria: "RECEITA LÍQUIDA", valores: receitaLiquida, tipo: "subtotal" },
         { categoria: "Custo das Mercadorias Vendidas (CMV)", valores: cmv.map(v => -v), tipo: "custo", indent: true },
+      ];
+      if (comprasComprometidas.some(v => v > 0)) {
+        linhas.push({ categoria: "  ⚠ Compras não pagas (comprometido)", valores: comprasComprometidas, tipo: "custo", indent: true });
+      }
+      linhas.push(
         { categoria: "LUCRO BRUTO", valores: lucroBruto, tipo: "subtotal" },
         { categoria: "Despesas Operacionais", valores: despOp.map(v => -v), tipo: "despesa", indent: true },
         { categoria: "Despesas Administrativas", valores: despAdmin.map(v => -v), tipo: "despesa", indent: true },
@@ -111,7 +149,8 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
         { categoria: "RESULTADO OPERACIONAL (EBITDA)", valores: lucroOp, tipo: "subtotal" },
         { categoria: "Despesas Financeiras", valores: despFin.map(v => -v), tipo: "despesa", indent: true },
         { categoria: "RESULTADO LÍQUIDO DO EXERCÍCIO", valores: lucroLiquido, tipo: "resultado" },
-      ]);
+      );
+      setDre(linhas);
     } catch (e) {
       console.error(e);
     } finally {
