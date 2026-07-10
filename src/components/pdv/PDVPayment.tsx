@@ -79,6 +79,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
       setPagamentos([]);
       setFormaPagamento("dinheiro");
       setValorParcial("");
+      setTaxaEntregaGasPovo("");
       setPendingExtras(null);
     }
   }, [open]);
