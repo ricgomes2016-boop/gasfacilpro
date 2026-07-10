@@ -33,10 +33,21 @@ export default function DashboardFinanceiro() {
   });
 
   // Contas a Receber
-  const { data: contasReceber = [] } = useQuery({
+  const { data: contasReceber = [], refetch: refetchReceber } = useQuery({
     queryKey: ["dash_fin_receber", unidadeAtual?.id],
     queryFn: async () => {
-      let q = supabase.from("contas_receber").select("valor, vencimento, status");
+      let q = supabase.from("contas_receber").select("id, valor, valor_liquido, valor_taxa, vencimento, status, forma_pagamento, conta_bancaria_destino_id, operadora_id, taxa_percentual, descricao");
+      if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+      const { data } = await q;
+      return data || [];
+    },
+  });
+
+  // Contas bancárias (para agrupar recebíveis)
+  const { data: contasBancarias = [] } = useQuery({
+    queryKey: ["dash_fin_contas_bancarias", unidadeAtual?.id],
+    queryFn: async () => {
+      let q = supabase.from("contas_bancarias").select("id, nome, banco, saldo_atual").eq("ativo", true);
       if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
       const { data } = await q;
       return data || [];
