@@ -68,15 +68,24 @@ interface Carregamento {
   entregador_nome: string;
   rota_nome: string | null;
   unidade_nome: string | null;
+  unidade_id: string | null;
   data_saida: string;
   data_retorno: string | null;
   status: string;
   itens: CarregamentoItem[];
+  // Financeiro
+  receita: number;
+  custo_produto: number;
+  despesa_rota: number;
+  margem: number;
+  margem_pct: number;
 }
 
 interface CarregamentoItem {
   id: string;
+  produto_id: string;
   produto_nome: string;
+  preco_custo: number;
   quantidade_saida: number;
   quantidade_retorno: number | null;
   quantidade_vendida: number | null;
