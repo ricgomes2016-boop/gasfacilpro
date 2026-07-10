@@ -418,10 +418,15 @@ export default function GestaoRotas() {
       });
       if (c.status === "em_rota") acc.emRota++;
       if (c.status === "finalizado") acc.finalizados++;
+      acc.receita += c.receita;
+      acc.custo += c.custo_produto;
+      acc.despesa += c.despesa_rota;
+      acc.margem += c.margem;
       return acc;
     },
-    { totalSaida: 0, totalVendido: 0, totalRetorno: 0, totalTransferido: 0, emRota: 0, finalizados: 0 }
+    { totalSaida: 0, totalVendido: 0, totalRetorno: 0, totalTransferido: 0, emRota: 0, finalizados: 0, receita: 0, custo: 0, despesa: 0, margem: 0 }
   );
+  const margemPct = resumo.receita > 0 ? (resumo.margem / resumo.receita) * 100 : 0;
 
   const handlePrintManifesto = (carreg: Carregamento) => {
     const printWindow = window.open("", "_blank");
