@@ -668,6 +668,36 @@ export default function GestaoRotas() {
               </Card>
             </div>
 
+            {/* Resumo Financeiro */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Receita</p>
+                  <p className="text-xl font-bold text-green-600">R$ {resumo.receita.toFixed(2)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Custo Produto</p>
+                  <p className="text-xl font-bold text-orange-600">R$ {resumo.custo.toFixed(2)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Despesas Rota</p>
+                  <p className="text-xl font-bold text-red-600">R$ {resumo.despesa.toFixed(2)}</p>
+                </CardContent>
+              </Card>
+              <Card className={`border-2 ${resumo.margem >= 0 ? "border-green-500 bg-green-50 dark:bg-green-950/20" : "border-red-500 bg-red-50 dark:bg-red-950/20"}`}>
+                <CardContent className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground font-medium">Margem Líquida</p>
+                  <p className={`text-xl font-bold ${resumo.margem >= 0 ? "text-green-700" : "text-red-700"}`}>R$ {resumo.margem.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">{margemPct.toFixed(1)}%</p>
+                </CardContent>
+              </Card>
+            </div>
+
+
             {/* Lista de carregamentos */}
             <Card>
               <CardContent className="p-0">
