@@ -456,41 +456,50 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
       }
 
       case "gas_do_povo": {
-        // Programa Gás do Povo (governo): recebível D+2, taxa 0%.
-        // Tratado como recebível tipo cartão para aparecer na Conciliação Cartão.
-        const dataPrevista = format(addDays(new Date(), 2), "yyyy-MM-dd");
-        promises.push(insertContasReceber({
-          cliente: "Programa Gás do Povo",
-          descricao: `Gás do Povo - Venda #${pedidoRef}`,
-          valor: pag.valor,
-          vencimento: dataPrevista,
-          status: "pendente",
-          forma_pagamento: "gas_do_povo",
-          pedido_id: pedidoId,
-          unidade_id: unidadeId || null,
-          taxa_percentual: 0,
-          valor_taxa: 0,
-          valor_liquido: pag.valor,
-          cliente_id: clienteId || null,
-        }));
-        // Também aparece em Gestão de Cartões (Conferência) como "maquininha azulzinha"
+        // Programa Gás do Povo (governo): recebível D+2 (ou prazo da operadora), taxa 0%.
+        // Nasce pendente; cron liquida no vencimento creditando o banco da operadora
+        // (tipicamente Caixa Econômica cadastrada em operadoras_cartao.conta_bancaria_id).
         promises.push((async () => {
-          const { error } = await supabase.from("conferencia_cartao").insert({
+          const op = await getOperadoraConfig(unidadeId || null, "gas_do_povo", (pag as any).operadora_id);
+          const prazo = op?.prazo ?? 2;
+          const dataPrevista = format(addDays(new Date(), prazo), "yyyy-MM-dd");
+          const contaDestino = await resolverContaDestino({
+            unidadeId,
+            forma: "gas_do_povo",
+            contaExplicita: pag.conta_bancaria_id,
+            operadoraContaId: op?.conta_bancaria_id || null,
+          });
+          const liquidaAgora = prazo === 0 && !!contaDestino;
+
+          await insertContasReceber({
+            cliente: op?.nome || "Programa Gás do Povo",
+            descricao: `Gás do Povo - Venda #${pedidoRef}`,
+            valor: pag.valor,
+            vencimento: dataPrevista,
+            status: liquidaAgora ? "recebido" : "pendente",
+            data_recebimento: liquidaAgora ? hoje : null,
+            forma_pagamento: "gas_do_povo",
             pedido_id: pedidoId,
-            operadora_id: null,
-            tipo: "gas_do_povo",
-            bandeira: "Gás do Povo",
-            valor_bruto: pag.valor,
+            unidade_id: unidadeId || null,
+            operadora_id: op?.id || null,
             taxa_percentual: 0,
             valor_taxa: 0,
-            valor_liquido_esperado: pag.valor,
-            data_venda: hoje,
-            data_prevista_deposito: dataPrevista,
-            parcelas: 1,
-            status: "pendente",
-            unidade_id: unidadeId || null,
+            valor_liquido: pag.valor,
+            cliente_id: clienteId || null,
+            conta_bancaria_destino_id: contaDestino,
           });
-          if (error) throw error;
+
+          if (liquidaAgora && contaDestino) {
+            await criarMovimentacaoBancaria({
+              contaBancariaId: contaDestino,
+              valor: pag.valor,
+              descricao: `Gás do Povo ${op?.nome || ""} - Venda #${pedidoRef}`.trim(),
+              categoria: "liquidacao_operadora",
+              unidadeId,
+              userId,
+              pedidoId,
+            });
+          }
         })());
         break;
       }
