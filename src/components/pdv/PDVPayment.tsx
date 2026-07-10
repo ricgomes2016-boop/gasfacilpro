@@ -48,6 +48,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
   const [pagamentos, setPagamentos] = useState<PDVPagamento[]>([]);
   const [formaPagamento, setFormaPagamento] = useState("dinheiro");
   const [valorParcial, setValorParcial] = useState("");
+  const [taxaEntregaGasPovo, setTaxaEntregaGasPovo] = useState("");
   const [pixModalOpen, setPixModalOpen] = useState(false);
   const [cardModalOpen, setCardModalOpen] = useState(false);
   const [pendingExtras, setPendingExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string; info?: string } | null>(null);
