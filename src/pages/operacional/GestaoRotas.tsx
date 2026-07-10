@@ -68,15 +68,24 @@ interface Carregamento {
   entregador_nome: string;
   rota_nome: string | null;
   unidade_nome: string | null;
+  unidade_id: string | null;
   data_saida: string;
   data_retorno: string | null;
   status: string;
   itens: CarregamentoItem[];
+  // Financeiro
+  receita: number;
+  custo_produto: number;
+  despesa_rota: number;
+  margem: number;
+  margem_pct: number;
 }
 
 interface CarregamentoItem {
   id: string;
+  produto_id: string;
   produto_nome: string;
+  preco_custo: number;
   quantidade_saida: number;
   quantidade_retorno: number | null;
   quantidade_vendida: number | null;
@@ -159,8 +168,48 @@ export default function GestaoRotas() {
       for (const c of data) {
         const { data: itensData } = await supabase
           .from("carregamento_rota_itens")
-          .select("*, produtos(nome)")
+          .select("*, produtos(nome, preco_custo)")
           .eq("carregamento_id", c.id) as any;
+
+        const itens: CarregamentoItem[] = (itensData || []).map((i: any) => ({
+          id: i.id,
+          produto_id: i.produto_id,
+          produto_nome: i.produtos?.nome || "—",
+          preco_custo: Number(i.produtos?.preco_custo || 0),
+          quantidade_saida: i.quantidade_saida,
+          quantidade_retorno: i.quantidade_retorno,
+          quantidade_vendida: i.quantidade_vendida,
+          quantidade_transferida: i.quantidade_transferida,
+        }));
+
+        // Financeiro por carregamento
+        const dtIni = c.data_saida;
+        const dtFim = c.data_retorno || new Date().toISOString();
+        const [{ data: pedidosEnt }, { data: abast }, { data: cpEnt }] = await Promise.all([
+          supabase.from("pedidos")
+            .select("valor_total")
+            .eq("entregador_id", c.entregador_id)
+            .eq("status", "entregue")
+            .gte("created_at", dtIni)
+            .lte("created_at", dtFim),
+          supabase.from("abastecimentos")
+            .select("valor")
+            .eq("entregador_id", c.entregador_id)
+            .gte("data", dtIni.slice(0, 10))
+            .lte("data", dtFim.slice(0, 10)),
+          supabase.from("contas_pagar")
+            .select("valor, categoria")
+            .ilike("categoria", "%rota%")
+            .gte("vencimento", dtIni.slice(0, 10))
+            .lte("vencimento", dtFim.slice(0, 10)),
+        ]);
+
+        const receita = (pedidosEnt || []).reduce((s: number, p: any) => s + Number(p.valor_total || 0), 0);
+        const custo_produto = itens.reduce((s, i) => s + (Number(i.quantidade_vendida || 0) * i.preco_custo), 0);
+        const despesa_rota = (abast || []).reduce((s: number, a: any) => s + Number(a.valor || 0), 0)
+          + (cpEnt || []).reduce((s: number, x: any) => s + Number(x.valor || 0), 0);
+        const margem = receita - custo_produto - despesa_rota;
+        const margem_pct = receita > 0 ? (margem / receita) * 100 : 0;
 
         carregs.push({
           id: c.id,
@@ -168,17 +217,16 @@ export default function GestaoRotas() {
           entregador_nome: c.entregadores?.nome || "—",
           rota_nome: c.rotas_definidas?.nome || null,
           unidade_nome: c.unidades?.nome || null,
+          unidade_id: c.unidade_id || null,
           data_saida: c.data_saida,
           data_retorno: c.data_retorno,
           status: c.status,
-          itens: (itensData || []).map((i: any) => ({
-            id: i.id,
-            produto_nome: i.produtos?.nome || "—",
-            quantidade_saida: i.quantidade_saida,
-            quantidade_retorno: i.quantidade_retorno,
-            quantidade_vendida: i.quantidade_vendida,
-            quantidade_transferida: i.quantidade_transferida,
-          })),
+          itens,
+          receita,
+          custo_produto,
+          despesa_rota,
+          margem,
+          margem_pct,
         });
       }
       setCarregamentos(carregs);
@@ -370,10 +418,15 @@ export default function GestaoRotas() {
       });
       if (c.status === "em_rota") acc.emRota++;
       if (c.status === "finalizado") acc.finalizados++;
+      acc.receita += c.receita;
+      acc.custo += c.custo_produto;
+      acc.despesa += c.despesa_rota;
+      acc.margem += c.margem;
       return acc;
     },
-    { totalSaida: 0, totalVendido: 0, totalRetorno: 0, totalTransferido: 0, emRota: 0, finalizados: 0 }
+    { totalSaida: 0, totalVendido: 0, totalRetorno: 0, totalTransferido: 0, emRota: 0, finalizados: 0, receita: 0, custo: 0, despesa: 0, margem: 0 }
   );
+  const margemPct = resumo.receita > 0 ? (resumo.margem / resumo.receita) * 100 : 0;
 
   const handlePrintManifesto = (carreg: Carregamento) => {
     const printWindow = window.open("", "_blank");
@@ -615,6 +668,36 @@ export default function GestaoRotas() {
               </Card>
             </div>
 
+            {/* Resumo Financeiro */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Receita</p>
+                  <p className="text-xl font-bold text-green-600">R$ {resumo.receita.toFixed(2)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Custo Produto</p>
+                  <p className="text-xl font-bold text-orange-600">R$ {resumo.custo.toFixed(2)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Despesas Rota</p>
+                  <p className="text-xl font-bold text-red-600">R$ {resumo.despesa.toFixed(2)}</p>
+                </CardContent>
+              </Card>
+              <Card className={`border-2 ${resumo.margem >= 0 ? "border-green-500 bg-green-50 dark:bg-green-950/20" : "border-red-500 bg-red-50 dark:bg-red-950/20"}`}>
+                <CardContent className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground font-medium">Margem Líquida</p>
+                  <p className={`text-xl font-bold ${resumo.margem >= 0 ? "text-green-700" : "text-red-700"}`}>R$ {resumo.margem.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">{margemPct.toFixed(1)}%</p>
+                </CardContent>
+              </Card>
+            </div>
+
+
             {/* Lista de carregamentos */}
             <Card>
               <CardContent className="p-0">
@@ -632,8 +715,10 @@ export default function GestaoRotas() {
                           <TableHead>Rota</TableHead>
                           <TableHead>Saída</TableHead>
                           <TableHead>Produtos</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Ações</TableHead>
+                          <TableHead className="text-right">Receita</TableHead>
+                          <TableHead className="text-right">Custo</TableHead>
+                          <TableHead className="text-right">Despesas</TableHead>
+                          <TableHead className="text-right">Margem</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -667,6 +752,13 @@ export default function GestaoRotas() {
                                 })}
                               </div>
                             </TableCell>
+                            <TableCell className="text-right text-sm tabular-nums">R$ {c.receita.toFixed(2)}</TableCell>
+                            <TableCell className="text-right text-sm tabular-nums text-orange-600">R$ {c.custo_produto.toFixed(2)}</TableCell>
+                            <TableCell className="text-right text-sm tabular-nums text-red-600">R$ {c.despesa_rota.toFixed(2)}</TableCell>
+                            <TableCell className={`text-right text-sm tabular-nums font-semibold ${c.margem >= 0 ? "text-green-600" : "text-red-600"}`}>
+                              R$ {c.margem.toFixed(2)}
+                              <div className="text-[10px] text-muted-foreground">{c.margem_pct.toFixed(1)}%</div>
+                            </TableCell>
                             <TableCell>
                               {c.status === "em_rota" ? (
                                 <Badge variant="default">Em Rota</Badge>
@@ -697,7 +789,7 @@ export default function GestaoRotas() {
                         ))}
                         {filteredCarregamentos.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                               Nenhum carregamento encontrado
                             </TableCell>
                           </TableRow>
