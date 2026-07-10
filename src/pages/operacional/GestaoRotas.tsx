@@ -724,6 +724,7 @@ export default function GestaoRotas() {
                               R$ {c.margem.toFixed(2)}
                               <div className="text-[10px] text-muted-foreground">{c.margem_pct.toFixed(1)}%</div>
                             </TableCell>
+                            <TableCell>
                               {c.status === "em_rota" ? (
                                 <Badge variant="default">Em Rota</Badge>
                               ) : (
