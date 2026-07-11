@@ -64,6 +64,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   const [chequeFotoUrl, setChequeFotoUrl] = useState<string | null>(null);
   const [isUploadingCheque, setIsUploadingCheque] = useState(false);
   const [dataVencimentoFiado, setDataVencimentoFiado] = useState("");
+  const [taxaEntregaGasPovo, setTaxaEntregaGasPovo] = useState("");
   const [chequeDialogOpen, setChequeDialogOpen] = useState(false);
   const chequePhotoRef = useRef<HTMLInputElement>(null);
   const chequeCameraRef = useRef<HTMLInputElement>(null);
@@ -177,6 +178,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     setChequeBanco("");
     setChequeFotoUrl(null);
     setDataVencimentoFiado("");
+    setTaxaEntregaGasPovo("");
     setPendingOperadora(null);
     setPendingContaBancaria(null);
     setPendingCardInfo(null);
@@ -229,9 +231,14 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     }
 
     onChange([...pagamentos, novoPagamento]);
+    const taxaNum = forma === "gas_do_povo" ? parseCurrency(taxaEntregaGasPovo) : 0;
     setForma("");
-    setValorDisplay("");
     resetExtraFields();
+    if (taxaNum > 0) {
+      setValorDisplay(formatCurrency(taxaNum.toFixed(2).replace(".", ",")));
+    } else {
+      setValorDisplay("");
+    }
   };
 
   const removePagamento = (id: string) => {
@@ -467,7 +474,27 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
                 </div>
               </div>
             )}
+
+            {/* Gás do Povo - Taxa de entrega */}
+            {forma === "gas_do_povo" && (
+              <div className="venda-modern-surface p-3 rounded-lg space-y-2 border border-dashed">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Taxa de entrega (opcional)</p>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                  <Input
+                    placeholder="0,00"
+                    value={taxaEntregaGasPovo}
+                    onChange={(e) => setTaxaEntregaGasPovo(formatCurrency(e.target.value))}
+                    className="h-9 pl-9 text-sm"
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Cobrada à parte do Gás do Povo. Após adicionar, escolha a forma de recebimento da taxa (dinheiro, PIX, cartão…).
+                </p>
+              </div>
+            )}
           </div>
+
 
           {/* Status do pagamento */}
           {totalVenda > 0 && (
