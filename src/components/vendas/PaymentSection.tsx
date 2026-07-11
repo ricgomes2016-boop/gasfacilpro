@@ -64,6 +64,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   const [chequeFotoUrl, setChequeFotoUrl] = useState<string | null>(null);
   const [isUploadingCheque, setIsUploadingCheque] = useState(false);
   const [dataVencimentoFiado, setDataVencimentoFiado] = useState("");
+  const [taxaEntregaGasPovo, setTaxaEntregaGasPovo] = useState("");
   const [chequeDialogOpen, setChequeDialogOpen] = useState(false);
   const chequePhotoRef = useRef<HTMLInputElement>(null);
   const chequeCameraRef = useRef<HTMLInputElement>(null);
