@@ -178,6 +178,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     setChequeBanco("");
     setChequeFotoUrl(null);
     setDataVencimentoFiado("");
+    setTaxaEntregaGasPovo("");
     setPendingOperadora(null);
     setPendingContaBancaria(null);
     setPendingCardInfo(null);
