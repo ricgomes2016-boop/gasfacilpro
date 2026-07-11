@@ -231,9 +231,14 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     }
 
     onChange([...pagamentos, novoPagamento]);
+    const taxaNum = forma === "gas_do_povo" ? parseCurrency(taxaEntregaGasPovo) : 0;
     setForma("");
-    setValorDisplay("");
     resetExtraFields();
+    if (taxaNum > 0) {
+      setValorDisplay(formatCurrency(taxaNum.toFixed(2).replace(".", ",")));
+    } else {
+      setValorDisplay("");
+    }
   };
 
   const removePagamento = (id: string) => {
