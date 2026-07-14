@@ -173,8 +173,10 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
           operadora_id: pendingExtras?.operadora_id,
           conta_bancaria_id: pendingExtras?.conta_bancaria_id,
           info: `Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2)${infoTaxa}`,
+          taxa_extra: taxaNum > 0 ? taxaNum : undefined,
         },
       ]);
+
       setPendingExtras(null);
       if (taxaNum > 0) {
         // Prepara próxima entrada para a forma escolher onde a taxa foi recebida
