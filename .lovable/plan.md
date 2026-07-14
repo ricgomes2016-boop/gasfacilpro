@@ -1,31 +1,36 @@
-## Objetivo
-Adicionar o campo **"Taxa de entrega (opcional)"** na etapa de Pagamento de **Vendas / Nova Venda** (componente `PaymentSection.tsx`) quando a forma de pagamento **Gás do Povo** for selecionada — mesmo comportamento já existente no PDV (`PDVPayment.tsx`).
+# Refatorar Estoque do dia (`src/pages/Estoque.tsx`) — padrão Dashboard
 
-## Por que
-O campo foi implementado no PDV, mas o fluxo Nova Venda (usado por vendedores e entregadores) usa outro componente (`src/components/vendas/PaymentSection.tsx`) que não recebeu a alteração. Por isso o usuário não vê o campo ao escolher Gás do Povo em Nova Venda.
+Somente UI/layout. Nenhuma query, cálculo, mutação ou regra de negócio será alterada.
 
-## Escopo (somente frontend)
-Arquivo único: `src/components/vendas/PaymentSection.tsx`.
+## 1. Cabeçalho / hero
+- Remover o card gradiente `bg-gradient-to-br from-primary to-secondary` com título "Controle diário de produtos" (o texto some sobre o gradiente, como no print).
+- Usar o mesmo `Header` já presente (`title="Estoque"`, `subtitle="Controle de estoque do dia"`), no padrão do Dashboard, e mover os botões **Atualizar** e **Movimentação** para uma barra de ações à direita, logo abaixo do Header (mesmo pattern do Dashboard: título à esquerda, ações à direita, sem card colorido envolvendo).
+- O rótulo "Período: dd/mm/aaaa" vira um texto discreto (`text-sm text-muted-foreground`) ao lado dos filtros.
 
-### Alterações
-1. Novo estado local `taxaEntregaGasPovo: string` (input mask de moeda igual ao `valorDisplay`).
-2. Renderizar bloco condicional quando `forma === "gas_do_povo"`:
-   - Label "Taxa de entrega (opcional)"
-   - `Input` com máscara `formatCurrency`
-   - Nota: "Cobrada à parte do Gás do Povo. Após adicionar, escolha a forma de recebimento da taxa."
-   - Estilo consistente com o restante da seção (borda tracejada, tokens semânticos — sem cores hardcoded).
-3. No `addPagamento`, quando `forma === "gas_do_povo"` e há taxa > 0:
-   - Após adicionar o pagamento Gás do Povo, pré-preencher `valorDisplay` com o valor da taxa e trocar `forma` para `""` (obriga o usuário a escolher onde recebeu a taxa: dinheiro / pix / cartão).
-   - Limpar `taxaEntregaGasPovo`.
-4. Incluir a taxa como **texto informativo** no pagamento Gás do Povo (novo campo opcional `info?: string` no objeto `Pagamento`, ou reaproveitar `operadora_nome` — preferência: adicionar `info` opcional para não misturar semânticas). A taxa em si vira **um segundo pagamento** normal (dinheiro/pix/etc.), como no PDV.
-5. Resetar `taxaEntregaGasPovo` em `resetExtraFields()`.
+## 2. Cards de KPI (Cheios / Vazios / Vendas Período / Valor Estoque)
+- Trocar os 4 cards sólidos coloridos (`bg-primary`, `bg-secondary`, `bg-info`, `bg-destructive`) — que estão escondendo os rótulos no preview — pelo padrão de KPI do Dashboard: card neutro (`bg-card`), borda sutil, ícone dentro de um badge tintado (`bg-primary/10 text-primary`, `bg-secondary/10`, `bg-info/10`, `bg-destructive/10`), label em `text-sm text-muted-foreground` e valor em `text-2xl font-bold text-foreground`.
+- Manter os mesmos 4 indicadores e os mesmos cálculos (`getTotalCheios`, `getTotalVazios`, `totalVendas`, `getValorEstoque`).
+- Grid mantém `grid-cols-2 md:grid-cols-4`.
 
-### O que NÃO muda
-- Nenhuma alteração em `paymentRoutingService.ts`, edge functions, banco, ou fluxo de finalização — a taxa entra no array `pagamentos` como uma linha adicional já suportada.
-- Nenhuma mudança no PDV (já está correto) nem em outros consumidores.
-- Sem novas dependências, sem novas rotas.
+## 3. Filtros de data
+- Remover o card `modern-soft-panel` que envolve os dois date pickers.
+- Colocar os dois `Popover`+`Calendar` (Data Inicial / Data Final) em uma linha compacta alinhada à direita, acima da tabela, no mesmo padrão dos filtros do Dashboard (labels curtas acima, botões `variant="outline" size="sm"`).
+- Manter estado, handlers e o `periodoLabel` intactos.
 
-## Verificação
-- Abrir Vendas → Nova Venda, adicionar 1× Gás P13, ir em Pagamento, clicar em "Gás do Povo": o campo "Taxa de entrega (opcional)" deve aparecer.
-- Preencher taxa, clicar Adicionar: pagamento Gás do Povo entra na lista, e o formulário fica pronto para adicionar a taxa como pagamento separado (dinheiro/pix/cartão).
-- Sem taxa: comportamento atual preservado.
+## 4. Tabela / listagem do dia
+- Manter estrutura de dados e colunas (Produto, Tipo, Inicial, Entradas, Saídas, Vendas, Avarias, Total, Total Vasilhame, Ação).
+- Padronizar tipografia e espaçamento no padrão do sistema:
+  - Cabeçalho da seção como card neutro (`Card` + `CardHeader` com ícone + título + subtítulo explicativo "Total = Inicial + Entradas − Saídas − Vendas − Avarias").
+  - Cabeçalho de tabela `text-xs uppercase text-muted-foreground`, linhas com `hover:bg-muted/50`, badges de tipo com as cores semânticas já usadas no resto do ERP.
+  - Sem cores hardcoded; usar apenas tokens semânticos.
+
+## 5. Não muda
+- Nenhuma query Supabase, RPC, cálculo, movimentação, dialog de "Movimentação de Estoque" (só herda os tokens visuais atualizados; conteúdo do formulário permanece).
+- Nenhuma rota, nenhum import de página, nada em `App.tsx`.
+- Comportamento de `fetchData`, filtros por data, `unidade_id`, permissões — tudo preservado.
+
+## Detalhes técnicos
+- Arquivo único alterado: `src/pages/Estoque.tsx`.
+- Substituir apenas o JSX do `return (...)` a partir do `<MainLayout>` até o fechamento do bloco de filtros/tabela. Toda a lógica acima do `return` permanece igual.
+- Reaproveitar classes utilitárias já existentes no projeto (`status-card-icon`, `modern-panel`) apenas quando forem compatíveis com o padrão Dashboard; caso contrário, usar as mesmas classes que o Dashboard usa hoje para KPIs.
+- Rodar typecheck ao final.

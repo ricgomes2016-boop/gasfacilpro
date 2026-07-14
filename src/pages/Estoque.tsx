@@ -317,91 +317,68 @@ export default function Estoque() {
     ? format(dataInicio, "dd/MM/yyyy")
     : `${format(dataInicio, "dd/MM/yyyy")} até ${format(dataFim, "dd/MM/yyyy")}`;
 
+  const kpis = [
+    { label: "Cheios", value: getTotalCheios().toLocaleString("pt-BR"), icon: Package, tone: "primary" as const },
+    { label: "Vazios", value: getTotalVazios().toLocaleString("pt-BR"), icon: Package, tone: "secondary" as const },
+    { label: "Vendas Período", value: totalVendas.toLocaleString("pt-BR"), icon: TrendingUp, tone: "info" as const },
+    { label: "Valor Estoque", value: `R$ ${getValorEstoque().toLocaleString("pt-BR")}`, icon: AlertTriangle, tone: "destructive" as const },
+  ];
+  const toneClasses: Record<"primary" | "secondary" | "info" | "destructive", string> = {
+    primary: "bg-primary/10 text-primary",
+    secondary: "bg-secondary/20 text-secondary-foreground",
+    info: "bg-info/10 text-info",
+    destructive: "bg-destructive/10 text-destructive",
+  };
+
   return (
     <MainLayout>
       <Header title="Estoque" subtitle="Controle de estoque do dia" />
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
-        <Card className="border-primary bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-primary/20">
-          <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="status-card-icon status-card-icon-warning-solid">
-                <Package />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase text-primary-foreground/75">Estoque operacional</p>
-                <h2 className="truncate text-xl font-bold leading-tight sm:text-2xl">Controle diário de produtos</h2>
-                <p className="truncate text-sm font-medium text-primary-foreground/80">Período: {periodoLabel}</p>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button variant="secondary" size="sm" onClick={fetchData} disabled={isLoading}>
-                <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-                Atualizar
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => setMovDialogOpen(true)}>
-                <ArrowUpDown className="mr-2 h-4 w-4" />
-                Movimentação
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Summary cards */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
-          <Card className="modern-status-card border-primary bg-primary text-primary-foreground">
-            <CardContent className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
-              <div className="status-card-icon status-card-icon-warning-solid">
-                <Package />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-primary-foreground/75 sm:text-sm">Cheios</p>
-                <p className="text-lg sm:text-2xl font-bold">{getTotalCheios()}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="modern-status-card border-secondary bg-secondary text-secondary-foreground">
-            <CardContent className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
-              <div className="status-card-icon bg-secondary-foreground/15 text-secondary-foreground">
-                <Package />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-secondary-foreground/75 sm:text-sm">Vazios</p>
-                <p className="text-lg sm:text-2xl font-bold">{getTotalVazios()}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="modern-status-card border-info bg-info text-info-foreground">
-            <CardContent className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
-              <div className="status-card-icon status-card-icon-info-solid">
-                <TrendingUp />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-info-foreground/75 sm:text-sm">Vendas Período</p>
-                <p className="text-lg sm:text-2xl font-bold">{totalVendas}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="modern-status-card border-destructive bg-destructive text-destructive-foreground">
-            <CardContent className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
-              <div className="status-card-icon status-card-icon-destructive-solid">
-                <AlertTriangle />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-destructive-foreground/75 sm:text-sm">Valor Estoque</p>
-                <p className="text-lg sm:text-2xl font-bold">R$ {getValorEstoque().toLocaleString("pt-BR")}</p>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Action bar */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-foreground sm:text-xl">Controle diário de produtos</h2>
+            <p className="text-sm text-muted-foreground">Período: {periodoLabel}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={fetchData} disabled={isLoading}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+            <Button size="sm" onClick={() => setMovDialogOpen(true)}>
+              <ArrowUpDown className="mr-2 h-4 w-4" />
+              Movimentação
+            </Button>
+          </div>
         </div>
 
-        {/* Date filters + actions */}
-        <Card className="modern-soft-panel">
-          <CardContent className="grid gap-3 p-3 sm:grid-cols-[repeat(2,minmax(0,180px))] sm:items-end sm:p-4">
+        {/* KPI cards */}
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
+          {kpis.map((kpi) => {
+            const Icon = kpi.icon;
+            return (
+              <Card key={kpi.label} className="border-border bg-card">
+                <CardContent className="flex items-center gap-3 p-4">
+                  <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", toneClasses[kpi.tone])}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm text-muted-foreground">{kpi.label}</p>
+                    <p className="truncate text-2xl font-bold text-foreground">{kpi.value}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Date filters */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
           <div className="grid gap-1.5">
-            <Label className="text-sm font-medium">Data Inicial</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Data Inicial</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-[180px] justify-start text-left font-normal")}>
+                <Button variant="outline" size="sm" className={cn("w-full sm:w-[180px] justify-start text-left font-normal")}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {format(dataInicio, "dd/MM/yyyy")}
                 </Button>
@@ -412,10 +389,10 @@ export default function Estoque() {
             </Popover>
           </div>
           <div className="grid gap-1.5">
-            <Label className="text-sm font-medium">Data Final</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Data Final</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-[180px] justify-start text-left font-normal")}>
+                <Button variant="outline" size="sm" className={cn("w-full sm:w-[180px] justify-start text-left font-normal")}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {format(dataFim, "dd/MM/yyyy")}
                 </Button>
@@ -425,8 +402,8 @@ export default function Estoque() {
               </PopoverContent>
             </Popover>
           </div>
-          </CardContent>
-        </Card>
+        </div>
+
 
             <Dialog open={movDialogOpen} onOpenChange={setMovDialogOpen}>
               <DialogContent>
