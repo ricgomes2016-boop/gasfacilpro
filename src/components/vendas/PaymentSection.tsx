@@ -119,7 +119,9 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   })();
 
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
-  const diferenca = totalVenda - totalPago;
+  const totalEfetivo = calcTotalEfetivoVenda(totalVenda, pagamentos);
+  const diferenca = totalEfetivo - totalPago;
+
 
   const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCurrency(e.target.value);
