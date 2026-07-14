@@ -1285,7 +1285,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         .from("pedidos")
         .insert({
           cliente_id: customer.id, entregador_id: entregador.id, vendedor_id: vendedor.id,
-          endereco_entrega: enderecoCompleto, valor_total: totalVenda,
+          endereco_entrega: enderecoCompleto, valor_total: totalEfetivoVenda,
           forma_pagamento: pagamentos.map((p) => p.forma).join(", "),
           canal_venda: canalVenda, origem_pedido: "erp", observacoes: customer.observacao,
           status: "pendente", unidade_id: unidadeAtual?.id,
