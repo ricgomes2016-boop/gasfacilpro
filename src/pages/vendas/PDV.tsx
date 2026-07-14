@@ -334,7 +334,13 @@ export default function PDV() {
         pedidoId: pedido.id,
         pedidoNumero: (pedido as any).numero_sequencial ?? null,
         clienteNome: "Consumidor Final",
-        pagamentos: pagamentos.map((p) => ({ forma: p.forma, valor: p.valor })),
+        pagamentos: pagamentos.map((p) => ({
+          forma: p.forma,
+          valor: p.valor,
+          operadora_id: p.operadora_id,
+          conta_bancaria_id: p.conta_bancaria_id,
+        })),
+
         unidadeId: unidadeAtual?.id,
       });
 

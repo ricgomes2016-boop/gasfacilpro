@@ -21,6 +21,8 @@ export interface PDVPagamento {
   operadora_id?: string;
   conta_bancaria_id?: string;
   info?: string;
+  /** Cobrança extra (ex.: taxa de entrega Gás do Povo) associada a este pagamento. */
+  taxa_extra?: number;
 }
 
 interface PDVPaymentProps {
@@ -70,8 +72,12 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
   })();
 
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
-  const restante = Math.max(0, total - totalPago);
+  // Total efetivo = total do carrinho + taxas extras (ex.: taxa Gás do Povo).
+  const totalTaxasExtras = pagamentos.reduce((acc, p) => acc + (Number(p.taxa_extra) || 0), 0);
+  const totalEfetivo = total + totalTaxasExtras;
+  const restante = Math.max(0, totalEfetivo - totalPago);
   const valorParcialNum = parseFloat(valorParcial.replace(",", ".")) || 0;
+
 
   // Reset on open
   useEffect(() => {
@@ -97,10 +103,11 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
   const totalDinheiro = dinheiroPagamentos.reduce((acc, p) => acc + p.valor, 0);
   // troco: se total de dinheiro lançado cobre o que falta dos outros, sobra é troco
   const totalOutros = totalPago - totalDinheiro;
-  const faltaAposOutros = Math.max(0, total - totalOutros);
+  const faltaAposOutros = Math.max(0, totalEfetivo - totalOutros);
   const troco = Math.max(0, totalDinheiro - faltaAposOutros);
 
-  const podeFinalizar = totalPago >= total && pagamentos.length > 0;
+  const podeFinalizar = totalPago >= totalEfetivo && pagamentos.length > 0;
+
 
   const handleSelectForma = (value: string) => {
     if (value === "gas_do_povo") {
@@ -166,8 +173,10 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
           operadora_id: pendingExtras?.operadora_id,
           conta_bancaria_id: pendingExtras?.conta_bancaria_id,
           info: `Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2)${infoTaxa}`,
+          taxa_extra: taxaNum > 0 ? taxaNum : undefined,
         },
       ]);
+
       setPendingExtras(null);
       if (taxaNum > 0) {
         // Prepara próxima entrada para a forma escolher onde a taxa foi recebida

@@ -98,14 +98,22 @@ const FORMA_FILTER_OPTIONS: { value: FormaCategoria; label: string; grupo: "a_vi
 
 type StatusFiltro = "a_receber" | "vencida" | "recebida";
 
+/** Compatibilidade: aceita registros legados salvos como "recebido" (masc.)
+ *  no lugar do padrão atual "recebida" (fem.). */
+export function isStatusRecebida(status: string | null | undefined): boolean {
+  const s = (status || "").toLowerCase();
+  return s === "recebida" || s === "recebido";
+}
+
 function isBoletoForma(f: string | null | undefined): boolean {
   return !!f && f.toLowerCase().includes("boleto");
 }
 function getBoletoEmissaoStatus(c: { forma_pagamento: string | null; asaas_charge_id?: string | null; status: string }): "pendente_emissao" | "emitido" | null {
   if (!isBoletoForma(c.forma_pagamento)) return null;
-  if (c.status === "recebida") return null;
+  if (isStatusRecebida(c.status)) return null;
   return c.asaas_charge_id ? "emitido" : "pendente_emissao";
 }
+
 
 export default function ContasReceber() {
   const [contas, setContas] = useState<ContaReceber[]>([]);
@@ -454,7 +462,7 @@ export default function ContasReceber() {
       let successCount = 0;
 
       for (const conta of selectedContas) {
-        if (conta.status === "recebida") continue;
+        if (isStatusRecebida(conta.status)) continue;
         const valor = Number(conta.valor);
         const ref = conta.pedido_id?.slice(0, 8) || conta.id.slice(0, 8);
 
@@ -586,7 +594,7 @@ export default function ContasReceber() {
     return Math.round((d1 - d2) / 86400000);
   };
   const agingLabel = (conta: ContaReceber) => {
-    if (conta.status === "recebida") {
+    if (isStatusRecebida(conta.status)) {
       return conta.data_recebimento
         ? { text: `recebido em ${format(new Date(conta.data_recebimento + "T12:00:00"), "dd/MM/yyyy")}`, cls: "text-muted-foreground" }
         : null;
@@ -615,7 +623,7 @@ export default function ContasReceber() {
     const termo = filtroNome.toLowerCase();
     return contas.filter(c => {
       // Oculta recebíveis do adquirente enquanto pendentes (vivem em Conciliação Cartão).
-      if (c.status !== "recebida" && FORMAS_ADQUIRENTE.has((c.forma_pagamento || "").toLowerCase())) {
+      if (!isStatusRecebida(c.status) && FORMAS_ADQUIRENTE.has((c.forma_pagamento || "").toLowerCase())) {
         return false;
       }
       const matchNome = !filtroNome
@@ -628,7 +636,7 @@ export default function ContasReceber() {
       const matchDataFim = !dataFinal || c.vencimento <= dataFinal;
 
       const vencida = c.status === "pendente" && c.vencimento < hoje;
-      const statusAtual: StatusFiltro = c.status === "recebida"
+      const statusAtual: StatusFiltro = isStatusRecebida(c.status)
         ? "recebida"
         : vencida ? "vencida" : "a_receber";
       const matchStatus = filtroStatus.size === 0 || filtroStatus.has(statusAtual);
@@ -646,12 +654,12 @@ export default function ContasReceber() {
   // KPIs respeitam os filtros ativos
   const totalPendente = useMemo(() => baseFiltered.filter(c => c.status === "pendente" && c.vencimento >= hoje).reduce((a, c) => a + Number(c.valor), 0), [baseFiltered, hoje]);
   const totalVencido = useMemo(() => baseFiltered.filter(c => c.status === "pendente" && c.vencimento < hoje).reduce((a, c) => a + Number(c.valor), 0), [baseFiltered, hoje]);
-  const totalRecebido = useMemo(() => baseFiltered.filter(c => c.status === "recebida").reduce((a, c) => a + Number(c.valor), 0), [baseFiltered]);
+  const totalRecebido = useMemo(() => baseFiltered.filter(c => isStatusRecebida(c.status)).reduce((a, c) => a + Number(c.valor), 0), [baseFiltered]);
   const totalAberto = totalPendente + totalVencido;
-  const countAberto = baseFiltered.filter(c => c.status !== "recebida").length;
+  const countAberto = baseFiltered.filter(c => !isStatusRecebida(c.status)).length;
   const countVencido = baseFiltered.filter(c => c.status === "pendente" && c.vencimento < hoje).length;
   const countPendente = baseFiltered.filter(c => c.status === "pendente" && c.vencimento >= hoje).length;
-  const countRecebido = baseFiltered.filter(c => c.status === "recebida").length;
+  const countRecebido = baseFiltered.filter(c => isStatusRecebida(c.status)).length;
 
   const defaultStatus: Set<StatusFiltro> = new Set(["a_receber", "vencida"]);
   const hasActiveFilters =
@@ -719,14 +727,14 @@ export default function ContasReceber() {
   };
   const selectedContas = filtered.filter(c => selectedIds.has(c.id));
   const selectedTotal = selectedContas.reduce((s, c) => s + Number(c.valor), 0);
-  const canBulkReceber = selectedContas.length > 0 && selectedContas.every(c => c.status !== "recebida");
+  const canBulkReceber = selectedContas.length > 0 && selectedContas.every(c => !isStatusRecebida(c.status));
 
   const exportToExcel = () => {
     const data = filtered.map(c => ({
       Cliente: c.cliente, Descrição: c.descricao, "Forma Pgto": c.forma_pagamento || "—",
       Vencimento: format(new Date(c.vencimento + "T12:00:00"), "dd/MM/yyyy"),
       Valor: `R$ ${Number(c.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-      Status: c.status === "recebida" ? "Recebida" : c.vencimento < hoje ? "Vencida" : "Pendente",
+      Status: isStatusRecebida(c.status) ? "Recebida" : c.vencimento < hoje ? "Vencida" : "Pendente",
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -743,7 +751,7 @@ export default function ContasReceber() {
       c.cliente, c.descricao, c.forma_pagamento || "—",
       format(new Date(c.vencimento + "T12:00:00"), "dd/MM/yyyy"),
       `R$ ${Number(c.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-      c.status === "recebida" ? "Recebida" : c.vencimento < hoje ? "Vencida" : "Pendente",
+      isStatusRecebida(c.status) ? "Recebida" : c.vencimento < hoje ? "Vencida" : "Pendente",
     ]);
     autoTable(doc, {
       head: [["Cliente", "Descrição", "Forma", "Vencimento", "Valor", "Status"]],
@@ -842,7 +850,7 @@ export default function ContasReceber() {
           <div className="space-y-3 md:hidden">
             {filtered.map(conta => {
               const vencida = conta.status === "pendente" && conta.vencimento < hoje;
-              const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "Pendente";
+              const displayStatus = vencida ? "Vencida" : isStatusRecebida(conta.status) ? "Recebida" : "Pendente";
               return (
                 <div
                   key={conta.id}
@@ -873,8 +881,8 @@ export default function ContasReceber() {
                         <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={(e) => e.stopPropagation()}><MoreHorizontal className="h-4 w-4" /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50" onClick={(e) => e.stopPropagation()}>
-                        {conta.status !== "recebida" && <DropdownMenuItem onClick={() => openReceberDialog(conta)}><DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber</DropdownMenuItem>}
-                        {conta.status !== "recebida" && (
+                        {!isStatusRecebida(conta.status) && <DropdownMenuItem onClick={() => openReceberDialog(conta)}><DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber</DropdownMenuItem>}
+                        {!isStatusRecebida(conta.status) && (
                           <DropdownMenuItem onClick={() => { setAsaasConta(conta); setAsaasDialogOpen(true); }}>
                             <Banknote className="h-4 w-4 mr-2" />
                             {conta.asaas_charge_id ? "Ver boleto / PIX (Asaas)" : "Emitir boleto / PIX (Asaas)"}
@@ -885,13 +893,13 @@ export default function ContasReceber() {
                             <Download className="h-4 w-4 mr-2" />Baixar 2ª via do boleto
                           </DropdownMenuItem>
                         )}
-                        {conta.asaas_charge_id && conta.status !== "recebida" && (
+                        {conta.asaas_charge_id && !isStatusRecebida(conta.status) && (
                           <DropdownMenuItem disabled={syncingId === conta.id} onClick={() => sincronizarAsaas(conta)}>
                             <RefreshCw className={`h-4 w-4 mr-2 ${syncingId === conta.id ? "animate-spin" : ""}`} />
                             Sincronizar com Asaas
                           </DropdownMenuItem>
                         )}
-                        {conta.status === "recebida" && podeEditarDataRecebimento && (
+                        {isStatusRecebida(conta.status) && podeEditarDataRecebimento && (
                           <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
                             <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
                           </DropdownMenuItem>
@@ -949,7 +957,7 @@ export default function ContasReceber() {
               <TableBody>
                 {filtered.map(conta => {
                   const vencida = conta.status === "pendente" && conta.vencimento < hoje;
-                  const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "A vencer";
+                  const displayStatus = vencida ? "Vencida" : isStatusRecebida(conta.status) ? "Recebida" : "A vencer";
                   return (
                     <TableRow
                       key={conta.id}
@@ -1011,12 +1019,12 @@ export default function ContasReceber() {
                               <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
-                              {conta.status !== "recebida" && (
+                              {!isStatusRecebida(conta.status) && (
                                 <DropdownMenuItem onClick={() => openReceberDialog(conta)}>
                                   <DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber
                                 </DropdownMenuItem>
                               )}
-                              {conta.status !== "recebida" && (
+                              {!isStatusRecebida(conta.status) && (
                                 <DropdownMenuItem onClick={() => { setAsaasConta(conta); setAsaasDialogOpen(true); }}>
                                   <Banknote className="h-4 w-4 mr-2" />
                                   {conta.asaas_charge_id ? "Ver boleto / PIX (Asaas)" : "Emitir boleto / PIX (Asaas)"}
@@ -1027,13 +1035,13 @@ export default function ContasReceber() {
                                   <Download className="h-4 w-4 mr-2" />Baixar 2ª via do boleto
                                 </DropdownMenuItem>
                               )}
-                              {conta.asaas_charge_id && conta.status !== "recebida" && (
+                              {conta.asaas_charge_id && !isStatusRecebida(conta.status) && (
                                 <DropdownMenuItem disabled={syncingId === conta.id} onClick={() => sincronizarAsaas(conta)}>
                                   <RefreshCw className={`h-4 w-4 mr-2 ${syncingId === conta.id ? "animate-spin" : ""}`} />
                                   Sincronizar com Asaas
                                 </DropdownMenuItem>
                               )}
-                              {conta.status === "recebida" && podeEditarDataRecebimento && (
+                              {isStatusRecebida(conta.status) && podeEditarDataRecebimento && (
                                 <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
                                   <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
                                 </DropdownMenuItem>
@@ -1382,7 +1390,7 @@ export default function ContasReceber() {
           <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
             {detalheConta && (() => {
               const vencida = detalheConta.status === "pendente" && detalheConta.vencimento < hoje;
-              const displayStatus = vencida ? "Vencida" : detalheConta.status === "recebida" ? "Recebida" : "Pendente";
+              const displayStatus = vencida ? "Vencida" : isStatusRecebida(detalheConta.status) ? "Recebida" : "Pendente";
               const boletoStatus = getBoletoEmissaoStatus(detalheConta);
               return (
                 <>
@@ -1435,12 +1443,12 @@ export default function ContasReceber() {
                     )}
 
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      {detalheConta.status !== "recebida" && (
+                      {!isStatusRecebida(detalheConta.status) && (
                         <Button onClick={() => { const conta = detalheConta; setDetalheConta(null); openReceberDialog(conta); }}>
                           <DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber
                         </Button>
                       )}
-                      {detalheConta.status !== "recebida" && (
+                      {!isStatusRecebida(detalheConta.status) && (
                         <Button variant="outline" onClick={() => { setAsaasConta(detalheConta); setDetalheConta(null); setAsaasDialogOpen(true); }}>
                           <Banknote className="h-4 w-4 mr-2" />
                           {detalheConta.asaas_charge_id ? "Ver boleto / PIX" : "Emitir boleto / PIX"}
@@ -1451,12 +1459,12 @@ export default function ContasReceber() {
                           <Download className="h-4 w-4 mr-2" />Baixar 2a via
                         </Button>
                       )}
-                      {detalheConta.asaas_charge_id && detalheConta.status !== "recebida" && (
+                      {detalheConta.asaas_charge_id && !isStatusRecebida(detalheConta.status) && (
                         <Button variant="outline" disabled={syncingId === detalheConta.id} onClick={() => sincronizarAsaas(detalheConta)}>
                           <RefreshCw className={`h-4 w-4 mr-2 ${syncingId === detalheConta.id ? "animate-spin" : ""}`} />Sincronizar Asaas
                         </Button>
                       )}
-                      {detalheConta.status === "recebida" && podeEditarDataRecebimento && (
+                      {isStatusRecebida(detalheConta.status) && podeEditarDataRecebimento && (
                         <Button variant="outline" onClick={() => { const conta = detalheConta; setDetalheConta(null); openEditDataRecDialog(conta); }}>
                           <Pencil className="h-4 w-4 mr-2" />Editar data
                         </Button>

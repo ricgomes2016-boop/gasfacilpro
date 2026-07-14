@@ -32,6 +32,16 @@ export interface Pagamento {
   operadora_id?: string;
   operadora_nome?: string;
   conta_bancaria_id?: string;
+  // Cobrança extra associada (ex.: taxa de entrega do Gás do Povo)
+  // Quando presente, aumenta o total efetivo da venda em `taxa_extra` e
+  // um pagamento adicional deve ser lançado para cobrir esse valor.
+  taxa_extra?: number;
+}
+
+/** Soma o total efetivo a cobrar considerando taxas extras (Gás do Povo etc.). */
+export function calcTotalEfetivoVenda(baseTotal: number, pagamentos: Pagamento[]): number {
+  const extra = pagamentos.reduce((a, p) => a + (Number(p.taxa_extra) || 0), 0);
+  return Number(baseTotal || 0) + extra;
 }
 
 interface PaymentSectionProps {
@@ -109,7 +119,9 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   })();
 
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
-  const diferenca = totalVenda - totalPago;
+  const totalEfetivo = calcTotalEfetivoVenda(totalVenda, pagamentos);
+  const diferenca = totalEfetivo - totalPago;
+
 
   const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCurrency(e.target.value);
@@ -232,6 +244,14 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
 
     onChange([...pagamentos, novoPagamento]);
     const taxaNum = forma === "gas_do_povo" ? parseCurrency(taxaEntregaGasPovo) : 0;
+    if (taxaNum > 0) {
+      // Marca a taxa no próprio pagamento do Gás do Povo. O parent usa
+      // calcTotalEfetivoVenda para ajustar total; um pagamento separado
+      // cobrará esse valor (sem virar troco).
+      novoPagamento.taxa_extra = taxaNum;
+    }
+
+    onChange([...pagamentos, novoPagamento]);
     setForma("");
     resetExtraFields();
     if (taxaNum > 0) {
@@ -240,6 +260,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
       setValorDisplay("");
     }
   };
+
 
   const removePagamento = (id: string) => {
     onChange(pagamentos.filter((p) => p.id !== id));

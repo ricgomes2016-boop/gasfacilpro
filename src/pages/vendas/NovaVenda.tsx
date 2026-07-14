@@ -35,7 +35,7 @@ import { CaixaBloqueadoBanner } from "@/components/caixa/CaixaBloqueadoBanner";
 
 import { CustomerSearch } from "@/components/vendas/CustomerSearch";
 import { ProductSearch, ItemVenda } from "@/components/vendas/ProductSearch";
-import { PaymentSection, Pagamento } from "@/components/vendas/PaymentSection";
+import { PaymentSection, Pagamento, calcTotalEfetivoVenda } from "@/components/vendas/PaymentSection";
 import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 import { OrderSummary } from "@/components/vendas/OrderSummary";
 import { CustomerHistory } from "@/components/vendas/CustomerHistory";
@@ -213,9 +213,11 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
   compact?: boolean;
 }) {
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+  const totalEfetivo = calcTotalEfetivoVenda(totalVenda, pagamentos);
   const clienteOk = !!customer.nome.trim();
   const produtosOk = itens.length > 0;
-  const pagamentoOk = totalPago >= totalVenda && totalVenda > 0;
+  const pagamentoOk = totalPago >= totalEfetivo && totalEfetivo > 0;
+
   const steps: Array<{ id: VendaStepId; label: string; done: boolean; enabled: boolean; icon: typeof User }> = [
     { id: "cliente", label: "Cliente", done: clienteOk, enabled: true, icon: UserRound },
     { id: "produtos", label: "Produtos", done: produtosOk, enabled: true, icon: Flame },
@@ -867,10 +869,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   const totalVenda = itens.reduce((acc, item) => acc + item.total, 0);
   const totalPagoVenda = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+  const totalEfetivoVenda = calcTotalEfetivoVenda(totalVenda, pagamentos);
   const clientePreenchido = !!customer.nome.trim();
   const produtosPreenchidos = itens.length > 0;
-  const pagamentoPreenchido = totalPagoVenda >= totalVenda && totalVenda > 0;
+  const pagamentoPreenchido = totalPagoVenda >= totalEfetivoVenda && totalEfetivoVenda > 0;
   const entregadorPreenchido = !!entregador.id;
+
   const firstPendingStep: VendaStepId = !clientePreenchido
     ? "cliente"
     : !produtosPreenchidos
@@ -995,10 +999,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
 
     const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
-    if (totalPago < totalVenda) {
-      toast({ title: "Pagamento incompleto", description: `Falta pagar R$ ${(totalVenda - totalPago).toFixed(2)}`, variant: "destructive" });
+    const totalCobrar = calcTotalEfetivoVenda(totalVenda, pagamentos);
+    if (totalPago < totalCobrar) {
+      toast({ title: "Pagamento incompleto", description: `Falta pagar R$ ${(totalCobrar - totalPago).toFixed(2)}`, variant: "destructive" });
       return;
     }
+
 
     // Regra Empenho: se parceiro com empenho selecionado, exigir nº vale físico
     if (parceiroEmpenhoId !== "nenhum") {
