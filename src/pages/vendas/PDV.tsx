@@ -239,6 +239,9 @@ export default function PDV() {
     setIsLoading(true);
 
     try {
+      const totalTaxasExtras = pagamentos.reduce((acc, p) => acc + (Number((p as any).taxa_extra) || 0), 0);
+      const valorTotalPedido = total + totalTaxasExtras;
+
       const formaPagamentoLabel =
         pagamentos.length === 1
           ? pagamentos[0].forma
@@ -248,7 +251,7 @@ export default function PDV() {
       const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert({
-          valor_total: total,
+          valor_total: valorTotalPedido,
           forma_pagamento: formaPagamentoLabel,
           canal_venda: null,
           origem_pedido: "balcao_pdv",
