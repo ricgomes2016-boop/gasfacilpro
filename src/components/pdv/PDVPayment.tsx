@@ -103,10 +103,11 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
   const totalDinheiro = dinheiroPagamentos.reduce((acc, p) => acc + p.valor, 0);
   // troco: se total de dinheiro lançado cobre o que falta dos outros, sobra é troco
   const totalOutros = totalPago - totalDinheiro;
-  const faltaAposOutros = Math.max(0, total - totalOutros);
+  const faltaAposOutros = Math.max(0, totalEfetivo - totalOutros);
   const troco = Math.max(0, totalDinheiro - faltaAposOutros);
 
-  const podeFinalizar = totalPago >= total && pagamentos.length > 0;
+  const podeFinalizar = totalPago >= totalEfetivo && pagamentos.length > 0;
+
 
   const handleSelectForma = (value: string) => {
     if (value === "gas_do_povo") {
