@@ -21,6 +21,8 @@ export interface PDVPagamento {
   operadora_id?: string;
   conta_bancaria_id?: string;
   info?: string;
+  /** Cobrança extra (ex.: taxa de entrega Gás do Povo) associada a este pagamento. */
+  taxa_extra?: number;
 }
 
 interface PDVPaymentProps {
