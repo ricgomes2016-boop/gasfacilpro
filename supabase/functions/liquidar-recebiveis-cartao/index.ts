@@ -1,19 +1,45 @@
 // Liquida automaticamente contas_receber de cartão/pix-maq/gás-do-povo vencidas.
 // Roda diariamente via pg_cron. Idempotente.
+// AUTH: exige service_role JWT OU header x-cron-secret == LIQUIDAR_RECEBIVEIS_SECRET.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
+
+function unauthorized(msg = "Unauthorized") {
+  return new Response(JSON.stringify({ error: msg }), {
+    status: 401,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // ---- Fail-closed auth ----
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const cronSecret = Deno.env.get("LIQUIDAR_RECEBIVEIS_SECRET") || "";
+  const authHeader = req.headers.get("Authorization") || "";
+  const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const providedCronSecret = req.headers.get("x-cron-secret") || "";
+
+  const isServiceRole = !!bearer && bearer === serviceRoleKey;
+  const isCronSecretMatch =
+    !!cronSecret &&
+    (providedCronSecret === cronSecret || bearer === cronSecret);
+
+  if (!isServiceRole && !isCronSecretMatch) {
+    // Nunca aceitar anon/public. Se o segredo não estiver configurado e não for
+    // service_role, negar.
+    return unauthorized();
+  }
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      serviceRoleKey,
     );
 
     const url = new URL(req.url);
@@ -53,7 +79,7 @@ Deno.serve(async (req) => {
 
         if (dryRun) { pulados++; continue; }
 
-        // 1. Marca recebido
+        // 1. Marca recebido (padronizado "recebida")
         await supabase
           .from("contas_receber")
           .update({ status: "recebida", data_recebimento: r.vencimento })
