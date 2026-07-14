@@ -1069,7 +1069,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         entregador_id: entregador.id,
         vendedor_id: vendedor.id,
         endereco_entrega: enderecoCompleto,
-        valor_total: totalVenda,
+        valor_total: totalEfetivoVenda,
         forma_pagamento: pagamentos.map((p) => p.forma).join(", "),
         canal_venda: canalVenda,
         origem_pedido: "erp",
