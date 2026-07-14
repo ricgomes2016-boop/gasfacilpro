@@ -32,6 +32,16 @@ export interface Pagamento {
   operadora_id?: string;
   operadora_nome?: string;
   conta_bancaria_id?: string;
+  // Cobrança extra associada (ex.: taxa de entrega do Gás do Povo)
+  // Quando presente, aumenta o total efetivo da venda em `taxa_extra` e
+  // um pagamento adicional deve ser lançado para cobrir esse valor.
+  taxa_extra?: number;
+}
+
+/** Soma o total efetivo a cobrar considerando taxas extras (Gás do Povo etc.). */
+export function calcTotalEfetivoVenda(baseTotal: number, pagamentos: Pagamento[]): number {
+  const extra = pagamentos.reduce((a, p) => a + (Number(p.taxa_extra) || 0), 0);
+  return Number(baseTotal || 0) + extra;
 }
 
 interface PaymentSectionProps {
