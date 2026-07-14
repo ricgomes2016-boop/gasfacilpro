@@ -35,7 +35,7 @@ import { CaixaBloqueadoBanner } from "@/components/caixa/CaixaBloqueadoBanner";
 
 import { CustomerSearch } from "@/components/vendas/CustomerSearch";
 import { ProductSearch, ItemVenda } from "@/components/vendas/ProductSearch";
-import { PaymentSection, Pagamento } from "@/components/vendas/PaymentSection";
+import { PaymentSection, Pagamento, calcTotalEfetivoVenda } from "@/components/vendas/PaymentSection";
 import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 import { OrderSummary } from "@/components/vendas/OrderSummary";
 import { CustomerHistory } from "@/components/vendas/CustomerHistory";
