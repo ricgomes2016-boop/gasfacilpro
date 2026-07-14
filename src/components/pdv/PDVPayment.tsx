@@ -72,8 +72,12 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
   })();
 
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
-  const restante = Math.max(0, total - totalPago);
+  // Total efetivo = total do carrinho + taxas extras (ex.: taxa Gás do Povo).
+  const totalTaxasExtras = pagamentos.reduce((acc, p) => acc + (Number(p.taxa_extra) || 0), 0);
+  const totalEfetivo = total + totalTaxasExtras;
+  const restante = Math.max(0, totalEfetivo - totalPago);
   const valorParcialNum = parseFloat(valorParcial.replace(",", ".")) || 0;
+
 
   // Reset on open
   useEffect(() => {
