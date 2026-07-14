@@ -869,10 +869,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   const totalVenda = itens.reduce((acc, item) => acc + item.total, 0);
   const totalPagoVenda = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+  const totalEfetivoVenda = calcTotalEfetivoVenda(totalVenda, pagamentos);
   const clientePreenchido = !!customer.nome.trim();
   const produtosPreenchidos = itens.length > 0;
-  const pagamentoPreenchido = totalPagoVenda >= totalVenda && totalVenda > 0;
+  const pagamentoPreenchido = totalPagoVenda >= totalEfetivoVenda && totalEfetivoVenda > 0;
   const entregadorPreenchido = !!entregador.id;
+
   const firstPendingStep: VendaStepId = !clientePreenchido
     ? "cliente"
     : !produtosPreenchidos
