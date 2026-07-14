@@ -242,7 +242,6 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
       novoPagamento.conta_bancaria_id = pendingContaBancaria;
     }
 
-    onChange([...pagamentos, novoPagamento]);
     const taxaNum = forma === "gas_do_povo" ? parseCurrency(taxaEntregaGasPovo) : 0;
     if (taxaNum > 0) {
       // Marca a taxa no próprio pagamento do Gás do Povo. O parent usa
