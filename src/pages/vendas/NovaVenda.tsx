@@ -999,10 +999,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
 
     const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
-    if (totalPago < totalVenda) {
-      toast({ title: "Pagamento incompleto", description: `Falta pagar R$ ${(totalVenda - totalPago).toFixed(2)}`, variant: "destructive" });
+    const totalCobrar = calcTotalEfetivoVenda(totalVenda, pagamentos);
+    if (totalPago < totalCobrar) {
+      toast({ title: "Pagamento incompleto", description: `Falta pagar R$ ${(totalCobrar - totalPago).toFixed(2)}`, variant: "destructive" });
       return;
     }
+
 
     // Regra Empenho: se parceiro com empenho selecionado, exigir nº vale físico
     if (parceiroEmpenhoId !== "nenhum") {
