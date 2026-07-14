@@ -213,9 +213,11 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
   compact?: boolean;
 }) {
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+  const totalEfetivo = calcTotalEfetivoVenda(totalVenda, pagamentos);
   const clienteOk = !!customer.nome.trim();
   const produtosOk = itens.length > 0;
-  const pagamentoOk = totalPago >= totalVenda && totalVenda > 0;
+  const pagamentoOk = totalPago >= totalEfetivo && totalEfetivo > 0;
+
   const steps: Array<{ id: VendaStepId; label: string; done: boolean; enabled: boolean; icon: typeof User }> = [
     { id: "cliente", label: "Cliente", done: clienteOk, enabled: true, icon: UserRound },
     { id: "produtos", label: "Produtos", done: produtosOk, enabled: true, icon: Flame },
