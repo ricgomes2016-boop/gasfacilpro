@@ -98,14 +98,22 @@ const FORMA_FILTER_OPTIONS: { value: FormaCategoria; label: string; grupo: "a_vi
 
 type StatusFiltro = "a_receber" | "vencida" | "recebida";
 
+/** Compatibilidade: aceita registros legados salvos como "recebido" (masc.)
+ *  no lugar do padrão atual "recebida" (fem.). */
+export function isStatusRecebida(status: string | null | undefined): boolean {
+  const s = (status || "").toLowerCase();
+  return s === "recebida" || s === "recebido";
+}
+
 function isBoletoForma(f: string | null | undefined): boolean {
   return !!f && f.toLowerCase().includes("boleto");
 }
 function getBoletoEmissaoStatus(c: { forma_pagamento: string | null; asaas_charge_id?: string | null; status: string }): "pendente_emissao" | "emitido" | null {
   if (!isBoletoForma(c.forma_pagamento)) return null;
-  if (c.status === "recebida") return null;
+  if (isStatusRecebida(c.status)) return null;
   return c.asaas_charge_id ? "emitido" : "pendente_emissao";
 }
+
 
 export default function ContasReceber() {
   const [contas, setContas] = useState<ContaReceber[]>([]);
