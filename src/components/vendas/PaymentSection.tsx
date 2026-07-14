@@ -244,6 +244,14 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
 
     onChange([...pagamentos, novoPagamento]);
     const taxaNum = forma === "gas_do_povo" ? parseCurrency(taxaEntregaGasPovo) : 0;
+    if (taxaNum > 0) {
+      // Marca a taxa no próprio pagamento do Gás do Povo. O parent usa
+      // calcTotalEfetivoVenda para ajustar total; um pagamento separado
+      // cobrará esse valor (sem virar troco).
+      novoPagamento.taxa_extra = taxaNum;
+    }
+
+    onChange([...pagamentos, novoPagamento]);
     setForma("");
     resetExtraFields();
     if (taxaNum > 0) {
@@ -252,6 +260,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
       setValorDisplay("");
     }
   };
+
 
   const removePagamento = (id: string) => {
     onChange(pagamentos.filter((p) => p.id !== id));
