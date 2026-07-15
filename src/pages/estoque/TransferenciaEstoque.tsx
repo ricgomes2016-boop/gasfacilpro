@@ -509,7 +509,19 @@ export default function TransferenciaEstoque() {
               </div>
             </DialogContent>
           </Dialog>
+            </>
+          }
+        />
+
+        {/* KPIs */}
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
+          <EstoqueKpiCard icon={ArrowRightLeft} label="Total" value={transferencias.length} tone="primary" />
+          <EstoqueKpiCard icon={Truck} label="Pendentes" value={transferencias.filter(t => t.status === "pendente").length} tone="warning" />
+          <EstoqueKpiCard icon={Truck} label="Em Trânsito" value={transferencias.filter(t => t.status === "em_transito").length} tone="info" />
+          <EstoqueKpiCard icon={Check} label="Recebidos" value={transferencias.filter(t => t.status === "recebido").length} tone="success" />
         </div>
+
+
 
         {/* Lista */}
         <Card>
