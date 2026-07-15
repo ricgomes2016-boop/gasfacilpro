@@ -16,6 +16,8 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
+import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
+import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 
 export default function LotesRastreabilidade() {
   const { empresa } = useEmpresa();
