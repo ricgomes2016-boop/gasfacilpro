@@ -14,6 +14,8 @@ import { subDays, startOfDay, differenceInDays } from "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
+import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
+import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 
 const TEMPO_REPOSICAO_PADRAO = 3; // dias
 const MARGEM_SEGURANCA = 1.5;
@@ -119,42 +121,33 @@ export default function MCMM() {
 
   const statusBadge = (status: ProdutoMCMM["status"]) => {
     const map = {
-      ok: { label: "OK", className: "bg-green-600 text-white" },
-      alerta: { label: "Alerta", className: "bg-yellow-500 text-white" },
-      critico: { label: "Crítico", className: "bg-destructive text-destructive-foreground" },
-      excesso: { label: "Excesso", className: "bg-blue-500 text-white" },
+      ok: { label: "OK", className: "bg-success/15 text-success border-success/30" },
+      alerta: { label: "Alerta", className: "bg-warning/15 text-warning border-warning/30" },
+      critico: { label: "Crítico", className: "bg-destructive/15 text-destructive border-destructive/30" },
+      excesso: { label: "Excesso", className: "bg-info/15 text-info border-info/30" },
     };
     const m = map[status];
-    return <Badge className={m.className}>{m.label}</Badge>;
+    return <Badge variant="outline" className={m.className}>{m.label}</Badge>;
   };
 
   return (
     <MainLayout>
       <Header title="MCMM Inteligente" subtitle="Mínimo, Cobertura, Máximo e Ponto de Reposição — calculados automaticamente" />
       <div className="p-3 sm:p-6 space-y-6">
+        <EstoquePageHeader
+          title="Análise de reposição"
+          description="Baseada nas vendas dos últimos 90 dias"
+        />
+
         {/* KPIs */}
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-5">
-          <Card><CardContent className="flex items-center gap-3 p-3">
-            <Package className="h-5 w-5 text-primary" />
-            <div><p className="text-xs text-muted-foreground">Estoque Total</p><p className="text-xl font-bold">{kpis.estoqueTotal}</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="flex items-center gap-3 p-3">
-            <TrendingUp className="h-5 w-5 text-accent-foreground" />
-            <div><p className="text-xs text-muted-foreground">Consumo/Dia</p><p className="text-xl font-bold">{kpis.mediaConsumoTotal}</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="flex items-center gap-3 p-3">
-            <Clock className="h-5 w-5 text-blue-500" />
-            <div><p className="text-xs text-muted-foreground">Cobertura</p><p className="text-xl font-bold">{kpis.cobertura} dias</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="flex items-center gap-3 p-3">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
-            <div><p className="text-xs text-muted-foreground">Críticos</p><p className="text-xl font-bold text-destructive">{kpis.criticos}</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="flex items-center gap-3 p-3">
-            <ShieldCheck className="h-5 w-5 text-yellow-500" />
-            <div><p className="text-xs text-muted-foreground">Alertas</p><p className="text-xl font-bold text-yellow-600">{kpis.alertas}</p></div>
-          </CardContent></Card>
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-5">
+          <EstoqueKpiCard icon={Package} label="Estoque Total" value={kpis.estoqueTotal} tone="primary" />
+          <EstoqueKpiCard icon={TrendingUp} label="Consumo/Dia" value={kpis.mediaConsumoTotal} tone="info" />
+          <EstoqueKpiCard icon={Clock} label="Cobertura" value={`${kpis.cobertura}d`} tone="secondary" />
+          <EstoqueKpiCard icon={AlertTriangle} label="Críticos" value={kpis.criticos} tone={kpis.criticos > 0 ? "destructive" : "secondary"} />
+          <EstoqueKpiCard icon={ShieldCheck} label="Alertas" value={kpis.alertas} tone={kpis.alertas > 0 ? "warning" : "secondary"} />
         </div>
+
 
         {/* Chart */}
         <Card>

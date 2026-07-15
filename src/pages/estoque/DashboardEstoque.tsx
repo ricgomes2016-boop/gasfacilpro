@@ -9,20 +9,29 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Package, Flame, Droplets, AlertTriangle, TrendingUp, DollarSign, BarChart3, Cylinder, Clock,
+  Flame, Droplets, AlertTriangle, DollarSign, BarChart3, Cylinder, Clock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
-import { subDays, format, startOfDay, endOfDay } from "date-fns";
+import { subDays, startOfDay } from "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
+import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
+import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 
-const COLORS = [
-  "#2fc2b5", "#ef4444", "#8b5cf6", "#10b981", "#6c63ff", 
-  "#ec4899", "#06b6d4", "#84cc16", "#14b8a6", "#6366f1", 
-  "#14b8a6", "#e11d48"
+// Paleta usando tokens semânticos HSL do design system
+const CHART_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--info))",
+  "hsl(var(--success))",
+  "hsl(var(--warning))",
+  "hsl(var(--destructive))",
+  "hsl(var(--secondary))",
+  "hsl(var(--accent))",
+  "hsl(var(--muted-foreground))",
 ];
+
 
 export default function DashboardEstoque() {
   const { unidadeAtual } = useUnidade();
@@ -190,54 +199,21 @@ export default function DashboardEstoque() {
     <MainLayout>
       <Header title="Dashboard de Estoque" subtitle="Visão consolidada do inventário" />
       <div className="p-3 sm:p-6 space-y-6">
+        <EstoquePageHeader
+          title="Visão geral do inventário"
+          description="KPIs, giro, curva ABC e alertas de ruptura consolidados"
+        />
+
         {/* KPIs */}
         <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-5">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Flame className="h-4 w-4 text-primary shrink-0" />
-                <p className="text-xs text-muted-foreground">Cheios</p>
-              </div>
-              <p className="text-2xl font-bold">{kpis.totalCheios}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Cylinder className="h-4 w-4 text-muted-foreground shrink-0" />
-                <p className="text-xs text-muted-foreground">Vazios</p>
-              </div>
-              <p className="text-2xl font-bold">{kpis.totalVazios}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <DollarSign className="h-4 w-4 text-accent-foreground shrink-0" />
-                <p className="text-xs text-muted-foreground">Valor Imobilizado</p>
-              </div>
-              <p className="text-lg font-bold">R$ {kpis.valorEstoque.toLocaleString("pt-BR")}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
-                <p className="text-xs text-muted-foreground">Alertas Ruptura</p>
-              </div>
-              <p className="text-2xl font-bold">{alertasRuptura.length}</p>
-            </CardContent>
-          </Card>
-          <Card className={kpis.rupturaEm7Dias > 0 ? "border-destructive/50" : ""}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Clock className={`h-4 w-4 shrink-0 ${kpis.rupturaEm7Dias > 0 ? "text-destructive" : "text-muted-foreground"}`} />
-                <p className="text-xs text-muted-foreground">Ruptura em 7d</p>
-              </div>
-              <p className={`text-2xl font-bold ${kpis.rupturaEm7Dias > 0 ? "text-destructive" : ""}`}>{kpis.rupturaEm7Dias}</p>
-            </CardContent>
-          </Card>
+          <EstoqueKpiCard icon={Flame} label="Cheios" value={kpis.totalCheios.toLocaleString("pt-BR")} tone="primary" />
+          <EstoqueKpiCard icon={Cylinder} label="Vazios" value={kpis.totalVazios.toLocaleString("pt-BR")} tone="secondary" />
+          <EstoqueKpiCard icon={DollarSign} label="Valor Imobilizado" value={`R$ ${kpis.valorEstoque.toLocaleString("pt-BR")}`} tone="success" />
+          <EstoqueKpiCard icon={AlertTriangle} label="Alertas Ruptura" value={alertasRuptura.length} tone="warning" />
+          <EstoqueKpiCard icon={Clock} label="Ruptura em 7d" value={kpis.rupturaEm7Dias} tone={kpis.rupturaEm7Dias > 0 ? "destructive" : "secondary"} />
         </div>
+
+
 
         {/* Charts row */}
         <div className="grid gap-4 md:grid-cols-2">
@@ -258,7 +234,7 @@ export default function DashboardEstoque() {
                   <YAxis className="text-xs fill-muted-foreground" />
                   <Tooltip />
                   <Bar dataKey="giro" radius={[4, 4, 0, 0]} name="Giro">
-                    {(chartViewGiro === "categoria" ? giroPorCategoria : giroPorProduto).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    {(chartViewGiro === "categoria" ? giroPorCategoria : giroPorProduto).map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -279,7 +255,7 @@ export default function DashboardEstoque() {
                 <ResponsiveContainer width="100%" height={260}>
                   <PieChart>
                     <Pie data={distribuicaoValorCategoria} cx="40%" cy="50%" outerRadius={75} innerRadius={35} dataKey="value" nameKey="name" paddingAngle={2}>
-                      {distribuicaoValorCategoria.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      {distribuicaoValorCategoria.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                     </Pie>
                     <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
                     <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize: 12, lineHeight: "20px" }} />
@@ -293,7 +269,7 @@ export default function DashboardEstoque() {
                     <YAxis type="category" dataKey="name" className="text-xs fill-muted-foreground" width={110} tick={{ fontSize: 11 }} />
                     <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
                     <Bar dataKey="value" name="Valor" radius={[0, 4, 4, 0]}>
-                      {distribuicaoValorProduto.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      {distribuicaoValorProduto.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>

@@ -24,6 +24,8 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { useToast } from "@/hooks/use-toast";
 import { format, addDays, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
+import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 
 export default function Comodatos() {
   const { unidadeAtual } = useUnidade();
@@ -131,84 +133,78 @@ export default function Comodatos() {
     <MainLayout>
       <Header title="Comodatos" subtitle="Controle de vasilhames emprestados a clientes" />
       <div className="p-3 sm:p-6 space-y-6">
+        <EstoquePageHeader
+          title="Vasilhames em comodato"
+          description="Empréstimos ativos, prazos e depósitos por cliente"
+          actions={
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm"><Plus className="h-4 w-4 mr-2" />Novo Comodato</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Registrar Comodato</DialogTitle></DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label>Cliente</Label>
+                    <Select value={form.cliente_id} onValueChange={(v) => setForm({ ...form, cliente_id: v })}>
+                      <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
+                      <SelectContent>
+                        {clientes.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Vasilhame</Label>
+                    <Select value={form.produto_id} onValueChange={(v) => setForm({ ...form, produto_id: v })}>
+                      <SelectTrigger><SelectValue placeholder="Selecione o vasilhame" /></SelectTrigger>
+                      <SelectContent>
+                        {produtos.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid gap-2">
+                      <Label>Quantidade</Label>
+                      <Input type="number" min="1" value={form.quantidade} onChange={(e) => setForm({ ...form, quantidade: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Depósito (R$)</Label>
+                      <Input type="number" min="0" value={form.deposito} onChange={(e) => setForm({ ...form, deposito: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Prazo (dias)</Label>
+                      <Input type="number" min="1" value={form.prazo_dias} onChange={(e) => setForm({ ...form, prazo_dias: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Observações</Label>
+                    <Textarea value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} placeholder="Detalhes..." />
+                  </div>
+                  <Button onClick={() => criarComodato.mutate()} disabled={!form.cliente_id || !form.produto_id || criarComodato.isPending}>
+                    Registrar Comodato
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          }
+        />
+
         {/* KPIs */}
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-          <Card><CardContent className="flex items-center gap-3 p-4">
-            <div className="p-3 rounded-lg bg-primary/10"><Package className="h-5 w-5 text-primary" /></div>
-            <div><p className="text-xs text-muted-foreground">Vasilhames Emprestados</p><p className="text-2xl font-bold">{totalQtd}</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="flex items-center gap-3 p-4">
-            <div className="p-3 rounded-lg bg-accent"><Users className="h-5 w-5 text-accent-foreground" /></div>
-            <div><p className="text-xs text-muted-foreground">Clientes</p><p className="text-2xl font-bold">{clientesUnicos}</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="flex items-center gap-3 p-4">
-            <div className="p-3 rounded-lg bg-destructive/10"><AlertTriangle className="h-5 w-5 text-destructive" /></div>
-            <div><p className="text-xs text-muted-foreground">Vencidos</p><p className="text-2xl font-bold text-destructive">{vencidos}</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="flex items-center gap-3 p-4">
-            <div className="p-3 rounded-lg bg-green-500/10"><CheckCircle className="h-5 w-5 text-green-600" /></div>
-            <div><p className="text-xs text-muted-foreground">Em Depósitos</p><p className="text-xl font-bold">R$ {totalDeposito.toLocaleString("pt-BR")}</p></div>
-          </CardContent></Card>
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
+          <EstoqueKpiCard icon={Package} label="Vasilhames Emprestados" value={totalQtd} tone="primary" />
+          <EstoqueKpiCard icon={Users} label="Clientes" value={clientesUnicos} tone="info" />
+          <EstoqueKpiCard icon={AlertTriangle} label="Vencidos" value={vencidos} tone={vencidos > 0 ? "destructive" : "secondary"} />
+          <EstoqueKpiCard icon={CheckCircle} label="Em Depósitos" value={`R$ ${totalDeposito.toLocaleString("pt-BR")}`} tone="success" />
         </div>
 
-        {/* Ações */}
-        <div className="flex flex-wrap items-center gap-3">
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" />Novo Comodato</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Registrar Comodato</DialogTitle></DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label>Cliente</Label>
-                  <Select value={form.cliente_id} onValueChange={(v) => setForm({ ...form, cliente_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
-                    <SelectContent>
-                      {clientes.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Vasilhame</Label>
-                  <Select value={form.produto_id} onValueChange={(v) => setForm({ ...form, produto_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o vasilhame" /></SelectTrigger>
-                    <SelectContent>
-                      {produtos.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="grid gap-2">
-                    <Label>Quantidade</Label>
-                    <Input type="number" min="1" value={form.quantidade} onChange={(e) => setForm({ ...form, quantidade: e.target.value })} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Depósito (R$)</Label>
-                    <Input type="number" min="0" value={form.deposito} onChange={(e) => setForm({ ...form, deposito: e.target.value })} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Prazo (dias)</Label>
-                    <Input type="number" min="1" value={form.prazo_dias} onChange={(e) => setForm({ ...form, prazo_dias: e.target.value })} />
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Observações</Label>
-                  <Textarea value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} placeholder="Detalhes..." />
-                </div>
-                <Button onClick={() => criarComodato.mutate()} disabled={!form.cliente_id || !form.produto_id || criarComodato.isPending}>
-                  Registrar Comodato
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <div className="relative flex-1 min-w-[180px] max-w-sm">
+        {/* Filtros */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="pl-9" placeholder="Buscar cliente ou produto..." value={filtro} onChange={(e) => setFiltro(e.target.value)} />
           </div>
           <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-            <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
               <SelectItem value="ativo">Ativos</SelectItem>
@@ -216,6 +212,7 @@ export default function Comodatos() {
             </SelectContent>
           </Select>
         </div>
+
 
         {/* Tabela */}
         <Card>

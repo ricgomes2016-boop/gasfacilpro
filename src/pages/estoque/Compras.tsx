@@ -35,6 +35,8 @@ import { OutlookImportButton } from "@/components/estoque/OutlookImportButton";
 import { ComprasListaTableEstoque } from "@/components/estoque/ComprasListaTableEstoque";
 import { ConfirmarNovosProdutosDialog, NovoProdutoCandidato, DecisaoItem } from "@/components/estoque/ConfirmarNovosProdutosDialog";
 import { registrarPagamentoCompra, reverterPagamentoCompra, type FormaPagamentoCompra } from "@/services/compraFinanceiroService";
+import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
+import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 
 interface Compra {
   id: string;
@@ -1171,10 +1173,20 @@ export default function Compras() {
     <MainLayout>
       <Header title="Compras" subtitle="Gestão de compras e pedidos" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <OutlookImportButton
-            onImported={() => { fetchCompras(); fetchProdutos(); fetchFornecedores(); }}
-          />
+        <EstoquePageHeader
+          title="Compras e notas fiscais"
+          description="Registre notas, importe XML e acompanhe o gasto por fornecedor"
+          actions={
+            <>
+              <OutlookImportButton
+                onImported={() => { fetchCompras(); fetchProdutos(); fetchFornecedores(); }}
+              />
+              {/* placeholder — o Dialog Nova Compra continua logo abaixo */}
+            </>
+          }
+        />
+        <div className="flex items-center justify-end gap-2 flex-wrap">
+
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-2" />Nova Compra</Button>
@@ -1514,66 +1526,38 @@ export default function Compras() {
           </Dialog>
         </div>
 
-        {/* Dashboard Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Compras no Mês</p>
-                  <p className="text-2xl font-bold">R$ {(totalMesAtual / 1000).toFixed(1)}k</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    {variacaoMes >= 0 ? (
-                      <TrendingUp className="h-3 w-3 text-destructive" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3 text-primary" />
-                    )}
-                    <span className={`text-xs ${variacaoMes >= 0 ? "text-destructive" : "text-primary"}`}>
-                      {variacaoMes >= 0 ? "+" : ""}{variacaoMes.toFixed(1)}% vs mês anterior
-                    </span>
-                  </div>
-                </div>
-                <div className="p-3 rounded-lg bg-primary/10"><DollarSign className="h-6 w-6 text-primary" /></div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Ticket Médio</p>
-                  <p className="text-2xl font-bold">R$ {ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{comprasMesAtual.length} compras no mês</p>
-                </div>
-                <div className="p-3 rounded-lg bg-secondary"><BarChart3 className="h-6 w-6 text-secondary-foreground" /></div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Frete no Mês</p>
-                  <p className="text-2xl font-bold">R$ {totalFreteMes.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{percentualFrete.toFixed(1)}% do total</p>
-                </div>
-                <div className="p-3 rounded-lg bg-accent"><Truck className="h-6 w-6 text-accent-foreground" /></div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Pendentes/Trânsito</p>
-                  <p className="text-2xl font-bold">{comprasPendentes.length}</p>
-                  <p className="text-xs text-muted-foreground mt-1">R$ {valorPendente.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-primary/10"><CalendarDays className="h-6 w-6 text-primary" /></div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* KPI Cards */}
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
+          <EstoqueKpiCard
+            icon={DollarSign}
+            label="Compras no Mês"
+            value={`R$ ${(totalMesAtual / 1000).toFixed(1)}k`}
+            tone="primary"
+            hint={`${variacaoMes >= 0 ? "+" : ""}${variacaoMes.toFixed(1)}% vs mês anterior`}
+          />
+          <EstoqueKpiCard
+            icon={BarChart3}
+            label="Ticket Médio"
+            value={`R$ ${ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+            tone="info"
+            hint={`${comprasMesAtual.length} compras no mês`}
+          />
+          <EstoqueKpiCard
+            icon={Truck}
+            label="Frete no Mês"
+            value={`R$ ${totalFreteMes.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+            tone="warning"
+            hint={`${percentualFrete.toFixed(1)}% do total`}
+          />
+          <EstoqueKpiCard
+            icon={CalendarDays}
+            label="Pendentes/Trânsito"
+            value={comprasPendentes.length}
+            tone={comprasPendentes.length > 0 ? "destructive" : "secondary"}
+            hint={`R$ ${valorPendente.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+          />
         </div>
+
 
         {/* Top Suppliers */}
         {topFornecedores.length > 0 && (

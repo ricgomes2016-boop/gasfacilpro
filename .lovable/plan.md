@@ -1,36 +1,82 @@
-# Refatorar Estoque do dia (`src/pages/Estoque.tsx`) — padrão Dashboard
+## Objetivo
 
-Somente UI/layout. Nenhuma query, cálculo, mutação ou regra de negócio será alterada.
+Padronizar todas as 8 páginas do menu **Gestão de Estoque** no visual "premium" do Dashboard principal (já aplicado no Estoque do dia): `Header` no topo, action bar limpa, KPIs neutros com badge tintado, filtros compactos, cards de conteúdo neutros e tabelas com header em `text-xs uppercase text-muted-foreground` — usando exclusivamente tokens semânticos (`bg-card`, `bg-primary/10`, `text-muted-foreground`, `border`).
 
-## 1. Cabeçalho / hero
-- Remover o card gradiente `bg-gradient-to-br from-primary to-secondary` com título "Controle diário de produtos" (o texto some sobre o gradiente, como no print).
-- Usar o mesmo `Header` já presente (`title="Estoque"`, `subtitle="Controle de estoque do dia"`), no padrão do Dashboard, e mover os botões **Atualizar** e **Movimentação** para uma barra de ações à direita, logo abaixo do Header (mesmo pattern do Dashboard: título à esquerda, ações à direita, sem card colorido envolvendo).
-- O rótulo "Período: dd/mm/aaaa" vira um texto discreto (`text-sm text-muted-foreground`) ao lado dos filtros.
+Sem mudanças em queries, mutations, RLS, `unidade_id`/`empresa_id`, edge functions ou lógica de estoque. Somente reestruturação visual + extração de subcomponentes.
 
-## 2. Cards de KPI (Cheios / Vazios / Vendas Período / Valor Estoque)
-- Trocar os 4 cards sólidos coloridos (`bg-primary`, `bg-secondary`, `bg-info`, `bg-destructive`) — que estão escondendo os rótulos no preview — pelo padrão de KPI do Dashboard: card neutro (`bg-card`), borda sutil, ícone dentro de um badge tintado (`bg-primary/10 text-primary`, `bg-secondary/10`, `bg-info/10`, `bg-destructive/10`), label em `text-sm text-muted-foreground` e valor em `text-2xl font-bold text-foreground`.
-- Manter os mesmos 4 indicadores e os mesmos cálculos (`getTotalCheios`, `getTotalVazios`, `totalVendas`, `getValorEstoque`).
-- Grid mantém `grid-cols-2 md:grid-cols-4`.
+## Escopo
 
-## 3. Filtros de data
-- Remover o card `modern-soft-panel` que envolve os dois date pickers.
-- Colocar os dois `Popover`+`Calendar` (Data Inicial / Data Final) em uma linha compacta alinhada à direita, acima da tabela, no mesmo padrão dos filtros do Dashboard (labels curtas acima, botões `variant="outline" size="sm"`).
-- Manter estado, handlers e o `periodoLabel` intactos.
+| # | Página | Arquivo | O que padronizar |
+|---|--------|---------|------------------|
+| 1 | Estoque do dia | `src/pages/Estoque.tsx` | Já refeito — apenas polir (ícones dos KPIs, badges de tipo, estados vazios) |
+| 2 | Dashboard Estoque | `src/pages/estoque/DashboardEstoque.tsx` | Header + KPIs neutros, gráficos em cards limpos com toggle de visão, cores via tokens (remover paleta hex fixa) |
+| 3 | Compras | `src/pages/estoque/Compras.tsx` | Header + action bar (Nova compra / Outlook / relatório), KPIs (total mês, pago, pendente, fornecedores), filtros compactos, tabela padrão |
+| 4 | Comodatos | `src/pages/estoque/Comodatos.tsx` | Header + KPIs (ativos, vencidos, próximos, valor caução), filtro busca+status inline, tabela padrão, badges semânticos |
+| 5 | MCMM | `src/pages/estoque/MCMM.tsx` | Header + KPIs (críticos, alerta, ok, excesso), gráfico em card neutro, tabela com badges de status |
+| 6 | Histórico Movimentações | `src/pages/estoque/HistoricoMovimentacoes.tsx` | Header + KPIs (entradas, saídas, ajustes, total), filtros (período + tipo + busca) na mesma linha, tabela padrão |
+| 7 | Transferência Estoque | `src/pages/estoque/TransferenciaEstoque.tsx` | Header + action bar (Nova transferência), KPIs (pendentes, em trânsito, recebidas mês, valor), tabela + dialog mantendo lógica atual |
+| 8 | Lotes/Rastreabilidade | `src/pages/estoque/LotesRastreabilidade.tsx` | Header + KPIs (lotes ativos, próximos vencer, vencidos, rastreios mês), tabs em card neutro, tabela padrão |
 
-## 4. Tabela / listagem do dia
-- Manter estrutura de dados e colunas (Produto, Tipo, Inicial, Entradas, Saídas, Vendas, Avarias, Total, Total Vasilhame, Ação).
-- Padronizar tipografia e espaçamento no padrão do sistema:
-  - Cabeçalho da seção como card neutro (`Card` + `CardHeader` com ícone + título + subtítulo explicativo "Total = Inicial + Entradas − Saídas − Vendas − Avarias").
-  - Cabeçalho de tabela `text-xs uppercase text-muted-foreground`, linhas com `hover:bg-muted/50`, badges de tipo com as cores semânticas já usadas no resto do ERP.
-  - Sem cores hardcoded; usar apenas tokens semânticos.
+## Padrão visual (aplicado em todas)
 
-## 5. Não muda
-- Nenhuma query Supabase, RPC, cálculo, movimentação, dialog de "Movimentação de Estoque" (só herda os tokens visuais atualizados; conteúdo do formulário permanece).
-- Nenhuma rota, nenhum import de página, nada em `App.tsx`.
-- Comportamento de `fetchData`, filtros por data, `unidade_id`, permissões — tudo preservado.
+**Header/action bar**
+```tsx
+<Header title="..." subtitle="..." />
+<div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+  <div>
+    <h2 className="text-lg font-semibold">Título da seção</h2>
+    <p className="text-xs text-muted-foreground">Descrição curta</p>
+  </div>
+  <div className="flex gap-2">{/* ações principais */}</div>
+</div>
+```
 
-## Detalhes técnicos
-- Arquivo único alterado: `src/pages/Estoque.tsx`.
-- Substituir apenas o JSX do `return (...)` a partir do `<MainLayout>` até o fechamento do bloco de filtros/tabela. Toda a lógica acima do `return` permanece igual.
-- Reaproveitar classes utilitárias já existentes no projeto (`status-card-icon`, `modern-panel`) apenas quando forem compatíveis com o padrão Dashboard; caso contrário, usar as mesmas classes que o Dashboard usa hoje para KPIs.
-- Rodar typecheck ao final.
+**KPI card**
+```tsx
+<Card className="bg-card">
+  <CardContent className="p-4 flex items-center gap-3">
+    <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+      <Icon className="h-5 w-5" />
+    </div>
+    <div>
+      <p className="text-sm text-muted-foreground">Label</p>
+      <p className="text-2xl font-bold">{valor}</p>
+    </div>
+  </CardContent>
+</Card>
+```
+Tons por semântica: `primary` (neutro/principal), `info` (informativo/azul), `success` (verde/ok), `warning` (amarelo/alerta), `destructive` (crítico). Grid `grid-cols-2 md:grid-cols-4`.
+
+**Filtros**: `flex-col sm:flex-row gap-2`, botões `variant="outline" size="sm"`, popovers com `p-3`.
+
+**Cards de conteúdo**: `bg-card` com `CardHeader` (ícone + título + subtítulo) e `CardContent`. Sem gradientes fixos, sem `bg-primary` sólido no card.
+
+**Tabelas**: `TableHeader` com `text-xs uppercase text-muted-foreground`, linhas com `hover:bg-muted/50`, badges de status com variantes semânticas.
+
+**Estados**: vazio (`text-center py-12 text-muted-foreground` + ícone `opacity-40`), loading (Skeleton no lugar dos cards/linhas).
+
+## Reorganização de componentes
+
+Criar utilitários compartilhados em `src/components/estoque/`:
+- `EstoqueKpiCard.tsx` — card KPI reutilizado nas 8 páginas (props: icon, label, value, tone).
+- `EstoquePageHeader.tsx` — bloco título + subtítulo + slot de ações da seção.
+- `EstoqueEmptyState.tsx` — estado vazio padrão (icon, title, description, action opcional).
+
+Nenhum dialog, mutation, cálculo ou fluxo existente é alterado — apenas o JSX de apresentação usa esses helpers.
+
+## Fora de escopo
+
+- Lógica de negócio, queries, RLS, edge functions, `unidade_id`/`empresa_id`, mutations.
+- Rotas, menu lateral, permissões, `MainLayout`.
+- Componentes internos já em uso nos dialogs (`ComprasListaTableEstoque`, `OutlookImportButton`, `ConfirmarNovosProdutosDialog` etc.).
+
+## Ordem de execução
+
+1. Criar `EstoqueKpiCard`, `EstoquePageHeader`, `EstoqueEmptyState`.
+2. Refatorar em ordem: Dashboard Estoque → Compras → Comodatos → MCMM → Histórico → Transferência → Lotes → polir Estoque do dia.
+3. Rodar typecheck ao final.
+
+## Verificação
+
+- Typecheck `tsgo` sem erros.
+- Abrir cada rota via Playwright headless (`/estoque`, `/estoque/dashboard`, `/estoque/compras`, `/estoque/comodatos`, `/estoque/mcmm`, `/estoque/historico`, `/estoque/transferencia`, `/estoque/lotes`) e conferir screenshot do header + KPIs + tabela.

@@ -22,6 +22,8 @@ import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
+import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 
 interface Produto {
   id: string;
@@ -384,26 +386,22 @@ export default function TransferenciaEstoque() {
     <MainLayout>
       <Header title="Transferência de Estoque" subtitle="Transferências entre filiais" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* KPIs */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><ArrowRightLeft className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">{transferencias.length}</p><p className="text-sm text-muted-foreground">Total</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-yellow-500/10"><Truck className="h-6 w-6 text-yellow-500" /></div><div><p className="text-2xl font-bold">{transferencias.filter(t => t.status === "pendente").length}</p><p className="text-sm text-muted-foreground">Pendentes</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-blue-500/10"><Truck className="h-6 w-6 text-blue-500" /></div><div><p className="text-2xl font-bold">{transferencias.filter(t => t.status === "em_transito").length}</p><p className="text-sm text-muted-foreground">Em Trânsito</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-green-500/10"><Check className="h-6 w-6 text-green-500" /></div><div><p className="text-2xl font-bold">{transferencias.filter(t => t.status === "recebido").length}</p><p className="text-sm text-muted-foreground">Recebidos</p></div></div></CardContent></Card>
-        </div>
+        <EstoquePageHeader
+          title="Transferências entre unidades"
+          description="Envie e receba produtos entre suas filiais"
+          actions={
+            <>
+              <Button variant="outline" size="sm" onClick={() => navigate("/operacional/rotas")}>
+                <Route className="h-4 w-4 mr-2" />Rota de Entrega
+              </Button>
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm"><Plus className="h-4 w-4 mr-2" />Nova Transferência</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader><DialogTitle>Nova Transferência de Estoque</DialogTitle></DialogHeader>
+                  <div className="space-y-4">
 
-        {/* Nova Transferência */}
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => navigate("/operacional/rotas")}>
-            <Route className="h-4 w-4 mr-2" />Rota de Entrega
-          </Button>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" />Nova Transferência</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>Nova Transferência de Estoque</DialogTitle></DialogHeader>
-              <div className="space-y-4">
                 <div>
                   <Label>Origem</Label>
                   <Input value={unidadeAtual?.nome || ""} disabled />
@@ -511,7 +509,19 @@ export default function TransferenciaEstoque() {
               </div>
             </DialogContent>
           </Dialog>
+            </>
+          }
+        />
+
+        {/* KPIs */}
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
+          <EstoqueKpiCard icon={ArrowRightLeft} label="Total" value={transferencias.length} tone="primary" />
+          <EstoqueKpiCard icon={Truck} label="Pendentes" value={transferencias.filter(t => t.status === "pendente").length} tone="warning" />
+          <EstoqueKpiCard icon={Truck} label="Em Trânsito" value={transferencias.filter(t => t.status === "em_transito").length} tone="info" />
+          <EstoqueKpiCard icon={Check} label="Recebidos" value={transferencias.filter(t => t.status === "recebido").length} tone="success" />
         </div>
+
+
 
         {/* Lista */}
         <Card>
