@@ -9,20 +9,29 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Package, Flame, Droplets, AlertTriangle, TrendingUp, DollarSign, BarChart3, Cylinder, Clock,
+  Flame, Droplets, AlertTriangle, DollarSign, BarChart3, Cylinder, Clock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
-import { subDays, format, startOfDay, endOfDay } from "date-fns";
+import { subDays, startOfDay } from "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
+import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
+import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 
-const COLORS = [
-  "#2fc2b5", "#ef4444", "#8b5cf6", "#10b981", "#6c63ff", 
-  "#ec4899", "#06b6d4", "#84cc16", "#14b8a6", "#6366f1", 
-  "#14b8a6", "#e11d48"
+// Paleta usando tokens semânticos HSL do design system
+const CHART_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--info))",
+  "hsl(var(--success))",
+  "hsl(var(--warning))",
+  "hsl(var(--destructive))",
+  "hsl(var(--secondary))",
+  "hsl(var(--accent))",
+  "hsl(var(--muted-foreground))",
 ];
+
 
 export default function DashboardEstoque() {
   const { unidadeAtual } = useUnidade();
