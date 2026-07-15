@@ -267,7 +267,7 @@ export default function DashboardEstoque() {
                   <YAxis className="text-xs fill-muted-foreground" />
                   <Tooltip />
                   <Bar dataKey="giro" radius={[4, 4, 0, 0]} name="Giro">
-                    {(chartViewGiro === "categoria" ? giroPorCategoria : giroPorProduto).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    {(chartViewGiro === "categoria" ? giroPorCategoria : giroPorProduto).map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -288,7 +288,7 @@ export default function DashboardEstoque() {
                 <ResponsiveContainer width="100%" height={260}>
                   <PieChart>
                     <Pie data={distribuicaoValorCategoria} cx="40%" cy="50%" outerRadius={75} innerRadius={35} dataKey="value" nameKey="name" paddingAngle={2}>
-                      {distribuicaoValorCategoria.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      {distribuicaoValorCategoria.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                     </Pie>
                     <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
                     <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize: 12, lineHeight: "20px" }} />
@@ -302,7 +302,7 @@ export default function DashboardEstoque() {
                     <YAxis type="category" dataKey="name" className="text-xs fill-muted-foreground" width={110} tick={{ fontSize: 11 }} />
                     <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
                     <Bar dataKey="value" name="Valor" radius={[0, 4, 4, 0]}>
-                      {distribuicaoValorProduto.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      {distribuicaoValorProduto.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
