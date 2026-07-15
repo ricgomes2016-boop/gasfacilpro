@@ -35,6 +35,8 @@ import { OutlookImportButton } from "@/components/estoque/OutlookImportButton";
 import { ComprasListaTableEstoque } from "@/components/estoque/ComprasListaTableEstoque";
 import { ConfirmarNovosProdutosDialog, NovoProdutoCandidato, DecisaoItem } from "@/components/estoque/ConfirmarNovosProdutosDialog";
 import { registrarPagamentoCompra, reverterPagamentoCompra, type FormaPagamentoCompra } from "@/services/compraFinanceiroService";
+import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
+import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 
 interface Compra {
   id: string;
