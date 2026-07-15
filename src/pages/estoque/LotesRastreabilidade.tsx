@@ -87,13 +87,21 @@ export default function LotesRastreabilidade() {
 
   return (
     <MainLayout>
-      <Header title="Lotes & Rastreabilidade" subtitle="Controle de lotes, validade e recall — SAP QM" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-primary">{lotes.filter((l: any) => l.status === "ativo").length}</p><p className="text-xs text-muted-foreground">Lotes Ativos</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-chart-4">{vencendo.length}</p><p className="text-xs text-muted-foreground">Vencendo (30d)</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-destructive">{vencidos.length}</p><p className="text-xs text-muted-foreground">Vencidos</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-destructive">{recalls.length}</p><p className="text-xs text-muted-foreground">Recalls</p></CardContent></Card>
+      <Header title="Lotes & Rastreabilidade" subtitle="Controle de lotes, validade e recall" />
+      <div className="p-3 sm:p-4 md:p-6 space-y-6">
+        <EstoquePageHeader
+          title="Lotes e rastreabilidade"
+          description="Vigência, quantidades e histórico de rastreio por lote"
+          actions={
+            <Button size="sm" onClick={() => setNovoLoteDialog(true)}><Plus className="h-4 w-4 mr-2" />Novo Lote</Button>
+          }
+        />
+
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
+          <EstoqueKpiCard icon={Package} label="Lotes Ativos" value={lotes.filter((l: any) => l.status === "ativo").length} tone="primary" />
+          <EstoqueKpiCard icon={Calendar} label="Vencendo (30d)" value={vencendo.length} tone={vencendo.length > 0 ? "warning" : "secondary"} />
+          <EstoqueKpiCard icon={AlertTriangle} label="Vencidos" value={vencidos.length} tone={vencidos.length > 0 ? "destructive" : "secondary"} />
+          <EstoqueKpiCard icon={RotateCcw} label="Recalls" value={recalls.length} tone={recalls.length > 0 ? "destructive" : "secondary"} />
         </div>
 
         {(vencidos.length > 0 || recalls.length > 0) && (
@@ -112,10 +120,12 @@ export default function LotesRastreabilidade() {
               <TabsTrigger value="lotes"><Package className="h-4 w-4 mr-1" />Lotes</TabsTrigger>
               <TabsTrigger value="rastreio"><QrCode className="h-4 w-4 mr-1" />Rastreio</TabsTrigger>
             </TabsList>
-            <div className="flex gap-2">
-              <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Buscar lote..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 w-48" /></div>
-              <Button size="sm" onClick={() => setNovoLoteDialog(true)}><Plus className="h-4 w-4 mr-1" />Novo Lote</Button>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Buscar lote..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 w-full sm:w-56 h-9" />
             </div>
+          </div>
+
           </div>
 
           <TabsContent value="lotes">
