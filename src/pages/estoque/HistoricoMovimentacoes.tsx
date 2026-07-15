@@ -170,7 +170,7 @@ export default function HistoricoMovimentacoes() {
                       {tipoIcon(m.tipo)}
                       <p className="text-sm font-medium truncate">{m.produtos?.nome || "—"}</p>
                     </div>
-                    <span className={`font-bold text-sm ${m.tipo === "entrada" ? "text-green-600" : "text-destructive"}`}>
+                    <span className={`font-bold text-sm ${m.tipo === "entrada" ? "text-success" : "text-destructive"}`}>
                       {m.tipo === "entrada" ? "+" : "-"}{m.quantidade}
                     </span>
                   </div>
@@ -206,7 +206,7 @@ export default function HistoricoMovimentacoes() {
                       <TableCell className="font-medium">{m.produtos?.nome || "—"}</TableCell>
                       <TableCell className="text-center">{tipoBadge(m.tipo)}</TableCell>
                       <TableCell className="text-center font-bold">
-                        <span className={m.tipo === "entrada" ? "text-green-600" : "text-destructive"}>
+                        <span className={m.tipo === "entrada" ? "text-success" : "text-destructive"}>
                           {m.tipo === "entrada" ? "+" : "-"}{m.quantidade}
                         </span>
                       </TableCell>
