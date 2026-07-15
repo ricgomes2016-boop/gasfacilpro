@@ -14,6 +14,8 @@ import { subDays, startOfDay, differenceInDays } from "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
+import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
+import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 
 const TEMPO_REPOSICAO_PADRAO = 3; // dias
 const MARGEM_SEGURANCA = 1.5;
