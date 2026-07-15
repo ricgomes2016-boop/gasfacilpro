@@ -69,94 +69,89 @@ export default function HistoricoMovimentacoes() {
   );
 
   const tipoIcon = (tipo: string) => {
-    if (tipo === "entrada") return <ArrowUpCircle className="h-4 w-4 text-green-600" />;
-    if (tipo === "saida") return <ArrowDownCircle className="h-4 w-4 text-orange-600" />;
+    if (tipo === "entrada") return <ArrowUpCircle className="h-4 w-4 text-success" />;
+    if (tipo === "saida") return <ArrowDownCircle className="h-4 w-4 text-warning" />;
     return <AlertCircle className="h-4 w-4 text-destructive" />;
   };
 
   const tipoBadge = (tipo: string) => {
-    if (tipo === "entrada") return <Badge className="bg-green-600 text-white">Entrada</Badge>;
-    if (tipo === "saida") return <Badge className="bg-orange-600 text-white">Saída</Badge>;
-    return <Badge variant="destructive">Avaria</Badge>;
+    if (tipo === "entrada") return <Badge variant="outline" className="bg-success/15 text-success border-success/30">Entrada</Badge>;
+    if (tipo === "saida") return <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">Saída</Badge>;
+    return <Badge variant="outline" className="bg-destructive/15 text-destructive border-destructive/30">Avaria</Badge>;
   };
 
   return (
     <MainLayout>
       <Header title="Histórico de Movimentações" subtitle="Auditoria completa de entradas, saídas e avarias" />
-      <div className="p-3 sm:p-6 space-y-4">
-        {/* Filtros */}
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="grid gap-1.5">
-                <Label className="text-xs">De</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal text-sm")}>
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {format(dataInicio, "dd/MM/yyyy")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={dataInicio} onSelect={(d) => d && setDataInicio(d)} initialFocus className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="grid gap-1.5">
-                <Label className="text-xs">Até</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal text-sm")}>
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {format(dataFim, "dd/MM/yyyy")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={dataFim} onSelect={(d) => d && setDataFim(d)} initialFocus className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="grid gap-1.5">
-                <Label className="text-xs">Tipo</Label>
-                <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                  <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    <SelectItem value="entrada">Entrada</SelectItem>
-                    <SelectItem value="saida">Saída</SelectItem>
-                    <SelectItem value="avaria">Avaria</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5 flex-1 min-w-[180px]">
-                <Label className="text-xs">Buscar</Label>
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input className="pl-9" placeholder="Produto ou observação..." value={filtroBusca} onChange={(e) => setFiltroBusca(e.target.value)} />
-                </div>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
-                <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? "animate-spin" : ""}`} /> Atualizar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="p-3 sm:p-6 space-y-6">
+        <EstoquePageHeader
+          title="Movimentações do período"
+          description={`${filtradas.length} registro(s) — ${format(dataInicio, "dd/MM/yy")} até ${format(dataFim, "dd/MM/yy")}`}
+          actions={
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
+              <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} /> Atualizar
+            </Button>
+          }
+        />
 
-        {/* Totais */}
-        <div className="grid gap-3 grid-cols-3">
-          <Card><CardContent className="flex items-center gap-3 p-3">
-            <ArrowUpCircle className="h-5 w-5 text-green-600" />
-            <div><p className="text-xs text-muted-foreground">Entradas</p><p className="text-xl font-bold text-green-600">+{totais.entradas}</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="flex items-center gap-3 p-3">
-            <ArrowDownCircle className="h-5 w-5 text-orange-600" />
-            <div><p className="text-xs text-muted-foreground">Saídas</p><p className="text-xl font-bold text-orange-600">-{totais.saidas}</p></div>
-          </CardContent></Card>
-          <Card><CardContent className="flex items-center gap-3 p-3">
-            <AlertCircle className="h-5 w-5 text-destructive" />
-            <div><p className="text-xs text-muted-foreground">Avarias</p><p className="text-xl font-bold text-destructive">-{totais.avarias}</p></div>
-          </CardContent></Card>
+        {/* KPIs */}
+        <div className="grid gap-3 sm:gap-4 grid-cols-3">
+          <EstoqueKpiCard icon={ArrowUpCircle} label="Entradas" value={`+${totais.entradas}`} tone="success" />
+          <EstoqueKpiCard icon={ArrowDownCircle} label="Saídas" value={`-${totais.saidas}`} tone="warning" />
+          <EstoqueKpiCard icon={AlertCircle} label="Avarias" value={`-${totais.avarias}`} tone="destructive" />
         </div>
+
+        {/* Filtros */}
+        <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+          <div className="grid gap-1.5">
+            <Label className="text-xs text-muted-foreground">De</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full sm:w-[160px] justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                  {format(dataInicio, "dd/MM/yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dataInicio} onSelect={(d) => d && setDataInicio(d)} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="grid gap-1.5">
+            <Label className="text-xs text-muted-foreground">Até</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full sm:w-[160px] justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                  {format(dataFim, "dd/MM/yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={dataFim} onSelect={(d) => d && setDataFim(d)} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="grid gap-1.5">
+            <Label className="text-xs text-muted-foreground">Tipo</Label>
+            <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+              <SelectTrigger className="w-full sm:w-[140px] h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="entrada">Entrada</SelectItem>
+                <SelectItem value="saida">Saída</SelectItem>
+                <SelectItem value="avaria">Avaria</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5 flex-1">
+            <Label className="text-xs text-muted-foreground">Buscar</Label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input className="pl-9 h-9" placeholder="Produto ou observação..." value={filtroBusca} onChange={(e) => setFiltroBusca(e.target.value)} />
+            </div>
+          </div>
+        </div>
+
 
         {/* Tabela */}
         <Card>
