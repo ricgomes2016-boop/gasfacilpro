@@ -4,6 +4,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { BarChart3 } from "lucide-react";
 import { format, eachDayOfInterval, startOfWeek, startOfMonth, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
+import { ChartCardSkeleton } from "@/components/dashboard/premium/skeletons";
+import { chartGridProps, chartAxisTick, fmtBRL, fmtBRLcompact } from "@/components/dashboard/premium/chartTheme";
 
 interface Pedido {
   id: string;
