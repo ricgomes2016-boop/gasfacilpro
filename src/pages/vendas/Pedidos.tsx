@@ -683,8 +683,10 @@ export default function Pedidos() {
   };
 
   // #5 - Payment method breakdown (split combined forms like "dinheiro, pix" and aggregate per method)
-  const pagamentoContadores = useMemo(() => {
+  const [formaExpandida, setFormaExpandida] = useState<string | null>(null);
+  const { pagamentoContadores, pagamentoDetalhes } = useMemo(() => {
     const map = new Map<string, number>();
+    const detalhes = new Map<string, Array<{ id: string; numero: string; cliente: string; formasCount: number; share: number; total: number }>>();
     pedidos.filter((p) => p.status !== "cancelado").forEach((p) => {
       const raw = (p.forma_pagamento || "").trim();
       const formas = raw
@@ -693,14 +695,23 @@ export default function Pedidos() {
       const share = p.valor / formas.length;
       formas.forEach((forma) => {
         map.set(forma, (map.get(forma) || 0) + share);
+        const arr = detalhes.get(forma) || [];
+        arr.push({
+          id: p.id,
+          numero: p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase(),
+          cliente: p.cliente,
+          formasCount: formas.length,
+          share,
+          total: p.valor,
+        });
+        detalhes.set(forma, arr);
       });
     });
-    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+    return {
+      pagamentoContadores: Array.from(map.entries()).sort((a, b) => b[1] - a[1]),
+      pagamentoDetalhes: detalhes,
+    };
   }, [pedidos]);
-
-  // Helper: número curto do UUID (legado), e número de exibição (sequencial > UUID curto)
-  const getIdCurto = (id: string) => id.substring(0, 8).toUpperCase();
-  const getNumExib = (p: PedidoFormatado) => p.numero_sequencial != null ? String(p.numero_sequencial) : getIdCurto(p.id);
 
   const getStatusBadgeEntregador = (status: string | null) => {
     switch (status) {
