@@ -201,7 +201,9 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
     if (embedded) return loader;
     return (
       <MainLayout>
-        <Header title="DRE" subtitle="Demonstrativo de Resultados do Exercício" />
+        <div className="p-3 sm:p-4 md:p-6">
+          <DashboardHero eyebrow="Financeiro" icon={FileBarChart} title="DRE" description="Demonstrativo de Resultados do Exercício" />
+        </div>
         {loader}
       </MainLayout>
     );
