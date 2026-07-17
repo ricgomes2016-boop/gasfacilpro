@@ -682,12 +682,18 @@ export default function Pedidos() {
     total: pedidos.filter((p) => p.status !== "cancelado").reduce((acc, p) => acc + p.valor, 0)
   };
 
-  // #5 - Payment method breakdown
+  // #5 - Payment method breakdown (split combined forms like "dinheiro, pix" and aggregate per method)
   const pagamentoContadores = useMemo(() => {
     const map = new Map<string, number>();
     pedidos.filter((p) => p.status !== "cancelado").forEach((p) => {
-      const method = p.forma_pagamento || "Não informado";
-      map.set(method, (map.get(method) || 0) + p.valor);
+      const raw = (p.forma_pagamento || "").trim();
+      const formas = raw
+        ? raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean)
+        : ["nao_informado"];
+      const share = p.valor / formas.length;
+      formas.forEach((forma) => {
+        map.set(forma, (map.get(forma) || 0) + share);
+      });
     });
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
   }, [pedidos]);
