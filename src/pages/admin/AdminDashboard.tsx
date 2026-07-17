@@ -97,7 +97,7 @@ export default function AdminDashboard() {
         {/* Recent Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Empresas */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <Card className="border-border/60 bg-card shadow-[var(--elev-2)]">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -110,7 +110,10 @@ export default function AdminDashboard() {
             <CardContent className="space-y-2">
               {loading ? (
                 Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-14 bg-muted/40 animate-pulse rounded-xl" />
+                  <div
+                    key={i}
+                    className="relative h-14 overflow-hidden rounded-xl bg-muted/50 before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.6s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent dark:before:via-white/10"
+                  />
                 ))
               ) : recentEmpresas.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-6">Nenhuma empresa cadastrada.</p>
