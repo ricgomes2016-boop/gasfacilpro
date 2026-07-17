@@ -19,15 +19,15 @@ interface Props {
 }
 
 function getScoreColor(score: number) {
-  if (score >= 70) return "text-green-600";
-  if (score >= 40) return "text-yellow-600";
-  return "text-red-600";
+  if (score >= 70) return "text-success";
+  if (score >= 40) return "text-warning";
+  return "text-destructive";
 }
 
 function getScoreBg(score: number) {
-  if (score >= 70) return "bg-green-500";
-  if (score >= 40) return "bg-yellow-500";
-  return "bg-red-500";
+  if (score >= 70) return "bg-success";
+  if (score >= 40) return "bg-warning";
+  return "bg-destructive";
 }
 
 export function IndiceCompetitividade({ analise }: Props) {
@@ -119,7 +119,7 @@ function PosicaoBadge({ nosso, media }: { nosso: number; media: number }) {
     return <Badge variant="secondary" className="text-[9px] h-4 px-1"><Minus className="h-2.5 w-2.5" /></Badge>;
   }
   if (diff < 0) {
-    return <Badge className="text-[9px] h-4 px-1 bg-green-600"><TrendingDown className="h-2.5 w-2.5" /></Badge>;
+    return <Badge className="text-[9px] h-4 px-1 bg-success"><TrendingDown className="h-2.5 w-2.5" /></Badge>;
   }
   return <Badge variant="destructive" className="text-[9px] h-4 px-1"><TrendingUp className="h-2.5 w-2.5" /></Badge>;
 }

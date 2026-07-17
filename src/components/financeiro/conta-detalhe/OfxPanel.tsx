@@ -351,7 +351,7 @@ export default function OfxPanel({ contaId, unidadeId, accentColor }: Props) {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right text-green-600 font-medium">
+                    <TableCell className="text-right text-success font-medium">
                       {r._entrada > 0 ? `R$ ${fmt(r._entrada)}` : "—"}
                     </TableCell>
                     <TableCell className="text-right text-destructive font-medium">
@@ -418,7 +418,7 @@ export default function OfxPanel({ contaId, unidadeId, accentColor }: Props) {
                         ? Math.abs(Math.abs(Number(selectedLanc.valor)) - Number(p.valor_total)) < Number(p.valor_total) * 0.01
                         : false;
                       return (
-                        <TableRow key={p.id} className={match ? "bg-green-50 dark:bg-green-950/20" : ""}>
+                        <TableRow key={p.id} className={match ? "bg-success dark:bg-success/20" : ""}>
                           <TableCell className="text-xs">{new Date(p.created_at).toLocaleDateString("pt-BR")}</TableCell>
                           <TableCell className="text-sm font-medium">{(p.clientes as any)?.nome || "—"}</TableCell>
                           <TableCell className="text-sm font-medium">

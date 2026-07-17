@@ -70,11 +70,11 @@ function PipelineStage({
       : <Circle className="h-3.5 w-3.5" />;
   
   const colors = done 
-    ? "text-emerald-600 dark:text-emerald-400" 
+    ? "text-success dark:text-success" 
     : variant === "destructive"
       ? "text-destructive"
       : variant === "warning"
-        ? "text-amber-500"
+        ? "text-warning"
         : "text-muted-foreground/50";
 
   return (
@@ -98,7 +98,7 @@ function PipelineIndicator({ conciliado, liquidado, divergente }: {
         active={!conciliado && !divergente}
         variant={divergente ? "destructive" : "default"}
       />
-      <div className={`w-4 h-px mx-0.5 ${conciliado ? "bg-emerald-400" : "bg-muted-foreground/20"}`} />
+      <div className={`w-4 h-px mx-0.5 ${conciliado ? "bg-success" : "bg-muted-foreground/20"}`} />
       <PipelineStage 
         label="Liquidado" 
         done={liquidado} 
@@ -396,7 +396,7 @@ export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-xs font-medium">Líquido Previsto</CardTitle></CardHeader>
-          <CardContent><p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{fmt(totalLiquido)}</p></CardContent>
+          <CardContent><p className="text-xl font-bold text-success dark:text-success">{fmt(totalLiquido)}</p></CardContent>
         </Card>
         <Card className="cursor-pointer hover:ring-1 hover:ring-primary/30" onClick={() => setFiltroEtapa(filtroEtapa === "conciliado" ? "todos" : "conciliado")}>
           <CardHeader className="pb-2"><CardTitle className="text-xs font-medium">Conciliados</CardTitle></CardHeader>
@@ -484,7 +484,7 @@ export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {
                     const isDivergente = r.conciliacao_status === "divergente";
 
                     return (
-                      <TableRow key={r.id} className={vencido ? "bg-destructive/5" : isLiquidado ? "bg-emerald-500/5" : ""}>
+                      <TableRow key={r.id} className={vencido ? "bg-destructive/5" : isLiquidado ? "bg-success/5" : ""}>
                         <TableCell>
                           {!isLiquidado ? (
                             <Checkbox checked={selectedIds.has(r.id)} onCheckedChange={() => toggleSelect(r.id)} />
@@ -496,7 +496,7 @@ export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {
                         <TableCell className="text-sm">{r.operadora_nome}</TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground max-w-[200px] truncate">{r.descricao}</TableCell>
                         <TableCell className="font-medium">{fmt(Number(r.valor))}</TableCell>
-                        <TableCell className="hidden sm:table-cell font-bold text-emerald-600 dark:text-emerald-400">{fmt(liq)}</TableCell>
+                        <TableCell className="hidden sm:table-cell font-bold text-success dark:text-success">{fmt(liq)}</TableCell>
                         <TableCell className={`text-sm whitespace-nowrap ${vencido ? "text-destructive font-medium" : ""}`}>
                           {format(new Date(r.vencimento + "T12:00:00"), "dd/MM/yy")}
                           {vencido && <AlertCircle className="h-3 w-3 inline ml-1 text-destructive" />}
@@ -529,7 +529,7 @@ export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {
                               </Button>
                             )}
                             {isLiquidado && (
-                              <Badge variant="outline" className="text-emerald-600 dark:text-emerald-400 border-emerald-600/30 text-[10px]">
+                              <Badge variant="outline" className="text-success dark:text-success border-success/30 text-[10px]">
                                 Finalizado
                               </Badge>
                             )}
@@ -557,7 +557,7 @@ export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {
                 <p><strong>Descrição:</strong> {conciliarItem.descricao}</p>
                 <p><strong>Valor Bruto:</strong> {fmt(Number(conciliarItem.valor))}</p>
                 <p><strong>Taxa:</strong> {Number(conciliarItem.taxa_percentual).toFixed(1)}% ({fmt(Number(conciliarItem.valor_taxa))})</p>
-                <p><strong>Líquido Esperado:</strong> <span className="font-bold text-emerald-600">{fmt(Number(conciliarItem.valor) - Number(conciliarItem.valor_taxa))}</span></p>
+                <p><strong>Líquido Esperado:</strong> <span className="font-bold text-success">{fmt(Number(conciliarItem.valor) - Number(conciliarItem.valor_taxa))}</span></p>
               </div>
               <div className="space-y-2">
                 <Label>Valor Recebido (líquido real)</Label>

@@ -25,7 +25,7 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { cn } from "@/lib/utils";
 
 const PRESENCE_COLOR: Record<Presenca, string> = {
-  em_rota: "bg-chart-3 animate-pulse",
+  em_rota: "bg-success animate-pulse",
   online: "bg-primary",
   instavel: "bg-warning",
   offline: "bg-muted-foreground/50",
@@ -313,7 +313,7 @@ export default function MapaOperacional() {
         <div className="grid gap-2 grid-cols-2 md:grid-cols-5">
           <Card className="border-l-4 border-l-chart-3">
             <CardContent className="flex items-center gap-3 py-2.5 px-3">
-              <Truck className="h-5 w-5 text-chart-3" />
+              <Truck className="h-5 w-5 text-success" />
               <div>
                 <p className="text-lg font-bold">{kpis.emRota}</p>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Em Rota</p>
@@ -340,7 +340,7 @@ export default function MapaOperacional() {
           </Card>
           <Card className={cn("border-l-4 border-l-chart-4", kpis.pendentes > 3 && "border-l-destructive")}>
             <CardContent className="flex items-center gap-3 py-2.5 px-3">
-              <Clock className={cn("h-5 w-5 text-chart-4", kpis.pendentes > 3 && "text-destructive")} />
+              <Clock className={cn("h-5 w-5 text-warning", kpis.pendentes > 3 && "text-destructive")} />
               <div>
                 <p className="text-lg font-bold">{kpis.pendentes}</p>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Pendentes</p>
@@ -349,7 +349,7 @@ export default function MapaOperacional() {
           </Card>
           <Card className="border-l-4 border-l-chart-2 col-span-2 md:col-span-1">
             <CardContent className="flex items-center gap-3 py-2.5 px-3">
-              <Activity className="h-5 w-5 text-chart-2" />
+              <Activity className="h-5 w-5 text-info" />
               <div>
                 <p className="text-lg font-bold">{saude.pctSaudavel}%</p>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Saúde GPS</p>
@@ -410,7 +410,7 @@ export default function MapaOperacional() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-chart-2" />Saúde do Rastreamento
+                  <Activity className="h-4 w-4 text-info" />Saúde do Rastreamento
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1.5 text-xs">
@@ -424,7 +424,7 @@ export default function MapaOperacional() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Boxes className="h-4 w-4 text-chart-4" />Produtos em Trânsito
+                  <Boxes className="h-4 w-4 text-warning" />Produtos em Trânsito
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1.5 max-h-[160px] overflow-y-auto">
@@ -593,7 +593,7 @@ export default function MapaOperacional() {
         {/* Legenda */}
         <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
           <span className="font-medium uppercase tracking-wider">Legenda:</span>
-          <div className="flex items-center gap-1"><div className="h-3 w-3 rounded-full bg-chart-3 animate-pulse" /><span>Em Rota</span></div>
+          <div className="flex items-center gap-1"><div className="h-3 w-3 rounded-full bg-success animate-pulse" /><span>Em Rota</span></div>
           <div className="flex items-center gap-1"><div className="h-3 w-3 rounded-full bg-primary" /><span>Online</span></div>
           <div className="flex items-center gap-1"><div className="h-3 w-3 rounded-full bg-warning" /><span>GPS instável</span></div>
           <div className="flex items-center gap-1"><div className="h-3 w-3 rounded-full bg-muted-foreground/50" /><span>Offline</span></div>

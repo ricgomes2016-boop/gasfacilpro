@@ -55,9 +55,9 @@ export function MetaIntegrationsPanel() {
                     <TableCell>
                       <div className="flex items-center gap-1.5">
                         {r.plataforma === "instagram" ? (
-                          <Instagram className="h-4 w-4 text-pink-500" />
+                          <Instagram className="h-4 w-4 text-primary" />
                         ) : (
-                          <Facebook className="h-4 w-4 text-blue-600" />
+                          <Facebook className="h-4 w-4 text-info" />
                         )}
                         {r.plataforma}
                       </div>
@@ -65,7 +65,7 @@ export function MetaIntegrationsPanel() {
                     <TableCell>{r.nome_conta}</TableCell>
                     <TableCell>
                       {expDate ? (
-                        <span className={expiraLogo ? "text-amber-600 font-medium" : ""}>
+                        <span className={expiraLogo ? "text-warning font-medium" : ""}>
                           {format(expDate, "dd/MM/yyyy", { locale: ptBR })}
                           {dias !== null && ` (${dias}d)`}
                         </span>
@@ -73,7 +73,7 @@ export function MetaIntegrationsPanel() {
                     </TableCell>
                     <TableCell>
                       {r.ativo ? (
-                        <Badge className="gap-1 bg-green-500/15 text-green-700 dark:text-green-400 border border-green-500/30">
+                        <Badge className="gap-1 bg-success/15 text-success dark:text-success border border-success/30">
                           <CheckCircle2 className="h-3 w-3" /> Ativa
                         </Badge>
                       ) : (

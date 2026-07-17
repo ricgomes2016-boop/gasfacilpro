@@ -76,7 +76,7 @@ export function RecebiveisOperadoraTab({ operadoraId }: { operadoraId: string })
                   </TableCell>
                   <TableCell className="text-right">{fmt(Number(r.valor))}</TableCell>
                   <TableCell className="text-right text-destructive">{fmt(Number(r.valor_taxa || 0))}</TableCell>
-                  <TableCell className="text-right font-semibold text-emerald-700 dark:text-emerald-400">
+                  <TableCell className="text-right font-semibold text-success dark:text-success">
                     {fmt(liquido)}
                   </TableCell>
                 </TableRow>
@@ -92,7 +92,7 @@ export function RecebiveisOperadoraTab({ operadoraId }: { operadoraId: string })
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div className="space-y-2">
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">✅ Recebido</h3>
+          <h3 className="text-sm font-semibold text-success dark:text-success">✅ Recebido</h3>
           <span className="text-xs text-muted-foreground">{recebidos.length} liquidação(ões)</span>
         </div>
         <Tabela data={recebidos} dateKey="data_recebimento" dateLabel="Liquidação" emptyMsg="Nenhuma liquidação registrada" />
@@ -100,7 +100,7 @@ export function RecebiveisOperadoraTab({ operadoraId }: { operadoraId: string })
 
       <div className="space-y-2">
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-sm font-semibold text-amber-700 dark:text-amber-300">⏳ A receber</h3>
+          <h3 className="text-sm font-semibold text-warning dark:text-warning">⏳ A receber</h3>
           <span className="text-xs text-muted-foreground">{aReceber.length} previsão(ões)</span>
         </div>
         <Tabela data={aReceber} dateKey="vencimento" dateLabel="Previsão" emptyMsg="Nada previsto no momento" />

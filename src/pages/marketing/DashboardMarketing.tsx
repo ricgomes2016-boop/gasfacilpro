@@ -84,40 +84,40 @@ export default function DashboardMarketing() {
       label: "Conteúdos Criados",
       value: conteudos.length,
       icon: FileText,
-      color: "text-blue-500",
-      bg: "bg-blue-500/10",
+      color: "text-info",
+      bg: "bg-info/10",
     },
     {
       label: "Posts Agendados",
       value: agendamentos.filter((a) => a.status === "agendado").length,
       icon: Calendar,
-      color: "text-emerald-500",
-      bg: "bg-emerald-500/10",
+      color: "text-success",
+      bg: "bg-success/10",
     },
     {
       label: "Redes Conectadas",
       value: socialAccounts.filter((a) => a.ativo).length,
       icon: Share2,
-      color: "text-violet-500",
-      bg: "bg-violet-500/10",
+      color: "text-primary",
+      bg: "bg-primary/10",
       action: { label: "Conectar", onClick: () => setConectarOpen(true) },
     },
     {
       label: "Conversas Ativas",
       value: conversas.filter((c) => c.status === "ativo").length,
       icon: MessageSquare,
-      color: "text-pink-500",
-      bg: "bg-pink-500/10",
+      color: "text-primary",
+      bg: "bg-primary/10",
     },
   ];
 
   const quickActions = [
     { label: "Conectar Rede", icon: Link2, color: "text-primary", onClick: () => setConectarOpen(true) },
-    { label: "Criar Conteúdo IA", path: "/clientes/marketing", icon: Sparkles, color: "text-violet-500" },
-    { label: "Agendar Post", path: "/marketing/agendamentos", icon: Calendar, color: "text-emerald-500" },
-    { label: "Redes Sociais", path: "/marketing/redes-sociais", icon: Share2, color: "text-blue-500" },
-    { label: "Biblioteca", path: "/marketing/conteudos", icon: FileText, color: "text-orange-500" },
-    { label: "Atendimento IA", path: "/marketing/atendimento", icon: MessageSquare, color: "text-pink-500" },
+    { label: "Criar Conteúdo IA", path: "/clientes/marketing", icon: Sparkles, color: "text-primary" },
+    { label: "Agendar Post", path: "/marketing/agendamentos", icon: Calendar, color: "text-success" },
+    { label: "Redes Sociais", path: "/marketing/redes-sociais", icon: Share2, color: "text-info" },
+    { label: "Biblioteca", path: "/marketing/conteudos", icon: FileText, color: "text-warning" },
+    { label: "Atendimento IA", path: "/marketing/atendimento", icon: MessageSquare, color: "text-primary" },
   ];
 
   const plataformaIcon: Record<string, string> = {
@@ -191,7 +191,7 @@ export default function DashboardMarketing() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-emerald-500" />
+                  <Calendar className="h-5 w-5 text-success" />
                   Próximos Agendamentos
                 </CardTitle>
                 <Button variant="ghost" size="sm" onClick={() => navigate("/marketing/agendamentos")}>
@@ -230,7 +230,7 @@ export default function DashboardMarketing() {
           <Card className="border-border/50 border-dashed">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-violet-500" />
+                <Sparkles className="h-5 w-5 text-primary" />
                 Sugestões da IA
               </CardTitle>
               <CardDescription>
@@ -266,12 +266,12 @@ export default function DashboardMarketing() {
                   ];
                   return [...(ideasByMonth[m] || []), ...evergreen].slice(0, 6);
                 })().map((sug, i) => (
-                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-violet-500/5 border border-violet-500/10">
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
                     <p className="text-sm flex-1">{sug.text}</p>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs text-violet-600 hover:text-violet-700 shrink-0"
+                      className="text-xs text-primary hover:text-primary shrink-0"
                       onClick={() => navigate(`/clientes/marketing?topic=${encodeURIComponent(sug.topic)}&tone=${sug.tone}&platform=${sug.platform}`)}
                     >
                       Gerar post

@@ -55,10 +55,10 @@ export default function ClienteCarteira() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="h-4 w-4 text-green-600" />
+                <TrendingUp className="h-4 w-4 text-success" />
                 <span className="text-sm text-muted-foreground">Total ganho</span>
               </div>
-              <p className="text-xl font-bold text-green-600">
+              <p className="text-xl font-bold text-success">
                 R$ {totalEarned.toFixed(2)}
               </p>
             </CardContent>
@@ -66,10 +66,10 @@ export default function ClienteCarteira() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <TrendingDown className="h-4 w-4 text-orange-600" />
+                <TrendingDown className="h-4 w-4 text-warning" />
                 <span className="text-sm text-muted-foreground">Total usado</span>
               </div>
-              <p className="text-xl font-bold text-orange-600">
+              <p className="text-xl font-bold text-warning">
                 R$ {totalUsed.toFixed(2)}
               </p>
             </CardContent>
@@ -118,8 +118,8 @@ export default function ClienteCarteira() {
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-full ${
                         transaction.type === "credit" 
-                          ? "bg-green-100 text-green-600" 
-                          : "bg-orange-100 text-orange-600"
+                          ? "bg-success text-success" 
+                          : "bg-warning text-warning"
                       }`}>
                         {transaction.type === "credit" ? (
                           <ArrowUpRight className="h-4 w-4" />
@@ -131,7 +131,7 @@ export default function ClienteCarteira() {
                         <div className="flex items-center justify-between">
                           <p className="font-medium truncate">{transaction.description}</p>
                           <p className={`font-semibold ${
-                            transaction.type === "credit" ? "text-green-600" : "text-orange-600"
+                            transaction.type === "credit" ? "text-success" : "text-warning"
                           }`}>
                             {transaction.type === "credit" ? "+" : "-"}R$ {transaction.amount.toFixed(2)}
                           </p>

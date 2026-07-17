@@ -209,34 +209,34 @@ export default function AppBina() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-green-500/20 bg-green-500/5">
+          <Card className="border-success/20 bg-success/5">
             <CardContent className="pt-5">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <MessageSquare className="h-5 w-5 text-green-600" />
+                <div className="p-2 rounded-lg bg-success/10">
+                  <MessageSquare className="h-5 w-5 text-success" />
                 </div>
                 <div>
                   <p className="font-semibold text-sm">WhatsApp</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Mensagens: identificação automática via Z-API (já ativo). Chamadas de voz: capturadas via listener de notificação no app Android.
                   </p>
-                  <Badge variant="secondary" className="mt-2 text-xs bg-green-100 text-green-700">Z-API ativo ✓</Badge>
+                  <Badge variant="secondary" className="mt-2 text-xs bg-success text-success">Z-API ativo ✓</Badge>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-blue-500/20 bg-blue-500/5">
+          <Card className="border-info/20 bg-info/5">
             <CardContent className="pt-5">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <Wifi className="h-5 w-5 text-blue-600" />
+                <div className="p-2 rounded-lg bg-info/10">
+                  <Wifi className="h-5 w-5 text-info" />
                 </div>
                 <div>
                   <p className="font-semibold text-sm">VoIP (GoTo Connect)</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Webhook já configurado no sistema. Configure no GoTo Connect o endpoint abaixo para ativar a identificação automática de ramais.
                   </p>
-                  <Badge variant="secondary" className="mt-2 text-xs bg-blue-100 text-blue-700">Webhook pronto ✓</Badge>
+                  <Badge variant="secondary" className="mt-2 text-xs bg-info text-info">Webhook pronto ✓</Badge>
                 </div>
               </div>
             </CardContent>
@@ -300,12 +300,12 @@ export default function AppBina() {
               </CardContent>
             </Card>
 
-            <Card className="border-amber-500/20 bg-amber-500/5">
+            <Card className="border-warning/20 bg-warning/5">
               <CardContent className="pt-4 pb-4">
                 <div className="flex gap-3">
-                  <Info className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <Info className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-amber-800 dark:text-amber-400">Sobre chamadas WhatsApp</p>
+                    <p className="text-sm font-medium text-warning dark:text-warning">Sobre chamadas WhatsApp</p>
                     <p className="text-xs text-muted-foreground">
                       O WhatsApp não oferece API pública para chamadas de voz. O app Android detecta chamadas 
                       lendo a notificação do sistema operacional via <strong>NotificationListenerService</strong>. 
@@ -452,7 +452,7 @@ export default function AppBina() {
                     disabled={testing}
                     onClick={() => testWebhook("whatsapp")}
                   >
-                    <MessageSquare className="h-4 w-4 text-green-600" />
+                    <MessageSquare className="h-4 w-4 text-success" />
                     Simular WhatsApp
                   </Button>
                   <Button
@@ -461,14 +461,14 @@ export default function AppBina() {
                     disabled={testing}
                     onClick={() => testWebhook("voip")}
                   >
-                    <Wifi className="h-4 w-4 text-blue-600" />
+                    <Wifi className="h-4 w-4 text-info" />
                     Simular VoIP
                   </Button>
                 </div>
 
                 <div className="bg-muted rounded-md p-4 space-y-2">
                   <div className="flex items-center gap-2 text-sm font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <CheckCircle2 className="h-4 w-4 text-success" />
                     O que acontece após o teste:
                   </div>
                   <ul className="text-xs text-muted-foreground space-y-1 ml-6 list-disc">
@@ -484,7 +484,7 @@ export default function AppBina() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Resultado esperado</p>
                   <div className="flex items-start gap-3 p-3 rounded-md border">
-                    <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-muted-foreground">
                       O popup de Caller ID aparece no canto inferior direito. Verifique também a página{" "}
                       <strong>Central de Atendimento</strong> para confirmar que a chamada foi registrada.

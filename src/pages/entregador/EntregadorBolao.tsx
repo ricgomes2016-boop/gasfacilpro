@@ -72,7 +72,7 @@ function JogoCard({
               : "Final"}
           </Badge>
           {projecao?.projetado && (
-            <span className="text-[10px] font-semibold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded">
+            <span className="text-[10px] font-semibold text-warning bg-warning/10 px-1.5 py-0.5 rounded">
               projetado
             </span>
           )}
@@ -122,9 +122,9 @@ function JogoCard({
                 variant="outline"
                 className={
                   palpite.pontos === 10
-                    ? "border-emerald-500/40 text-emerald-600"
+                    ? "border-success/40 text-success"
                     : palpite.pontos === 5
-                    ? "border-blue-500/40 text-blue-600"
+                    ? "border-info/40 text-info"
                     : "border-muted-foreground/30 text-muted-foreground"
                 }
               >
@@ -209,7 +209,7 @@ export default function EntregadorBolao({ noLayout = false }: { noLayout?: boole
     <>
       <div className="p-3 space-y-3">
 
-        <Card className="border-none bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-600 text-white">
+        <Card className="border-none bg-gradient-to-br from-success via-success to-success text-white">
           <CardContent className="p-4 flex items-center gap-3">
             <Trophy className="h-8 w-8" />
             <div className="flex-1">
@@ -311,11 +311,11 @@ export default function EntregadorBolao({ noLayout = false }: { noLayout?: boole
             <div className="grid grid-cols-2 gap-3">
               <Card><CardContent className="p-3">
                 <p className="text-xs text-muted-foreground">Placares exatos</p>
-                <p className="text-2xl font-bold text-emerald-600">{meusStats.exatos}</p>
+                <p className="text-2xl font-bold text-success">{meusStats.exatos}</p>
               </CardContent></Card>
               <Card><CardContent className="p-3">
                 <p className="text-xs text-muted-foreground">Vencedor certo</p>
-                <p className="text-2xl font-bold text-blue-600">{meusStats.vencedores}</p>
+                <p className="text-2xl font-bold text-info">{meusStats.vencedores}</p>
               </CardContent></Card>
               <Card><CardContent className="p-3">
                 <p className="text-xs text-muted-foreground">Palpites feitos</p>
@@ -340,9 +340,9 @@ export default function EntregadorBolao({ noLayout = false }: { noLayout?: boole
                   <Card key={r.user_id} className={isMe ? "border-primary" : ""}>
                     <CardContent className="p-3 flex items-center gap-3">
                       <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                        i === 0 ? "bg-yellow-500/20 text-yellow-700" :
+                        i === 0 ? "bg-warning/20 text-warning" :
                         i === 1 ? "bg-gray-400/20 text-gray-700" :
-                        i === 2 ? "bg-orange-700/20 text-orange-800" :
+                        i === 2 ? "bg-warning/20 text-warning" :
                         "bg-muted text-muted-foreground"
                       }`}>
                         {i < 3 ? <Medal className="h-4 w-4" /> : i + 1}

@@ -104,7 +104,7 @@ export default function AuthEntregador() {
           {form.errors.password && <p className="text-sm text-destructive">{form.errors.password}</p>}
         </div>
 
-        <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={form.isLoading}>
+        <Button type="submit" className="w-full bg-success hover:bg-success" disabled={form.isLoading}>
           {form.isLoading ? (
             <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>
           ) : (

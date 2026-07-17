@@ -60,7 +60,7 @@ function SimpleLoginForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
         {form.errors.password && <p className="text-sm text-destructive">{form.errors.password}</p>}
       </div>
 
-      <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600" disabled={form.isLoading}>
+      <Button type="submit" className="w-full bg-warning hover:bg-warning" disabled={form.isLoading}>
         {form.isLoading ? (
           <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>
         ) : (
@@ -130,7 +130,7 @@ function SignupForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
         )}
       </div>
 
-      <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600" disabled={form.isLoading}>
+      <Button type="submit" className="w-full bg-warning hover:bg-warning" disabled={form.isLoading}>
         {form.isLoading ? (
           <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Criando conta...</>
         ) : (
@@ -287,8 +287,8 @@ export default function AuthCliente() {
 
   if (isSubdomain && empresaError && !empresa) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-background dark:via-background dark:to-muted/20 p-4">
-        <Card className="w-full max-w-md border-orange-200/50 dark:border-primary/20">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-warning via-white to-warning dark:from-background dark:via-background dark:to-muted/20 p-4">
+        <Card className="w-full max-w-md border-warning/50 dark:border-primary/20">
           <CardHeader className="text-center space-y-4">
             <div className="flex justify-center">
               <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
@@ -321,7 +321,7 @@ export default function AuthCliente() {
       subtitle="Peça seu gás com rapidez e acompanhe suas entregas"
       gradientFrom="25 95% 60%"
       gradientTo="15 90% 50%"
-      pageClassName="bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-background dark:via-background dark:to-muted/20"
+      pageClassName="bg-gradient-to-br from-warning via-white to-warning dark:from-background dark:via-background dark:to-muted/20"
       logo={
         displayLogo ? (
           <img

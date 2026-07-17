@@ -69,14 +69,14 @@ export class ErrorBoundary extends Component<Props, State> {
             
             {/* Debug info em desenvolvimento */}
             {import.meta.env.DEV && this.state.error && (
-              <div className="p-3 bg-red-50 rounded-lg border border-red-200 text-left">
-                <p className="text-xs font-mono text-red-700 break-words">
+              <div className="p-3 bg-destructive rounded-lg border border-destructive text-left">
+                <p className="text-xs font-mono text-destructive break-words">
                   {this.state.error.message}
                 </p>
                 {this.state.errorInfo && (
-                  <details className="mt-2 text-xs text-red-600">
+                  <details className="mt-2 text-xs text-destructive">
                     <summary className="cursor-pointer font-semibold">Stack trace</summary>
-                    <pre className="mt-2 overflow-auto bg-red-100 p-2 rounded text-xs">
+                    <pre className="mt-2 overflow-auto bg-destructive p-2 rounded text-xs">
                       {this.state.errorInfo.componentStack}
                     </pre>
                   </details>

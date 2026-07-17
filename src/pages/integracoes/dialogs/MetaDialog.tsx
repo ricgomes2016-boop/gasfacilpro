@@ -60,12 +60,12 @@ export function MetaDialog(p: MetaDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 space-y-2">
-          <p className="text-xs font-bold text-blue-700 uppercase tracking-widest">URL do Webhook (configure no painel Meta)</p>
+        <div className="bg-info/5 border border-info/20 rounded-xl p-4 space-y-2">
+          <p className="text-xs font-bold text-info uppercase tracking-widest">URL do Webhook (configure no painel Meta)</p>
           <div className="flex items-center gap-2">
             <code className="flex-1 text-[11px] font-mono bg-muted px-3 py-2 rounded-lg break-all">{p.metaWebhookUrl}</code>
             <Button variant="outline" size="sm" className="shrink-0 gap-1" onClick={p.onCopyWebhook}>
-              {p.copiedWebhook ? <CheckCheck className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+              {p.copiedWebhook ? <CheckCheck className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
               {p.copiedWebhook ? "Copiado!" : "Copiar"}
             </Button>
           </div>
@@ -77,7 +77,7 @@ export function MetaDialog(p: MetaDialogProps) {
         {p.metaConfigs.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-sm font-semibold flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <CheckCircle2 className="h-4 w-4 text-success" />
               Configurações Ativas
             </h3>
             <div className="grid gap-2">
@@ -90,13 +90,13 @@ export function MetaDialog(p: MetaDialogProps) {
                         Phone ID: {cfg.meta_phone_number_id || "-"}
                       </p>
                       {cfg.provedor === "meta_coex" && (
-                        <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full mt-1">
+                        <span className="inline-flex items-center gap-1 text-[10px] text-success bg-success px-1.5 py-0.5 rounded-full mt-1">
                           <QrCode className="h-2.5 w-2.5" /> Coexistência
                         </span>
                       )}
                     </div>
-                    <Badge variant="default" className="bg-green-500/10 text-green-700 border-green-500/20 text-[10px] gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                    <Badge variant="default" className="bg-success/10 text-success border-success/20 text-[10px] gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-success" />
                       Ativo
                     </Badge>
                   </div>
@@ -108,7 +108,7 @@ export function MetaDialog(p: MetaDialogProps) {
                     {cfg.provedor === "meta_coex" && cfg.meta_access_token && (
                       <Button
                         variant="outline" size="sm"
-                        className="h-7 text-[10px] gap-1 px-2 border-green-500 text-green-700 hover:bg-green-50"
+                        className="h-7 text-[10px] gap-1 px-2 border-success text-success hover:bg-success"
                         onClick={() => p.onShowCoexQr(cfg.meta_phone_number_id, cfg.meta_access_token)}
                       >
                         <QrCode className="h-3 w-3" />
@@ -156,7 +156,7 @@ export function MetaDialog(p: MetaDialogProps) {
               type="button"
               onClick={() => p.setMetaConexaoModo("embedded_signup")}
               className={`flex flex-col items-start gap-2 p-3 rounded-xl border-2 transition-all text-left ${
-                p.metaConexaoModo === "embedded_signup" ? "border-[#1877F2] bg-blue-50 dark:bg-blue-950/20" : "border-border hover:border-blue-400"
+                p.metaConexaoModo === "embedded_signup" ? "border-[#1877F2] bg-info dark:bg-info/20" : "border-border hover:border-info"
               }`}
             >
               <svg className="h-5 w-5 text-[#1877F2]" viewBox="0 0 24 24" fill="currentColor">
@@ -208,14 +208,14 @@ export function MetaDialog(p: MetaDialogProps) {
           )}
 
           {p.metaConexaoModo === "embedded_signup" && (
-            <div className="grid gap-4 bg-blue-50/50 dark:bg-blue-950/10 p-4 rounded-2xl border border-blue-200 dark:border-blue-800">
+            <div className="grid gap-4 bg-info/50 dark:bg-info/10 p-4 rounded-2xl border border-info dark:border-info">
               <div className="space-y-1.5">
-                <p className="text-xs font-bold text-blue-800 dark:text-blue-200">Como funciona a Coexistência:</p>
+                <p className="text-xs font-bold text-info dark:text-info">Como funciona a Coexistência:</p>
                 <ul className="text-xs text-muted-foreground space-y-1">
-                  <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" /> Continue usando o WhatsApp no celular normalmente</li>
-                  <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" /> A BIA responde automaticamente via API Oficial</li>
-                  <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" /> Mensagens aparecem nos dois lugares</li>
-                  <li className="flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 text-amber-500 shrink-0" /> Requer App Review aprovado na Meta</li>
+                  <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-success shrink-0" /> Continue usando o WhatsApp no celular normalmente</li>
+                  <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-success shrink-0" /> A BIA responde automaticamente via API Oficial</li>
+                  <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-success shrink-0" /> Mensagens aparecem nos dois lugares</li>
+                  <li className="flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 text-warning shrink-0" /> Requer App Review aprovado na Meta</li>
                 </ul>
               </div>
               <div className="space-y-2">
@@ -242,8 +242,8 @@ export function MetaDialog(p: MetaDialogProps) {
           )}
         </div>
 
-        <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 space-y-2">
-          <p className="text-xs font-bold text-amber-700 uppercase tracking-widest">Como configurar no painel Meta</p>
+        <div className="bg-warning/5 border border-warning/20 rounded-xl p-4 space-y-2">
+          <p className="text-xs font-bold text-warning uppercase tracking-widest">Como configurar no painel Meta</p>
           <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
             <li>Acesse <strong>developers.facebook.com</strong> e abra seu App</li>
             <li>Vá em <strong>WhatsApp &gt; Configuração</strong> e copie o <strong>Phone Number ID</strong></li>

@@ -207,7 +207,7 @@ export default function AuthErp() {
           )}
         </div>
 
-        <Button type="submit" className="w-full bg-teal-500 text-slate-950 hover:bg-teal-400" disabled={form.isLoading || resetLoading}>
+        <Button type="submit" className="w-full bg-success text-slate-950 hover:bg-success" disabled={form.isLoading || resetLoading}>
           {form.isLoading ? (
             <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>
           ) : (

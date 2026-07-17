@@ -1435,7 +1435,7 @@ export default function Compras() {
                       </div>
 
                       {pagamento.forma === "dinheiro" && (
-                        <div className="text-xs bg-amber-500/10 border border-amber-500/30 rounded p-2 text-amber-900 dark:text-amber-200">
+                        <div className="text-xs bg-warning/10 border border-warning/30 rounded p-2 text-warning dark:text-warning">
                           A saída será lançada no caixa da loja ({unidadeAtual?.nome || "unidade atual"}) e reduzirá o saldo em caixa.
                         </div>
                       )}

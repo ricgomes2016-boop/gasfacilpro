@@ -49,9 +49,9 @@ const categoriaIcons: Record<string, any> = {
 };
 
 const categoriaColors: Record<string, string> = {
-  "Combustível": "bg-orange-500/10 text-orange-600",
-  "Alimentação": "bg-emerald-500/10 text-emerald-600",
-  "Manutenção": "bg-blue-500/10 text-blue-600",
+  "Combustível": "bg-warning/10 text-warning",
+  "Alimentação": "bg-success/10 text-success",
+  "Manutenção": "bg-info/10 text-info",
   "Outros": "bg-muted text-muted-foreground",
 };
 
@@ -326,11 +326,11 @@ export default function Despesas() {
                 {/* Mobile cards */}
                 <div className="space-y-3 sm:hidden px-3">
                   {despesas.map(d => (
-                    <div key={d.id} className={`border rounded-lg p-3 ${Number(d.valor) > LIMITE_SANGRIA && d.status === "pendente" ? "bg-amber-500/5" : ""}`}>
+                    <div key={d.id} className={`border rounded-lg p-3 ${Number(d.valor) > LIMITE_SANGRIA && d.status === "pendente" ? "bg-warning/5" : ""}`}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
-                            {Number(d.valor) > LIMITE_SANGRIA && d.status === "pendente" && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
+                            {Number(d.valor) > LIMITE_SANGRIA && d.status === "pendente" && <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />}
                             <p className="text-sm font-medium truncate">{d.descricao}</p>
                           </div>
                           <p className="text-xs text-muted-foreground">{d.categoria || "Sem categoria"}{d.responsavel ? ` · ${d.responsavel}` : ""}</p>
@@ -371,11 +371,11 @@ export default function Despesas() {
                       </TableHeader>
                       <TableBody>
                         {despesas.map(d => (
-                          <TableRow key={d.id} className={Number(d.valor) > LIMITE_SANGRIA && d.status === "pendente" ? "bg-amber-500/5" : ""}>
+                          <TableRow key={d.id} className={Number(d.valor) > LIMITE_SANGRIA && d.status === "pendente" ? "bg-warning/5" : ""}>
                             <TableCell className="text-muted-foreground text-xs">{new Date(d.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</TableCell>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-1.5">
-                                {Number(d.valor) > LIMITE_SANGRIA && d.status === "pendente" && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
+                                {Number(d.valor) > LIMITE_SANGRIA && d.status === "pendente" && <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />}
                                 {d.descricao}
                               </div>
                             </TableCell>

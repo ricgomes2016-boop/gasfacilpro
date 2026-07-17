@@ -27,17 +27,17 @@ import { PostPreview } from "@/components/marketing/PostPreview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const tipoConfig: Record<string, { icon: any; label: string; color: string }> = {
-  texto: { icon: FileText, label: "Texto", color: "bg-blue-500/10 text-blue-600" },
-  imagem: { icon: ImageIcon, label: "Imagem", color: "bg-pink-500/10 text-pink-600" },
-  video: { icon: Video, label: "Vídeo/Roteiro", color: "bg-violet-500/10 text-violet-600" },
+  texto: { icon: FileText, label: "Texto", color: "bg-info/10 text-info" },
+  imagem: { icon: ImageIcon, label: "Imagem", color: "bg-primary/10 text-primary" },
+  video: { icon: Video, label: "Vídeo/Roteiro", color: "bg-primary/10 text-primary" },
 };
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
   rascunho: { label: "Rascunho", color: "bg-slate-500/10 text-slate-600 border-slate-500/30", icon: FileEdit },
-  em_revisao: { label: "Em revisão", color: "bg-amber-500/10 text-amber-600 border-amber-500/30", icon: Clock4 },
-  aprovado: { label: "Aprovado", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30", icon: CheckCircle2 },
-  agendado: { label: "Agendado", color: "bg-blue-500/10 text-blue-600 border-blue-500/30", icon: CalendarPlus },
-  publicado: { label: "Publicado", color: "bg-violet-500/10 text-violet-600 border-violet-500/30", icon: Send },
+  em_revisao: { label: "Em revisão", color: "bg-warning/10 text-warning border-warning/30", icon: Clock4 },
+  aprovado: { label: "Aprovado", color: "bg-success/10 text-success border-success/30", icon: CheckCircle2 },
+  agendado: { label: "Agendado", color: "bg-info/10 text-info border-info/30", icon: CalendarPlus },
+  publicado: { label: "Publicado", color: "bg-primary/10 text-primary border-primary/30", icon: Send },
   arquivado: { label: "Arquivado", color: "bg-muted text-muted-foreground border-border", icon: Archive },
 };
 
@@ -235,7 +235,7 @@ export default function BibliotecaConteudos() {
                           )}
                           {status === "em_revisao" && (
                             <>
-                              <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 border-emerald-500/40 text-emerald-600" onClick={() => setStatus.mutate({ id: c.id, status: "aprovado" })}>
+                              <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 border-success/40 text-success" onClick={() => setStatus.mutate({ id: c.id, status: "aprovado" })}>
                                 <CheckCircle2 className="h-3 w-3" /> Aprovar
                               </Button>
                               <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => setStatus.mutate({ id: c.id, status: "rascunho" })}>
@@ -257,7 +257,7 @@ export default function BibliotecaConteudos() {
 
                         <div className="flex items-center gap-1 pt-1 border-t border-border/30">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleFav.mutate({ id: c.id, favorito: !c.favorito })} title="Favoritar">
-                            {c.favorito ? <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" /> : <StarOff className="h-3.5 w-3.5" />}
+                            {c.favorito ? <Star className="h-3.5 w-3.5 text-warning fill-warning" /> : <StarOff className="h-3.5 w-3.5" />}
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => c.conteudo && copyToClipboard(c.conteudo)} title="Copiar texto">
                             <Copy className="h-3.5 w-3.5" />

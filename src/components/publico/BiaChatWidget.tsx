@@ -245,12 +245,12 @@ export function BiaChatWidget({
           </span>
           <span className="relative flex flex-col items-start leading-tight">
             <span className="text-[10px] uppercase tracking-[0.18em] text-white/60 font-semibold flex items-center gap-1">
-              <Sparkles className="w-2.5 h-2.5 text-fuchsia-300" /> IA · Online
+              <Sparkles className="w-2.5 h-2.5 text-primary" /> IA · Online
             </span>
             <span className="text-sm font-bold hidden sm:inline">Falar com a Bia</span>
             <span className="text-sm font-bold sm:hidden">Bia</span>
           </span>
-          <span className="relative ml-1 h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
+          <span className="relative ml-1 h-2 w-2 rounded-full bg-success animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
         </button>
       )}
 
@@ -282,7 +282,7 @@ export function BiaChatWidget({
               <div className="text-[11px] flex items-center gap-1.5 opacity-95 mt-0.5">
                 <Sparkles className="w-3 h-3" />
                 <span className="uppercase tracking-wider font-semibold">IA · Online</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse ml-0.5" />
+                <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse ml-0.5" />
               </div>
             </div>
             <button
@@ -340,7 +340,7 @@ export function BiaChatWidget({
                   disabled={loading}
                   className={`w-11 h-11 shrink-0 rounded-full flex items-center justify-center transition-all ${
                     listening
-                      ? "bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/50"
+                      ? "bg-destructive text-white animate-pulse shadow-lg shadow-red-500/50"
                       : "bg-white/5 border border-white/10 text-white/80 hover:bg-white/10"
                   }`}
                   aria-label={listening ? "Parar gravação" : "Gravar áudio"}

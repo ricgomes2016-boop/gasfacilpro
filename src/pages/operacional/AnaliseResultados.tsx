@@ -59,7 +59,7 @@ function VariationBadge({ current, previous }: { current: number; previous: numb
   const pct = ((current - previous) / previous) * 100;
   const isPositive = pct >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${isPositive ? "text-green-600" : "text-destructive"}`}>
+    <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${isPositive ? "text-success" : "text-destructive"}`}>
       {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
       {Math.abs(pct).toFixed(1)}%
     </span>
@@ -248,11 +248,11 @@ export default function AnaliseResultados() {
             <div className="grid gap-3 grid-cols-2 lg:grid-cols-5 w-full min-w-0">
               {/* Receita */}
               <Card className="relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-success/5 to-transparent pointer-events-none" />
                 <CardContent className="pt-5 pb-4">
                   <div className="flex items-start justify-between mb-1">
-                    <div className="p-2 rounded-lg bg-green-500/10">
-                      <DollarSign className="h-4 w-4 text-green-600" />
+                    <div className="p-2 rounded-lg bg-success/10">
+                      <DollarSign className="h-4 w-4 text-success" />
                     </div>
                     <VariationBadge current={overview.receitaMesAtual} previous={overview.receitaMesAnterior} />
                   </div>
@@ -292,7 +292,7 @@ export default function AnaliseResultados() {
                     </div>
                     <VariationBadge current={overview.lucroMesAtual} previous={overview.lucroMesAnterior} />
                   </div>
-                  <p className={`text-xl md:text-2xl font-bold mt-2 tabular-nums ${overview.lucroMesAtual >= 0 ? "text-green-600" : "text-destructive"}`}>
+                  <p className={`text-xl md:text-2xl font-bold mt-2 tabular-nums ${overview.lucroMesAtual >= 0 ? "text-success" : "text-destructive"}`}>
                     {formatCurrency(overview.lucroMesAtual)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">Resultado</p>
@@ -301,11 +301,11 @@ export default function AnaliseResultados() {
 
               {/* Ticket Médio */}
               <Card className="relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-info/5 to-transparent pointer-events-none" />
                 <CardContent className="pt-5 pb-4">
                   <div className="flex items-start justify-between mb-1">
-                    <div className="p-2 rounded-lg bg-blue-500/10">
-                      <Target className="h-4 w-4 text-blue-600" />
+                    <div className="p-2 rounded-lg bg-info/10">
+                      <Target className="h-4 w-4 text-info" />
                     </div>
                     <span className="text-xs text-muted-foreground">{overview.totalPedidos} pedidos</span>
                   </div>
@@ -318,11 +318,11 @@ export default function AnaliseResultados() {
 
               {/* Margem */}
               <Card className="relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
                 <CardContent className="pt-5 pb-4">
                   <div className="flex items-start justify-between mb-1">
-                    <div className="p-2 rounded-lg bg-purple-500/10">
-                      <Percent className="h-4 w-4 text-purple-600" />
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Percent className="h-4 w-4 text-primary" />
                     </div>
                   </div>
                   <p className={`text-xl md:text-2xl font-bold mt-2 tabular-nums ${overview.margemBruta >= 0 ? "" : "text-destructive"}`}>

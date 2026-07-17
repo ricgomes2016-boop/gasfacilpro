@@ -30,19 +30,19 @@ import {
 
 // ─── Redes Sociais ───
 const plataformas = [
-  { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
-  { value: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-600" },
+  { value: "instagram", label: "Instagram", icon: Instagram, color: "text-primary" },
+  { value: "facebook", label: "Facebook", icon: Facebook, color: "text-info" },
   { value: "tiktok", label: "TikTok", icon: Music2, color: "text-foreground" },
-  { value: "youtube", label: "YouTube", icon: Youtube, color: "text-red-500" },
+  { value: "youtube", label: "YouTube", icon: Youtube, color: "text-destructive" },
 ];
 
 // ─── Fluxos de Atendimento ───
 const intencaoConfig: Record<string, { label: string; icon: any; color: string }> = {
-  pedido: { label: "Pedido", icon: ShoppingCart, color: "text-emerald-500" },
-  duvida: { label: "Dúvida", icon: HelpCircle, color: "text-blue-500" },
-  reclamacao: { label: "Reclamação", icon: AlertTriangle, color: "text-red-500" },
-  promocao: { label: "Promoção", icon: Megaphone, color: "text-violet-500" },
-  suporte: { label: "Suporte", icon: Settings2, color: "text-amber-500" },
+  pedido: { label: "Pedido", icon: ShoppingCart, color: "text-success" },
+  duvida: { label: "Dúvida", icon: HelpCircle, color: "text-info" },
+  reclamacao: { label: "Reclamação", icon: AlertTriangle, color: "text-destructive" },
+  promocao: { label: "Promoção", icon: Megaphone, color: "text-primary" },
+  suporte: { label: "Suporte", icon: Settings2, color: "text-warning" },
   outro: { label: "Outro", icon: MessageSquare, color: "text-muted-foreground" },
 };
 
@@ -218,7 +218,7 @@ export default function ConfigMarketing() {
                           <p className="font-semibold text-sm">{f.nome}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <Badge variant="outline" className="text-[10px]">{int.label}</Badge>
-                            {f.transferir_humano && <Badge variant="outline" className="text-[10px] text-amber-500"><Users className="h-2.5 w-2.5 mr-0.5" /> Transfere</Badge>}
+                            {f.transferir_humano && <Badge variant="outline" className="text-[10px] text-warning"><Users className="h-2.5 w-2.5 mr-0.5" /> Transfere</Badge>}
                           </div>
                         </div>
                         <Switch checked={f.ativo} onCheckedChange={(v) => toggleFluxo.mutate({ id: f.id, ativo: v })} />

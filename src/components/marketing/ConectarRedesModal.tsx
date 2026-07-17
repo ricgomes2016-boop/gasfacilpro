@@ -25,8 +25,8 @@ const PLATAFORMAS: Plataforma[] = [
     id: "instagram",
     label: "Instagram",
     icon: Instagram,
-    color: "text-pink-500",
-    bg: "bg-pink-500/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
     status: "oauth",
     descricao: "Publica fotos, vídeos e stories automaticamente.",
   },
@@ -34,8 +34,8 @@ const PLATAFORMAS: Plataforma[] = [
     id: "facebook",
     label: "Facebook",
     icon: Facebook,
-    color: "text-blue-600",
-    bg: "bg-blue-500/10",
+    color: "text-info",
+    bg: "bg-info/10",
     status: "oauth",
     descricao: "Publica em páginas do Facebook automaticamente.",
   },
@@ -52,8 +52,8 @@ const PLATAFORMAS: Plataforma[] = [
     id: "youtube",
     label: "YouTube",
     icon: Youtube,
-    color: "text-red-500",
-    bg: "bg-red-500/10",
+    color: "text-destructive",
+    bg: "bg-destructive/10",
     status: "em_breve",
     descricao: "Upload automático de vídeos e Shorts.",
   },
@@ -61,8 +61,8 @@ const PLATAFORMAS: Plataforma[] = [
     id: "linkedin",
     label: "LinkedIn",
     icon: Linkedin,
-    color: "text-blue-700",
-    bg: "bg-blue-700/10",
+    color: "text-info",
+    bg: "bg-info/10",
     status: "em_breve",
     descricao: "Publica em páginas de empresa.",
   },
@@ -168,7 +168,7 @@ export function ConectarRedesModal({ open, onOpenChange, unidadeId, contasConect
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-sm">{p.label}</span>
                     {conectada && (
-                      <Badge className="gap-1 bg-green-500/15 text-green-700 dark:text-green-400 border border-green-500/30 text-[10px]">
+                      <Badge className="gap-1 bg-success/15 text-success dark:text-success border border-success/30 text-[10px]">
                         <CheckCircle2 className="h-3 w-3" /> Conectada
                       </Badge>
                     )}
@@ -184,7 +184,7 @@ export function ConectarRedesModal({ open, onOpenChange, unidadeId, contasConect
                   {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   ) : conectada ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <CheckCircle2 className="h-4 w-4 text-success" />
                   ) : (
                     <ExternalLink className="h-4 w-4 text-muted-foreground" />
                   )}

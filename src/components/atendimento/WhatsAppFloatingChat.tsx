@@ -40,7 +40,7 @@ export function WhatsAppFloatingChat() {
           size="icon"
           className={cn(
             "relative h-8 w-8 rounded-full shadow-md",
-            "bg-green-600 hover:bg-green-700 text-white",
+            "bg-success hover:bg-success text-white",
             open && "hidden"
           )}
           aria-label="Abrir Chat WhatsApp"
@@ -65,7 +65,7 @@ export function WhatsAppFloatingChat() {
         >
           <SheetHeader className="px-4 py-3 border-b border-border/60 flex-row items-center justify-between space-y-0">
             <SheetTitle className="flex items-center gap-2 text-sm">
-              <MessageCircle className="h-4 w-4 text-green-600" />
+              <MessageCircle className="h-4 w-4 text-success" />
               Chat WhatsApp
               {totalUnread > 0 && (
                 <Badge variant="destructive" className="text-[10px] h-5">

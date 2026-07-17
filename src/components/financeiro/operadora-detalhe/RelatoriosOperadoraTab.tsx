@@ -120,7 +120,7 @@ export function RelatoriosOperadoraTab({ operadoraId }: { operadoraId: string })
                   <TableCell>{fmtDate(d)}</TableCell>
                   <TableCell className="text-right">{v.n}</TableCell>
                   <TableCell className="text-right">{fmt(v.bruto)}</TableCell>
-                  <TableCell className="text-right font-semibold text-emerald-700 dark:text-emerald-400">{fmt(v.liq)}</TableCell>
+                  <TableCell className="text-right font-semibold text-success dark:text-success">{fmt(v.liq)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

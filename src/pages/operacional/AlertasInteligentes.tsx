@@ -142,7 +142,7 @@ export function AlertasInteligentesContent() {
     return (
     <div key={alerta.id} className={`intelligence-alert-item flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-start ${tone.card}`}>
       <div className={`rounded-lg p-2 ${tone.icon}`}>
-        <alerta.icone className={`h-5 w-5 ${alerta.tipo === "critico" ? "text-destructive" : alerta.tipo === "atencao" ? "text-chart-4" : "text-primary"}`} />
+        <alerta.icone className={`h-5 w-5 ${alerta.tipo === "critico" ? "text-destructive" : alerta.tipo === "atencao" ? "text-warning" : "text-primary"}`} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="mb-2 flex flex-wrap items-center gap-2">

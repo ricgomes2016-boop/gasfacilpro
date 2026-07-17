@@ -149,7 +149,7 @@ export default function AsaasConfig() {
                 </div>
               </div>
               <Badge variant={connected ? "default" : "secondary"} className="gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-muted-foreground"}`} />
+                <span className={`w-2 h-2 rounded-full ${connected ? "bg-success" : "bg-muted-foreground"}`} />
                 {connected ? "Conectado" : "Desconectado"}
               </Badge>
             </div>
@@ -157,7 +157,7 @@ export default function AsaasConfig() {
           {connected && balance && (
             <CardContent className="pt-0">
               <div className="bg-muted/50 rounded-lg p-4 flex items-center gap-4">
-                <Banknote className="h-5 w-5 text-green-600" />
+                <Banknote className="h-5 w-5 text-success" />
                 <div>
                   <p className="text-xs text-muted-foreground">Saldo Disponível</p>
                   <p className="text-lg font-bold">
@@ -351,7 +351,7 @@ export default function AsaasConfig() {
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm">{feat.title}</p>
                       {feat.ready ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                        <CheckCircle2 className="h-3.5 w-3.5 text-success" />
                       ) : (
                         <Badge variant="outline" className="text-[10px]">Em breve</Badge>
                       )}

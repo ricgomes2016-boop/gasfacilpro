@@ -81,9 +81,9 @@ export default function PlanejamentoMensal({ embedded = false }: { embedded?: bo
 
 
         <div className="grid gap-4 md:grid-cols-3">
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-green-500/10"><TrendingUp className="h-6 w-6 text-green-500" /></div><div><p className="text-2xl font-bold">R$ {totalRealizado.toLocaleString("pt-BR")}</p><p className="text-sm text-muted-foreground">Resultado Atual</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-success/10"><TrendingUp className="h-6 w-6 text-success" /></div><div><p className="text-2xl font-bold">R$ {totalRealizado.toLocaleString("pt-BR")}</p><p className="text-sm text-muted-foreground">Resultado Atual</p></div></div></CardContent></Card>
           <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><DollarSign className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">{categorias.length}</p><p className="text-sm text-muted-foreground">Categorias</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-blue-500/10"><Calendar className="h-6 w-6 text-blue-500" /></div><div><p className="text-2xl font-bold">{diasRestantes} dias</p><p className="text-sm text-muted-foreground">Restantes no Mês</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-info/10"><Calendar className="h-6 w-6 text-info" /></div><div><p className="text-2xl font-bold">{diasRestantes} dias</p><p className="text-sm text-muted-foreground">Restantes no Mês</p></div></div></CardContent></Card>
         </div>
 
         <Card>
@@ -100,14 +100,14 @@ export default function PlanejamentoMensal({ embedded = false }: { embedded?: bo
                 {categorias.map((cat) => (
                   <TableRow key={cat.nome}>
                     <TableCell className="font-medium">{cat.nome}</TableCell>
-                    <TableCell className={`text-right ${cat.realizado < 0 ? "text-destructive" : "text-green-600"}`}>
+                    <TableCell className={`text-right ${cat.realizado < 0 ? "text-destructive" : "text-success"}`}>
                       R$ {cat.realizado.toLocaleString("pt-BR")}
                     </TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="bg-muted/50 font-bold">
                   <TableCell>Total</TableCell>
-                  <TableCell className={`text-right ${totalRealizado > 0 ? "text-green-600" : "text-destructive"}`}>
+                  <TableCell className={`text-right ${totalRealizado > 0 ? "text-success" : "text-destructive"}`}>
                     R$ {totalRealizado.toLocaleString("pt-BR")}
                   </TableCell>
                 </TableRow>

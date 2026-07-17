@@ -89,7 +89,7 @@ function Header() {
             </a>
           ))}
           <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white gap-1.5">
+            <Button size="sm" className="bg-success hover:bg-success text-white gap-1.5">
               <MessageCircle className="h-4 w-4" /> Pedir Agora
             </Button>
           </a>
@@ -111,7 +111,7 @@ function Header() {
             </a>
           ))}
           <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" className="w-full bg-green-600 hover:bg-green-700 text-white gap-1.5 mt-2">
+            <Button size="sm" className="w-full bg-success hover:bg-success text-white gap-1.5 mt-2">
               <MessageCircle className="h-4 w-4" /> Pedir Agora
             </Button>
           </a>
@@ -162,7 +162,7 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
           <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">
             <Button
               size="lg"
-              className="bg-green-500 hover:bg-green-600 text-white text-base gap-2 px-8 shadow-lg"
+              className="bg-success hover:bg-success text-white text-base gap-2 px-8 shadow-lg"
             >
               <MessageCircle className="h-5 w-5" /> Pedir pelo WhatsApp
             </Button>
@@ -334,24 +334,24 @@ function DicasSeguranca() {
         </div>
 
         {/* Banner emergência */}
-        <div className="bg-red-50 border-2 border-red-200 rounded-xl p-5 mb-10 flex flex-col sm:flex-row items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-red-500 flex items-center justify-center text-white shrink-0">
+        <div className="bg-destructive border-2 border-destructive rounded-xl p-5 mb-10 flex flex-col sm:flex-row items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-destructive flex items-center justify-center text-white shrink-0">
             <AlertTriangle className="h-6 w-6" />
           </div>
           <div className="flex-1 text-center sm:text-left">
-            <h3 className="font-bold text-red-900">Em caso de emergência, ligue:</h3>
-            <p className="text-sm text-red-700">
+            <h3 className="font-bold text-destructive">Em caso de emergência, ligue:</h3>
+            <p className="text-sm text-destructive">
               Bombeiros e SAMU atendem 24h, gratuitamente, em todo o Brasil.
             </p>
           </div>
           <div className="flex gap-2">
             <a href="tel:193">
-              <Button className="bg-red-600 hover:bg-red-700 text-white gap-1.5">
+              <Button className="bg-destructive hover:bg-destructive text-white gap-1.5">
                 <Phone className="h-4 w-4" /> 193 Bombeiros
               </Button>
             </a>
             <a href="tel:192">
-              <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-100 gap-1.5">
+              <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive gap-1.5">
                 <Phone className="h-4 w-4" /> 192 SAMU
               </Button>
             </a>
@@ -451,7 +451,7 @@ function Contato() {
             rel="noopener noreferrer"
             className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 text-center hover:shadow-md transition-shadow"
           >
-            <MessageCircle className="h-8 w-8 text-green-500 mx-auto mb-3" />
+            <MessageCircle className="h-8 w-8 text-success mx-auto mb-3" />
             <h3 className="font-semibold text-slate-800 mb-1">WhatsApp</h3>
             <p className="text-slate-600">{WHATSAPP_DISPLAY}</p>
           </a>
@@ -486,7 +486,7 @@ function FloatingWhatsApp() {
       href={WHATSAPP_LINK}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+      className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-success hover:bg-success text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
       aria-label="WhatsApp"
     >
       <MessageCircle className="h-7 w-7" />
@@ -539,7 +539,7 @@ export default function JapaGas() {
       <BiaChatWidget
         unidadeSlug="japagas"
         nomeLoja="Japa Gás"
-        gradient="from-teal-600 via-teal-500 to-orange-400"
+        gradient="from-success via-success to-warning"
         accent="teal-600"
         openSignal={biaSignal}
         prefilledMessage={biaPrefill}

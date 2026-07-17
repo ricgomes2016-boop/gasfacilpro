@@ -26,11 +26,11 @@ interface EntregadorRanking {
 }
 
 const NIVEIS = [
-  { nome: "Bronze", min: 0, max: 499, cor: "text-amber-600", bg: "bg-amber-500/10", icon: Medal },
+  { nome: "Bronze", min: 0, max: 499, cor: "text-warning", bg: "bg-warning/10", icon: Medal },
   { nome: "Prata", min: 500, max: 999, cor: "text-gray-500", bg: "bg-gray-400/10", icon: Star },
-  { nome: "Ouro", min: 1000, max: 2499, cor: "text-yellow-500", bg: "bg-yellow-500/10", icon: Trophy },
-  { nome: "Platina", min: 2500, max: 4999, cor: "text-blue-500", bg: "bg-blue-500/10", icon: Crown },
-  { nome: "Diamante", min: 5000, max: Infinity, cor: "text-purple-500", bg: "bg-purple-500/10", icon: Zap },
+  { nome: "Ouro", min: 1000, max: 2499, cor: "text-warning", bg: "bg-warning/10", icon: Trophy },
+  { nome: "Platina", min: 2500, max: 4999, cor: "text-info", bg: "bg-info/10", icon: Crown },
+  { nome: "Diamante", min: 5000, max: Infinity, cor: "text-primary", bg: "bg-primary/10", icon: Zap },
 ];
 
 const getNivel = (pontos: number) => NIVEIS.find(n => pontos >= n.min && pontos <= n.max) || NIVEIS[0];
@@ -134,9 +134,9 @@ export default function GamificacaoEntregadores() {
 
   const top3 = ranking.slice(0, 3);
   const medalhas = [
-    { pos: "1º", cor: "bg-yellow-500", text: "text-yellow-900" },
+    { pos: "1º", cor: "bg-warning", text: "text-warning" },
     { pos: "2º", cor: "bg-gray-400", text: "text-gray-900" },
-    { pos: "3º", cor: "bg-amber-600", text: "text-amber-100" },
+    { pos: "3º", cor: "bg-warning", text: "text-warning" },
   ];
 
   return (
@@ -157,7 +157,7 @@ export default function GamificacaoEntregadores() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10"><Package className="h-5 w-5 text-green-500" /></div>
+                <div className="p-2 rounded-lg bg-success/10"><Package className="h-5 w-5 text-success" /></div>
                 <div><p className="text-2xl font-bold">{stats.entregasMes}</p><p className="text-xs text-muted-foreground">Entregas no Mês</p></div>
               </div>
             </CardContent>
@@ -165,7 +165,7 @@ export default function GamificacaoEntregadores() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-yellow-500/10"><Star className="h-5 w-5 text-yellow-500" /></div>
+                <div className="p-2 rounded-lg bg-warning/10"><Star className="h-5 w-5 text-warning" /></div>
                 <div><p className="text-2xl font-bold">{stats.mediaPontos}</p><p className="text-xs text-muted-foreground">Pontos Médios</p></div>
               </div>
             </CardContent>
@@ -175,7 +175,7 @@ export default function GamificacaoEntregadores() {
         {/* Pódio Top 3 */}
         {top3.length > 0 && (
           <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Trophy className="h-5 w-5 text-yellow-500" />Pódio do Mês</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Trophy className="h-5 w-5 text-warning" />Pódio do Mês</CardTitle></CardHeader>
             <CardContent>
               <div className="flex items-end justify-center gap-4">
                 {[top3[1], top3[0], top3[2]].filter(Boolean).map((e, i) => {
@@ -232,9 +232,9 @@ export default function GamificacaoEntregadores() {
                         <TableRow key={e.id}>
                           <TableCell>
                             <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                              e.posicao === 1 ? "bg-yellow-500 text-white"
+                              e.posicao === 1 ? "bg-warning text-white"
                                 : e.posicao === 2 ? "bg-gray-400 text-white"
-                                : e.posicao === 3 ? "bg-amber-600 text-white"
+                                : e.posicao === 3 ? "bg-warning text-white"
                                 : "bg-muted text-muted-foreground"
                             }`}>
                               {e.posicao}
@@ -250,7 +250,7 @@ export default function GamificacaoEntregadores() {
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <span>{e.entregasMes}</span>
-                              {e.entregasMes > 0 && <Flame className="h-3 w-3 text-orange-500" />}
+                              {e.entregasMes > 0 && <Flame className="h-3 w-3 text-warning" />}
                             </div>
                           </TableCell>
                           <TableCell>{e.entregasTotal}</TableCell>

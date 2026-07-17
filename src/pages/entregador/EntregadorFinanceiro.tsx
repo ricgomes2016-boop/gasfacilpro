@@ -157,10 +157,10 @@ export default function EntregadorFinanceiro() {
 
         {/* Cards rápidos */}
         <div className="grid grid-cols-2 gap-3">
-          <Card className="border-none shadow-sm bg-green-500/5 border-green-500/20">
+          <Card className="border-none shadow-sm bg-success/5 border-success/20">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground mb-1">Hoje</p>
-              <p className="text-xl font-bold text-green-600">R$ {stats.ganhosHoje.toFixed(2)}</p>
+              <p className="text-xl font-bold text-success">R$ {stats.ganhosHoje.toFixed(2)}</p>
               <p className="text-xs text-muted-foreground">{stats.entregasHoje} entregas</p>
             </CardContent>
           </Card>
@@ -272,18 +272,18 @@ export default function EntregadorFinanceiro() {
                   <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
                     <div className="flex items-center gap-3">
                       <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                        a.status === "pago" ? "bg-green-500/10" : "bg-yellow-500/10"
+                        a.status === "pago" ? "bg-success/10" : "bg-warning/10"
                       }`}>
                         {a.status === "pago"
-                          ? <CheckCircle className="h-4 w-4 text-green-500" />
-                          : <Clock className="h-4 w-4 text-yellow-500" />}
+                          ? <CheckCircle className="h-4 w-4 text-success" />
+                          : <Clock className="h-4 w-4 text-warning" />}
                       </div>
                       <div>
                         <p className="font-medium text-sm capitalize">{a.mes}</p>
                         <Badge variant="outline" className={`text-xs ${
                           a.status === "pago"
-                            ? "text-green-600 border-green-500/30"
-                            : "text-yellow-600 border-yellow-500/30"
+                            ? "text-success border-success/30"
+                            : "text-warning border-warning/30"
                         }`}>
                           {a.status === "pago" ? "Pago" : "Pendente"}
                         </Badge>

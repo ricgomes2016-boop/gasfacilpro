@@ -144,7 +144,7 @@ export default function EmailTransacional() {
       <Header title="E-mail Transacional" subtitle="Envie boletos, notas fiscais e lembretes por e-mail" />
       <div className="p-4 md:p-6 space-y-6">
         {/* Banner simulação */}
-        <Card className="border-amber-500/30 bg-amber-500/5">
+        <Card className="border-warning/30 bg-warning/5">
           <CardContent className="pt-4 pb-4 flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
             <div className="text-sm">

@@ -192,7 +192,7 @@ export function PlanilhaExtratos({ linhas, onCategoriaChange }: Props) {
                       {suspeito && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                            <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent>
                             {v === 0 ? "Valor zero — revisar" : "Valor alto — revisar"}
@@ -207,15 +207,15 @@ export function PlanilhaExtratos({ linhas, onCategoriaChange }: Props) {
                       </Tooltip>
                     </div>
                   </td>
-                  <td className="px-3 py-2 text-right whitespace-nowrap font-medium text-red-400">
+                  <td className="px-3 py-2 text-right whitespace-nowrap font-medium text-destructive">
                     {isDeb ? brl(Math.abs(v)) : ""}
                   </td>
-                  <td className="px-3 py-2 text-right whitespace-nowrap font-medium text-green-400">
+                  <td className="px-3 py-2 text-right whitespace-nowrap font-medium text-success">
                     {!isDeb ? brl(v) : ""}
                   </td>
                   <td
                     className={`px-3 py-2 text-right whitespace-nowrap font-medium ${
-                      saldoAcum >= 0 ? "text-green-400" : "text-red-400"
+                      saldoAcum >= 0 ? "text-success" : "text-destructive"
                     }`}
                   >
                     {brl(saldoAcum)}
@@ -241,14 +241,14 @@ export function PlanilhaExtratos({ linhas, onCategoriaChange }: Props) {
                   <td className="px-3 py-2">
                     {l.conciliado ? (
                       <Badge
-                        className="bg-green-500/15 text-green-400 border-green-500/30"
+                        className="bg-success/15 text-success border-success/30"
                         variant="outline"
                       >
                         Sim
                       </Badge>
                     ) : (
                       <Badge
-                        className="bg-amber-500/15 text-amber-400 border-amber-500/30"
+                        className="bg-warning/15 text-warning border-warning/30"
                         variant="outline"
                       >
                         Não
@@ -264,15 +264,15 @@ export function PlanilhaExtratos({ linhas, onCategoriaChange }: Props) {
               <td colSpan={2} className="px-3 py-3 text-[hsl(220,10%,60%)] uppercase font-semibold">
                 Totais
               </td>
-              <td className="px-3 py-3 text-right font-semibold text-red-400 whitespace-nowrap">
+              <td className="px-3 py-3 text-right font-semibold text-destructive whitespace-nowrap">
                 {brl(Math.abs(totais.debitos))}
               </td>
-              <td className="px-3 py-3 text-right font-semibold text-green-400 whitespace-nowrap">
+              <td className="px-3 py-3 text-right font-semibold text-success whitespace-nowrap">
                 {brl(totais.creditos)}
               </td>
               <td
                 className={`px-3 py-3 text-right font-semibold whitespace-nowrap ${
-                  totais.saldoFinal >= 0 ? "text-green-400" : "text-red-400"
+                  totais.saldoFinal >= 0 ? "text-success" : "text-destructive"
                 }`}
               >
                 {brl(totais.saldoFinal)}

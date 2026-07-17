@@ -129,8 +129,8 @@ export default function AdminDiagnosticoWhatsApp() {
   };
 
   const StatusIcon = ({ status }: { status: "ok" | "erro" | "skip" }) => {
-    if (status === "ok") return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-    if (status === "erro") return <XCircle className="h-5 w-5 text-red-500" />;
+    if (status === "ok") return <CheckCircle2 className="h-5 w-5 text-success" />;
+    if (status === "erro") return <XCircle className="h-5 w-5 text-destructive" />;
     return <MinusCircle className="h-5 w-5 text-muted-foreground" />;
   };
 

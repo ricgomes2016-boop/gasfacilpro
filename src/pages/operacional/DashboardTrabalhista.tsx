@@ -84,18 +84,18 @@ export default function DashboardTrabalhista() {
 
         <div className="grid gap-4 md:grid-cols-4">
           <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><Users className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">{totalFuncionarios}</p><p className="text-sm text-muted-foreground">Funcionários</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-blue-500/10"><Clock className="h-6 w-6 text-blue-500" /></div><div><p className="text-2xl font-bold">{totalFuncionarios * 44}h</p><p className="text-sm text-muted-foreground">Horas Previstas</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-yellow-500/10"><AlertTriangle className="h-6 w-6 text-yellow-500" /></div><div><p className="text-2xl font-bold">{alertasAtivos}</p><p className="text-sm text-muted-foreground">Alertas Ativos</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-green-500/10"><CheckCircle className="h-6 w-6 text-green-500" /></div><div><p className="text-2xl font-bold">{totalFuncionarios > 0 ? Math.round(((totalFuncionarios - alertasAtivos) / totalFuncionarios) * 100) : 0}%</p><p className="text-sm text-muted-foreground">Conformidade</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-info/10"><Clock className="h-6 w-6 text-info" /></div><div><p className="text-2xl font-bold">{totalFuncionarios * 44}h</p><p className="text-sm text-muted-foreground">Horas Previstas</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-warning/10"><AlertTriangle className="h-6 w-6 text-warning" /></div><div><p className="text-2xl font-bold">{alertasAtivos}</p><p className="text-sm text-muted-foreground">Alertas Ativos</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-success/10"><CheckCircle className="h-6 w-6 text-success" /></div><div><p className="text-2xl font-bold">{totalFuncionarios > 0 ? Math.round(((totalFuncionarios - alertasAtivos) / totalFuncionarios) * 100) : 0}%</p><p className="text-sm text-muted-foreground">Conformidade</p></div></div></CardContent></Card>
         </div>
 
         {alertas.length > 0 && (
-          <Card className="border-yellow-500/50">
-            <CardHeader><CardTitle className="flex items-center gap-2 text-yellow-600"><AlertTriangle className="h-5 w-5" />Alertas de Jornada</CardTitle></CardHeader>
+          <Card className="border-warning/50">
+            <CardHeader><CardTitle className="flex items-center gap-2 text-warning"><AlertTriangle className="h-5 w-5" />Alertas de Jornada</CardTitle></CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {alertas.map((a: any) => (
-                  <div key={a.id} className="flex items-center justify-between p-3 rounded-lg bg-yellow-500/10">
+                  <div key={a.id} className="flex items-center justify-between p-3 rounded-lg bg-warning/10">
                     <div>
                       <p className="font-medium">{(a.funcionarios as any)?.nome} - {a.tipo}</p>
                       <p className="text-sm text-muted-foreground">{a.descricao}</p>

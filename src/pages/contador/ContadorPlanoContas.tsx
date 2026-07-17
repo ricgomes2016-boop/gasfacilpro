@@ -132,7 +132,7 @@ export default function ContadorPlanoContas() {
                       <td className="px-4 py-3 text-[hsl(220,10%,75%)] capitalize">{c.tipo}</td>
                       <td className="px-4 py-3 text-[hsl(220,10%,75%)] capitalize">{c.natureza}</td>
                       <td className="px-4 py-3 text-right">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400" onClick={() => remove(c.id)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(c.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </td>

@@ -150,7 +150,7 @@ export default function QRCodeScanner() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-info to-info flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-6">
         {/* Header */}
         <div className="text-center">
@@ -170,8 +170,8 @@ export default function QRCodeScanner() {
             {authenticated ? (
               // Estado Autenticado
               <div className="flex flex-col items-center space-y-4">
-                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8 text-green-600" />
+                <div className="w-16 h-16 rounded-full bg-success flex items-center justify-center">
+                  <CheckCircle2 className="w-8 h-8 text-success" />
                 </div>
                 <div className="text-center">
                   <h3 className="font-semibold text-gray-900 mb-1">
@@ -182,7 +182,7 @@ export default function QRCodeScanner() {
                   </p>
                 </div>
                 <div className="w-full">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600" />
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-info" />
                 </div>
               </div>
             ) : scanning ? (
@@ -204,13 +204,13 @@ export default function QRCodeScanner() {
 
                   {/* Overlay com guia */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-48 h-48 border-2 border-blue-400 rounded-lg"></div>
+                    <div className="w-48 h-48 border-2 border-info rounded-lg"></div>
                   </div>
 
                   {/* Fechar */}
                   <button
                     onClick={stopCamera}
-                    className="absolute top-4 right-4 bg-red-500 text-white p-2 rounded-full hover:bg-red-600"
+                    className="absolute top-4 right-4 bg-destructive text-white p-2 rounded-full hover:bg-destructive"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -254,7 +254,7 @@ export default function QRCodeScanner() {
                 <Button
                   onClick={startCamera}
                   disabled={loading}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-info hover:bg-info"
                   size="lg"
                 >
                   {loading ? (
@@ -289,19 +289,19 @@ export default function QRCodeScanner() {
         </Card>
 
         {/* Dicas */}
-        <Card className="bg-blue-50 border-blue-200">
+        <Card className="bg-info border-info">
           <CardContent className="pt-6">
             <div className="space-y-2 text-sm">
               <div className="flex gap-2">
-                <Badge className="bg-blue-600 flex-shrink-0">💡</Badge>
+                <Badge className="bg-info flex-shrink-0">💡</Badge>
                 <p>Certifique-se de que a câmera está bem iluminada</p>
               </div>
               <div className="flex gap-2">
-                <Badge className="bg-blue-600 flex-shrink-0">💡</Badge>
+                <Badge className="bg-info flex-shrink-0">💡</Badge>
                 <p>Mantenha o QR Code dentro do quadrado de guia</p>
               </div>
               <div className="flex gap-2">
-                <Badge className="bg-blue-600 flex-shrink-0">💡</Badge>
+                <Badge className="bg-info flex-shrink-0">💡</Badge>
                 <p>Não muito perto, não muito longe</p>
               </div>
             </div>
@@ -309,7 +309,7 @@ export default function QRCodeScanner() {
         </Card>
 
         {/* Aviso */}
-        <div className="flex gap-2 text-xs text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
+        <div className="flex gap-2 text-xs text-warning bg-warning p-3 rounded-lg border border-warning">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <p>
             Apenas escaneie QR Codes que você confia. Não escaneie códigos de

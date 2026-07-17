@@ -164,7 +164,7 @@ export function CardOperatorSelectorModal({
                         💰 Recebe em: <span className="font-medium text-foreground">{op.conta_bancaria.nome}</span> ({op.conta_bancaria.banco})
                       </p>
                     ) : (
-                      <p className="text-[11px] text-amber-600 mb-2">⚠ Sem conta vinculada — defina em Operadora › Configuração</p>
+                      <p className="text-[11px] text-warning mb-2">⚠ Sem conta vinculada — defina em Operadora › Configuração</p>
                     )}
 
                     <div className="grid grid-cols-3 gap-2 text-center">

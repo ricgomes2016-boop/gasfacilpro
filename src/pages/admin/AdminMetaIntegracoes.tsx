@@ -57,7 +57,7 @@ export default function AdminMetaIntegracoes() {
           <CardContent className="flex items-center justify-between gap-4">
             <div className="text-sm">
               Estado atual:{" "}
-              <span className={isDev ? "text-amber-600 font-semibold" : "text-green-600 font-semibold"}>
+              <span className={isDev ? "text-warning font-semibold" : "text-success font-semibold"}>
                 {isDev ? "Modo Desenvolvimento (só testadores)" : "Aprovado (produção)"}
               </span>
             </div>

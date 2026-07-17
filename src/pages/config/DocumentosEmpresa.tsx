@@ -36,9 +36,9 @@ const CATEGORIAS = [
 
 function getFileIcon(name: string) {
   const ext = name.split(".").pop()?.toLowerCase();
-  if (["pdf"].includes(ext || "")) return <FileText className="h-5 w-5 text-red-500" />;
-  if (["jpg", "jpeg", "png", "webp", "gif"].includes(ext || "")) return <Image className="h-5 w-5 text-blue-500" />;
-  if (["xls", "xlsx", "csv"].includes(ext || "")) return <FileSpreadsheet className="h-5 w-5 text-green-600" />;
+  if (["pdf"].includes(ext || "")) return <FileText className="h-5 w-5 text-destructive" />;
+  if (["jpg", "jpeg", "png", "webp", "gif"].includes(ext || "")) return <Image className="h-5 w-5 text-info" />;
+  if (["xls", "xlsx", "csv"].includes(ext || "")) return <FileSpreadsheet className="h-5 w-5 text-success" />;
   return <File className="h-5 w-5 text-muted-foreground" />;
 }
 
@@ -302,7 +302,7 @@ export default function DocumentosEmpresa() {
             <CardContent>
               <div className="text-2xl font-bold">{certidoesAsDocs.length}</div>
               {certidoesVencendo > 0 && (
-                <p className="text-xs text-orange-500 mt-1">{certidoesVencendo} vencendo em 30d</p>
+                <p className="text-xs text-warning mt-1">{certidoesVencendo} vencendo em 30d</p>
               )}
             </CardContent>
           </Card>
@@ -406,8 +406,8 @@ export default function DocumentosEmpresa() {
               </Select>
             </div>
             {formCategoria === "certidao" && (
-              <div className="flex items-start gap-2 p-3 rounded-md bg-orange-500/10 border border-orange-500/30 text-sm">
-                <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 p-3 rounded-md bg-warning/10 border border-warning/30 text-sm">
+                <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p>Para certidões com controle de vencimento (ANP, CNDs, Sintegra), use a aba <strong>Certidões e Vencimentos</strong>.</p>
                   <Button

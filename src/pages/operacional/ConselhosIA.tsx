@@ -50,10 +50,10 @@ interface ProactiveSuggestion {
 // ─── Config ─────────────────────────────────────────────────────────────────
 
 const iconConfig = {
-  alerta:       { icon: AlertTriangle, gradient: "from-yellow-500/20 to-orange-500/20", border: "border-yellow-500/30", iconColor: "text-yellow-500" },
-  oportunidade: { icon: Users,         gradient: "from-blue-500/20 to-cyan-500/20",     border: "border-blue-500/30",   iconColor: "text-blue-500" },
-  insight:      { icon: Lightbulb,     gradient: "from-purple-500/20 to-pink-500/20",   border: "border-purple-500/30", iconColor: "text-purple-500" },
-  meta:         { icon: Target,        gradient: "from-red-500/20 to-rose-500/20",      border: "border-red-500/30",    iconColor: "text-red-500" },
+  alerta:       { icon: AlertTriangle, gradient: "from-warning/20 to-warning/20", border: "border-warning/30", iconColor: "text-warning" },
+  oportunidade: { icon: Users,         gradient: "from-info/20 to-info/20",     border: "border-info/30",   iconColor: "text-info" },
+  insight:      { icon: Lightbulb,     gradient: "from-primary/20 to-primary/20",   border: "border-primary/30", iconColor: "text-primary" },
+  meta:         { icon: Target,        gradient: "from-destructive/20 to-destructive/20",      border: "border-destructive/30",    iconColor: "text-destructive" },
 };
 
 // ─── Proactive Suggestions Engine ───────────────────────────────────────────
@@ -443,7 +443,7 @@ export default function ConselhosIA() {
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
               <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <Sun className="h-8 w-8 text-chart-4 shrink-0" />
+                  <Sun className="h-8 w-8 text-warning shrink-0" />
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <Sparkles className="h-4 w-4 text-primary" />
@@ -472,7 +472,7 @@ export default function ConselhosIA() {
                   label: "Faturamento Hoje",
                   value: kpiLoading ? null : `R$ ${dados.faturamentoHoje.toLocaleString("pt-BR")}`,
                   sub: variacaoVendas !== 0 ? `${variacaoVendas > 0 ? "+" : ""}${variacaoVendas.toFixed(0)}% vs ontem` : null,
-                  subColor: variacaoVendas >= 0 ? "text-chart-3" : "text-destructive",
+                  subColor: variacaoVendas >= 0 ? "text-success" : "text-destructive",
                   icon: DollarSign,
                 },
                 {

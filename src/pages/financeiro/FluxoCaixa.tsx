@@ -293,8 +293,8 @@ export default function FluxoCaixa({ embedded }: { embedded?: boolean } = {}) {
       label: "Entradas",
       value: totais.entrada,
       icon: ArrowDownCircle,
-      tone: "text-emerald-600 dark:text-emerald-400",
-      bg: "bg-emerald-500/10",
+      tone: "text-success dark:text-success",
+      bg: "bg-success/10",
     },
     {
       label: "Saídas",
@@ -459,7 +459,7 @@ export default function FluxoCaixa({ embedded }: { embedded?: boolean } = {}) {
                       <TableCell className="max-w-[420px] truncate">{l.historico}</TableCell>
                       <TableCell>
                         {tipo === "entrada" && (
-                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">Entrada</Badge>
+                          <Badge variant="outline" className="bg-success/10 text-success dark:text-success border-success/30">Entrada</Badge>
                         )}
                         {tipo === "saida" && (
                           <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">Saída</Badge>
@@ -468,7 +468,7 @@ export default function FluxoCaixa({ embedded }: { embedded?: boolean } = {}) {
                           <Badge variant="outline" className="bg-info/10 text-info dark:text-info border-info/30">A Receber</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{fmtBR(l.entrada)}</TableCell>
+                      <TableCell className="text-right text-success dark:text-success">{fmtBR(l.entrada)}</TableCell>
                       <TableCell className="text-right text-destructive">{fmtBR(l.saida)}</TableCell>
                       <TableCell className="text-right text-info dark:text-info">{fmtBR(l.aReceber)}</TableCell>
                       <TableCell className={cn("text-right font-medium", l.saldo < 0 && "text-destructive")}>{fmtSaldo(l.saldo)}</TableCell>
@@ -479,7 +479,7 @@ export default function FluxoCaixa({ embedded }: { embedded?: boolean } = {}) {
               <TableFooter>
                 <TableRow className="bg-muted/60 font-semibold tabular-nums">
                   <TableCell colSpan={3}>TOTAL DO PERÍODO</TableCell>
-                  <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{fmtSaldo(totais.entrada)}</TableCell>
+                  <TableCell className="text-right text-success dark:text-success">{fmtSaldo(totais.entrada)}</TableCell>
                   <TableCell className="text-right text-destructive">{fmtSaldo(totais.saida)}</TableCell>
                   <TableCell className="text-right text-info dark:text-info">{fmtSaldo(totais.aReceber)}</TableCell>
                   <TableCell className={cn("text-right", saldoFinal < 0 && "text-destructive")}>{fmtSaldo(saldoFinal)}</TableCell>
@@ -508,7 +508,7 @@ export default function FluxoCaixa({ embedded }: { embedded?: boolean } = {}) {
               const valor = isEntrada ? l.entrada : isSaida ? l.saida : l.aReceber;
               const sign = isSaida ? "-" : "";
               const tone = isEntrada
-                ? "text-emerald-600 dark:text-emerald-400"
+                ? "text-success dark:text-success"
                 : isSaida ? "text-destructive" : "text-info dark:text-info";
               const tipoLbl = isEntrada ? "Entrada" : isSaida ? "Saída" : "A Receber";
               return (

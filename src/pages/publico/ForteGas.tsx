@@ -54,14 +54,14 @@ function Header() {
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
         scrolled
-          ? "bg-[#0a0118]/80 backdrop-blur-2xl border-b border-fuchsia-500/20 shadow-[0_8px_40px_-8px_rgba(217,70,239,0.4)]"
+          ? "bg-[#0a0118]/80 backdrop-blur-2xl border-b border-primary/20 shadow-[0_8px_40px_-8px_rgba(217,70,239,0.4)]"
           : "bg-transparent"
       }`}
     >
       <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-16">
         <a href="#inicio" className="flex items-center gap-2 group">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-tr from-teal-400/40 via-fuchsia-500/40 to-purple-600/40 blur-2xl opacity-60 group-hover:opacity-100 transition-opacity rounded-full" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-success/40 via-primary/40 to-primary/40 blur-2xl opacity-60 group-hover:opacity-100 transition-opacity rounded-full" />
             <img
               src={forteGasLogo}
               alt="Forte Gás"
@@ -76,11 +76,11 @@ function Header() {
             <a key={l.href} href={l.href}
               className="text-sm font-medium text-slate-200 hover:text-white px-3 py-2 rounded-md transition-colors relative group">
               {l.label}
-              <span className="absolute bottom-1 left-3 right-3 h-px bg-gradient-to-r from-teal-400 via-fuchsia-400 to-purple-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+              <span className="absolute bottom-1 left-3 right-3 h-px bg-gradient-to-r from-success via-primary to-primary scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
             </a>
           ))}
           <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="ml-3">
-            <Button size="sm" className="relative overflow-hidden bg-gradient-to-r from-teal-400 via-fuchsia-500 to-purple-600 hover:opacity-90 text-white gap-1.5 shadow-lg shadow-fuchsia-500/40 border-0">
+            <Button size="sm" className="relative overflow-hidden bg-gradient-to-r from-success via-primary to-primary hover:opacity-90 text-white gap-1.5 shadow-lg shadow-fuchsia-500/40 border-0">
               <MessageCircle className="h-4 w-4" /> Pedir Agora
             </Button>
           </a>
@@ -92,15 +92,15 @@ function Header() {
       </div>
 
       {open && (
-        <div className="md:hidden bg-[#0a0118]/95 backdrop-blur-2xl border-t border-fuchsia-500/20 px-4 pb-4 space-y-1 animate-fade-in">
+        <div className="md:hidden bg-[#0a0118]/95 backdrop-blur-2xl border-t border-primary/20 px-4 pb-4 space-y-1 animate-fade-in">
           {links.map((l) => (
             <a key={l.href} href={l.href} onClick={() => setOpen(false)}
-              className="block py-2.5 text-sm font-medium text-slate-200 hover:text-fuchsia-400">
+              className="block py-2.5 text-sm font-medium text-slate-200 hover:text-primary">
               {l.label}
             </a>
           ))}
           <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" className="w-full bg-gradient-to-r from-teal-400 via-fuchsia-500 to-purple-600 text-white gap-1.5 mt-2 border-0">
+            <Button size="sm" className="w-full bg-gradient-to-r from-success via-primary to-primary text-white gap-1.5 mt-2 border-0">
               <MessageCircle className="h-4 w-4" /> Pedir Agora
             </Button>
           </a>
@@ -127,9 +127,9 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
       <div className="relative max-w-6xl mx-auto px-4 w-full grid lg:grid-cols-2 gap-8 items-center">
         {/* Left: Copy */}
         <div className="text-white text-center lg:text-left order-2 lg:order-1">
-          <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-md border border-fuchsia-400/30 rounded-full px-4 py-1.5 text-xs font-semibold mb-6 animate-fade-in">
-            <Sparkles className="h-3.5 w-3.5 text-fuchsia-300" />
-            <span className="bg-gradient-to-r from-teal-200 via-fuchsia-200 to-purple-200 bg-clip-text text-transparent">
+          <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-md border border-primary/30 rounded-full px-4 py-1.5 text-xs font-semibold mb-6 animate-fade-in">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span className="bg-gradient-to-r from-success via-primary to-primary bg-clip-text text-transparent">
               Cornélio Procópio • PR
             </span>
           </div>
@@ -139,7 +139,7 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
             <span className="block">
               gás na sua{" "}
               <span className="relative inline-block italic font-serif font-normal">
-                <span className="bg-gradient-to-r from-teal-300 via-fuchsia-400 to-purple-400 bg-clip-text text-transparent">porta</span>
+                <span className="bg-gradient-to-r from-success via-primary to-primary bg-clip-text text-transparent">porta</span>
                 <svg className="absolute -bottom-3 left-0 w-full" viewBox="0 0 200 12" fill="none" preserveAspectRatio="none">
                   <path d="M2 8 Q 50 2, 100 6 T 198 5" stroke="url(#g1)" strokeWidth="3" strokeLinecap="round" fill="none" />
                   <defs>
@@ -161,7 +161,7 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
 
           <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3 mb-12 animate-fade-in">
             <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">
-              <Button size="lg" className="relative overflow-hidden group bg-gradient-to-r from-teal-400 via-fuchsia-500 to-purple-600 hover:opacity-90 text-white text-base gap-2 px-8 h-13 shadow-2xl shadow-fuchsia-500/40 border-0">
+              <Button size="lg" className="relative overflow-hidden group bg-gradient-to-r from-success via-primary to-primary hover:opacity-90 text-white text-base gap-2 px-8 h-13 shadow-2xl shadow-fuchsia-500/40 border-0">
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                 <MessageCircle className="h-5 w-5 relative" />
                 <span className="relative">Pedir pelo WhatsApp</span>
@@ -170,7 +170,7 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
             </a>
             <a href={`tel:${PHONE_TEL}`}>
               <Button size="lg" variant="outline" className="border-white/20 bg-white/5 backdrop-blur text-white hover:bg-white/10 hover:text-white text-base gap-2 px-8 h-13">
-                <Phone className="h-5 w-5 text-fuchsia-300" /> {PHONE_DISPLAY}
+                <Phone className="h-5 w-5 text-primary" /> {PHONE_DISPLAY}
               </Button>
             </a>
           </div>
@@ -180,36 +180,36 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
             <button
               type="button"
               onClick={() => onAskBia("Quero pedir um P13 agora!")}
-              className="bg-white/10 backdrop-blur-xl border border-white/20 hover:border-fuchsia-400/60 hover:bg-white/[0.18] rounded-2xl p-3 shadow-xl transition-all hover:-translate-y-0.5 hover:scale-[1.02] group cursor-pointer text-left"
+              className="bg-white/10 backdrop-blur-xl border border-white/20 hover:border-primary/60 hover:bg-white/[0.18] rounded-2xl p-3 shadow-xl transition-all hover:-translate-y-0.5 hover:scale-[1.02] group cursor-pointer text-left"
               aria-label="Pedir P13 com a Bia"
             >
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-400 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-fuchsia-500/30 shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-success to-primary flex items-center justify-center shadow-lg shadow-fuchsia-500/30 shrink-0">
                   <Flame className="h-4 w-4 text-white" />
                 </div>
                 <div>
                   <div className="text-[10px] text-slate-300 uppercase tracking-wider flex items-center gap-1">
-                    Pronto agora <Sparkles className="h-2.5 w-2.5 text-fuchsia-300" />
+                    Pronto agora <Sparkles className="h-2.5 w-2.5 text-primary" />
                   </div>
-                  <div className="text-xs font-bold text-white group-hover:text-fuchsia-200 transition-colors">Pedir P13 → Bia</div>
+                  <div className="text-xs font-bold text-white group-hover:text-primary transition-colors">Pedir P13 → Bia</div>
                 </div>
               </div>
             </button>
             <button
               type="button"
               onClick={() => onAskBia("Preciso de entrega expressa, por favor!")}
-              className="bg-white/10 backdrop-blur-xl border border-white/20 hover:border-purple-400/60 hover:bg-white/[0.18] rounded-2xl p-3 shadow-xl transition-all hover:-translate-y-0.5 hover:scale-[1.02] group cursor-pointer text-left"
+              className="bg-white/10 backdrop-blur-xl border border-white/20 hover:border-primary/60 hover:bg-white/[0.18] rounded-2xl p-3 shadow-xl transition-all hover:-translate-y-0.5 hover:scale-[1.02] group cursor-pointer text-left"
               aria-label="Pedir entrega expressa com a Bia"
             >
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-400 to-purple-500 flex items-center justify-center shadow-lg shadow-purple-500/30 shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-success to-primary flex items-center justify-center shadow-lg shadow-purple-500/30 shrink-0">
                   <Truck className="h-4 w-4 text-white" />
                 </div>
                 <div>
                   <div className="text-[10px] text-slate-300 uppercase tracking-wider flex items-center gap-1">
-                    Entrega <Sparkles className="h-2.5 w-2.5 text-purple-300" />
+                    Entrega <Sparkles className="h-2.5 w-2.5 text-primary" />
                   </div>
-                  <div className="text-xs font-bold text-white group-hover:text-purple-200 transition-colors">Expressa → Bia</div>
+                  <div className="text-xs font-bold text-white group-hover:text-primary transition-colors">Expressa → Bia</div>
                 </div>
               </div>
             </button>
@@ -222,8 +222,8 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
               { v: "100%", l: "Certificado" },
               { v: "5★", l: "Atendimento" },
             ].map((s) => (
-              <div key={s.l} className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-2xl p-3 md:p-4 hover:border-fuchsia-400/40 hover:bg-white/[0.07] transition-all">
-                <div className="text-2xl md:text-3xl font-black bg-gradient-to-br from-teal-300 via-fuchsia-300 to-purple-300 bg-clip-text text-transparent">
+              <div key={s.l} className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-2xl p-3 md:p-4 hover:border-primary/40 hover:bg-white/[0.07] transition-all">
+                <div className="text-2xl md:text-3xl font-black bg-gradient-to-br from-success via-primary to-primary bg-clip-text text-transparent">
                   {s.v}
                 </div>
                 <div className="text-[10px] md:text-xs text-slate-400 mt-1 uppercase tracking-wider">{s.l}</div>
@@ -235,7 +235,7 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
         {/* Right: Hero art */}
         <div className="relative order-1 lg:order-2 flex justify-center items-center">
           <div className="relative w-full max-w-md lg:max-w-lg aspect-square">
-            <div className="absolute inset-0 bg-gradient-to-tr from-teal-400/30 via-fuchsia-500/30 to-purple-500/30 blur-3xl rounded-full animate-pulse" style={{ animationDuration: "5s" }} />
+            <div className="absolute inset-0 bg-gradient-to-tr from-success/30 via-primary/30 to-primary/30 blur-3xl rounded-full animate-pulse" style={{ animationDuration: "5s" }} />
             <img
               src={heroArt}
               alt="Chama abstrata Forte Gás"
@@ -254,10 +254,10 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
 /* ---------- Sobre ---------- */
 function Sobre() {
   const cards = [
-    { icon: Flame, label: "Gás P13", grad: "from-teal-400 to-secondary" },
-    { icon: Flame, label: "Gás P45", grad: "from-amber-400 to-fuchsia-600" },
-    { icon: Droplets, label: "Água Mineral", grad: "from-teal-400 to-blue-600" },
-    { icon: Truck, label: "Entrega Expressa", grad: "from-purple-500 to-fuchsia-600" },
+    { icon: Flame, label: "Gás P13", grad: "from-success to-secondary" },
+    { icon: Flame, label: "Gás P45", grad: "from-warning to-primary" },
+    { icon: Droplets, label: "Água Mineral", grad: "from-success to-info" },
+    { icon: Truck, label: "Entrega Expressa", grad: "from-primary to-primary" },
   ];
   return (
     <section id="sobre" className="relative py-28 bg-[#0a0118] overflow-hidden">
@@ -265,12 +265,12 @@ function Sobre() {
       <div className="relative max-w-6xl mx-auto px-4">
         <div className="grid md:grid-cols-2 gap-14 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-fuchsia-300 mb-5">
-              <span className="w-10 h-px bg-gradient-to-r from-transparent to-fuchsia-400" /> Sobre nós
+            <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-primary mb-5">
+              <span className="w-10 h-px bg-gradient-to-r from-transparent to-primary" /> Sobre nós
             </div>
             <h2 className="text-4xl md:text-6xl font-black text-white mb-6 leading-[1.05] tracking-tight">
               Tradição e{" "}
-              <span className="italic font-serif font-normal bg-gradient-to-r from-teal-300 via-fuchsia-400 to-purple-400 bg-clip-text text-transparent">
+              <span className="italic font-serif font-normal bg-gradient-to-r from-success via-primary to-primary bg-clip-text text-transparent">
                 confiança
               </span>{" "}
               em cada entrega.
@@ -285,11 +285,11 @@ function Sobre() {
           </div>
 
           <div className="relative">
-            <div className="absolute -inset-8 bg-gradient-to-tr from-teal-400/20 via-fuchsia-500/30 to-purple-500/20 blur-3xl rounded-[3rem]" />
+            <div className="absolute -inset-8 bg-gradient-to-tr from-success/20 via-primary/30 to-primary/20 blur-3xl rounded-[3rem]" />
             <div className="relative grid grid-cols-2 gap-4">
               {cards.map((c, i) => (
                 <div key={c.label}
-                  className={`relative bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-3xl p-6 hover:-translate-y-2 hover:border-fuchsia-400/40 transition-all duration-500 ${i % 2 === 1 ? "translate-y-6" : ""}`}>
+                  className={`relative bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-3xl p-6 hover:-translate-y-2 hover:border-primary/40 transition-all duration-500 ${i % 2 === 1 ? "translate-y-6" : ""}`}>
                   <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${c.grad} flex items-center justify-center shadow-xl mb-4`}>
                     <c.icon className="h-5 w-5 text-white" />
                   </div>
@@ -306,10 +306,10 @@ function Sobre() {
 
 /* ---------- Serviços ---------- */
 const servicos = [
-  { icon: Flame, title: "Gás P13", desc: "Botijão residencial de 13kg, ideal para uso doméstico.", grad: "from-teal-400 to-secondary" },
-  { icon: Flame, title: "Gás P45", desc: "Cilindro de 45kg para comércios e restaurantes.", grad: "from-amber-400 to-fuchsia-600" },
-  { icon: Droplets, title: "Água Mineral", desc: "Galões de 20 litros de água mineral de qualidade.", grad: "from-teal-400 to-blue-600" },
-  { icon: Truck, title: "Entrega Expressa", desc: "Entregamos em minutos em Cornélio Procópio.", grad: "from-purple-500 to-fuchsia-600" },
+  { icon: Flame, title: "Gás P13", desc: "Botijão residencial de 13kg, ideal para uso doméstico.", grad: "from-success to-secondary" },
+  { icon: Flame, title: "Gás P45", desc: "Cilindro de 45kg para comércios e restaurantes.", grad: "from-warning to-primary" },
+  { icon: Droplets, title: "Água Mineral", desc: "Galões de 20 litros de água mineral de qualidade.", grad: "from-success to-info" },
+  { icon: Truck, title: "Entrega Expressa", desc: "Entregamos em minutos em Cornélio Procópio.", grad: "from-primary to-primary" },
 ];
 
 function Servicos() {
@@ -322,12 +322,12 @@ function Servicos() {
 
       <div className="relative max-w-6xl mx-auto px-4">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-fuchsia-300 mb-4">
-            <span className="w-8 h-px bg-fuchsia-400" /> O que oferecemos <span className="w-8 h-px bg-fuchsia-400" />
+          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-primary mb-4">
+            <span className="w-8 h-px bg-primary" /> O que oferecemos <span className="w-8 h-px bg-primary" />
           </div>
           <h2 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tight">
             Nossos{" "}
-            <span className="italic font-serif font-normal bg-gradient-to-r from-teal-300 via-fuchsia-400 to-purple-400 bg-clip-text text-transparent">
+            <span className="italic font-serif font-normal bg-gradient-to-r from-success via-primary to-primary bg-clip-text text-transparent">
               Serviços
             </span>
           </h2>
@@ -337,13 +337,13 @@ function Servicos() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {servicos.map((s, i) => (
             <div key={s.title}
-              className="group relative bg-gradient-to-br from-white/[0.07] to-white/[0.02] backdrop-blur-md border border-white/10 rounded-3xl p-7 hover:-translate-y-2 hover:border-fuchsia-400/50 transition-all duration-500 overflow-hidden">
+              className="group relative bg-gradient-to-br from-white/[0.07] to-white/[0.02] backdrop-blur-md border border-white/10 rounded-3xl p-7 hover:-translate-y-2 hover:border-primary/50 transition-all duration-500 overflow-hidden">
               {/* Big number watermark */}
               <div className="absolute -top-6 -right-2 text-7xl font-black text-white/[0.04] select-none pointer-events-none">
                 {String(i + 1).padStart(2, "0")}
               </div>
               {/* Glow on hover */}
-              <div className={`absolute -top-px left-6 right-6 h-px bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
+              <div className={`absolute -top-px left-6 right-6 h-px bg-gradient-to-r from-transparent via-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
               <div className={`absolute -inset-1 bg-gradient-to-br ${s.grad} opacity-0 group-hover:opacity-10 blur-2xl transition-opacity rounded-3xl`} />
 
               <div className="relative">
@@ -363,10 +363,10 @@ function Servicos() {
 
 /* ---------- Diferenciais ---------- */
 const diferenciais = [
-  { icon: Zap, title: "Entrega Expressa", desc: "Receba seu pedido em minutos", grad: "from-teal-400 to-fuchsia-500" },
-  { icon: Clock, title: "Atendimento Estendido", desc: "Pronto para atender você", grad: "from-fuchsia-400 to-purple-600" },
-  { icon: Shield, title: "Segurança Total", desc: "Produtos certificados e seguros", grad: "from-teal-400 to-blue-600" },
-  { icon: CreditCard, title: "Pagamento Fácil", desc: "Dinheiro, cartão ou Pix", grad: "from-purple-500 to-fuchsia-500" },
+  { icon: Zap, title: "Entrega Expressa", desc: "Receba seu pedido em minutos", grad: "from-success to-primary" },
+  { icon: Clock, title: "Atendimento Estendido", desc: "Pronto para atender você", grad: "from-primary to-primary" },
+  { icon: Shield, title: "Segurança Total", desc: "Produtos certificados e seguros", grad: "from-success to-info" },
+  { icon: CreditCard, title: "Pagamento Fácil", desc: "Dinheiro, cartão ou Pix", grad: "from-primary to-primary" },
 ];
 
 function Diferenciais() {
@@ -375,12 +375,12 @@ function Diferenciais() {
       <FluidBackdrop />
       <div className="relative max-w-6xl mx-auto px-4">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-fuchsia-300 mb-4">
-            <span className="w-8 h-px bg-fuchsia-400" /> Por que nós <span className="w-8 h-px bg-fuchsia-400" />
+          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-primary mb-4">
+            <span className="w-8 h-px bg-primary" /> Por que nós <span className="w-8 h-px bg-primary" />
           </div>
           <h2 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tight">
             Por que escolher a{" "}
-            <span className="italic font-serif font-normal bg-gradient-to-r from-teal-300 via-fuchsia-400 to-purple-400 bg-clip-text text-transparent">
+            <span className="italic font-serif font-normal bg-gradient-to-r from-success via-primary to-primary bg-clip-text text-transparent">
               Forte Gás?
             </span>
           </h2>
@@ -418,7 +418,7 @@ function CTABanner() {
           }}>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.3),transparent_50%)]" />
           <div className="absolute -top-32 -right-32 w-80 h-80 bg-white/15 rounded-full blur-3xl" />
-          <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-purple-900/40 rounded-full blur-3xl" />
+          <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-primary/40 rounded-full blur-3xl" />
           <div className="absolute top-10 left-10 w-32 h-32 rounded-full blur-2xl opacity-60"
             style={{ background: "radial-gradient(circle, #fef3c7 0%, transparent 70%)" }} />
 
@@ -437,7 +437,7 @@ function CTABanner() {
               Entrega rápida em toda Cornélio Procópio. Atendimento humano, sem robôs.
             </p>
             <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">
-              <Button size="lg" className="bg-white text-fuchsia-600 hover:bg-white/95 text-base font-bold gap-2 px-10 h-13 shadow-2xl border-0">
+              <Button size="lg" className="bg-white text-primary hover:bg-white/95 text-base font-bold gap-2 px-10 h-13 shadow-2xl border-0">
                 <MessageCircle className="h-5 w-5" /> Pedir Agora pelo WhatsApp
               </Button>
             </a>
@@ -455,12 +455,12 @@ function Contato() {
       <FluidBackdrop />
       <div className="relative max-w-5xl mx-auto px-4">
         <div className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-fuchsia-300 mb-4">
-            <span className="w-8 h-px bg-fuchsia-400" /> Fale conosco <span className="w-8 h-px bg-fuchsia-400" />
+          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-primary mb-4">
+            <span className="w-8 h-px bg-primary" /> Fale conosco <span className="w-8 h-px bg-primary" />
           </div>
           <h2 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tight">
             Entre em{" "}
-            <span className="italic font-serif font-normal bg-gradient-to-r from-teal-300 via-fuchsia-400 to-purple-400 bg-clip-text text-transparent">
+            <span className="italic font-serif font-normal bg-gradient-to-r from-success via-primary to-primary bg-clip-text text-transparent">
               Contato
             </span>
           </h2>
@@ -468,9 +468,9 @@ function Contato() {
 
         <div className="grid md:grid-cols-3 gap-5">
           {[
-            { href: `tel:${PHONE_TEL}`, ext: false, icon: Phone, title: "Telefone", desc: PHONE_DISPLAY, grad: "from-teal-400 to-fuchsia-500", border: "hover:border-teal-400/50" },
-            { href: WHATSAPP_LINK, ext: true, icon: MessageCircle, title: "WhatsApp", desc: PHONE_DISPLAY, grad: "from-teal-400 to-emerald-500", border: "hover:border-teal-400/50" },
-            { href: null, ext: false, icon: MapPin, title: "Endereço", desc: `${ENDERECO}\n${CIDADE}`, grad: "from-purple-500 to-fuchsia-600", border: "hover:border-purple-400/50" },
+            { href: `tel:${PHONE_TEL}`, ext: false, icon: Phone, title: "Telefone", desc: PHONE_DISPLAY, grad: "from-success to-primary", border: "hover:border-success/50" },
+            { href: WHATSAPP_LINK, ext: true, icon: MessageCircle, title: "WhatsApp", desc: PHONE_DISPLAY, grad: "from-success to-success", border: "hover:border-success/50" },
+            { href: null, ext: false, icon: MapPin, title: "Endereço", desc: `${ENDERECO}\n${CIDADE}`, grad: "from-primary to-primary", border: "hover:border-primary/50" },
           ].map((c) => {
             const inner = (
               <div className={`group relative bg-gradient-to-br from-white/[0.07] to-white/[0.02] backdrop-blur-md border border-white/10 rounded-3xl p-7 text-center hover:-translate-y-1 ${c.border} transition-all h-full`}>
@@ -502,13 +502,13 @@ function Contato() {
 function Footer() {
   return (
     <footer className="relative bg-[#0a0118] border-t border-white/5 text-slate-500 py-12 overflow-hidden">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-fuchsia-500/40 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img src={forteGasLogo} alt="Forte Gás" className="h-10 w-auto" />
             <div className="leading-none border-l border-white/10 pl-3">
-              <div className="text-[10px] bg-gradient-to-r from-teal-300 via-fuchsia-300 to-purple-300 bg-clip-text text-transparent font-bold tracking-[0.25em]">
+              <div className="text-[10px] bg-gradient-to-r from-success via-primary to-primary bg-clip-text text-transparent font-bold tracking-[0.25em]">
                 CORNÉLIO PROCÓPIO • PR
               </div>
               <div className="text-xs text-slate-500 mt-1">A força do gás na sua porta</div>
@@ -526,8 +526,8 @@ function FloatingWhatsApp() {
   return (
     <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
       className="fixed bottom-6 right-6 z-50 group" aria-label="WhatsApp">
-      <span className="absolute inset-0 rounded-full bg-green-500 animate-ping opacity-30" />
-      <span className="relative w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-600 text-white rounded-full flex items-center justify-center shadow-xl shadow-green-500/40 group-hover:scale-110 transition-transform">
+      <span className="absolute inset-0 rounded-full bg-success animate-ping opacity-30" />
+      <span className="relative w-14 h-14 bg-gradient-to-br from-success to-success text-white rounded-full flex items-center justify-center shadow-xl shadow-green-500/40 group-hover:scale-110 transition-transform">
         <MessageCircle className="h-7 w-7" />
       </span>
     </a>
@@ -544,7 +544,7 @@ function ScrollTop() {
   if (!show) return null;
   return (
     <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className="fixed bottom-6 left-6 z-50 w-10 h-10 bg-white/10 backdrop-blur-md border border-white/20 hover:bg-gradient-to-br hover:from-teal-400 hover:to-secondary hover:border-fuchsia-400 text-white rounded-full flex items-center justify-center shadow-lg transition-all animate-fade-in"
+      className="fixed bottom-6 left-6 z-50 w-10 h-10 bg-white/10 backdrop-blur-md border border-white/20 hover:bg-gradient-to-br hover:from-success hover:to-secondary hover:border-primary text-white rounded-full flex items-center justify-center shadow-lg transition-all animate-fade-in"
       aria-label="Voltar ao topo">
       <ChevronUp className="h-5 w-5" />
     </button>
@@ -587,7 +587,7 @@ export default function ForteGas() {
       <BiaChatWidget
         unidadeSlug="fortegas"
         nomeLoja="Forte Gás"
-        gradient="from-fuchsia-500 via-purple-500 to-secondary"
+        gradient="from-primary via-primary to-secondary"
         accent="fuchsia-500"
         openSignal={biaSignal}
         prefilledMessage={biaPrefill}

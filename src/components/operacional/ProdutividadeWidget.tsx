@@ -130,7 +130,7 @@ export function ProdutividadeWidget() {
             <p className="text-2xl font-bold">{dados.totalEntregasHoje}</p>
             <p className="text-[10px] text-muted-foreground">Entregas hoje</p>
             {variacao !== 0 && (
-              <p className={`text-[10px] flex items-center justify-center gap-0.5 ${variacao > 0 ? "text-chart-3" : "text-destructive"}`}>
+              <p className={`text-[10px] flex items-center justify-center gap-0.5 ${variacao > 0 ? "text-success" : "text-destructive"}`}>
                 {variacao > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                 {variacao > 0 ? "+" : ""}{variacao.toFixed(0)}%
               </p>
@@ -159,7 +159,7 @@ export function ProdutividadeWidget() {
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-[10px]">{e.entregasHoje} entregas</Badge>
                   {e.entregasOntem > 0 && (
-                    <span className={`text-[10px] ${e.entregasHoje >= e.entregasOntem ? "text-chart-3" : "text-destructive"}`}>
+                    <span className={`text-[10px] ${e.entregasHoje >= e.entregasOntem ? "text-success" : "text-destructive"}`}>
                       {e.entregasHoje >= e.entregasOntem ? "↑" : "↓"}
                     </span>
                   )}

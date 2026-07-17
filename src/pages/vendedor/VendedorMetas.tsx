@@ -86,14 +86,14 @@ export default function VendedorMetas() {
         <div className="grid grid-cols-2 gap-3">
           <Card>
             <CardContent className="p-4 text-center">
-              <TrendingUp className="h-6 w-6 mx-auto text-emerald-500 mb-1" />
+              <TrendingUp className="h-6 w-6 mx-auto text-success mb-1" />
               <p className="text-xs text-muted-foreground">Vendas no mês</p>
               <p className="text-2xl font-bold">{qtd}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <Award className="h-6 w-6 mx-auto text-yellow-500 mb-1" />
+              <Award className="h-6 w-6 mx-auto text-warning mb-1" />
               <p className="text-xs text-muted-foreground">Comissão est.</p>
               <p className="text-2xl font-bold">R$ {comissao.toFixed(0)}</p>
               <p className="text-[10px] text-muted-foreground">{comissaoLabel}</p>

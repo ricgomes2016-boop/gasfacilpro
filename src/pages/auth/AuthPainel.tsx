@@ -53,18 +53,18 @@ export default function AuthPainel() {
       pageClassName="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
       cardClassName="bg-slate-800/90 border-slate-700 text-white"
       logo={
-        <div className="h-14 w-14 rounded-xl bg-amber-500/20 flex items-center justify-center">
-          <Shield className="h-8 w-8 text-amber-400" />
+        <div className="h-14 w-14 rounded-xl bg-warning/20 flex items-center justify-center">
+          <Shield className="h-8 w-8 text-warning" />
         </div>
       }
     >
       {roleError && (
-        <div className="p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+        <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
           Esta conta não possui acesso ao painel Super Admin.
         </div>
       )}
       {form.errors.general && (
-        <div className="p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+        <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
           {form.errors.general}
         </div>
       )}
@@ -81,7 +81,7 @@ export default function AuthPainel() {
             disabled={form.isLoading}
             className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
           />
-          {form.errors.email && <p className="text-sm text-red-400">{form.errors.email}</p>}
+          {form.errors.email && <p className="text-sm text-destructive">{form.errors.email}</p>}
         </div>
 
         <div className="space-y-2">
@@ -106,10 +106,10 @@ export default function AuthPainel() {
               {form.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
-          {form.errors.password && <p className="text-sm text-red-400">{form.errors.password}</p>}
+          {form.errors.password && <p className="text-sm text-destructive">{form.errors.password}</p>}
         </div>
 
-        <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700 text-white" disabled={form.isLoading}>
+        <Button type="submit" className="w-full bg-warning hover:bg-warning text-white" disabled={form.isLoading}>
           {form.isLoading ? (
             <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verificando...</>
           ) : (

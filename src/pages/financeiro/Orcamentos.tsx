@@ -34,8 +34,8 @@ import { useAssinaturaDigital } from "@/hooks/useAssinaturaDigital";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  pendente: { label: "Pendente", color: "bg-amber-500/15 text-warning border-amber-500/30 dark:text-warning", icon: <Clock className="h-3 w-3" /> },
-  aprovado: { label: "Aprovado", color: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 dark:text-emerald-400", icon: <CheckCircle2 className="h-3 w-3" /> },
+  pendente: { label: "Pendente", color: "bg-warning/15 text-warning border-warning/30 dark:text-warning", icon: <Clock className="h-3 w-3" /> },
+  aprovado: { label: "Aprovado", color: "bg-success/15 text-success border-success/30 dark:text-success", icon: <CheckCircle2 className="h-3 w-3" /> },
   recusado: { label: "Recusado", color: "bg-destructive/15 text-destructive border-destructive/30 dark:text-destructive", icon: <Trash2 className="h-3 w-3" /> },
   convertido: { label: "Convertido", color: "bg-info/15 text-info border-info/30 dark:text-info", icon: <TrendingUp className="h-3 w-3" /> },
   vencido: { label: "Vencido", color: "bg-muted text-muted-foreground border-border", icon: <Clock className="h-3 w-3" /> },
@@ -569,7 +569,7 @@ export default function Orcamentos() {
             <div><p className="text-2xl font-bold">R$ {valorPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-xs text-muted-foreground">Valor Pendente</p></div>
           </div></CardContent></Card>
           <Card><CardContent className="p-4"><div className="flex items-center gap-3">
-            <div className="rounded-lg bg-emerald-500/10 p-2"><CheckCircle2 className="h-5 w-5 text-emerald-600" /></div>
+            <div className="rounded-lg bg-success/10 p-2"><CheckCircle2 className="h-5 w-5 text-success" /></div>
             <div><p className="text-2xl font-bold">R$ {valorAprovado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-xs text-muted-foreground">Valor Aprovado</p></div>
           </div></CardContent></Card>
         </div>
@@ -626,7 +626,7 @@ export default function Orcamentos() {
               </DialogHeader>
               <div className="space-y-5">
                 {!unidadeAtual && (
-                  <div className="rounded-md bg-warning/10 border border-amber-500/30 text-amber-700 dark:text-warning px-3 py-2 text-sm">
+                  <div className="rounded-md bg-warning/10 border border-warning/30 text-warning dark:text-warning px-3 py-2 text-sm">
                     Selecione uma unidade no topo da página para criar orçamentos.
                   </div>
                 )}
@@ -655,7 +655,7 @@ export default function Orcamentos() {
                                       <div className="flex items-center gap-2">
                                         <span className="font-medium">{label}</span>
                                         {c.__outraUnidade && (
-                                          <span className="text-[10px] uppercase tracking-wide bg-amber-500/15 text-amber-700 dark:text-warning px-1.5 py-0.5 rounded">
+                                          <span className="text-[10px] uppercase tracking-wide bg-warning/15 text-warning dark:text-warning px-1.5 py-0.5 rounded">
                                             outra unidade
                                           </span>
                                         )}
@@ -776,13 +776,13 @@ export default function Orcamentos() {
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <div className="rounded-lg bg-blue-600 p-1.5"><FileText className="h-4 w-4 text-white" /></div>
+                  <div className="rounded-lg bg-info p-1.5"><FileText className="h-4 w-4 text-white" /></div>
                   {editingFundeparId ? "Editar Orçamento Fundepar" : "Orçamento Fundepar — Pesquisa de Preço"}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 {!unidadeAtual && (
-                  <div className="rounded-md bg-warning/10 border border-amber-500/30 text-amber-700 dark:text-warning px-3 py-2 text-sm">
+                  <div className="rounded-md bg-warning/10 border border-warning/30 text-warning dark:text-warning px-3 py-2 text-sm">
                     Selecione uma unidade no topo da página.
                   </div>
                 )}
@@ -907,7 +907,7 @@ export default function Orcamentos() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-info/30 bg-blue-500/5 p-4 flex justify-between items-center">
+                <div className="rounded-xl border border-info/30 bg-info/5 p-4 flex justify-between items-center">
                   <span className="font-medium">Valor Total</span>
                   <span className="text-2xl font-bold text-info">R$ {fTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                 </div>
@@ -924,7 +924,7 @@ export default function Orcamentos() {
                       className={cn(
                         "text-3xl sm:text-4xl font-black tracking-[0.25em] uppercase whitespace-nowrap -rotate-12",
                         assinatura.disponivel && assinatura.ativo
-                          ? "text-emerald-600/[0.08] dark:text-emerald-400/[0.10]"
+                          ? "text-success/[0.08] dark:text-success/[0.10]"
                           : "text-muted-foreground/[0.08]"
                       )}
                     >
@@ -950,7 +950,7 @@ export default function Orcamentos() {
                   </div>
                   <div className="relative z-10 flex items-center gap-2 border-t pt-2">
                     {assinatura.disponivel ? (
-                      <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <ShieldCheck className="h-4 w-4 text-success shrink-0" />
                     ) : (
                       <ShieldAlert className="h-4 w-4 text-warning shrink-0" />
                     )}
@@ -1002,7 +1002,7 @@ export default function Orcamentos() {
                     <Printer className="h-4 w-4" />Pré-visualizar
                   </Button>
                   <Button
-                    className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                    className="flex-1 gap-2 bg-info hover:bg-info text-white"
                     onClick={() => createFundeparMutation.mutate()}
                     disabled={!unidadeAtual || createFundeparMutation.isPending}
                   >
@@ -1033,7 +1033,7 @@ export default function Orcamentos() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRow><TableCell colSpan={8} className="text-center py-12"><div className="flex flex-col items-center gap-2 text-muted-foreground"><div className="h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" /><span className="text-sm">Carregando orçamentos...</span></div></TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center py-12"><div className="flex flex-col items-center gap-2 text-muted-foreground"><div className="h-8 w-8 animate-spin rounded-full border-2 border-warning border-t-transparent" /><span className="text-sm">Carregando orçamentos...</span></div></TableCell></TableRow>
                   ) : filtered.length === 0 ? (
                     <TableRow><TableCell colSpan={8} className="text-center py-12"><div className="flex flex-col items-center gap-3 text-muted-foreground"><div className="rounded-full bg-muted p-4"><ReceiptText className="h-8 w-8" /></div><div><p className="font-medium">Nenhum orçamento encontrado</p><p className="text-xs">Crie seu primeiro orçamento clicando no botão acima</p></div></div></TableCell></TableRow>
                   ) : (
@@ -1041,7 +1041,7 @@ export default function Orcamentos() {
                       const st = statusConfig[orc.status] || statusConfig.pendente;
                       const isFundepar = (orc.tipo || "padrao") === "fundepar";
                       return (
-                        <TableRow key={orc.id} className="group hover:bg-orange-50/50 dark:hover:bg-orange-950/10 transition-colors">
+                        <TableRow key={orc.id} className="group hover:bg-warning/50 dark:hover:bg-warning/10 transition-colors">
                           <TableCell className="font-mono text-sm font-semibold text-warning dark:text-warning">#{orc.numero}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className={cn(isFundepar ? "bg-info/15 text-info border-info/30 dark:text-info" : "bg-muted text-muted-foreground")}>
@@ -1085,7 +1085,7 @@ export default function Orcamentos() {
                                     <Printer className="h-4 w-4" />
                                   </Button>
                                   <Button variant="ghost" size="icon" className="h-8 w-8" title="Imprimir com Assinatura Digital" onClick={() => imprimirPadrao(orc, true)}>
-                                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                                    <ShieldCheck className="h-4 w-4 text-success" />
                                   </Button>
                                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicar(orc)}>
                                     <Copy className="h-4 w-4" />
@@ -1158,7 +1158,7 @@ export default function Orcamentos() {
                       <Printer className="h-4 w-4" />Imprimir
                     </Button>
                     <Button variant="outline" className="gap-2" onClick={() => imprimirPadrao(selectedOrcamento, true)}>
-                      <ShieldCheck className="h-4 w-4 text-emerald-600" />Imprimir Assinado
+                      <ShieldCheck className="h-4 w-4 text-success" />Imprimir Assinado
                     </Button>
                   </div>
                 )}

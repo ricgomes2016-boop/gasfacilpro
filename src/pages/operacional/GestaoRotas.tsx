@@ -673,25 +673,25 @@ export default function GestaoRotas() {
               <Card>
                 <CardContent className="p-3 text-center">
                   <p className="text-xs text-muted-foreground">Receita</p>
-                  <p className="text-xl font-bold text-green-600">R$ {resumo.receita.toFixed(2)}</p>
+                  <p className="text-xl font-bold text-success">R$ {resumo.receita.toFixed(2)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-3 text-center">
                   <p className="text-xs text-muted-foreground">Custo Produto</p>
-                  <p className="text-xl font-bold text-orange-600">R$ {resumo.custo.toFixed(2)}</p>
+                  <p className="text-xl font-bold text-warning">R$ {resumo.custo.toFixed(2)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-3 text-center">
                   <p className="text-xs text-muted-foreground">Despesas Rota</p>
-                  <p className="text-xl font-bold text-red-600">R$ {resumo.despesa.toFixed(2)}</p>
+                  <p className="text-xl font-bold text-destructive">R$ {resumo.despesa.toFixed(2)}</p>
                 </CardContent>
               </Card>
-              <Card className={`border-2 ${resumo.margem >= 0 ? "border-green-500 bg-green-50 dark:bg-green-950/20" : "border-red-500 bg-red-50 dark:bg-red-950/20"}`}>
+              <Card className={`border-2 ${resumo.margem >= 0 ? "border-success bg-success dark:bg-success/20" : "border-destructive bg-destructive dark:bg-destructive/20"}`}>
                 <CardContent className="p-3 text-center">
                   <p className="text-xs text-muted-foreground font-medium">Margem Líquida</p>
-                  <p className={`text-xl font-bold ${resumo.margem >= 0 ? "text-green-700" : "text-red-700"}`}>R$ {resumo.margem.toFixed(2)}</p>
+                  <p className={`text-xl font-bold ${resumo.margem >= 0 ? "text-success" : "text-destructive"}`}>R$ {resumo.margem.toFixed(2)}</p>
                   <p className="text-xs text-muted-foreground">{margemPct.toFixed(1)}%</p>
                 </CardContent>
               </Card>
@@ -755,9 +755,9 @@ export default function GestaoRotas() {
                               </div>
                             </TableCell>
                             <TableCell className="text-right text-sm tabular-nums">R$ {c.receita.toFixed(2)}</TableCell>
-                            <TableCell className="text-right text-sm tabular-nums text-orange-600">R$ {c.custo_produto.toFixed(2)}</TableCell>
-                            <TableCell className="text-right text-sm tabular-nums text-red-600">R$ {c.despesa_rota.toFixed(2)}</TableCell>
-                            <TableCell className={`text-right text-sm tabular-nums font-semibold ${c.margem >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            <TableCell className="text-right text-sm tabular-nums text-warning">R$ {c.custo_produto.toFixed(2)}</TableCell>
+                            <TableCell className="text-right text-sm tabular-nums text-destructive">R$ {c.despesa_rota.toFixed(2)}</TableCell>
+                            <TableCell className={`text-right text-sm tabular-nums font-semibold ${c.margem >= 0 ? "text-success" : "text-destructive"}`}>
                               R$ {c.margem.toFixed(2)}
                               <div className="text-[10px] text-muted-foreground">{c.margem_pct.toFixed(1)}%</div>
                             </TableCell>

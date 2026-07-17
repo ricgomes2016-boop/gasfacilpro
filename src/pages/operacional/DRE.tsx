@@ -395,12 +395,12 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                       {item.valores.map((v, i) => (
                         <td
                           key={i}
-                          className={`w-[112px] min-w-[112px] border-b border-border/50 px-3 py-2.5 text-right tabular-nums whitespace-nowrap ${isSubtotal || isResultado ? "font-bold" : "font-medium"} ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-green-600" : ""}`}
+                          className={`w-[112px] min-w-[112px] border-b border-border/50 px-3 py-2.5 text-right tabular-nums whitespace-nowrap ${isSubtotal || isResultado ? "font-bold" : "font-medium"} ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-success" : ""}`}
                         >
                           {formatCurrency(v)}
                         </td>
                       ))}
-                      <td className={`w-[132px] min-w-[132px] border-b border-border/50 bg-muted/20 px-3 py-2.5 text-right font-bold tabular-nums whitespace-nowrap ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
+                      <td className={`w-[132px] min-w-[132px] border-b border-border/50 bg-muted/20 px-3 py-2.5 text-right font-bold tabular-nums whitespace-nowrap ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-success" : ""}`}>
                         {formatCurrency(total)}
                       </td>
                       <td className={`border-b border-border/50 px-2.5 py-2.5 text-right text-xs tabular-nums ${isSubtotal || isResultado ? "font-bold" : "text-muted-foreground"}`}>
@@ -453,7 +453,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                       {item.valores.map((v, i) => (
                         <td
                           key={`${item.categoria}-${mesesExibidos[i]}`}
-                          className={`w-[104px] min-w-[104px] border-b border-border/50 px-2.5 py-3 text-right align-middle text-[12px] tabular-nums whitespace-nowrap ${isSubtotal || isResultado ? "font-bold" : "font-medium"} ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-green-600" : ""}`}
+                          className={`w-[104px] min-w-[104px] border-b border-border/50 px-2.5 py-3 text-right align-middle text-[12px] tabular-nums whitespace-nowrap ${isSubtotal || isResultado ? "font-bold" : "font-medium"} ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-success" : ""}`}
                         >
                           {formatCurrency(v)}
                         </td>
@@ -461,7 +461,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                       <td className={`w-[76px] min-w-[76px] border-b border-border/50 px-3 py-3 text-right align-middle text-[11px] tabular-nums whitespace-nowrap ${isSubtotal || isResultado ? "font-bold" : "text-muted-foreground"}`}>
                         {formatPercent(av)}
                       </td>
-                      <td className={`w-[136px] min-w-[136px] border-b border-border/50 bg-muted/20 px-3 py-3 text-right align-middle text-[12px] font-bold tabular-nums whitespace-nowrap ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
+                      <td className={`w-[136px] min-w-[136px] border-b border-border/50 bg-muted/20 px-3 py-3 text-right align-middle text-[12px] font-bold tabular-nums whitespace-nowrap ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-success" : ""}`}>
                         {formatCurrency(total)}
                       </td>
                     </tr>
@@ -518,9 +518,9 @@ function KPICard({ label, value, icon, color, isPercent, badge }: {
   badge?: string;
 }) {
   const colorMap = {
-    green: { bg: "bg-green-500/10", text: "text-green-600", gradient: "from-green-500/5" },
+    green: { bg: "bg-success/10", text: "text-success", gradient: "from-success/5" },
     red: { bg: "bg-destructive/10", text: "text-destructive", gradient: "from-destructive/5" },
-    blue: { bg: "bg-blue-500/10", text: "text-blue-600", gradient: "from-blue-500/5" },
+    blue: { bg: "bg-info/10", text: "text-info", gradient: "from-info/5" },
   };
   const c = colorMap[color];
 
@@ -538,7 +538,7 @@ function KPICard({ label, value, icon, color, isPercent, badge }: {
           </div>
           {badge && (
             <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
-              badge.startsWith("+") ? "text-green-600 border-green-200 bg-green-50" : "text-destructive border-destructive/20 bg-destructive/5"
+              badge.startsWith("+") ? "text-success border-success bg-success" : "text-destructive border-destructive/20 bg-destructive/5"
             }`}>
               {badge}
             </Badge>

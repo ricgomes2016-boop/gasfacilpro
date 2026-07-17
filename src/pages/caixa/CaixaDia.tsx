@@ -731,7 +731,7 @@ export default function CaixaDia() {
                       const diff = parseFloat(fechamentoForm.valor) - (sessao.valor_abertura + saldo);
                       const isOk = Math.abs(diff) < 0.01;
                       return (
-                        <div className={`rounded-lg p-3 text-sm font-medium flex items-center gap-2 ${isOk ? "bg-success/10 text-success" : Math.abs(diff) > 50 ? "bg-destructive/10 text-destructive" : "bg-amber-500/10 text-amber-600"}`}>
+                        <div className={`rounded-lg p-3 text-sm font-medium flex items-center gap-2 ${isOk ? "bg-success/10 text-success" : Math.abs(diff) > 50 ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"}`}>
                           {isOk ? "✅" : Math.abs(diff) > 50 ? "🚨" : "⚠️"}
                           Diferença: R$ {diff.toFixed(2)}
                           {Math.abs(diff) > 50 && " — Divergência alta! Verifique."}
@@ -745,7 +745,7 @@ export default function CaixaDia() {
               </Dialog>
             )}
             {sessao?.status === "fechado" && (sessao as any).bloqueado && isGestor && (
-              <Button variant="outline" className="border-amber-500 text-amber-600 hover:bg-amber-500/10" onClick={handleReabrirCaixa}>
+              <Button variant="outline" className="border-warning text-warning hover:bg-warning/10" onClick={handleReabrirCaixa}>
                 <Unlock className="h-4 w-4 mr-2" />Reabrir Caixa
               </Button>
             )}
@@ -841,10 +841,10 @@ export default function CaixaDia() {
         {(entregadoresPendentes.length > 0 || sangriasPendentes > 0) && (
           <div className="grid gap-3 md:grid-cols-2">
             {entregadoresPendentes.length > 0 && (
-              <Card className="border-amber-500/30">
+              <Card className="border-warning/30">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <Users className="h-5 w-5 text-amber-500" />
+                    <Users className="h-5 w-5 text-warning" />
                     Entregadores — Acerto Pendente
                     <Badge variant="secondary" className="ml-auto">{entregadoresPendentes.length}</Badge>
                   </CardTitle>
@@ -1035,10 +1035,10 @@ export default function CaixaDia() {
                       </TableHeader>
                       <TableBody>
                         {formasPagamento.map(fp => (
-                          <TableRow key={fp.forma} className={fp.forma === "Acerto Pendente" ? "cursor-pointer hover:bg-amber-500/10" : ""} onClick={() => fp.forma === "Acerto Pendente" && setAcertoPendenteDialogOpen(true)}>
+                          <TableRow key={fp.forma} className={fp.forma === "Acerto Pendente" ? "cursor-pointer hover:bg-warning/10" : ""} onClick={() => fp.forma === "Acerto Pendente" && setAcertoPendenteDialogOpen(true)}>
                             <TableCell className="font-medium capitalize">
                               {fp.forma === "Acerto Pendente" ? (
-                                <span className="flex items-center gap-1.5 text-amber-600">
+                                <span className="flex items-center gap-1.5 text-warning">
                                   <Clock className="h-4 w-4" />
                                   {fp.forma}
                                   <Eye className="h-3.5 w-3.5 ml-1 opacity-60" />

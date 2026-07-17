@@ -1259,7 +1259,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                               {outgoing && (() => {
                                 const s = msg.status || "sent";
                                 if (s === "failed") {
-                                  return <span title={msg.error_message || "Falha no envio"} className="text-red-500 text-[12px] leading-none">⚠</span>;
+                                  return <span title={msg.error_message || "Falha no envio"} className="text-destructive text-[12px] leading-none">⚠</span>;
                                 }
                                 if (s === "pending") {
                                   return <span title="Pendente" className="text-[#667781] text-[11px]">🕒</span>;
@@ -1351,7 +1351,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
               {/* Recording state */}
               {recording ? (
                 <div className="flex-1 bg-white rounded-lg px-3 py-2.5 min-h-[42px] flex items-center gap-3">
-                  <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-destructive animate-pulse" />
                   <span className="text-sm text-[#3b4a54] flex-1">
                     Gravando... {Math.floor(recordingTime / 60).toString().padStart(2, "0")}:{(recordingTime % 60).toString().padStart(2, "0")}
                   </span>
@@ -1360,7 +1360,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                     className="p-1.5 rounded-full hover:bg-[#e9edef]"
                     title="Cancelar"
                   >
-                    <Trash2 className="h-5 w-5 text-red-500" />
+                    <Trash2 className="h-5 w-5 text-destructive" />
                   </button>
                 </div>
               ) : (

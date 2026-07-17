@@ -225,7 +225,7 @@ export default function TranspSimulacao() {
           <div className="max-h-[100px] space-y-1 overflow-y-auto rounded-lg bg-muted/50 p-2 text-xs">
             {waypoints.map((w, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className={`font-bold ${i === 0 ? "text-green-600" : "text-primary"}`}>{i === 0 ? "A" : i}</span>
+                <span className={`font-bold ${i === 0 ? "text-success" : "text-primary"}`}>{i === 0 ? "A" : i}</span>
                 <span className="truncate text-muted-foreground">{w.label}</span>
                 {i > 0 && (
                   <span className="ml-auto whitespace-nowrap font-medium text-foreground">

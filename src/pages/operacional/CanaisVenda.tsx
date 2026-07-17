@@ -217,7 +217,7 @@ export default function CanaisVenda() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-blue-500/10"><Store className="h-6 w-6 text-blue-500" /></div>
+                <div className="p-3 rounded-lg bg-info/10"><Store className="h-6 w-6 text-info" /></div>
                 <div>
                   <p className="text-2xl font-bold">{totais.fixos}</p>
                   <p className="text-sm text-muted-foreground">Fixos</p>
@@ -228,7 +228,7 @@ export default function CanaisVenda() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-amber-500/10"><Handshake className="h-6 w-6 text-amber-500" /></div>
+                <div className="p-3 rounded-lg bg-warning/10"><Handshake className="h-6 w-6 text-warning" /></div>
                 <div>
                   <p className="text-2xl font-bold">{totais.parceiros}</p>
                   <p className="text-sm text-muted-foreground">Parceiros Vale Gás</p>
@@ -239,7 +239,7 @@ export default function CanaisVenda() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-green-500/10"><Megaphone className="h-6 w-6 text-green-500" /></div>
+                <div className="p-3 rounded-lg bg-success/10"><Megaphone className="h-6 w-6 text-success" /></div>
                 <div>
                   <p className="text-2xl font-bold">{totais.ativos}</p>
                   <p className="text-sm text-muted-foreground">Ativos</p>
@@ -343,10 +343,10 @@ export default function CanaisVenda() {
         </Card>
 
         {/* Info sobre vale gás */}
-        <Card className="border-amber-500/30 bg-amber-500/5">
+        <Card className="border-warning/30 bg-warning/5">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
-              <Handshake className="h-5 w-5 text-amber-500 mt-0.5" />
+              <Handshake className="h-5 w-5 text-warning mt-0.5" />
               <div>
                 <p className="font-medium">Integração com Vale Gás</p>
                 <p className="text-sm text-muted-foreground mt-1">

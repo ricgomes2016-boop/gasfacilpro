@@ -188,14 +188,14 @@ export default function EntregadorConquistas() {
                   key={c.id}
                   className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
                     c.desbloqueada
-                      ? "bg-green-500/10 border border-green-500/20"
+                      ? "bg-success/10 border border-success/20"
                       : "bg-muted/50"
                   }`}
                 >
                   <div
                     className={`h-12 w-12 rounded-full flex items-center justify-center shrink-0 ${
                       c.desbloqueada
-                        ? "bg-green-500 text-white"
+                        ? "bg-success text-white"
                         : "bg-muted text-muted-foreground"
                     }`}
                   >
@@ -214,7 +214,7 @@ export default function EntregadorConquistas() {
                     )}
                   </div>
                   {c.desbloqueada && (
-                    <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
+                    <CheckCircle className="h-5 w-5 text-success shrink-0" />
                   )}
                 </div>
               );
@@ -226,7 +226,7 @@ export default function EntregadorConquistas() {
         <Card className="border-none shadow-md">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-yellow-500" />
+              <Trophy className="h-5 w-5 text-warning" />
               Ranking do Mês
             </CardTitle>
           </CardHeader>

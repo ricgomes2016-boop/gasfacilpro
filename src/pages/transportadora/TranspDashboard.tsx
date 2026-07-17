@@ -154,10 +154,10 @@ export default function TranspDashboard() {
 
         {/* Alerts */}
         {custoMedio > 0 && (
-          <Card className="border-border/40 bg-amber-500/5">
+          <Card className="border-border/40 bg-warning/5">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+                <AlertTriangle className="h-5 w-5 text-warning mt-0.5 shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-foreground">Alertas Inteligentes</p>
                   <p className="text-xs text-muted-foreground mt-1">

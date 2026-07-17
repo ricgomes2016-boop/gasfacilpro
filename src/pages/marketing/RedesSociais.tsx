@@ -25,10 +25,10 @@ import { MetaAppStatusBanner } from "@/components/marketing/MetaAppStatusBanner"
 import { ConectarRedesModal } from "@/components/marketing/ConectarRedesModal";
 
 const plataformas = [
-  { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
-  { value: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-600" },
+  { value: "instagram", label: "Instagram", icon: Instagram, color: "text-primary" },
+  { value: "facebook", label: "Facebook", icon: Facebook, color: "text-info" },
   { value: "tiktok", label: "TikTok", icon: Music2, color: "text-foreground" },
-  { value: "youtube", label: "YouTube", icon: Youtube, color: "text-red-500" },
+  { value: "youtube", label: "YouTube", icon: Youtube, color: "text-destructive" },
 ];
 
 export default function RedesSociais() {
@@ -228,7 +228,7 @@ export default function RedesSociais() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               {isOAuth ? (
-                                <Badge className="gap-1 bg-green-500/15 text-green-700 dark:text-green-400 border border-green-500/30 hover:bg-green-500/20 text-[10px]">
+                                <Badge className="gap-1 bg-success/15 text-success dark:text-success border border-success/30 hover:bg-success/20 text-[10px]">
                                   <CheckCircle2 className="h-3 w-3" /> Conectado via OAuth
                                 </Badge>
                               ) : (
@@ -248,17 +248,17 @@ export default function RedesSociais() {
                         {isOAuth && statusMap[acc.id] && (
                           <>
                             {statusMap[acc.id].status === "connected" && (
-                              <Badge className="gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[10px]">
+                              <Badge className="gap-1 bg-success/15 text-success dark:text-success border border-success/30 text-[10px]">
                                 <CheckCircle2 className="h-3 w-3" /> Testado
                               </Badge>
                             )}
                             {statusMap[acc.id].status === "expiring" && (
-                              <Badge className="gap-1 bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10px]">
+                              <Badge className="gap-1 bg-warning/15 text-warning dark:text-warning border border-warning/30 text-[10px]">
                                 <AlertTriangle className="h-3 w-3" /> Expirando
                               </Badge>
                             )}
                             {statusMap[acc.id].status === "needs_reauth" && (
-                              <Badge className="gap-1 bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30 text-[10px]">
+                              <Badge className="gap-1 bg-destructive/15 text-destructive dark:text-destructive border border-destructive/30 text-[10px]">
                                 <XCircle className="h-3 w-3" /> Reautenticar
                               </Badge>
                             )}

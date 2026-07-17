@@ -83,7 +83,7 @@ function ValeCard({ vale, onVender, onUtilizar, onQRCode }: { vale: ValeGasParce
           </Button>
         )}
         {vale.status === "vendido" && onUtilizar && (
-          <Button size="sm" onClick={onUtilizar} className="gap-1 h-8 bg-teal-600 hover:bg-teal-700 text-white">
+          <Button size="sm" onClick={onUtilizar} className="gap-1 h-8 bg-success hover:bg-success text-white">
             <Zap className="h-3.5 w-3.5" />
             Utilizar
           </Button>

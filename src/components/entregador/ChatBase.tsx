@@ -55,8 +55,8 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/entregador-c
 
 // Avatar color palette
 const AVATAR_COLORS = [
-  "bg-emerald-500", "bg-blue-500", "bg-purple-500", "bg-orange-500",
-  "bg-pink-500", "bg-teal-500", "bg-indigo-500", "bg-rose-500",
+  "bg-success", "bg-info", "bg-primary", "bg-warning",
+  "bg-primary", "bg-success", "bg-info", "bg-destructive",
 ];
 
 function getAvatarColor(name: string) {
@@ -544,7 +544,7 @@ export function ChatBase() {
               <Avatar className="h-9 w-9">
                 <AvatarFallback className={cn(
                   "text-white text-xs font-bold",
-                  selectedPeer.tipo === "base" ? "bg-amber-600" : getAvatarColor(selectedPeer.nome)
+                  selectedPeer.tipo === "base" ? "bg-warning" : getAvatarColor(selectedPeer.nome)
                 )}>
                   {selectedPeer.tipo === "base" ? <Building2 className="h-4 w-4" /> : getInitials(selectedPeer.nome)}
                 </AvatarFallback>
@@ -689,7 +689,7 @@ export function ChatBase() {
                         <Avatar className="h-12 w-12 shrink-0">
                           <AvatarFallback className={cn(
                             "text-white text-sm font-bold",
-                            p.tipo === "base" ? "bg-amber-600" : getAvatarColor(p.nome)
+                            p.tipo === "base" ? "bg-warning" : getAvatarColor(p.nome)
                           )}>
                             {p.tipo === "base" ? <Building2 className="h-5 w-5" /> : getInitials(p.nome)}
                           </AvatarFallback>
@@ -768,7 +768,7 @@ export function ChatBase() {
                           </span>
                           {isMe && (
                             msg.lida
-                              ? <CheckCheck className="h-3 w-3 text-blue-300" />
+                              ? <CheckCheck className="h-3 w-3 text-info" />
                               : <Check className="h-3 w-3 opacity-60" />
                           )}
                         </div>

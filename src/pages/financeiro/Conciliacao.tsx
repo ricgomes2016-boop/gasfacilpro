@@ -590,7 +590,7 @@ export default function Conciliacao({ embedded, contas = [] }: { embedded?: bool
                         ? Math.abs(Math.abs(Number(selectedLancamento.valor)) - Number(pedido.valor_total)) < Number(pedido.valor_total) * 0.01
                         : false;
                       return (
-                        <TableRow key={pedido.id} className={valorMatch ? "bg-green-50 dark:bg-green-950/20" : ""}>
+                        <TableRow key={pedido.id} className={valorMatch ? "bg-success dark:bg-success/20" : ""}>
                           <TableCell>{new Date(pedido.created_at).toLocaleDateString("pt-BR")}</TableCell>
                           <TableCell className="font-medium">{(pedido.clientes as any)?.nome || "—"}</TableCell>
                           <TableCell className="font-medium">

@@ -671,10 +671,10 @@ export default function Funcionarios() {
                 </div>
 
                 {/* Vendedor toggle */}
-                <div className="col-span-2 border rounded-lg p-4 space-y-4 bg-emerald-500/5 border-emerald-500/30">
+                <div className="col-span-2 border rounded-lg p-4 space-y-4 bg-success/5 border-success/30">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-emerald-600" />
+                      <Target className="h-4 w-4 text-success" />
                       <Label className="text-base font-medium">É Vendedor?</Label>
                     </div>
                     <Switch
@@ -687,7 +687,7 @@ export default function Funcionarios() {
                   </p>
 
                   {form.is_vendedor && (
-                    <div className="space-y-4 pt-2 border-t border-emerald-500/20">
+                    <div className="space-y-4 pt-2 border-t border-success/20">
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-2">
                           <Label className="text-xs">Tipo de venda permitido</Label>
@@ -760,9 +760,9 @@ export default function Funcionarios() {
                       )}
 
                       {/* Credenciais de acesso ao app de vendas */}
-                      <div className="space-y-3 p-3 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+                      <div className="space-y-3 p-3 rounded-md bg-success/10 border border-success/20">
                         <p className="text-sm font-medium flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-emerald-600" />
+                          <Mail className="h-4 w-4 text-success" />
                           Acesso ao app de vendas
                         </p>
                         {form.is_entregador ? (
@@ -1036,7 +1036,7 @@ export default function Funcionarios() {
                               <Badge variant="secondary" className="text-xs">Interno</Badge>
                             ) : null}
                             {(f as any).is_vendedor && (
-                              <Badge className="gap-1 text-xs bg-emerald-600 hover:bg-emerald-700">
+                              <Badge className="gap-1 text-xs bg-success hover:bg-success">
                                 <Target className="h-3 w-3" />
                                 Vendedor
                               </Badge>

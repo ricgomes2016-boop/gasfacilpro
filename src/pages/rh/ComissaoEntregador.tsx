@@ -414,7 +414,7 @@ export default function ComissaoEntregador() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Média/Entregador</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
+              <TrendingUp className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-primary">R$ {dadosAgrupados.length > 0 ? (totalComissao / dadosAgrupados.length).toFixed(2) : "0.00"}</div>

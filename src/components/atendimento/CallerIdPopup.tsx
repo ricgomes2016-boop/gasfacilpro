@@ -290,13 +290,13 @@ export function CallerIdPopup() {
           )}
 
           {/* Status de Entrega IA */}
-          <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-3">
-             <div className="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
-               <Truck className="h-4 w-4 text-green-600" />
+          <div className="p-3 rounded-lg bg-success/10 border border-success/20 flex items-center gap-3">
+             <div className="h-8 w-8 rounded-full bg-success/20 flex items-center justify-center shrink-0">
+               <Truck className="h-4 w-4 text-success" />
              </div>
              <div className="space-y-0.5">
-               <p className="text-[11px] font-bold text-green-700 uppercase">Logística IA</p>
-               <p className="text-xs text-green-600 font-medium leading-tight">
+               <p className="text-[11px] font-bold text-success uppercase">Logística IA</p>
+               <p className="text-xs text-success font-medium leading-tight">
                  {ultimoPedido?.entregador?.nome 
                    ? `Encaminhado para ${ultimoPedido.entregador.nome} ${ultimoPedido.entregador.distanciaKm ? `(${ultimoPedido.entregador.distanciaKm.toFixed(1)}km)` : ""} ✅`
                    : "Aguardando entregador..."}
@@ -322,7 +322,7 @@ export function CallerIdPopup() {
             </Button>
 
             {(!ultimoPedido?.endereco_entrega || ultimoPedido?.endereco_entrega.length < 5) && (
-              <Button size="sm" variant="secondary" className="col-span-2 h-10 font-bold bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border border-orange-200 gap-2" onClick={handleNovaVenda}>
+              <Button size="sm" variant="secondary" className="col-span-2 h-10 font-bold bg-warning/10 text-warning hover:bg-warning/20 border border-warning gap-2" onClick={handleNovaVenda}>
                 <ShoppingCart className="h-4 w-4" />
                 COMPLETAR VENDA
               </Button>

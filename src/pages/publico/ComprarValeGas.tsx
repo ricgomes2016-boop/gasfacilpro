@@ -96,27 +96,27 @@ export default function ComprarValeGas() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+      <div className="min-h-screen bg-gradient-to-br from-warning to-warning flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-warning" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-warning to-warning flex flex-col">
       {/* Header */}
-      <header className="bg-gradient-to-r from-orange-500 to-amber-500 text-white py-6 px-4 text-center shadow-lg">
+      <header className="bg-gradient-to-r from-warning to-warning text-white py-6 px-4 text-center shadow-lg">
         <div className="flex items-center justify-center gap-2 mb-1">
           <Flame className="h-8 w-8" />
           <h1 className="text-2xl font-bold">Gas Express25</h1>
         </div>
-        <p className="text-orange-100 text-sm">Vale Gás Digital</p>
+        <p className="text-warning text-sm">Vale Gás Digital</p>
       </header>
 
       <main className="flex-1 p-4 max-w-md mx-auto w-full space-y-4">
         {!valeResult ? (
           <>
-            <Card className="border-orange-200 shadow-md">
+            <Card className="border-warning shadow-md">
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg text-center">
                   Adquira seu Vale Gás
@@ -135,7 +135,7 @@ export default function ComprarValeGas() {
                       value={nome}
                       onChange={(e) => setNome(e.target.value)}
                       required
-                      className="border-orange-200 focus-visible:ring-orange-400"
+                      className="border-warning focus-visible:ring-warning"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -145,7 +145,7 @@ export default function ComprarValeGas() {
                       placeholder="000.000.000-00"
                       value={cpf}
                       onChange={(e) => setCpf(e.target.value)}
-                      className="border-orange-200 focus-visible:ring-orange-400"
+                      className="border-warning focus-visible:ring-warning"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -156,12 +156,12 @@ export default function ComprarValeGas() {
                       value={telefone}
                       onChange={(e) => setTelefone(e.target.value)}
                       required
-                      className="border-orange-200 focus-visible:ring-orange-400"
+                      className="border-warning focus-visible:ring-warning"
                     />
                   </div>
 
                   {error && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive text-destructive text-sm">
                       <AlertCircle className="h-4 w-4 shrink-0" />
                       {error}
                     </div>
@@ -170,7 +170,7 @@ export default function ComprarValeGas() {
                   <Button
                     type="submit"
                     disabled={submitting || !nome.trim() || !telefone.trim()}
-                    className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-3"
+                    className="w-full bg-gradient-to-r from-warning to-warning hover:from-warning hover:to-warning text-white font-bold py-3"
                   >
                     {submitting ? (
                       <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -186,14 +186,14 @@ export default function ComprarValeGas() {
         ) : (
           <>
             {/* Success */}
-            <Card className="border-green-200 shadow-md">
+            <Card className="border-success shadow-md">
               <CardContent className="pt-6 text-center space-y-4">
-                <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-                  <CheckCircle className="h-10 w-10 text-green-600" />
+                <div className="h-16 w-16 rounded-full bg-success flex items-center justify-center mx-auto">
+                  <CheckCircle className="h-10 w-10 text-success" />
                 </div>
-                <h2 className="text-xl font-bold text-green-700">Vale Gás Emitido!</h2>
+                <h2 className="text-xl font-bold text-success">Vale Gás Emitido!</h2>
 
-                <div className="bg-green-50 rounded-xl p-4 space-y-2 text-left">
+                <div className="bg-success rounded-xl p-4 space-y-2 text-left">
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Vale Nº</span>
                     <span className="font-bold text-lg">{valeResult.numero}</span>
@@ -204,7 +204,7 @@ export default function ComprarValeGas() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Valor</span>
-                    <span className="font-bold text-green-700 text-lg">
+                    <span className="font-bold text-success text-lg">
                       R$ {Number(valeResult.valor).toFixed(2)}
                     </span>
                   </div>
@@ -232,7 +232,7 @@ export default function ComprarValeGas() {
               rel="noopener noreferrer"
               className="block"
             >
-              <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 gap-2">
+              <Button className="w-full bg-success hover:bg-success text-white font-bold py-3 gap-2">
                 <Send className="h-5 w-5" />
                 Receber no WhatsApp
               </Button>

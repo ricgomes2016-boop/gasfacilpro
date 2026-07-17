@@ -212,7 +212,7 @@ export default function AuthParceiro() {
           {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
         </div>
 
-        <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+        <Button type="submit" className="w-full bg-info hover:bg-info" disabled={isLoading}>
           {isLoading ? (
             <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>
           ) : (

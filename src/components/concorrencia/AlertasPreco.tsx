@@ -19,17 +19,17 @@ export function AlertasPreco({ alertas }: Props) {
   if (alertas.length === 0) return null;
 
   return (
-    <Card className="border-orange-200 dark:border-orange-900">
+    <Card className="border-warning dark:border-warning">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
-          <AlertTriangle className="h-4 w-4 text-orange-500" />
+          <AlertTriangle className="h-4 w-4 text-warning" />
           Alertas de Preço
           <Badge variant="destructive" className="text-[10px] ml-auto">{alertas.length}</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         {alertas.slice(0, 5).map((a, i) => (
-          <div key={i} className="flex items-center justify-between gap-2 text-xs p-2 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/50">
+          <div key={i} className="flex items-center justify-between gap-2 text-xs p-2 rounded-lg bg-warning dark:bg-warning/30 border border-warning dark:border-warning/50">
             <div className="flex-1 min-w-0">
               <div className="font-medium truncate">{a.produto}</div>
               <div className="text-muted-foreground truncate">
@@ -37,7 +37,7 @@ export function AlertasPreco({ alertas }: Props) {
               </div>
             </div>
             <div className="text-right shrink-0">
-              <div className="flex items-center gap-1 text-red-600">
+              <div className="flex items-center gap-1 text-destructive">
                 <ArrowDown className="h-3 w-3" />
                 R$ {a.precoConcorrente.toFixed(2)}
               </div>

@@ -25,8 +25,8 @@ const freqLabels: Record<string, string> = {
 };
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  ativo: { label: "Ativa", color: "bg-green-500" },
-  pausado: { label: "Pausada", color: "bg-amber-500" },
+  ativo: { label: "Ativa", color: "bg-success" },
+  pausado: { label: "Pausada", color: "bg-warning" },
   cancelado: { label: "Cancelada", color: "bg-destructive" },
 };
 

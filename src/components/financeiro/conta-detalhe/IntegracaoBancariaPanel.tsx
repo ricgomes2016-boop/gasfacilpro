@@ -90,11 +90,11 @@ export default function IntegracaoBancariaPanel({
             <p className="text-xs text-muted-foreground">{info.description}</p>
           </div>
           {integracao?.ativo ? (
-            <Badge className="bg-green-600 hover:bg-green-700">
+            <Badge className="bg-success hover:bg-success">
               <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Conectado
             </Badge>
           ) : (
-            <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50">
+            <Badge variant="outline" className="text-warning border-warning bg-warning">
               <AlertCircle className="h-3.5 w-3.5 mr-1" /> Não configurado
             </Badge>
           )}

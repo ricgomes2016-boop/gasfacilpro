@@ -213,9 +213,9 @@ export default function CampanhasWhatsApp() {
     <MainLayout>
       <Header title="Campanhas WhatsApp" subtitle="Disparo segmentado para sua base de clientes" />
       <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-4">
-        <Card className="border-amber-500/30 bg-amber-500/5">
+        <Card className="border-warning/30 bg-warning/5">
           <CardContent className="p-3 flex items-start gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+            <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
             <p className="text-xs">
               Use templates aprovados pelo WhatsApp Business e respeite o opt-in dos clientes. Disparos em massa para números não consentidos podem gerar bloqueio.
               Variáveis disponíveis: <code>{"{nome}"}</code>, <code>{"{bairro}"}</code>, <code>{"{dias}"}</code>.

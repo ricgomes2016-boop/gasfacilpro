@@ -33,7 +33,7 @@ function CardJogo({ jogo, onSalvar }: { jogo: BolaoJogo; onSalvar: (c: number, f
     <Card
       className={cn(
         "transition-all hover:shadow-md overflow-hidden",
-        jogo.finalizado && "border-emerald-500/40 bg-emerald-500/[0.03]"
+        jogo.finalizado && "border-success/40 bg-success/[0.03]"
       )}
     >
       <CardContent className="p-3 space-y-2">
@@ -82,7 +82,7 @@ function CardJogo({ jogo, onSalvar }: { jogo: BolaoJogo; onSalvar: (c: number, f
         {/* Ações */}
         <div className="flex items-center justify-between pt-1">
           {jogo.finalizado ? (
-            <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 gap-1">
+            <Badge variant="outline" className="border-success/40 text-success gap-1">
               <CheckCircle2 className="h-3 w-3" /> Finalizado
             </Badge>
           ) : (
@@ -184,23 +184,23 @@ export default function BolaoAdmin() {
           </Card>
           <Card>
             <CardContent className="p-3 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
+                <CheckCircle2 className="h-5 w-5 text-success" />
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Finalizados</div>
-                <div className="text-xl font-bold text-emerald-600">{stats.finalizados}</div>
+                <div className="text-xl font-bold text-success">{stats.finalizados}</div>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-amber-600" />
+              <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Pendentes</div>
-                <div className="text-xl font-bold text-amber-600">{stats.pendentes}</div>
+                <div className="text-xl font-bold text-warning">{stats.pendentes}</div>
               </div>
             </CardContent>
           </Card>

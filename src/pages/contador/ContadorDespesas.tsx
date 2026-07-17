@@ -201,10 +201,10 @@ export default function ContadorDespesas() {
   const limparSelecao = () => setSelecionados(new Set());
 
   const statusColors: Record<string, string> = {
-    pendente: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-    classificada: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-    baixada: "bg-green-500/15 text-green-400 border-green-500/30",
-    rejeitada: "bg-red-500/15 text-red-400 border-red-500/30",
+    pendente: "bg-warning/15 text-warning border-warning/30",
+    classificada: "bg-info/15 text-info border-info/30",
+    baixada: "bg-success/15 text-success border-success/30",
+    rejeitada: "bg-destructive/15 text-destructive border-destructive/30",
   };
 
   return (
@@ -394,7 +394,7 @@ export default function ContadorDespesas() {
                             </Button>
                           )}
                           {d.status !== "baixada" && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-green-400" onClick={() => marcarBaixada(d.id)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-success" onClick={() => marcarBaixada(d.id)}>
                               <CheckCircle2 className="h-4 w-4" />
                             </Button>
                           )}

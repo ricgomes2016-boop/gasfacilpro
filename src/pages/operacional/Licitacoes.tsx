@@ -98,15 +98,15 @@ const MODALIDADES: Record<string, string> = {
 };
 
 const STATUS_OPTIONS = [
-  { value: "prospeccao", label: "Prospecção", color: "bg-blue-100 text-blue-700 border-blue-200" },
-  { value: "participando", label: "Participando", color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
-  { value: "proposta_enviada", label: "Proposta Enviada", color: "bg-orange-100 text-orange-700 border-orange-200" },
-  { value: "habilitada", label: "Habilitada", color: "bg-purple-100 text-purple-700 border-purple-200" },
-  { value: "vencida", label: "Vencida 🏆", color: "bg-green-100 text-green-700 border-green-200" },
-  { value: "perdida", label: "Perdida", color: "bg-red-100 text-red-700 border-red-200" },
+  { value: "prospeccao", label: "Prospecção", color: "bg-info text-info border-info" },
+  { value: "participando", label: "Participando", color: "bg-warning text-warning border-warning" },
+  { value: "proposta_enviada", label: "Proposta Enviada", color: "bg-warning text-warning border-warning" },
+  { value: "habilitada", label: "Habilitada", color: "bg-primary text-primary border-primary" },
+  { value: "vencida", label: "Vencida 🏆", color: "bg-success text-success border-success" },
+  { value: "perdida", label: "Perdida", color: "bg-destructive text-destructive border-destructive" },
   { value: "cancelada", label: "Cancelada", color: "bg-gray-100 text-gray-600 border-gray-200" },
-  { value: "em_execucao", label: "Em Execução", color: "bg-teal-100 text-teal-700 border-teal-200" },
-  { value: "concluida", label: "Concluída", color: "bg-green-100 text-green-800 border-green-200" },
+  { value: "em_execucao", label: "Em Execução", color: "bg-success text-success border-success" },
+  { value: "concluida", label: "Concluída", color: "bg-success text-success border-success" },
 ];
 
 const EMPTY_FORM = {
@@ -363,8 +363,8 @@ export default function Licitacoes() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="border-border">
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-blue-600" />
+              <div className="h-10 w-10 rounded-lg bg-info flex items-center justify-center">
+                <FileText className="h-5 w-5 text-info" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.total}</p>
@@ -374,8 +374,8 @@ export default function Licitacoes() {
           </Card>
           <Card className="border-border">
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-yellow-100 flex items-center justify-center">
-                <AlertCircle className="h-5 w-5 text-yellow-600" />
+              <div className="h-10 w-10 rounded-lg bg-warning flex items-center justify-center">
+                <AlertCircle className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.participando}</p>
@@ -385,8 +385,8 @@ export default function Licitacoes() {
           </Card>
           <Card className="border-border">
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
-                <Trophy className="h-5 w-5 text-green-600" />
+              <div className="h-10 w-10 rounded-lg bg-success flex items-center justify-center">
+                <Trophy className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.vencidas}</p>
@@ -396,8 +396,8 @@ export default function Licitacoes() {
           </Card>
           <Card className="border-border">
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-teal-100 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-teal-600" />
+              <div className="h-10 w-10 rounded-lg bg-success flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-sm font-bold">{formatCurrency(stats.valorTotal)}</p>

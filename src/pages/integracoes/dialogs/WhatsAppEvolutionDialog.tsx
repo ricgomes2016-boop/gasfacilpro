@@ -53,8 +53,8 @@ export function WhatsAppEvolutionDialog(p: WhatsAppEvolutionDialogProps) {
                   <div key={cfg.id} className="p-3 rounded-xl border bg-card/50 hover:bg-muted/30 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`p-2 rounded-lg ${isConnected ? "bg-green-500/10" : "bg-muted"}`}>
-                          <Smartphone className={`h-5 w-5 ${isConnected ? "text-green-600" : "text-muted-foreground"}`} />
+                        <div className={`p-2 rounded-lg ${isConnected ? "bg-success/10" : "bg-muted"}`}>
+                          <Smartphone className={`h-5 w-5 ${isConnected ? "text-success" : "text-muted-foreground"}`} />
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-bold truncate">{cfg.instance_id}</p>
@@ -65,9 +65,9 @@ export function WhatsAppEvolutionDialog(p: WhatsAppEvolutionDialogProps) {
                       </div>
                       <Badge
                         variant={isConnected ? "default" : "secondary"}
-                        className={`text-[10px] gap-1 shrink-0 ${isConnected ? "bg-green-500/10 text-green-700 border-green-500/20" : ""}`}
+                        className={`text-[10px] gap-1 shrink-0 ${isConnected ? "bg-success/10 text-success border-success/20" : ""}`}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-green-500" : "bg-muted-foreground"}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-success" : "bg-muted-foreground"}`} />
                         {isConnected ? "Conectado" : "Desconectado"}
                       </Badge>
                     </div>

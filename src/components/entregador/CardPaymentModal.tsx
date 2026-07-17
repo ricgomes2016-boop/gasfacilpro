@@ -198,11 +198,11 @@ export function CardPaymentModal({
 
         {step === "aprovado" && (
           <div className="space-y-4 text-center py-4">
-            <div className="mx-auto w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center">
-              <CheckCircle className="h-10 w-10 text-emerald-500" />
+            <div className="mx-auto w-20 h-20 rounded-full bg-success/10 flex items-center justify-center">
+              <CheckCircle className="h-10 w-10 text-success" />
             </div>
             <div>
-              <p className="font-semibold text-lg text-emerald-600">Pagamento Aprovado!</p>
+              <p className="font-semibold text-lg text-success">Pagamento Aprovado!</p>
               <p className="text-sm text-muted-foreground mt-1">{fmtBRL(valor)}</p>
             </div>
             <Button onClick={handleConcluir} className="w-full gradient-primary text-white">

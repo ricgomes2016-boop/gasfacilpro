@@ -595,7 +595,7 @@ export function DialogImportarOFX({ empresaId, unidades, unidadeAtivaId, onConcl
                       return (
                         <TabsTrigger key={a.id} value={a.id} className="whitespace-nowrap">
                           {(u?.nome ?? "?")} · {a.conta.bankName ?? bancoNome(a.conta.bankId)} ····{last4}
-                          {!a.unidadeId && <AlertTriangle className="h-3 w-3 ml-1 text-amber-500" />}
+                          {!a.unidadeId && <AlertTriangle className="h-3 w-3 ml-1 text-warning" />}
                         </TabsTrigger>
                       );
                     })}
@@ -696,21 +696,21 @@ export function DialogImportarOFX({ empresaId, unidades, unidadeAtivaId, onConcl
                           {linhasF.map((l) => {
                             const realIdx = a.linhas.indexOf(l);
                             return (
-                              <tr key={realIdx} className={l.duplicado ? "bg-amber-500/5" : ""}>
+                              <tr key={realIdx} className={l.duplicado ? "bg-warning/5" : ""}>
                                 <td className="px-2 py-1.5">
                                   <Checkbox checked={l.selecionada} onCheckedChange={() => toggleLinha(a.id, realIdx)} />
                                 </td>
                                 <td className="px-2 py-1.5 whitespace-nowrap tabular-nums">{fmtData(l.date)}</td>
                                 <td className="px-2 py-1.5 max-w-[300px] truncate" title={l.memo}>
                                   {l.memo || l.fitid}
-                                  {l.duplicado && <Badge variant="outline" className="ml-1 text-[9px] border-amber-500/40 text-amber-600">duplicado</Badge>}
-                                  {l.suspeito && <Badge variant="outline" className="ml-1 text-[9px] border-amber-500/40 text-amber-600">revisar</Badge>}
+                                  {l.duplicado && <Badge variant="outline" className="ml-1 text-[9px] border-warning/40 text-warning">duplicado</Badge>}
+                                  {l.suspeito && <Badge variant="outline" className="ml-1 text-[9px] border-warning/40 text-warning">revisar</Badge>}
                                 </td>
-                                <td className={`px-2 py-1.5 text-right tabular-nums font-medium ${l.amount >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                                <td className={`px-2 py-1.5 text-right tabular-nums font-medium ${l.amount >= 0 ? "text-success dark:text-success" : "text-destructive dark:text-destructive"}`}>
                                   {fmtBRL(l.amount)}
                                 </td>
                                 <td className="px-2 py-1.5">
-                                  <Badge variant="outline" className={l.amount >= 0 ? "border-green-500/30 text-green-600" : "border-red-500/30 text-red-600"}>
+                                  <Badge variant="outline" className={l.amount >= 0 ? "border-success/30 text-success" : "border-destructive/30 text-destructive"}>
                                     {l.amount >= 0 ? "Crédito" : "Débito"}
                                   </Badge>
                                 </td>
@@ -747,7 +747,7 @@ export function DialogImportarOFX({ empresaId, unidades, unidadeAtivaId, onConcl
               </Button>
             </div>
             {!resumo.todasComUnidade && (
-              <p className="text-xs text-amber-600 flex items-center gap-1">
+              <p className="text-xs text-warning flex items-center gap-1">
                 <AlertTriangle className="h-3 w-3" /> Selecione a filial em todas as abas para habilitar a importação.
               </p>
             )}
@@ -757,9 +757,9 @@ export function DialogImportarOFX({ empresaId, unidades, unidadeAtivaId, onConcl
         {/* ETAPA 3: Resumo final */}
         {resumoFinal && (
           <div className="space-y-4">
-            <Card className="border-green-500/30 bg-green-500/5">
+            <Card className="border-success/30 bg-success/5">
               <CardContent className="p-6 text-center space-y-2">
-                <CheckCircle2 className="h-12 w-12 mx-auto text-green-500" />
+                <CheckCircle2 className="h-12 w-12 mx-auto text-success" />
                 <h3 className="text-lg font-semibold">Importação concluída com sucesso</h3>
                 <p className="text-sm text-muted-foreground">
                   {resumoFinal.lancamentos} lançamento(s) em {resumoFinal.contas} conta(s) · Período: {resumoFinal.periodo}

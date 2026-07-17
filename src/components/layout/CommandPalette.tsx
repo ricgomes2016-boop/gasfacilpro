@@ -216,7 +216,7 @@ export function CommandPalette() {
                     onSelect={() => handleSelect(c.path)}
                     className="gap-3"
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-info/10 text-info">
                       {c.icon}
                     </div>
                     <div className="flex-1">

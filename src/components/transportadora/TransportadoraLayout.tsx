@@ -42,7 +42,7 @@ function TransportadoraLayoutInner({ children }: { children: ReactNode }) {
       {/* Logo */}
       <div className={cn("border-b border-border/40", isCollapsed ? "p-3" : "p-4")}>
         <Link to="/transportadora" className={cn("flex items-center gap-3", isCollapsed && "justify-center")}>
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-md shrink-0">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-success to-success flex items-center justify-center shadow-md shrink-0">
             <Truck className="h-6 w-6 text-white" />
           </div>
           {!isCollapsed && (
@@ -68,11 +68,11 @@ function TransportadoraLayoutInner({ children }: { children: ReactNode }) {
                 "flex items-center rounded-lg text-sm font-medium transition-all",
                 isCollapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5",
                 isActive
-                  ? "bg-teal-500/10 text-teal-700 dark:text-teal-400 border border-teal-500/20"
+                  ? "bg-success/10 text-success dark:text-success border border-success/20"
                   : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
               )}
             >
-              <item.icon className={cn("h-4 w-4 shrink-0", isActive && "text-teal-600 dark:text-teal-400")} />
+              <item.icon className={cn("h-4 w-4 shrink-0", isActive && "text-success dark:text-success")} />
               {!isCollapsed && <span className="truncate">{item.label}</span>}
             </Link>
           );
@@ -132,7 +132,7 @@ function TransportadoraLayoutInner({ children }: { children: ReactNode }) {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <Truck className="h-5 w-5 text-teal-600" />
+            <Truck className="h-5 w-5 text-success" />
             <span className="font-semibold text-sm">Transportadora</span>
           </div>
         </header>

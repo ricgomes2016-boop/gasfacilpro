@@ -485,9 +485,9 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
                     </div>
                     {chart && <ChartRenderer chartMeta={chart} />}
                     {parsedPending.pendingActions.length > 0 && (
-                      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-950 shadow-sm">
+                      <div className="mt-3 rounded-lg border border-warning bg-warning p-3 text-warning shadow-sm">
                         <div className="flex items-start gap-2">
-                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-semibold">Confirmação necessária</p>
                             <div className="mt-2 space-y-1">

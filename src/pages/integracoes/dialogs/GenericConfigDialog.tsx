@@ -112,7 +112,7 @@ export function GenericConfigDialog({
               <p className="text-xs font-medium">Recursos:</p>
               {integracao.beneficios.map((b, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs">
-                  <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                  <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
                   <span>{b}</span>
                 </div>
               ))}

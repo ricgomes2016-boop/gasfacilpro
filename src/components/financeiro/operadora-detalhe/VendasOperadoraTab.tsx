@@ -128,7 +128,7 @@ export function VendasOperadoraTab({ operadoraId }: { operadoraId: string }) {
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-medium">{fmt(Number(r.valor))}</TableCell>
-                    <TableCell className="text-right text-emerald-700 dark:text-emerald-400 font-semibold">
+                    <TableCell className="text-right text-success dark:text-success font-semibold">
                       {fmt(liquido)}
                     </TableCell>
                   </TableRow>

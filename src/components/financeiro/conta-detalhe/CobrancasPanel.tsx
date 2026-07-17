@@ -104,7 +104,7 @@ export default function CobrancasPanel({ contaId, unidadeId, accentColor, provid
 
   const renderStatusBadge = (s: string, venc: string) => {
     const vencida = s === "pendente" && new Date(venc) < new Date();
-    if (s === "pago") return <Badge className="bg-green-600">Pago</Badge>;
+    if (s === "pago") return <Badge className="bg-success">Pago</Badge>;
     if (vencida) return <Badge variant="destructive">Vencido</Badge>;
     if (s === "cancelado") return <Badge variant="outline">Cancelado</Badge>;
     return <Badge variant="secondary">Pendente</Badge>;

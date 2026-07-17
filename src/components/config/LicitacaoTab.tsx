@@ -342,9 +342,9 @@ export function LicitacaoTab() {
               {selecionada.objeto && <div className="col-span-full"><span className="text-muted-foreground">Objeto:</span> {selecionada.objeto}</div>}
               <div className="col-span-full flex items-center gap-2 border-t pt-3 mt-1">
                 {assinatura.disponivel ? (
-                  <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <ShieldCheck className="h-4 w-4 text-success shrink-0" />
                 ) : (
-                  <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0" />
+                  <ShieldAlert className="h-4 w-4 text-warning shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
                   <Label className="text-xs">Assinar digitalmente (e-CNPJ)</Label>

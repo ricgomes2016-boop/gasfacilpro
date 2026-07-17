@@ -229,14 +229,14 @@ export default function ClienteCarrinho() {
             </div>
             
             {couponDiscount > 0 && (
-              <div className="flex justify-between text-sm text-green-600">
+              <div className="flex justify-between text-sm text-success">
                 <span>Desconto cupom ({appliedCoupon?.discount}%)</span>
                 <span>-R$ {couponDiscount.toFixed(2)}</span>
               </div>
             )}
             
             {walletDiscount > 0 && (
-              <div className="flex justify-between text-sm text-green-600">
+              <div className="flex justify-between text-sm text-success">
                 <span>Saldo carteira</span>
                 <span>-R$ {walletDiscount.toFixed(2)}</span>
               </div>
@@ -244,7 +244,7 @@ export default function ClienteCarrinho() {
             
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Entrega</span>
-              <span className="text-green-600">Grátis</span>
+              <span className="text-success">Grátis</span>
             </div>
             
             <Separator />

@@ -25,8 +25,8 @@ interface Modulo {
 
 const PLANOS: { key: PlanoKey; label: string; color: string }[] = [
   { key: "basico", label: "Básico", color: "bg-slate-500/10 text-slate-700 dark:text-slate-300" },
-  { key: "starter", label: "Starter", color: "bg-blue-500/10 text-blue-700 dark:text-blue-300" },
-  { key: "enterprise", label: "Enterprise", color: "bg-amber-500/10 text-amber-700 dark:text-amber-300" },
+  { key: "starter", label: "Starter", color: "bg-info/10 text-info dark:text-info" },
+  { key: "enterprise", label: "Enterprise", color: "bg-warning/10 text-warning dark:text-warning" },
 ];
 
 export default function AdminPlanosModulos() {

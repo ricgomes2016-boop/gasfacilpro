@@ -92,8 +92,8 @@ export default function SlaEntregas() {
       <div className="p-3 sm:p-4 md:p-6 space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-primary">{slaMinutos}min</p><p className="text-xs text-muted-foreground">SLA Contratual</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className={`text-2xl font-bold ${taxaPontualidade >= 80 ? "text-green-600" : taxaPontualidade >= 60 ? "text-chart-4" : "text-destructive"}`}>{taxaPontualidade}%</p><p className="text-xs text-muted-foreground">Pontualidade</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className={`text-2xl font-bold ${tempoMedio <= slaMinutos ? "text-green-600" : "text-destructive"}`}>{tempoMedio}min</p><p className="text-xs text-muted-foreground">Tempo Médio</p></CardContent></Card>
+          <Card><CardContent className="py-3 text-center"><p className={`text-2xl font-bold ${taxaPontualidade >= 80 ? "text-success" : taxaPontualidade >= 60 ? "text-warning" : "text-destructive"}`}>{taxaPontualidade}%</p><p className="text-xs text-muted-foreground">Pontualidade</p></CardContent></Card>
+          <Card><CardContent className="py-3 text-center"><p className={`text-2xl font-bold ${tempoMedio <= slaMinutos ? "text-success" : "text-destructive"}`}>{tempoMedio}min</p><p className="text-xs text-muted-foreground">Tempo Médio</p></CardContent></Card>
           <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold">{totalEntregas}</p><p className="text-xs text-muted-foreground">Entregas (30d)</p></CardContent></Card>
         </div>
 
@@ -125,8 +125,8 @@ export default function SlaEntregas() {
                       <TableRow key={p.id}>
                         <TableCell className="font-mono text-xs">{p.id.slice(0, 8)}</TableCell>
                         <TableCell>{(p.entregadores as any)?.nome || "-"}</TableCell>
-                        <TableCell className={`font-semibold ${(p.tempo_entrega_minutos || 0) <= slaMinutos ? "text-green-600" : "text-destructive"}`}>{p.tempo_entrega_minutos}min</TableCell>
-                        <TableCell>{(p.tempo_entrega_minutos || 0) <= slaMinutos ? <Badge variant="secondary" className="bg-green-100 text-green-700">✓ No prazo</Badge> : <Badge variant="destructive">✗ Atrasado</Badge>}</TableCell>
+                        <TableCell className={`font-semibold ${(p.tempo_entrega_minutos || 0) <= slaMinutos ? "text-success" : "text-destructive"}`}>{p.tempo_entrega_minutos}min</TableCell>
+                        <TableCell>{(p.tempo_entrega_minutos || 0) <= slaMinutos ? <Badge variant="secondary" className="bg-success text-success">✓ No prazo</Badge> : <Badge variant="destructive">✗ Atrasado</Badge>}</TableCell>
                         <TableCell className="text-sm">{format(new Date(p.created_at), "dd/MM/yy HH:mm")}</TableCell>
                       </TableRow>
                     ))}
@@ -147,8 +147,8 @@ export default function SlaEntregas() {
                       <TableCell className="font-bold">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}</TableCell>
                       <TableCell className="font-medium">{r.nome}</TableCell>
                       <TableCell>{r.total}</TableCell>
-                      <TableCell><Badge variant={r.taxa >= 80 ? "secondary" : r.taxa >= 60 ? "default" : "destructive"} className={r.taxa >= 80 ? "bg-green-100 text-green-700" : ""}>{r.taxa}%</Badge></TableCell>
-                      <TableCell className={r.tempoMedio <= slaMinutos ? "text-green-600" : "text-destructive"}>{r.tempoMedio}min</TableCell>
+                      <TableCell><Badge variant={r.taxa >= 80 ? "secondary" : r.taxa >= 60 ? "default" : "destructive"} className={r.taxa >= 80 ? "bg-success text-success" : ""}>{r.taxa}%</Badge></TableCell>
+                      <TableCell className={r.tempoMedio <= slaMinutos ? "text-success" : "text-destructive"}>{r.tempoMedio}min</TableCell>
                     </TableRow>
                   ))}
                   {ranking.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Sem dados suficientes.</TableCell></TableRow>}

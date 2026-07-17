@@ -212,18 +212,18 @@ export function RepassarEntregadorDialog({
 
         {/* Suggestion banner */}
         {suggestedDriver && (
-          <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
-            <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-2 flex items-center gap-1">
+          <div className="bg-success dark:bg-success/30 border border-success dark:border-success rounded-lg p-3">
+            <p className="text-xs font-medium text-success dark:text-success mb-2 flex items-center gap-1">
               <Navigation className="h-3 w-3" /> Sugestão: entregador mais próximo
             </p>
             <button
               disabled={assigning !== null}
               onClick={() => handleAssign(suggestedDriver)}
-              className="w-full flex items-center justify-between p-2 rounded-md bg-green-100 dark:bg-green-900/40 hover:bg-green-200 dark:hover:bg-green-900/60 transition-colors disabled:opacity-50"
+              className="w-full flex items-center justify-between p-2 rounded-md bg-success dark:bg-success/40 hover:bg-success dark:hover:bg-success/60 transition-colors disabled:opacity-50"
             >
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                  <Truck className="h-4 w-4 text-green-600" />
+                <div className="h-8 w-8 rounded-full bg-success/20 flex items-center justify-center">
+                  <Truck className="h-4 w-4 text-success" />
                 </div>
                 <div className="text-left">
                   <p className="font-semibold text-sm">{suggestedDriver.nome}</p>

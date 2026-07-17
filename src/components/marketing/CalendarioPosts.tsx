@@ -21,9 +21,9 @@ const plataformaEmoji: Record<string, string> = {
 };
 
 const statusColor: Record<string, string> = {
-  agendado: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30",
-  publicado: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
-  falhou: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30",
+  agendado: "bg-info/15 text-info dark:text-info border-info/30",
+  publicado: "bg-success/15 text-success dark:text-success border-success/30",
+  falhou: "bg-destructive/15 text-destructive dark:text-destructive border-destructive/30",
   cancelado: "bg-muted text-muted-foreground border-border",
 };
 

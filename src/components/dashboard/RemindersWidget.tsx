@@ -66,8 +66,8 @@ export function RemindersWidget() {
           items.push({
             id: "aniversarios",
             icon: Cake,
-            iconColor: "text-pink-500",
-            bgColor: "bg-pink-500/10",
+            iconColor: "text-primary",
+            bgColor: "bg-primary/10",
             title: `${aniversariantes.length} aniversariante${aniversariantes.length > 1 ? "s" : ""} esta semana`,
             description: aniversariantes.slice(0, 3).map(c => c.nome.split(" ")[0]).join(", ") +
               (aniversariantes.length > 3 ? ` e +${aniversariantes.length - 3}` : ""),
@@ -120,8 +120,8 @@ export function RemindersWidget() {
         items.push({
           id: "receber-vencendo",
           icon: Bell,
-          iconColor: "text-chart-4",
-          bgColor: "bg-chart-4/10",
+          iconColor: "text-warning",
+          bgColor: "bg-warning/10",
           title: `${receberProx.length} recebível(is) vence(m) em 3 dias`,
           description: `Total: R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
           badge: "Cobrar",
@@ -169,8 +169,8 @@ export function RemindersWidget() {
         items.push({
           id: "manutencao",
           icon: Wrench,
-          iconColor: vencidas.length > 0 ? "text-destructive" : "text-chart-4",
-          bgColor: vencidas.length > 0 ? "bg-destructive/10" : "bg-chart-4/10",
+          iconColor: vencidas.length > 0 ? "text-destructive" : "text-warning",
+          bgColor: vencidas.length > 0 ? "bg-destructive/10" : "bg-warning/10",
           title: `${manutencoes.length} manutenç${manutencoes.length > 1 ? "ões" : "ão"} ${vencidas.length > 0 ? "atrasada(s)" : "programada(s)"}`,
           description: manutencoes.slice(0, 2).map(m => m.descricao).join(", "),
           badge: vencidas.length > 0 ? "Atrasada" : "7 dias",

@@ -53,8 +53,8 @@ export function PrevisaoDemandaWidget() {
 
   const tipoCores: Record<string, string> = {
     estoque: "border-l-primary bg-primary/5",
-    logistica: "border-l-chart-3 bg-chart-3/5",
-    vendas: "border-l-chart-4 bg-chart-4/5",
+    logistica: "border-l-chart-3 bg-success/5",
+    vendas: "border-l-chart-4 bg-warning/5",
   };
 
   return (

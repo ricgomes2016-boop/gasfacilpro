@@ -99,7 +99,7 @@ export default function ClienteIndicacao() {
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <Coins className="h-8 w-8 mx-auto text-amber-500 mb-2" />
+              <Coins className="h-8 w-8 mx-auto text-warning mb-2" />
               <p className="text-2xl font-bold">R$ {walletBalance.toFixed(2)}</p>
               <p className="text-sm text-muted-foreground">Ganho total</p>
             </CardContent>
@@ -121,7 +121,7 @@ export default function ClienteIndicacao() {
                 size="icon"
                 onClick={() => copyToClipboard(referralCode)}
               >
-                {copied ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                {copied ? <CheckCircle className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           </CardContent>
@@ -159,7 +159,7 @@ export default function ClienteIndicacao() {
             <div className="grid grid-cols-2 gap-3">
               <Button 
                 variant="outline" 
-                className="gap-2 h-12 bg-green-500/10 border-green-500/30 text-green-600 hover:bg-green-500/20"
+                className="gap-2 h-12 bg-success/10 border-success/30 text-success hover:bg-success/20"
                 onClick={() => shareVia("whatsapp")}
               >
                 <MessageCircle className="h-5 w-5" />
@@ -167,7 +167,7 @@ export default function ClienteIndicacao() {
               </Button>
               <Button 
                 variant="outline" 
-                className="gap-2 h-12 bg-blue-500/10 border-blue-500/30 text-blue-600 hover:bg-blue-500/20"
+                className="gap-2 h-12 bg-info/10 border-info/30 text-info hover:bg-info/20"
                 onClick={() => shareVia("facebook")}
               >
                 <Facebook className="h-5 w-5" />
@@ -175,7 +175,7 @@ export default function ClienteIndicacao() {
               </Button>
               <Button 
                 variant="outline" 
-                className="gap-2 h-12 bg-sky-500/10 border-sky-500/30 text-sky-600 hover:bg-sky-500/20"
+                className="gap-2 h-12 bg-info/10 border-info/30 text-info hover:bg-info/20"
                 onClick={() => shareVia("twitter")}
               >
                 <Twitter className="h-5 w-5" />

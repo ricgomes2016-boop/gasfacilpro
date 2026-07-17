@@ -330,7 +330,7 @@ export function EditarCarregamentoModal({ open, onOpenChange, carregamento, onSa
                     <TableCell>{idx + 1}</TableCell>
                     <TableCell className="font-medium">
                       {item.produto_nome}
-                      {item.isNew && <Badge className="ml-1 text-[10px] bg-green-500">Novo</Badge>}
+                      {item.isNew && <Badge className="ml-1 text-[10px] bg-success">Novo</Badge>}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-xs">{item.categoria}</Badge>

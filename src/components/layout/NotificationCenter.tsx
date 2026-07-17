@@ -23,10 +23,10 @@ const tipoIcons: Record<string, typeof Bell> = {
 };
 
 const tipoCores: Record<string, string> = {
-  pedido: "text-blue-500",
-  promocao: "text-green-500",
-  alerta: "text-amber-500",
-  marketing: "text-purple-500",
+  pedido: "text-info",
+  promocao: "text-success",
+  alerta: "text-warning",
+  marketing: "text-primary",
   info: "text-muted-foreground",
 };
 

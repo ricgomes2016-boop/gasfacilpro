@@ -50,7 +50,7 @@ export default function AuthVendedor() {
       gradientFrom="160 75% 45%"
       gradientTo="200 70% 40%"
       logo={
-        <div className="h-16 w-16 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-lg">
+        <div className="h-16 w-16 rounded-2xl bg-success flex items-center justify-center shadow-lg">
           <ShoppingBag className="h-8 w-8 text-white" />
         </div>
       }
@@ -104,7 +104,7 @@ export default function AuthVendedor() {
           {form.errors.password && <p className="text-sm text-destructive">{form.errors.password}</p>}
         </div>
 
-        <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={form.isLoading}>
+        <Button type="submit" className="w-full bg-success hover:bg-success" disabled={form.isLoading}>
           {form.isLoading ? (
             <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>
           ) : (

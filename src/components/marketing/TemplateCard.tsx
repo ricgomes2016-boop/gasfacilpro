@@ -16,11 +16,11 @@ const categoriaLabel: Record<string, string> = {
 };
 
 const categoriaColor: Record<string, string> = {
-  promocao: "bg-orange-500/10 text-orange-600",
-  institucional: "bg-blue-500/10 text-blue-600",
-  data: "bg-pink-500/10 text-pink-600",
-  engajamento: "bg-violet-500/10 text-violet-600",
-  lancamento: "bg-emerald-500/10 text-emerald-600",
+  promocao: "bg-warning/10 text-warning",
+  institucional: "bg-info/10 text-info",
+  data: "bg-primary/10 text-primary",
+  engajamento: "bg-primary/10 text-primary",
+  lancamento: "bg-success/10 text-success",
 };
 
 interface Props {
@@ -57,7 +57,7 @@ export function TemplateCard({ template, onUse, onPreview, onEdit, onDuplicate, 
           </div>
           <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onToggleFav}>
             {template.favorito ? (
-              <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
+              <Star className="h-3.5 w-3.5 text-warning fill-warning" />
             ) : (
               <StarOff className="h-3.5 w-3.5" />
             )}

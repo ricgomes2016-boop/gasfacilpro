@@ -64,12 +64,12 @@ export default function ClienteValeGas() {
         {activeVales.length > 0 && (
           <div className="space-y-3">
             <h2 className="font-semibold text-lg flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-success" />
               Vales Ativos
             </h2>
             
             {activeVales.map(vale => (
-              <Card key={vale.id} className="border-green-200 bg-green-50/50">
+              <Card key={vale.id} className="border-success bg-success/50">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -79,7 +79,7 @@ export default function ClienteValeGas() {
                         <span>{vale.partner}</span>
                       </div>
                     </div>
-                    <Badge className="bg-green-600">Ativo</Badge>
+                    <Badge className="bg-success">Ativo</Badge>
                   </div>
                   
                   <div className="flex items-center justify-between">
@@ -87,7 +87,7 @@ export default function ClienteValeGas() {
                       <Calendar className="h-4 w-4" />
                       <span>Válido até {format(vale.expiryDate, "dd/MM/yyyy", { locale: ptBR })}</span>
                     </div>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-2xl font-bold text-success">
                       R$ {vale.value.toFixed(2)}
                     </p>
                   </div>
