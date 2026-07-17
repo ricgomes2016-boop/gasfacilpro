@@ -69,6 +69,22 @@
     --shadow-md: 0 1px 2px hsl(222 28% 14% / 0.07), 0 14px 30px -24px hsl(222 28% 14% / 0.28);
     --shadow-lg: 0 2px 4px hsl(222 28% 14% / 0.08), 0 22px 48px -30px hsl(222 28% 14% / 0.34);
     --shadow-glow: 0 0 22px hsl(var(--primary) / 0.22);
+
+    /* Dashboard elevation scale (3 tiers) */
+    --elev-1: 0 1px 2px hsl(222 28% 14% / 0.04), 0 2px 6px -3px hsl(222 28% 14% / 0.06);
+    --elev-2: 0 2px 4px hsl(222 28% 14% / 0.06), 0 12px 26px -14px hsl(222 28% 14% / 0.18);
+    --elev-3: 0 4px 10px hsl(222 28% 14% / 0.08), 0 28px 54px -22px hsl(222 28% 14% / 0.28);
+
+    /* Chart palette (semantic, tokenized) */
+    --chart-1: 174 61% 47%;
+    --chart-2: 243 100% 69%;
+    --chart-3: 31 100% 63%;
+    --chart-4: 152 69% 45%;
+    --chart-5: 262 83% 62%;
+    --chart-6: 199 89% 55%;
+
+    /* Dashboard hero gradient */
+    --gradient-hero: linear-gradient(135deg, hsl(var(--sidebar-gradient-from)) 0%, hsl(var(--sidebar-gradient-to)) 60%, hsl(var(--accent)) 100%);
   }
 
   .dark {
@@ -119,6 +135,19 @@
     --sidebar-accent-foreground: 0 0% 18%;
     --sidebar-border: 0 0% 100%;
     --sidebar-ring: 0 0% 100%;
+
+    --elev-1: 0 1px 2px hsl(0 0% 0% / 0.35), 0 2px 6px -3px hsl(0 0% 0% / 0.4);
+    --elev-2: 0 2px 4px hsl(0 0% 0% / 0.4), 0 12px 26px -14px hsl(0 0% 0% / 0.55);
+    --elev-3: 0 4px 10px hsl(0 0% 0% / 0.5), 0 28px 54px -22px hsl(0 0% 0% / 0.65);
+
+    --chart-1: 187 55% 55%;
+    --chart-2: 262 90% 70%;
+    --chart-3: 31 100% 65%;
+    --chart-4: 152 69% 55%;
+    --chart-5: 280 80% 70%;
+    --chart-6: 215 90% 62%;
+
+    --gradient-hero: linear-gradient(135deg, hsl(187 55% 30%) 0%, hsl(243 60% 40%) 60%, hsl(262 60% 45%) 100%);
   }
 }
 
