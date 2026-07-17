@@ -1,82 +1,110 @@
-## Objetivo
 
-Padronizar todas as 8 páginas do menu **Gestão de Estoque** no visual "premium" do Dashboard principal (já aplicado no Estoque do dia): `Header` no topo, action bar limpa, KPIs neutros com badge tintado, filtros compactos, cards de conteúdo neutros e tabelas com header em `text-xs uppercase text-muted-foreground` — usando exclusivamente tokens semânticos (`bg-card`, `bg-primary/10`, `text-muted-foreground`, `border`).
+# Ajuste Fino Profissional — Todo o ERP
 
-Sem mudanças em queries, mutations, RLS, `unidade_id`/`empresa_id`, edge functions ou lógica de estoque. Somente reestruturação visual + extração de subcomponentes.
+**Objetivo:** elevar o padrão visual de todas as páginas internas ao nível "premium" do Dashboard principal, sem tocar em nenhuma lógica de negócio, query, RLS ou mutation.
 
-## Escopo
+**Referência-ouro:** Dashboard principal + páginas de Estoque já refatoradas (`EstoqueKpiCard`, `EstoquePageHeader`, `EstoqueEmptyState`).
 
-| # | Página | Arquivo | O que padronizar |
-|---|--------|---------|------------------|
-| 1 | Estoque do dia | `src/pages/Estoque.tsx` | Já refeito — apenas polir (ícones dos KPIs, badges de tipo, estados vazios) |
-| 2 | Dashboard Estoque | `src/pages/estoque/DashboardEstoque.tsx` | Header + KPIs neutros, gráficos em cards limpos com toggle de visão, cores via tokens (remover paleta hex fixa) |
-| 3 | Compras | `src/pages/estoque/Compras.tsx` | Header + action bar (Nova compra / Outlook / relatório), KPIs (total mês, pago, pendente, fornecedores), filtros compactos, tabela padrão |
-| 4 | Comodatos | `src/pages/estoque/Comodatos.tsx` | Header + KPIs (ativos, vencidos, próximos, valor caução), filtro busca+status inline, tabela padrão, badges semânticos |
-| 5 | MCMM | `src/pages/estoque/MCMM.tsx` | Header + KPIs (críticos, alerta, ok, excesso), gráfico em card neutro, tabela com badges de status |
-| 6 | Histórico Movimentações | `src/pages/estoque/HistoricoMovimentacoes.tsx` | Header + KPIs (entradas, saídas, ajustes, total), filtros (período + tipo + busca) na mesma linha, tabela padrão |
-| 7 | Transferência Estoque | `src/pages/estoque/TransferenciaEstoque.tsx` | Header + action bar (Nova transferência), KPIs (pendentes, em trânsito, recebidas mês, valor), tabela + dialog mantendo lógica atual |
-| 8 | Lotes/Rastreabilidade | `src/pages/estoque/LotesRastreabilidade.tsx` | Header + KPIs (lotes ativos, próximos vencer, vencidos, rastreios mês), tabs em card neutro, tabela padrão |
+---
 
-## Padrão visual (aplicado em todas)
+## 1. Diagnóstico dos 4 problemas priorizados
 
-**Header/action bar**
-```tsx
-<Header title="..." subtitle="..." />
-<div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-  <div>
-    <h2 className="text-lg font-semibold">Título da seção</h2>
-    <p className="text-xs text-muted-foreground">Descrição curta</p>
+| Problema | Sintoma atual | Solução |
+|---|---|---|
+| Card dentro de Card | `<Card><CardContent><Card>...</Card></CardContent></Card>` cria bordas duplicadas e sombras somadas | Achatar: só o container externo é `Card`; blocos internos viram `<div>` com `space-y-*` ou grid |
+| Espaçamento inconsistente | Páginas usam `p-2`, `p-4`, `p-6`, `space-y-3`, `space-y-6` misturados | Padrão único: página `p-4 md:p-6 space-y-6`, card `p-4`, seções internas `space-y-4` |
+| Tipografia sem hierarquia | Títulos, subtítulos e labels com pesos/tamanhos aleatórios | Escala fixa: H1 `text-xl font-semibold`, H2 `text-lg font-semibold`, label `text-sm text-muted-foreground`, KPI `text-2xl font-bold` |
+| Cores/badges/ícones fora do padrão | `bg-chart-2/10`, `text-green-600`, cores hex hardcoded | Só tokens semânticos: `primary`, `success`, `warning`, `destructive`, `info`, `muted` (via `EstoqueKpiCard` tone) |
+
+---
+
+## 2. Componentes compartilhados a promover (globais)
+
+Renomear e mover para uso global (fora de `/estoque`):
+
+```text
+src/components/shared/
+  ├─ KpiCard.tsx          (ex-EstoqueKpiCard)
+  ├─ PageHeader.tsx       (ex-EstoquePageHeader)
+  ├─ EmptyState.tsx       (ex-EstoqueEmptyState)
+  ├─ SectionCard.tsx      (novo: Card + CardHeader padrão, sem aninhar)
+  └─ FilterBar.tsx        (novo: barra de filtros flex-col sm:flex-row)
+```
+
+Os componentes atuais em `/estoque` viram re-exports para não quebrar imports.
+
+---
+
+## 3. Padrão de layout de página (aplicado em TODAS)
+
+```text
+<MainLayout>
+  <Header title=… subtitle=… />
+  <div className="p-4 md:p-6 space-y-6">
+    <PageHeader title=… description=… actions={…} />   ← seção contextual
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <KpiCard … />  <KpiCard … />  …                  ← KPIs (nunca Card>Card)
+    </div>
+    <FilterBar>…</FilterBar>                            ← filtros (opcional)
+    <SectionCard title=… icon=…>                        ← conteúdo principal
+      <Table … />                                        (direto, sem Card interno)
+    </SectionCard>
   </div>
-  <div className="flex gap-2">{/* ações principais */}</div>
-</div>
+</MainLayout>
 ```
 
-**KPI card**
-```tsx
-<Card className="bg-card">
-  <CardContent className="p-4 flex items-center gap-3">
-    <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-      <Icon className="h-5 w-5" />
-    </div>
-    <div>
-      <p className="text-sm text-muted-foreground">Label</p>
-      <p className="text-2xl font-bold">{valor}</p>
-    </div>
-  </CardContent>
-</Card>
-```
-Tons por semântica: `primary` (neutro/principal), `info` (informativo/azul), `success` (verde/ok), `warning` (amarelo/alerta), `destructive` (crítico). Grid `grid-cols-2 md:grid-cols-4`.
+---
 
-**Filtros**: `flex-col sm:flex-row gap-2`, botões `variant="outline" size="sm"`, popovers com `p-3`.
+## 4. Escopo — módulos a varrer
 
-**Cards de conteúdo**: `bg-card` com `CardHeader` (ícone + título + subtítulo) e `CardContent`. Sem gradientes fixos, sem `bg-primary` sólido no card.
+Ordem de execução (do mais usado ao menos usado):
 
-**Tabelas**: `TableHeader` com `text-xs uppercase text-muted-foreground`, linhas com `hover:bg-muted/50`, badges de status com variantes semânticas.
+1. **Vendas** — PedidosKanban, Devolucoes, VendedorNovaVenda, CelulaMesEditavel
+2. **Financeiro** — Todas as páginas em `src/pages/financeiro/`
+3. **Clientes** — CRM, Campanhas, ContratosRecorrentes, Fidelidade, GestaoCredito, RankingClientes
+4. **Operacional** — dashboards (TrabalhistaContent, etc.) e demais telas
+5. **Fiscal** — DashboardFiscal, EmitirCTe, EmitirMDFe, RelatoriosNotas
+6. **Frota** — AnaliseFrotaIA, ChecklistSaida, DocumentosFrota, Gamificacao, RelatoriosFrota
+7. **RH** — todas em `src/pages/rh/`
+8. **Marketing** — DashboardMarketing, AtendimentoIA, CampanhasWhatsApp
+9. **Integrações + Config** — páginas em `src/pages/integracoes/` e `src/pages/config/`
+10. **Admin** — AdminDashboard, AdminAdmins, AdminBiaVoz, etc.
+11. **Contador** — ContadorHome, ContadorEmpresas, ContadorCalendario, etc.
+12. **Cadastros** — via `cadastrosRoutes`
 
-**Estados**: vazio (`text-center py-12 text-muted-foreground` + ícone `opacity-40`), loading (Skeleton no lugar dos cards/linhas).
+**Fora de escopo:** telas públicas (`/centralgascp`, landing), portais externos (cliente/entregador/vendedor/transportadora/parceiro), fluxos de auth. Se sobrar tempo, faço passada leve neles.
 
-## Reorganização de componentes
+---
 
-Criar utilitários compartilhados em `src/components/estoque/`:
-- `EstoqueKpiCard.tsx` — card KPI reutilizado nas 8 páginas (props: icon, label, value, tone).
-- `EstoquePageHeader.tsx` — bloco título + subtítulo + slot de ações da seção.
-- `EstoqueEmptyState.tsx` — estado vazio padrão (icon, title, description, action opcional).
+## 5. Regras invioláveis
 
-Nenhum dialog, mutation, cálculo ou fluxo existente é alterado — apenas o JSX de apresentação usa esses helpers.
+- ❌ NÃO mexer em queries, mutations, RLS, edge functions, `unidade_id`/`empresa_id`
+- ❌ NÃO trocar libs, rotas, providers, `App.tsx`, `MainLayout`
+- ❌ NÃO renomear props de componentes de negócio (Dialogs, formulários)
+- ❌ NÃO alterar comportamento de botões, filtros, submits
+- ✅ SÓ visual: JSX estrutural, className, extração de subcomponentes visuais
 
-## Fora de escopo
+---
 
-- Lógica de negócio, queries, RLS, edge functions, `unidade_id`/`empresa_id`, mutations.
-- Rotas, menu lateral, permissões, `MainLayout`.
-- Componentes internos já em uso nos dialogs (`ComprasListaTableEstoque`, `OutlookImportButton`, `ConfirmarNovosProdutosDialog` etc.).
+## 6. Verificação por lote
 
-## Ordem de execução
+A cada 3-4 páginas refatoradas:
+- `tsgo` (typecheck) tem que passar
+- Grep para garantir: nenhum `Card` dentro de `CardContent`; nenhum `text-green-600`/`bg-chart-*` hardcoded; nenhum `p-2`/`p-3` solto em página
+- Playwright headless: abrir a rota, printar, comparar hierarquia visual com Dashboard
 
-1. Criar `EstoqueKpiCard`, `EstoquePageHeader`, `EstoqueEmptyState`.
-2. Refatorar em ordem: Dashboard Estoque → Compras → Comodatos → MCMM → Histórico → Transferência → Lotes → polir Estoque do dia.
-3. Rodar typecheck ao final.
+---
 
-## Verificação
+## 7. Entrega
 
-- Typecheck `tsgo` sem erros.
-- Abrir cada rota via Playwright headless (`/estoque`, `/estoque/dashboard`, `/estoque/compras`, `/estoque/comodatos`, `/estoque/mcmm`, `/estoque/historico`, `/estoque/transferencia`, `/estoque/lotes`) e conferir screenshot do header + KPIs + tabela.
+- 1 commit por módulo (Vendas, Financeiro, Clientes, …) para facilitar reversão
+- Ao final: changelog resumido dos módulos tocados e nenhum arquivo de lógica alterado
+
+---
+
+## Detalhe técnico (para referência)
+
+- **Cores semânticas** já definidas em `index.css`: `--primary`, `--success`, `--warning`, `--destructive`, `--info`, `--muted-foreground`, `--card`, `--border`. Usar sempre via classes Tailwind (`bg-success/10 text-success`), nunca hex.
+- **Grid responsivo**: `grid-cols-2 md:grid-cols-4` para KPIs; `grid-cols-1 lg:grid-cols-3` para conteúdo largo. Sempre com `min-w-0` conforme `.lovable/responsive-rules.md`.
+- **Tabelas**: header `text-xs uppercase text-muted-foreground`, linhas `hover:bg-muted/50`, badges de status usando tones semânticos.
+- **Botões de ação**: no slot `actions` do `PageHeader`, `size="sm"` para secundários, default para primário.
