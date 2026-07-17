@@ -89,8 +89,8 @@ export default function DocumentosFrota() {
             <CardContent><div className="text-2xl font-bold">{entregadores.length}</div></CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">CNH Vencendo</CardTitle><AlertTriangle className="h-4 w-4 text-yellow-500" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-yellow-600">{alertasCNH}</div></CardContent>
+            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">CNH Vencendo</CardTitle><AlertTriangle className="h-4 w-4 text-warning" /></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-warning">{alertasCNH}</div></CardContent>
           </Card>
         </div>
 

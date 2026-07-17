@@ -505,7 +505,7 @@ export default function MarketingIA() {
       <Button size="sm" variant="outline" onClick={() => saveToLibrary(content, tipo)} className="gap-1.5"><Save className="h-3.5 w-3.5" /> Salvar</Button>
       {image && <Button size="sm" variant="outline" onClick={() => downloadImage(image)} className="gap-1.5"><Download className="h-3.5 w-3.5" /> Baixar</Button>}
       <Button size="sm" variant="outline" onClick={() => openWhatsappDialog(content, image)} className="gap-1.5 text-success"><Phone className="h-3.5 w-3.5" /> WhatsApp</Button>
-      <Button size="sm" variant="outline" onClick={() => openWebhookDialog(content, image)} className="gap-1.5 text-purple-600"><Webhook className="h-3.5 w-3.5" /> Zapier/n8n</Button>
+      <Button size="sm" variant="outline" onClick={() => openWebhookDialog(content, image)} className="gap-1.5 text-primary"><Webhook className="h-3.5 w-3.5" /> Zapier/n8n</Button>
     </div>
   );
 
@@ -971,7 +971,7 @@ export default function MarketingIA() {
         {/* Webhook Dialog */}
         <Dialog open={webhookDialogOpen} onOpenChange={setWebhookDialogOpen}>
           <DialogContent>
-            <DialogHeader><DialogTitle className="flex items-center gap-2"><Webhook className="h-5 w-5 text-purple-600" /> Enviar via Webhook</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className="flex items-center gap-2"><Webhook className="h-5 w-5 text-primary" /> Enviar via Webhook</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div className="bg-muted/30 rounded-lg p-3 text-sm max-h-32 overflow-y-auto">{dispatchContent.slice(0, 200)}{dispatchContent.length > 200 && "..."}</div>
               <div className="space-y-2">
