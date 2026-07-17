@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { 
   FileText, CheckCircle2, XCircle, AlertTriangle, TrendingUp,
   Receipt, Monitor, Truck, Route, ArrowRight 
@@ -11,6 +10,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { obterEstatisticasFiscais } from "@/services/focusNfeService";
 import { useNavigate } from "react-router-dom";
+import { KpiCard, SectionCard } from "@/components/shared";
 
 export default function DashboardFiscal() {
   const navigate = useNavigate();
@@ -63,89 +63,31 @@ export default function DashboardFiscal() {
   return (
     <MainLayout>
       <Header title="Dashboard Fiscal" subtitle="Gestão Fiscal" />
-      <div className="space-y-6 p-4 md:p-6">
+      <div className="p-4 md:p-6 space-y-6">
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{totalNotas}</p>
-                  <p className="text-sm text-muted-foreground">Total Emitidas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{autorizadas}</p>
-                  <p className="text-sm text-muted-foreground">Autorizadas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
-                  <XCircle className="h-5 w-5 text-destructive" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{canceladas}</p>
-                  <p className="text-sm text-muted-foreground">Canceladas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-accent/50 flex items-center justify-center">
-                  <AlertTriangle className="h-5 w-5 text-accent-foreground" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{rejeitadas}</p>
-                  <p className="text-sm text-muted-foreground">Rejeitadas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">R$ {(valorTotal / 1000).toFixed(0)}k</p>
-                  <p className="text-sm text-muted-foreground">Valor Autorizado</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <KpiCard icon={FileText} label="Total Emitidas" value={totalNotas} tone="primary" />
+          <KpiCard icon={CheckCircle2} label="Autorizadas" value={autorizadas} tone="success" />
+          <KpiCard icon={XCircle} label="Canceladas" value={canceladas} tone="destructive" />
+          <KpiCard icon={AlertTriangle} label="Rejeitadas" value={rejeitadas} tone="warning" />
+          <KpiCard icon={TrendingUp} label="Valor Autorizado" value={`R$ ${(valorTotal / 1000).toFixed(0)}k`} tone="info" />
         </div>
 
         {/* Atalhos rápidos */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {atalhos.map(a => (
-            <Card key={a.path} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate(a.path)}>
-              <CardContent className="pt-6 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <a.icon className="h-8 w-8 text-primary" />
-                  <div>
-                    <p className="font-bold">{a.label}</p>
-                    <p className="text-xs text-muted-foreground">{a.desc}</p>
+            <Card key={a.path} className="cursor-pointer border-border bg-card hover:border-primary/50 transition-colors" onClick={() => navigate(a.path)}>
+              <CardContent className="p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <a.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground truncate">{a.label}</p>
+                    <p className="text-xs text-muted-foreground truncate">{a.desc}</p>
                   </div>
                 </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
               </CardContent>
             </Card>
           ))}
@@ -154,11 +96,11 @@ export default function DashboardFiscal() {
         {/* Por tipo */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {porTipo.map(t => (
-            <Card key={t.tipo}>
-              <CardContent className="pt-6 text-center">
-                <p className="text-2xl font-bold">{t.total}</p>
+            <Card key={t.tipo} className="border-border bg-card">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{t.total}</p>
                 <p className="text-sm text-muted-foreground">{t.tipo}</p>
-                <Badge variant="outline" className="mt-1">{t.autorizadas} autorizadas</Badge>
+                <Badge variant="outline" className="mt-2">{t.autorizadas} autorizadas</Badge>
               </CardContent>
             </Card>
           ))}
@@ -166,70 +108,60 @@ export default function DashboardFiscal() {
 
         {/* Gráficos */}
         <div className="grid md:grid-cols-3 gap-6">
-          <Card className="md:col-span-2">
-            <CardHeader><CardTitle className="text-lg">Emissões por Mês</CardTitle></CardHeader>
-            <CardContent>
-              {dadosMensais.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={dadosMensais}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="mes" className="text-muted-foreground" />
-                    <YAxis className="text-muted-foreground" />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="nfe" name="NF-e" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="nfce" name="NFC-e" fill="hsl(var(--primary) / 0.6)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="cte" name="CT-e" fill="hsl(var(--primary) / 0.35)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="mdfe" name="MDF-e" fill="hsl(var(--primary) / 0.2)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                  {loading ? "Carregando..." : "Nenhum documento fiscal emitido ainda. Comece emitindo sua primeira nota!"}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle className="text-lg">Status das Notas</CardTitle></CardHeader>
-            <CardContent>
-              {statusPizza.length > 0 && totalNotas > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie data={statusPizza} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label>
-                      {statusPizza.map((entry, i) => (
-                        <Cell key={i} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Legend />
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                  {loading ? "Carregando..." : "Sem dados para exibir"}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <SectionCard title="Emissões por Mês" className="md:col-span-2">
+            {dadosMensais.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={dadosMensais}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="mes" className="text-muted-foreground" />
+                  <YAxis className="text-muted-foreground" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="nfe" name="NF-e" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="nfce" name="NFC-e" fill="hsl(var(--primary) / 0.6)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="cte" name="CT-e" fill="hsl(var(--primary) / 0.35)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="mdfe" name="MDF-e" fill="hsl(var(--primary) / 0.2)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm">
+                {loading ? "Carregando..." : "Nenhum documento fiscal emitido ainda. Comece emitindo sua primeira nota!"}
+              </div>
+            )}
+          </SectionCard>
+          <SectionCard title="Status das Notas">
+            {statusPizza.length > 0 && totalNotas > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie data={statusPizza} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label>
+                    {statusPizza.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Legend />
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm">
+                {loading ? "Carregando..." : "Sem dados para exibir"}
+              </div>
+            )}
+          </SectionCard>
         </div>
 
         {/* Alerta Focus NFe */}
-        <Card className="border-accent/30 bg-accent/5">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-accent-foreground mt-0.5" />
-              <div>
-                <p className="font-semibold">Integração Focus NFe</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  O sistema está preparado para integração com a API Focus NFe. Para ativar a transmissão real 
-                  para a SEFAZ, configure o token da API nas configurações do sistema. 
-                  As funcionalidades de emissão, cancelamento, carta de correção e inutilização já estão prontas.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-warning mt-0.5" />
+          <div className="min-w-0">
+            <p className="font-semibold text-foreground">Integração Focus NFe</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              O sistema está preparado para integração com a API Focus NFe. Para ativar a transmissão real 
+              para a SEFAZ, configure o token da API nas configurações do sistema. 
+              As funcionalidades de emissão, cancelamento, carta de correção e inutilização já estão prontas.
+            </p>
+          </div>
+        </div>
       </div>
     </MainLayout>
   );
