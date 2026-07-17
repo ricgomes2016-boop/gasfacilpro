@@ -71,8 +71,8 @@ interface ResumoVendedor {
 const STATUS_VALIDOS = ["entregue", "pago", "concluido", "finalizado"];
 
 function statusMeta(pct: number): { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string } {
-  if (pct >= 100) return { label: "Bateu meta", variant: "default", className: "bg-emerald-600 hover:bg-emerald-700" };
-  if (pct >= 50) return { label: "No caminho", variant: "secondary", className: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300" };
+  if (pct >= 100) return { label: "Bateu meta", variant: "default", className: "bg-success hover:bg-success" };
+  if (pct >= 50) return { label: "No caminho", variant: "secondary", className: "bg-warning/20 text-warning dark:text-warning" };
   return { label: "Abaixo", variant: "destructive" };
 }
 
@@ -278,7 +278,7 @@ function VendedoresInner() {
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Award className="h-3 w-3" /> Comissão estimada
             </p>
-            <p className="text-2xl font-bold text-emerald-600">{formatBRL(kpis.comissao)}</p>
+            <p className="text-2xl font-bold text-success">{formatBRL(kpis.comissao)}</p>
           </CardContent>
         </Card>
       </div>
@@ -288,14 +288,14 @@ function VendedoresInner() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Trophy className="h-4 w-4 text-yellow-500" /> Ranking do período
+              <Trophy className="h-4 w-4 text-warning" /> Ranking do período
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {top5.map((r, i) => {
               const pctBar = (r.total / maxTop) * 100;
               const podio = i < 3;
-              const cores = ["text-yellow-500", "text-gray-400", "text-amber-700"];
+              const cores = ["text-warning", "text-gray-400", "text-warning"];
               return (
                 <div key={r.user_id} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
@@ -307,7 +307,7 @@ function VendedoresInner() {
                       )}
                       {r.nome}
                       {i === 0 && (
-                        <Badge className="bg-yellow-500 hover:bg-yellow-600 text-xs ml-1">
+                        <Badge className="bg-warning hover:bg-warning text-xs ml-1">
                           Vendedor do mês
                         </Badge>
                       )}
@@ -378,7 +378,7 @@ function VendedoresInner() {
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right font-medium text-emerald-600">
+                      <TableCell className="text-right font-medium text-success">
                         {formatBRL(r.comissao)}
                       </TableCell>
                       <TableCell>

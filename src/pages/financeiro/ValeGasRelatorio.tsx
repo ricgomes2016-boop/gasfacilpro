@@ -119,10 +119,10 @@ export default function ValeGasRelatorio({ embedded }: { embedded?: boolean } = 
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
-      Disponível: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-info",
-      Vendido: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-warning",
-      Utilizado: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-success",
-      Cancelado: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-destructive",
+      Disponível: "bg-info text-info dark:bg-info/30 dark:text-info",
+      Vendido: "bg-warning text-warning dark:bg-warning/30 dark:text-warning",
+      Utilizado: "bg-success text-success dark:bg-success/30 dark:text-success",
+      Cancelado: "bg-destructive text-destructive dark:bg-destructive/30 dark:text-destructive",
     };
     return (
       <Badge className={cn("font-medium", variants[status] || "")}>
@@ -614,8 +614,8 @@ export default function ValeGasRelatorio({ embedded }: { embedded?: boolean } = 
                   <p className="text-sm text-muted-foreground">Taxa Conversão</p>
                   <p className="text-2xl font-bold">{taxaConversao}%</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-                  <BarChart3 className="h-6 w-6 text-purple-500" />
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <BarChart3 className="h-6 w-6 text-primary" />
                 </div>
               </div>
             </CardContent>

@@ -214,7 +214,7 @@ export default function ParceiroVenderVale() {
                   className="text-lg font-bold"
                 />
                 {lucro !== 0 && (
-                  <p className={`text-xs font-medium ${lucro >= 0 ? "text-green-600" : "text-red-500"}`}>
+                  <p className={`text-xs font-medium ${lucro >= 0 ? "text-success" : "text-destructive"}`}>
                     {lucro >= 0 ? "Lucro" : "Prejuízo"}: R$ {Math.abs(lucro).toFixed(2)}
                   </p>
                 )}

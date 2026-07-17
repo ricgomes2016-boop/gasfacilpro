@@ -262,7 +262,7 @@ export function SmartImportButtons({
       {hiddenInputs}
 
       {listening && (
-        <span className="text-xs text-red-500 flex items-center gap-1">
+        <span className="text-xs text-destructive flex items-center gap-1">
           🔴 Ouvindo...
         </span>
       )}

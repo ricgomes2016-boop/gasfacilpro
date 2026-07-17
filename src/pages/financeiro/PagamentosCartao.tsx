@@ -148,7 +148,7 @@ export default function PagamentosCartaoRelatorio() {
         <Card>
           <CardContent className="pt-4">
             <div className="text-sm text-muted-foreground flex items-center gap-1"><CheckCircle className="h-3 w-3" />Liquidado</div>
-            <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{fmtBRL(totalLiquidado)}</div>
+            <div className="text-xl font-bold text-success dark:text-success">{fmtBRL(totalLiquidado)}</div>
           </CardContent>
         </Card>
       </div>

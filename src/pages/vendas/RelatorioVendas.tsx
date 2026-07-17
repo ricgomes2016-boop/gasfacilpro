@@ -1115,13 +1115,13 @@ export default function RelatorioVendas() {
                           </div>
                           <div className="rounded-lg bg-muted/40 px-2.5 py-2">
                             <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Lucro</p>
-                            <p className={cn("font-semibold truncate", l.temCusto ? (l.lucro >= 0 ? "text-emerald-500" : "text-destructive") : "text-muted-foreground")}>
+                            <p className={cn("font-semibold truncate", l.temCusto ? (l.lucro >= 0 ? "text-success" : "text-destructive") : "text-muted-foreground")}>
                               {l.temCusto ? fmtBRL(l.lucro) : "—"}
                             </p>
                           </div>
                           <div className="rounded-lg bg-muted/40 px-2.5 py-2">
                             <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Margem</p>
-                            <p className={cn("font-semibold", margem !== null ? (margem >= 0 ? "text-emerald-500" : "text-destructive") : "text-muted-foreground")}>
+                            <p className={cn("font-semibold", margem !== null ? (margem >= 0 ? "text-success" : "text-destructive") : "text-muted-foreground")}>
                               {margem !== null ? `${margem.toFixed(2)}%` : "—"}
                             </p>
                           </div>

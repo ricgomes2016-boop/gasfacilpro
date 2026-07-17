@@ -160,7 +160,7 @@ export default function EntregadorDashboard() {
         {entregadorStatus === "offline" && (
           <div>
             <Link to="/entregador/jornada" className="block w-full">
-              <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-3xl p-5 text-white shadow-lg shadow-orange-500/30 flex items-center justify-between active:scale-[0.98] transition-transform">
+              <div className="bg-gradient-to-r from-warning to-destructive rounded-3xl p-5 text-white shadow-lg shadow-orange-500/30 flex items-center justify-between active:scale-[0.98] transition-transform">
                 <div>
                   <h2 className="text-xl font-bold flex items-center gap-2">
                     <Flame className="h-6 w-6" />
@@ -177,12 +177,12 @@ export default function EntregadorDashboard() {
         )}
 
         {/* Header com saudação Glassmorphism */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-5 text-white shadow-xl">
+        <div className="relative overflow-hidden bg-gradient-to-br from-success to-success rounded-3xl p-5 text-white shadow-xl">
           <div className="absolute -right-10 -top-10 h-40 w-40 bg-white/10 rounded-full blur-2xl"></div>
-          <div className="absolute -left-10 -bottom-10 h-32 w-32 bg-teal-400/20 rounded-full blur-xl"></div>
+          <div className="absolute -left-10 -bottom-10 h-32 w-32 bg-success/20 rounded-full blur-xl"></div>
           <div className="relative z-10 flex items-center justify-between">
             <div>
-              <p className="text-teal-100/90 text-sm font-medium">{saudacao},</p>
+              <p className="text-success/90 text-sm font-medium">{saudacao},</p>
               <h1 className="text-2xl font-bold tracking-tight mt-0.5 max-w-[180px] truncate">{nomeEntregador}</h1>
               <div className="flex items-center gap-2 mt-3">
                 <Badge className="bg-white/20 text-white border-none backdrop-blur-md hover:bg-white/30 transition-colors py-1 px-2.5">
@@ -195,7 +195,7 @@ export default function EntregadorDashboard() {
               <div className="h-16 w-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl font-bold shadow-inner">
                 {stats.entregasMes}
               </div>
-              <p className="text-xs text-teal-100 mt-2 font-medium">no mês</p>
+              <p className="text-xs text-success mt-2 font-medium">no mês</p>
             </div>
           </div>
         </div>
@@ -213,11 +213,11 @@ export default function EntregadorDashboard() {
           </div>
           <CardContent className="p-5 relative z-10">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 text-emerald-400">
+              <div className="flex items-center gap-2 text-success">
                 <DollarSign className="h-5 w-5" />
                 <span className="font-semibold text-sm tracking-wider uppercase">Ganhos do Dia</span>
               </div>
-              <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
+              <Badge variant="outline" className="border-success/30 text-success bg-success/10">
                 R$ {stats.ganhosMes.toFixed(2)} no mês
               </Badge>
             </div>
@@ -314,13 +314,13 @@ export default function EntregadorDashboard() {
 
         {/* Entregas pendentes com animação */}
         {todasEntregasPendentes.length > 0 && (
-          <Card className={`border-none shadow-lg rounded-2xl overflow-hidden transition-all ${pendingDeliveries.length > 0 ? 'ring-2 ring-orange-500/50 shadow-orange-500/20' : ''}`}>
-            <CardHeader className={`pb-3 border-b ${pendingDeliveries.length > 0 ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-200/50' : 'border-muted/50 bg-slate-50 dark:bg-slate-900/50'}`}>
+          <Card className={`border-none shadow-lg rounded-2xl overflow-hidden transition-all ${pendingDeliveries.length > 0 ? 'ring-2 ring-warning/50 shadow-orange-500/20' : ''}`}>
+            <CardHeader className={`pb-3 border-b ${pendingDeliveries.length > 0 ? 'bg-warning dark:bg-warning/30 border-warning/50' : 'border-muted/50 bg-slate-50 dark:bg-slate-900/50'}`}>
               <CardTitle className="text-base flex items-center gap-2">
-                <Flame className={`h-5 w-5 ${pendingDeliveries.length > 0 ? 'text-orange-500 animate-pulse' : 'text-primary'}`} />
+                <Flame className={`h-5 w-5 ${pendingDeliveries.length > 0 ? 'text-warning animate-pulse' : 'text-primary'}`} />
                 Entregas Pendentes
                 {pendingDeliveries.length > 0 && (
-                  <Badge className="bg-orange-500 hover:bg-orange-600 text-white ml-auto animate-pulse">
+                  <Badge className="bg-warning hover:bg-warning text-white ml-auto animate-pulse">
                     +{pendingDeliveries.length} novas
                   </Badge>
                 )}

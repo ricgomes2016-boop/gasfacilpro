@@ -127,7 +127,7 @@ export default function VendedorClientes() {
                       <Button
                         size="icon"
                         variant="outline"
-                        className="h-9 w-9 text-emerald-600"
+                        className="h-9 w-9 text-success"
                         onClick={() => whatsapp(c.telefone!)}
                       >
                         <MessageCircle className="h-4 w-4" />

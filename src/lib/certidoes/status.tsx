@@ -12,9 +12,9 @@ export function statusBadge(cert: any) {
   if (cert.status === "erro") return <Badge variant="destructive">Erro</Badge>;
   if (dias === null) return <Badge variant="secondary">Sem vencimento</Badge>;
   if (dias < 0) return <Badge variant="destructive">Vencida há {Math.abs(dias)}d</Badge>;
-  if (dias <= 15) return <Badge className="bg-orange-500 hover:bg-orange-600 text-white">Vence em {dias}d</Badge>;
-  if (dias <= 30) return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Vence em {dias}d</Badge>;
-  return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white">Regular ({dias}d)</Badge>;
+  if (dias <= 15) return <Badge className="bg-warning hover:bg-warning text-white">Vence em {dias}d</Badge>;
+  if (dias <= 30) return <Badge className="bg-warning hover:bg-warning text-white">Vence em {dias}d</Badge>;
+  return <Badge className="bg-success hover:bg-success text-white">Regular ({dias}d)</Badge>;
 }
 
 export const TIPO_CERTIDAO_LABEL: Record<string, string> = {

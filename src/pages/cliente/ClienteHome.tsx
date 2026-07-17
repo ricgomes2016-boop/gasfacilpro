@@ -586,7 +586,7 @@ function ProductCard({ product, quantity, cartQty, onQuantityChange, onAddToCart
                   onClick={onAddToCart}
                   disabled={isOutOfStock || isAdding}
                   aria-label="Adicionar ao carrinho"
-                  className={`h-7 px-2 sm:px-3 rounded-lg text-xs font-bold transition-all ${isAdding ? "bg-green-600 hover:bg-green-600" : ""}`}
+                  className={`h-7 px-2 sm:px-3 rounded-lg text-xs font-bold transition-all ${isAdding ? "bg-success hover:bg-success" : ""}`}
                 >
                   {isAdding ? "✓" : (
                     <>

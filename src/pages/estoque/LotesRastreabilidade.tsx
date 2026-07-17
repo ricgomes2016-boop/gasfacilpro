@@ -139,7 +139,7 @@ export default function LotesRastreabilidade() {
                     {filtered.map((l: any) => {
                       const dias = l.data_validade ? differenceInDays(new Date(l.data_validade), today) : null;
                       return (
-                        <TableRow key={l.id} className={l.status === "recall" ? "bg-destructive/5" : dias !== null && dias < 0 ? "bg-chart-4/5" : ""}>
+                        <TableRow key={l.id} className={l.status === "recall" ? "bg-destructive/5" : dias !== null && dias < 0 ? "bg-warning/5" : ""}>
                           <TableCell className="font-mono font-medium">{l.numero_lote}</TableCell>
                           <TableCell>{(l.produtos as any)?.nome || "-"}</TableCell>
                           <TableCell>{l.quantidade_atual}/{l.quantidade_inicial}</TableCell>

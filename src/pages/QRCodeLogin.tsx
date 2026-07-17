@@ -124,7 +124,7 @@ export default function QRCodeLogin() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-info to-info flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-6">
         {/* Logo */}
         <div className="text-center">
@@ -155,7 +155,7 @@ export default function QRCodeLogin() {
                 {/* Status */}
                 <div className="w-full">
                   {status === "scanning" && (
-                    <div className="flex items-center justify-center gap-2 text-blue-600 bg-blue-50 p-3 rounded-lg">
+                    <div className="flex items-center justify-center gap-2 text-info bg-info p-3 rounded-lg">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span className="text-sm font-medium">
                         Aguardando escaneamento...
@@ -164,7 +164,7 @@ export default function QRCodeLogin() {
                   )}
 
                   {status === "authenticated" && (
-                    <div className="flex items-center justify-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg">
+                    <div className="flex items-center justify-center gap-2 text-success bg-success p-3 rounded-lg">
                       <CheckCircle2 className="w-4 h-4" />
                       <span className="text-sm font-medium">
                         Autenticado com sucesso!
@@ -212,7 +212,7 @@ export default function QRCodeLogin() {
                 <Button
                   onClick={generateQRCode}
                   disabled={loading}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-info hover:bg-info"
                   size="lg"
                 >
                   {loading ? (
@@ -230,29 +230,29 @@ export default function QRCodeLogin() {
         </Card>
 
         {/* Instruções */}
-        <Card className="bg-blue-50 border-blue-200">
+        <Card className="bg-info border-info">
           <CardContent className="pt-6">
             <div className="space-y-3 text-sm">
               <div className="flex gap-3">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-info text-white flex items-center justify-center text-xs font-bold">
                   1
                 </div>
                 <p>Clique em "Gerar QR Code"</p>
               </div>
               <div className="flex gap-3">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-info text-white flex items-center justify-center text-xs font-bold">
                   2
                 </div>
                 <p>Abra a câmera do seu celular</p>
               </div>
               <div className="flex gap-3">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-info text-white flex items-center justify-center text-xs font-bold">
                   3
                 </div>
                 <p>Aponte para o QR Code</p>
               </div>
               <div className="flex gap-3">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-info text-white flex items-center justify-center text-xs font-bold">
                   4
                 </div>
                 <p>Confirme a autenticação no seu celular</p>
@@ -274,7 +274,7 @@ export default function QRCodeLogin() {
         <div className="text-center text-sm">
           <p className="text-gray-600">
             Prefere fazer login tradicional?{" "}
-            <a href="/login" className="text-blue-600 hover:underline font-medium">
+            <a href="/login" className="text-info hover:underline font-medium">
               Clique aqui
             </a>
           </p>

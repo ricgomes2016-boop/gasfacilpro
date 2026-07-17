@@ -100,9 +100,9 @@ export function ImportacaoInteligente({ empresa_id, unidade_id_padrao, destino =
   const confiancaBadge = (c?: number) => {
     if (c == null) return null;
     const pct = Math.round(c * 100);
-    const color = pct >= 80 ? "bg-emerald-600/20 text-emerald-400 border-emerald-700"
-      : pct >= 50 ? "bg-amber-600/20 text-amber-400 border-amber-700"
-      : "bg-red-600/20 text-red-400 border-red-700";
+    const color = pct >= 80 ? "bg-success/20 text-success border-success"
+      : pct >= 50 ? "bg-warning/20 text-warning border-warning"
+      : "bg-destructive/20 text-destructive border-destructive";
     return <Badge variant="outline" className={color}>{pct}%</Badge>;
   };
 
@@ -141,7 +141,7 @@ export function ImportacaoInteligente({ empresa_id, unidade_id_padrao, destino =
 
           {resumo && (
             <div className="flex gap-2 flex-wrap">
-              <Badge className="bg-emerald-600 text-white"><CheckCircle2 className="h-3 w-3 mr-1" /> Criados: {resumo.criados}</Badge>
+              <Badge className="bg-success text-white"><CheckCircle2 className="h-3 w-3 mr-1" /> Criados: {resumo.criados}</Badge>
               <Badge variant="outline">Duplicados: {resumo.duplicados}</Badge>
               {resumo.erros > 0 && <Badge variant="destructive"><AlertCircle className="h-3 w-3 mr-1" /> Erros: {resumo.erros}</Badge>}
             </div>
@@ -165,15 +165,15 @@ export function ImportacaoInteligente({ empresa_id, unidade_id_padrao, destino =
                   <tr key={i} className="border-t">
                     <td className="p-2 max-w-[200px] truncate" title={r.nome}>{r.nome}</td>
                     <td className="p-2 uppercase text-muted-foreground">{r.tipo ?? "—"}</td>
-                    <td className="p-2">{r.unidade_nome ?? <span className="text-amber-500">não detectada</span>}</td>
+                    <td className="p-2">{r.unidade_nome ?? <span className="text-warning">não detectada</span>}</td>
                     <td className="p-2 font-mono text-[10px]">{r.cnpj_dest ?? "—"}</td>
                     <td className="p-2 text-right">{r.valor ? `R$ ${Number(r.valor).toFixed(2)}` : "—"}</td>
                     <td className="p-2 text-center">{confiancaBadge(r.confianca)}</td>
                     <td className="p-2">
-                      {r.erro ? <span className="text-red-500 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{r.erro}</span>
-                        : r.status === "revisao" ? <span className="text-amber-500 flex items-center gap-1"><FileWarning className="h-3 w-3" />Revisar</span>
+                      {r.erro ? <span className="text-destructive flex items-center gap-1"><AlertCircle className="h-3 w-3" />{r.erro}</span>
+                        : r.status === "revisao" ? <span className="text-warning flex items-center gap-1"><FileWarning className="h-3 w-3" />Revisar</span>
                         : r.status === "duplicado" ? <span className="text-muted-foreground">já existia</span>
-                        : <span className="text-emerald-500 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />OK</span>}
+                        : <span className="text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />OK</span>}
                     </td>
                   </tr>
                 ))}

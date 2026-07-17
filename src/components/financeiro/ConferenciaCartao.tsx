@@ -538,7 +538,7 @@ export function ConferenciaCartao({ operadoraId, hideOperadorasTab }: Conferenci
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-100">
+      <div className="rounded-md border border-info bg-info px-4 py-3 text-sm text-info dark:border-info/50 dark:bg-info/30 dark:text-info">
         <strong>Conferência opcional.</strong> As baixas de cartão, PIX-maquininha e Gás do Povo
         são <strong>automáticas</strong> conforme o prazo D+N da operadora — o sistema credita o
         banco da operadora no vencimento. Esta tela serve apenas para comparar com o extrato

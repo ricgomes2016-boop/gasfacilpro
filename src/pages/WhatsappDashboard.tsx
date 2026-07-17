@@ -106,9 +106,9 @@ export default function WhatsappDashboard() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "active":
-        return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+        return <CheckCircle2 className="w-4 h-4 text-success" />;
       case "transferred":
-        return <Phone className="w-4 h-4 text-blue-500" />;
+        return <Phone className="w-4 h-4 text-info" />;
       case "closed":
         return <AlertCircle className="w-4 h-4 text-gray-500" />;
       default:
@@ -150,14 +150,14 @@ export default function WhatsappDashboard() {
               onClick={() => setSelectedConversation(conv.id)}
               className={`p-4 border-b cursor-pointer transition-colors ${
                 selectedConversation === conv.id
-                  ? "bg-blue-50 border-l-4 border-l-blue-500"
+                  ? "bg-info border-l-4 border-l-blue-500"
                   : "hover:bg-gray-50"
               }`}
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <MessageCircle className="w-5 h-5 text-blue-600" />
+                  <div className="w-10 h-10 rounded-full bg-info flex items-center justify-center">
+                    <MessageCircle className="w-5 h-5 text-info" />
                   </div>
                   <div>
                     <p className="font-semibold text-sm">{conv.contactName}</p>
@@ -167,7 +167,7 @@ export default function WhatsappDashboard() {
                 <div className="flex items-center gap-2">
                   {getStatusIcon(conv.status)}
                   {conv.unreadCount > 0 && (
-                    <Badge className="bg-red-500">{conv.unreadCount}</Badge>
+                    <Badge className="bg-destructive">{conv.unreadCount}</Badge>
                   )}
                 </div>
               </div>
@@ -190,8 +190,8 @@ export default function WhatsappDashboard() {
           {/* Header */}
           <div className="p-4 border-b bg-white flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <MessageCircle className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 rounded-full bg-info flex items-center justify-center">
+                <MessageCircle className="w-6 h-6 text-info" />
               </div>
               <div>
                 <h2 className="font-semibold">{selectedConv.contactName}</h2>
@@ -217,10 +217,10 @@ export default function WhatsappDashboard() {
                 <div
                   className={`max-w-xs px-4 py-2 rounded-lg ${
                     msg.sender === "user"
-                      ? "bg-blue-500 text-white rounded-br-none"
+                      ? "bg-info text-white rounded-br-none"
                       : msg.sender === "bot"
                         ? "bg-gray-200 text-gray-900 rounded-bl-none"
-                        : "bg-green-100 text-green-900 rounded-bl-none"
+                        : "bg-success text-success rounded-bl-none"
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>

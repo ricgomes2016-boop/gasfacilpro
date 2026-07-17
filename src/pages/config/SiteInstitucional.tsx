@@ -98,7 +98,7 @@ export default function SiteInstitucional() {
         ) : !site ? (
           <Card>
             <CardContent className="flex items-start gap-3 p-6">
-              <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+              <AlertCircle className="h-5 w-5 text-warning mt-0.5 shrink-0" />
               <div>
                 <p className="font-medium">Nenhum site institucional configurado para {activeName || "esta loja"}.</p>
                 <p className="text-sm text-muted-foreground mt-1">Fale com o administrador.</p>
@@ -121,7 +121,7 @@ export default function SiteInstitucional() {
                 <div className="flex gap-2">
                   <Input value={siteUrl} readOnly className="font-mono text-sm" />
                   <Button variant="outline" size="icon" onClick={handleCopy}>
-                    {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                    {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
 
@@ -139,9 +139,9 @@ export default function SiteInstitucional() {
                 {/* Pré-visualização */}
                 <div className="rounded-lg border overflow-hidden bg-muted/30 mt-4">
                   <div className="flex items-center gap-2 px-3 py-2 bg-muted border-b text-xs text-muted-foreground">
-                    <span className="w-2 h-2 rounded-full bg-red-400" />
-                    <span className="w-2 h-2 rounded-full bg-yellow-400" />
-                    <span className="w-2 h-2 rounded-full bg-green-400" />
+                    <span className="w-2 h-2 rounded-full bg-destructive" />
+                    <span className="w-2 h-2 rounded-full bg-warning" />
+                    <span className="w-2 h-2 rounded-full bg-success" />
                     <span className="ml-2 font-mono truncate">{siteUrl}</span>
                   </div>
                   <iframe

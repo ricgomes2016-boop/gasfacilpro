@@ -60,12 +60,12 @@ export default function AuthContador() {
       }
     >
       {roleError && (
-        <div className="p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+        <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
           Esta conta não possui acesso ao Portal Contábil.
         </div>
       )}
       {form.errors.general && (
-        <div className="p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+        <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
           {form.errors.general}
         </div>
       )}
@@ -82,7 +82,7 @@ export default function AuthContador() {
             disabled={form.isLoading}
             className="bg-[hsl(252,30%,18%)] border-[hsl(252,30%,32%)] text-white placeholder:text-[hsl(250,18%,55%)]"
           />
-          {form.errors.email && <p className="text-sm text-red-400">{form.errors.email}</p>}
+          {form.errors.email && <p className="text-sm text-destructive">{form.errors.email}</p>}
         </div>
 
         <div className="space-y-2">
@@ -107,7 +107,7 @@ export default function AuthContador() {
               {form.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
-          {form.errors.password && <p className="text-sm text-red-400">{form.errors.password}</p>}
+          {form.errors.password && <p className="text-sm text-destructive">{form.errors.password}</p>}
         </div>
 
         <Button

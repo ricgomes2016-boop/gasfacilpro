@@ -139,12 +139,12 @@ export default function CalendarioFinanceiro() {
                 }}
                 modifiersClassNames={{
                   temPagar: "border-2 border-destructive rounded-md",
-                  temReceber: "border-2 border-green-500 rounded-md",
+                  temReceber: "border-2 border-success rounded-md",
                 }}
               />
               <div className="flex gap-4 mt-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1"><span className="w-3 h-3 border-2 border-destructive rounded-sm" /> A pagar</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 border-2 border-green-500 rounded-sm" /> A receber</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 border-2 border-success rounded-sm" /> A receber</span>
               </div>
             </CardContent>
           </Card>

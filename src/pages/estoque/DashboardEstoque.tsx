@@ -191,7 +191,7 @@ export default function DashboardEstoque() {
   const situacaoBadge = (situacao: string) => {
     if (situacao === "sem_estoque") return <Badge variant="destructive">Sem estoque</Badge>;
     if (situacao === "critico") return <Badge variant="destructive">Crítico</Badge>;
-    if (situacao === "alerta") return <Badge className="bg-yellow-500 text-white">Alerta</Badge>;
+    if (situacao === "alerta") return <Badge className="bg-warning text-white">Alerta</Badge>;
     return <Badge variant="secondary">OK</Badge>;
   };
 
@@ -301,14 +301,14 @@ export default function DashboardEstoque() {
                   </TableHeader>
                   <TableBody>
                     {alertasRuptura.map((a: any) => (
-                      <TableRow key={a.id} className={a.situacao === "critico" || a.situacao === "sem_estoque" ? "bg-destructive/5" : "bg-yellow-50 dark:bg-yellow-950/10"}>
+                      <TableRow key={a.id} className={a.situacao === "critico" || a.situacao === "sem_estoque" ? "bg-destructive/5" : "bg-warning dark:bg-warning/10"}>
                         <TableCell className="font-medium">{a.nome}</TableCell>
                         <TableCell className="text-center font-bold">{a.estoque}</TableCell>
                         <TableCell className="text-center text-muted-foreground">{Number(a.giro_diario).toFixed(1)}/d</TableCell>
                         <TableCell className="text-center">{a.estoque_minimo_calculado}</TableCell>
                         <TableCell className="text-center font-bold">
                           {a.dias_ate_ruptura !== null ? (
-                            <span className={a.dias_ate_ruptura <= 3 ? "text-destructive" : a.dias_ate_ruptura <= 7 ? "text-yellow-600" : ""}>
+                            <span className={a.dias_ate_ruptura <= 3 ? "text-destructive" : a.dias_ate_ruptura <= 7 ? "text-warning" : ""}>
                               {a.dias_ate_ruptura === 0 ? "hoje" : `${a.dias_ate_ruptura}d`}
                             </span>
                           ) : "—"}

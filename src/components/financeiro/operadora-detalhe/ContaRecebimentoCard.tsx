@@ -54,7 +54,7 @@ export function ContaRecebimentoCard({ operadoraId, contaBancariaId }: Props) {
   const dirty = (selected === "nenhuma" ? null : selected) !== contaBancariaId;
 
   return (
-    <Card className={!contaBancariaId ? "border-amber-300 bg-amber-50/40 dark:bg-amber-950/10" : ""}>
+    <Card className={!contaBancariaId ? "border-warning bg-warning/40 dark:bg-warning/10" : ""}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Banknote className="h-5 w-5 text-primary" />
@@ -67,7 +67,7 @@ export function ContaRecebimentoCard({ operadoraId, contaBancariaId }: Props) {
         </p>
 
         {!contaBancariaId && (
-          <div className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+          <div className="text-xs text-warning dark:text-warning flex items-center gap-1.5">
             <AlertCircle className="h-3.5 w-3.5" />
             Sem conta vinculada — recebíveis ficam sem destino bancário.
           </div>
@@ -75,7 +75,7 @@ export function ContaRecebimentoCard({ operadoraId, contaBancariaId }: Props) {
 
         {contaAtual && (
           <div className="text-xs flex items-center gap-2 p-2 rounded-md bg-muted/40">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+            <CheckCircle2 className="h-3.5 w-3.5 text-success" />
             Hoje deposita em: <span className="font-medium">{contaAtual.nome}</span>
             <span className="text-muted-foreground">({contaAtual.banco})</span>
           </div>

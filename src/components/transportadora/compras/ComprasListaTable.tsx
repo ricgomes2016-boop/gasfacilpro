@@ -32,10 +32,10 @@ const TIPO_LABEL: Record<string, { label: string; cls: string }> = {
 };
 
 const SUBTIPO_CLS: Record<string, string> = {
-  P13: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  P20: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
-  P45: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
-  "Água": "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30",
+  P13: "bg-info/10 text-info dark:text-info border-info/30",
+  P20: "bg-primary/10 text-primary dark:text-primary border-primary/30",
+  P45: "bg-destructive/10 text-destructive dark:text-destructive border-destructive/30",
+  "Água": "bg-info/10 text-info dark:text-info border-info/30",
 };
 
 export function ComprasListaTable({ compras, unidadesMap }: Props) {

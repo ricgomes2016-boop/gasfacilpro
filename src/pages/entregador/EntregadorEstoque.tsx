@@ -177,19 +177,19 @@ export default function EntregadorEstoque() {
               </Card>
               <Card className="border-none shadow-md">
                 <CardContent className="p-3 text-center">
-                  <p className="text-2xl font-bold text-orange-500">{totalVendido}</p>
+                  <p className="text-2xl font-bold text-warning">{totalVendido}</p>
                   <p className="text-xs text-muted-foreground">Vendido</p>
                 </CardContent>
               </Card>
               <Card className="border-none shadow-md">
                 <CardContent className="p-3 text-center">
-                  <p className="text-2xl font-bold text-blue-500">{totalTransferido}</p>
+                  <p className="text-2xl font-bold text-info">{totalTransferido}</p>
                   <p className="text-xs text-muted-foreground">Transf.</p>
                 </CardContent>
               </Card>
               <Card className="border-none shadow-md">
                 <CardContent className="p-3 text-center">
-                  <p className="text-2xl font-bold text-green-600">{totalRestante}</p>
+                  <p className="text-2xl font-bold text-success">{totalRestante}</p>
                   <p className="text-xs text-muted-foreground">Restante</p>
                 </CardContent>
               </Card>
@@ -224,11 +224,11 @@ export default function EntregadorEstoque() {
                           <span className="text-xs text-muted-foreground">
                             Saída: {item.quantidade_saida}
                           </span>
-                          <span className="text-xs text-orange-500">
+                          <span className="text-xs text-warning">
                             Vend: {item.quantidade_vendida}
                           </span>
                           {item.quantidade_transferida > 0 && (
-                            <span className="text-xs text-blue-500">
+                            <span className="text-xs text-info">
                               Transf: {item.quantidade_transferida}
                             </span>
                           )}
@@ -239,8 +239,8 @@ export default function EntregadorEstoque() {
                           item.quantidade_restante <= 0
                             ? "bg-destructive text-destructive-foreground"
                             : item.quantidade_restante <= 2
-                            ? "bg-orange-500 text-white"
-                            : "bg-green-600 text-white"
+                            ? "bg-warning text-white"
+                            : "bg-success text-white"
                         }
                       >
                         {item.quantidade_restante}

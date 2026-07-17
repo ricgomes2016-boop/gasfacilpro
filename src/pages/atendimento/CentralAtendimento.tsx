@@ -123,12 +123,12 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
 };
 
 const pedidoStatusConfig: Record<string, { label: string; color: string }> = {
-  pendente: { label: "Pendente", color: "bg-yellow-500" },
-  em_preparo: { label: "Em Preparo", color: "bg-blue-500" },
-  saiu_entrega: { label: "Saiu Entrega", color: "bg-purple-500" },
-  em_rota: { label: "Em Rota", color: "bg-indigo-500" },
-  entregue: { label: "Entregue", color: "bg-green-500" },
-  cancelado: { label: "Cancelado", color: "bg-red-500" },
+  pendente: { label: "Pendente", color: "bg-warning" },
+  em_preparo: { label: "Em Preparo", color: "bg-info" },
+  saiu_entrega: { label: "Saiu Entrega", color: "bg-primary" },
+  em_rota: { label: "Em Rota", color: "bg-info" },
+  entregue: { label: "Entregue", color: "bg-success" },
+  cancelado: { label: "Cancelado", color: "bg-destructive" },
 };
 
 // === Component ===
@@ -358,8 +358,8 @@ export default function CentralAtendimento() {
 
           <Card>
             <CardContent className="flex items-center gap-3 p-3">
-              <div className="rounded-lg bg-yellow-500/10 p-2">
-                <Timer className="h-5 w-5 text-yellow-600" />
+              <div className="rounded-lg bg-warning/10 p-2">
+                <Timer className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Pendentes</p>
@@ -384,8 +384,8 @@ export default function CentralAtendimento() {
 
           <Card>
             <CardContent className="flex items-center gap-3 p-3">
-              <div className="rounded-lg bg-green-500/10 p-2">
-                <Truck className="h-5 w-5 text-green-600" />
+              <div className="rounded-lg bg-success/10 p-2">
+                <Truck className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Entregadores</p>
@@ -452,7 +452,7 @@ export default function CentralAtendimento() {
               <CardContent>
                 {pedidosFila.length === 0 ? (
                   <div className="text-center py-8">
-                    <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                    <CheckCircle2 className="h-8 w-8 text-success mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">Nenhum pedido na fila! 🎉</p>
                   </div>
                 ) : (
@@ -570,7 +570,7 @@ export default function CentralAtendimento() {
                           <div className="flex items-center gap-4">
                             <div className="p-2 rounded-full bg-muted">
                               {chamada.tipo === "whatsapp" ? (
-                                <MessageSquare className="h-4 w-4 text-green-600" />
+                                <MessageSquare className="h-4 w-4 text-success" />
                               ) : (
                                 <Phone className="h-4 w-4 text-muted-foreground" />
                               )}
@@ -617,7 +617,7 @@ export default function CentralAtendimento() {
                                 className="gap-1 text-xs h-7"
                                 onClick={() => openWhatsappFor(chamada.telefone || "", chamada.cliente_nome)}
                               >
-                                <Zap className="h-3.5 w-3.5 text-green-600" />
+                                <Zap className="h-3.5 w-3.5 text-success" />
                               </Button>
                               {chamada.status !== "retornar" && chamada.status !== "atendida" && (
                                 <Button
@@ -664,7 +664,7 @@ export default function CentralAtendimento() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-green-600" />
+                  <MessageSquare className="h-4 w-4 text-success" />
                   Chat WhatsApp · (43) 3524-1094
                 </CardTitle>
               </CardHeader>
@@ -679,7 +679,7 @@ export default function CentralAtendimento() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-green-600" />
+                    <Zap className="h-5 w-5 text-success" />
                     Templates de Mensagem
                   </CardTitle>
                 </CardHeader>
@@ -746,7 +746,7 @@ export default function CentralAtendimento() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-green-600" />
+                <Zap className="h-5 w-5 text-success" />
                 Enviar WhatsApp
               </DialogTitle>
             </DialogHeader>

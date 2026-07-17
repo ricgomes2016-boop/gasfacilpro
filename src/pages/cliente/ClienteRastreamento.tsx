@@ -29,8 +29,8 @@ type RealtimeStatus = "connecting" | "live" | "reconnecting" | "offline";
 function RealtimeBadge({ status }: { status: RealtimeStatus }) {
   const map = {
     connecting: { icon: Loader2, label: "Conectando…", cls: "bg-muted text-muted-foreground", spin: true },
-    live: { icon: Wifi, label: "Ao vivo", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", spin: false },
-    reconnecting: { icon: Loader2, label: "Reconectando…", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400", spin: true },
+    live: { icon: Wifi, label: "Ao vivo", cls: "bg-success/15 text-success dark:text-success", spin: false },
+    reconnecting: { icon: Loader2, label: "Reconectando…", cls: "bg-warning/15 text-warning dark:text-warning", spin: true },
     offline: { icon: WifiOff, label: "Sem conexão", cls: "bg-destructive/15 text-destructive", spin: false },
   }[status];
   const Icon = map.icon;

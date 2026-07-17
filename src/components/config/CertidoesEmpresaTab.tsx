@@ -240,7 +240,7 @@ export function CertidoesEmpresaTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-2 p-3 rounded-md bg-muted/50 text-sm">
-        <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+        <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
         <div>
           <strong>Como funciona:</strong> Cada certidão tem um botão "Abrir portal" que leva ao site oficial
           (ANP, Receita, SEFAZ, TST, Sintegra). Após emitir o PDF, faça upload aqui — o sistema controla

@@ -311,14 +311,14 @@ export default function AnaliseConcorrencia() {
                             <TableCell className="font-medium">{r.concorrente_nome}</TableCell>
                             <TableCell>{r.produto}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" className={tipo === 'portaria' ? 'border-blue-500 text-blue-600' : tipo === 'telefone' ? 'border-orange-500 text-orange-600' : ''}>
+                              <Badge variant="outline" className={tipo === 'portaria' ? 'border-info text-info' : tipo === 'telefone' ? 'border-warning text-warning' : ''}>
                                 {tipo === 'portaria' ? 'Portaria' : tipo === 'telefone' ? 'Telefone' : 'Único'}
                               </Badge>
                             </TableCell>
                             <TableCell>R$ {Number(r.preco).toFixed(2)}</TableCell>
                             <TableCell><Badge variant="outline">{r.fonte}</Badge></TableCell>
                             <TableCell>
-                              <span className={diff > 0 ? "text-chart-3" : diff < 0 ? "text-destructive" : "text-muted-foreground"}>
+                              <span className={diff > 0 ? "text-success" : diff < 0 ? "text-destructive" : "text-muted-foreground"}>
                                 {diff > 0 ? "+" : ""}{diff.toFixed(1)}%
                               </span>
                             </TableCell>

@@ -197,10 +197,10 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 w-full min-w-0">
         <Card className="relative overflow-hidden min-w-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-info/5 to-transparent pointer-events-none" />
           <CardContent className="pt-4 pb-4 px-4">
             <div className="flex items-center gap-2 mb-1">
-              <Package className="h-4 w-4 text-blue-500" />
+              <Package className="h-4 w-4 text-info" />
               <p className="text-xs text-muted-foreground">PE Unidades</p>
             </div>
             <p className="text-xl sm:text-2xl font-bold tabular-nums truncate">{peUnidades.toLocaleString("pt-BR")}</p>
@@ -208,10 +208,10 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
           </CardContent>
         </Card>
         <Card className="relative overflow-hidden min-w-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-success/5 to-transparent pointer-events-none" />
           <CardContent className="pt-4 pb-4 px-4">
             <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="h-4 w-4 text-green-500" />
+              <DollarSign className="h-4 w-4 text-success" />
               <p className="text-xs text-muted-foreground">PE Faturamento</p>
             </div>
             <p className="text-xl sm:text-2xl font-bold tabular-nums truncate">R$ {(peReais / 1000).toFixed(1)}k</p>
@@ -219,10 +219,10 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
           </CardContent>
         </Card>
         <Card className="relative overflow-hidden min-w-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
           <CardContent className="pt-4 pb-4 px-4">
             <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-purple-500" />
+              <TrendingUp className="h-4 w-4 text-primary" />
               <p className="text-xs text-muted-foreground">Margem Contrib.</p>
             </div>
             <p className="text-xl sm:text-2xl font-bold tabular-nums truncate">R$ {margemContribuicao.toFixed(2)}</p>
@@ -241,27 +241,27 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
           </CardContent>
         </Card>
         {/* Status do mês */}
-        <Card className={`relative overflow-hidden min-w-0 col-span-2 lg:col-span-1 ${atingiuPE ? "border-green-500/30" : "border-amber-500/30"}`}>
-          <div className={`absolute inset-0 bg-gradient-to-br ${atingiuPE ? "from-green-500/5" : "from-amber-500/5"} to-transparent pointer-events-none`} />
+        <Card className={`relative overflow-hidden min-w-0 col-span-2 lg:col-span-1 ${atingiuPE ? "border-success/30" : "border-warning/30"}`}>
+          <div className={`absolute inset-0 bg-gradient-to-br ${atingiuPE ? "from-success/5" : "from-warning/5"} to-transparent pointer-events-none`} />
           <CardContent className="pt-4 pb-4 px-4">
             <div className="flex items-center gap-2 mb-1">
               {atingiuPE
-                ? <CheckCircle2 className="h-4 w-4 text-green-500" />
-                : <XCircle className="h-4 w-4 text-amber-500" />}
+                ? <CheckCircle2 className="h-4 w-4 text-success" />
+                : <XCircle className="h-4 w-4 text-warning" />}
               <p className="text-xs text-muted-foreground">Status Mês</p>
             </div>
             <p className="text-2xl font-bold tabular-nums">{vendasMesAtual}</p>
             <div className="flex items-center gap-2 mt-1">
               <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all ${atingiuPE ? "bg-green-500" : "bg-amber-500"}`}
+                  className={`h-full rounded-full transition-all ${atingiuPE ? "bg-success" : "bg-warning"}`}
                   style={{ width: `${progressoPE}%` }}
                 />
               </div>
               <span className="text-[10px] text-muted-foreground">{progressoPE.toFixed(0)}%</span>
             </div>
             {!atingiuPE && (
-              <p className="text-[10px] text-amber-600 mt-0.5">Faltam {faltamUnidades} un.</p>
+              <p className="text-[10px] text-warning mt-0.5">Faltam {faltamUnidades} un.</p>
             )}
           </CardContent>
         </Card>
@@ -318,7 +318,7 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
             <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
               <CardTitle className="text-base">Parâmetros de Venda</CardTitle>
               {vendasMesAtual > 0 && (
-                <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-700 border-green-200">
+                <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success">
                   Dados reais
                 </Badge>
               )}
@@ -377,7 +377,7 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
                         <div className="flex items-center gap-1.5">
                           {c.descricao}
                           {c.auto && (
-                            <Badge variant="outline" className="text-[10px] px-1 py-0 bg-green-500/10 text-green-700 border-green-200">
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 bg-success/10 text-success border-success">
                               auto
                             </Badge>
                           )}

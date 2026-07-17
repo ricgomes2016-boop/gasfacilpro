@@ -23,17 +23,17 @@ export function MetaAppStatusBanner() {
   const isDev = status === "dev" || status === '"dev"';
 
   return (
-    <Card className={isDev ? "border-amber-500/40 bg-amber-500/5" : "border-green-500/40 bg-green-500/5"}>
+    <Card className={isDev ? "border-warning/40 bg-warning/5" : "border-success/40 bg-success/5"}>
       <CardContent className="p-4 flex items-start gap-3">
         {isDev ? (
-          <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+          <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
         ) : (
-          <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+          <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" />
         )}
         <div className="flex-1 text-sm">
           {isDev ? (
             <>
-              <p className="font-semibold text-amber-700 dark:text-amber-400">
+              <p className="font-semibold text-warning dark:text-warning">
                 Modo Desenvolvimento (Meta)
               </p>
               <p className="text-muted-foreground mt-0.5">
@@ -44,7 +44,7 @@ export function MetaAppStatusBanner() {
             </>
           ) : (
             <>
-              <p className="font-semibold text-green-700 dark:text-green-400">
+              <p className="font-semibold text-success dark:text-success">
                 App Meta aprovado
               </p>
               <p className="text-muted-foreground mt-0.5">

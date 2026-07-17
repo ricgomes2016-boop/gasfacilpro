@@ -71,7 +71,7 @@ export function VendedorDesempenhoCard({ funcionarioId }: Props) {
   return (
     <div className="space-y-3 p-3 rounded-md bg-background border">
       <p className="text-sm font-medium flex items-center gap-2">
-        <TrendingUp className="h-4 w-4 text-emerald-600" />
+        <TrendingUp className="h-4 w-4 text-success" />
         Desempenho do mês
       </p>
       <div className="grid grid-cols-3 gap-3 text-center">
@@ -89,7 +89,7 @@ export function VendedorDesempenhoCard({ funcionarioId }: Props) {
           <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
             <DollarSign className="h-3 w-3" /> Comissão
           </p>
-          <p className="text-lg font-bold text-emerald-600">
+          <p className="text-lg font-bold text-success">
             R$ {stats.comissaoEstimada.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </p>
         </div>

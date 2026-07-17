@@ -33,10 +33,10 @@ interface Envio {
 
 const STATUS_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   pending: { label: "Pendente", color: "bg-muted text-muted-foreground", icon: <Clock className="h-3 w-3" /> },
-  sending: { label: "Enviando…", color: "bg-blue-500/10 text-blue-700 border-blue-500/30", icon: <Loader2 className="h-3 w-3 animate-spin" /> },
-  sent: { label: "Enviado", color: "bg-blue-500/10 text-blue-700 border-blue-500/30", icon: <Check className="h-3 w-3" /> },
-  delivered: { label: "Entregue", color: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30", icon: <CheckCheck className="h-3 w-3" /> },
-  read: { label: "Lido", color: "bg-emerald-600/15 text-emerald-700 border-emerald-600/40", icon: <CheckCheck className="h-3 w-3" /> },
+  sending: { label: "Enviando…", color: "bg-info/10 text-info border-info/30", icon: <Loader2 className="h-3 w-3 animate-spin" /> },
+  sent: { label: "Enviado", color: "bg-info/10 text-info border-info/30", icon: <Check className="h-3 w-3" /> },
+  delivered: { label: "Entregue", color: "bg-success/10 text-success border-success/30", icon: <CheckCheck className="h-3 w-3" /> },
+  read: { label: "Lido", color: "bg-success/15 text-success border-success/40", icon: <CheckCheck className="h-3 w-3" /> },
   failed: { label: "Falhou", color: "bg-destructive/10 text-destructive border-destructive/30", icon: <AlertTriangle className="h-3 w-3" /> },
 };
 

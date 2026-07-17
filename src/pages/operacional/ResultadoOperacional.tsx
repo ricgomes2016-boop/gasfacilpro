@@ -365,7 +365,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                               <span className="shrink-0 text-muted-foreground w-4 text-right text-[10px]">{gi * 10 + ci + 1}</span>
                               <span data-cost-overflow-check="true" className="min-w-0 break-words leading-snug">{c.nome}</span>
                               {c.valorReal > 0 && (
-                                <span className="text-[9px] text-green-600 bg-green-500/10 px-1 rounded">auto</span>
+                                <span className="text-[9px] text-success bg-success/10 px-1 rounded">auto</span>
                               )}
                             </div>
                           </TableCell>
@@ -427,7 +427,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                     <TableCell className="py-1 px-2 text-xs text-right tabular-nums">{fmt(c.precoVenda)}</TableCell>
                     <TableCell className="py-1 px-2 text-xs text-right tabular-nums font-medium">{fmt(c.totalRS)}</TableCell>
                     <TableCell className="py-1 px-2 text-xs text-right tabular-nums">{fmt(c.precoCompra)}</TableCell>
-                    <TableCell className="py-1 px-2 text-xs text-right tabular-nums text-green-600">{fmt(c.margemRS)}</TableCell>
+                    <TableCell className="py-1 px-2 text-xs text-right tabular-nums text-success">{fmt(c.margemRS)}</TableCell>
                     <TableCell className="py-1 px-2 text-xs text-right tabular-nums">{c.tonelagem.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
@@ -438,7 +438,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                     <TableCell className="py-1.5 px-2 text-xs text-right"></TableCell>
                     <TableCell className="py-1.5 px-2 text-xs text-right tabular-nums">{fmt(receitaBruta)}</TableCell>
                     <TableCell className="py-1.5 px-2 text-xs text-right"></TableCell>
-                    <TableCell className="py-1.5 px-2 text-xs text-right tabular-nums text-green-600">{fmt(receitaBruta - custoMatPrima)}</TableCell>
+                    <TableCell className="py-1.5 px-2 text-xs text-right tabular-nums text-success">{fmt(receitaBruta - custoMatPrima)}</TableCell>
                     <TableCell className="py-1.5 px-2 text-xs text-right tabular-nums">{totalTonelagem.toFixed(2)}</TableCell>
                   </TableRow>
                 )}
@@ -466,9 +466,9 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                     <TableCell className="py-1 px-3 text-xs font-semibold text-destructive">(-) Custo / Despesa</TableCell>
                     <TableCell className="py-1 px-3 text-right text-xs tabular-nums text-destructive">R$ {fmt(totalCustos)}</TableCell>
                   </TableRow>
-                  <TableRow className={lucroLiquido >= 0 ? "bg-green-500/10" : "bg-destructive/10"}>
+                  <TableRow className={lucroLiquido >= 0 ? "bg-success/10" : "bg-destructive/10"}>
                     <TableCell className="py-1.5 px-3 text-sm font-bold">Lucro Líquido</TableCell>
-                    <TableCell className={`py-1.5 px-3 text-right text-sm font-bold tabular-nums ${lucroLiquido >= 0 ? "text-green-600" : "text-destructive"}`}>
+                    <TableCell className={`py-1.5 px-3 text-right text-sm font-bold tabular-nums ${lucroLiquido >= 0 ? "text-success" : "text-destructive"}`}>
                       R$ {lucroLiquido < 0 ? `(${fmt(Math.abs(lucroLiquido))})` : fmt(lucroLiquido)}
                     </TableCell>
                   </TableRow>
@@ -476,9 +476,9 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                     <TableCell className="py-1 px-3 text-xs">Nota Crédito</TableCell>
                     <TableCell className="py-1 px-3 text-right text-xs tabular-nums text-muted-foreground">—</TableCell>
                   </TableRow>
-                  <TableRow className={lucroLiquido >= 0 ? "bg-green-500/5 border-t-2" : "bg-destructive/5 border-t-2"}>
+                  <TableRow className={lucroLiquido >= 0 ? "bg-success/5 border-t-2" : "bg-destructive/5 border-t-2"}>
                     <TableCell className="py-2 px-3 text-sm font-bold">Resultado</TableCell>
-                    <TableCell className={`py-2 px-3 text-right text-sm font-bold tabular-nums ${lucroLiquido >= 0 ? "text-green-700" : "text-destructive"}`}>
+                    <TableCell className={`py-2 px-3 text-right text-sm font-bold tabular-nums ${lucroLiquido >= 0 ? "text-success" : "text-destructive"}`}>
                       R$ {lucroLiquido < 0 ? `(${fmt(Math.abs(lucroLiquido))})` : fmt(lucroLiquido)}
                     </TableCell>
                   </TableRow>
@@ -507,7 +507,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                 {referenciasP13.map((row, i) => (
                   <TableRow key={`p13-${i}`}>
                     <TableCell className="py-1.5 px-3 text-xs leading-snug">{row.label}</TableCell>
-                    <TableCell className={`py-1.5 px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${row.highlight ? "text-green-600" : ""}`}>
+                    <TableCell className={`py-1.5 px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${row.highlight ? "text-success" : ""}`}>
                       {row.value}
                     </TableCell>
                   </TableRow>
@@ -522,7 +522,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                 {referenciasProdutos.map((row, i) => (
                   <TableRow key={`produto-${i}`}>
                     <TableCell className="py-1.5 px-3 text-xs leading-snug">{row.label}</TableCell>
-                    <TableCell className={`py-1.5 px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${row.highlight ? "text-green-600" : ""}`}>
+                    <TableCell className={`py-1.5 px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${row.highlight ? "text-success" : ""}`}>
                       {row.value}
                     </TableCell>
                   </TableRow>
@@ -535,7 +535,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                 {referenciasGerais.map((row, i) => (
                   <TableRow key={`geral-${i}`}>
                     <TableCell className="py-1.5 px-3 text-xs leading-snug">{row.label}</TableCell>
-                    <TableCell className={`py-1.5 px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${row.highlight ? "text-green-600" : ""}`}>
+                    <TableCell className={`py-1.5 px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${row.highlight ? "text-success" : ""}`}>
                       {row.value}
                     </TableCell>
                   </TableRow>

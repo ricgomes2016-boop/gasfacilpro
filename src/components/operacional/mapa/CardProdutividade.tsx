@@ -30,8 +30,8 @@ export function CardProdutividade({ pedidos, entregadores, dadosOp }: Props) {
   const pctPrazo = Math.round((noPrazo / Math.max(entregues.length, 1)) * 100);
 
   const cards = [
-    { icon: Activity, label: "Entregas/hora", valor: entregasHora, cor: "text-chart-2" },
-    { icon: Clock, label: "Tempo médio", valor: `${tempoMedioMin}min`, cor: "text-chart-3" },
+    { icon: Activity, label: "Entregas/hora", valor: entregasHora, cor: "text-info" },
+    { icon: Clock, label: "Tempo médio", valor: `${tempoMedioMin}min`, cor: "text-success" },
     { icon: Target, label: "% no prazo", valor: `${pctPrazo}%`, cor: "text-primary" },
   ];
 

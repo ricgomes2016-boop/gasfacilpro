@@ -47,9 +47,9 @@ interface PedidoDB {
 }
 
 const statusConfig: Record<string, { label: string; badge: string; accent: string; icon: typeof Clock }> = {
-  pendente: { label: "Pendente", badge: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30", accent: "from-amber-500/10 to-transparent", icon: Clock },
+  pendente: { label: "Pendente", badge: "bg-warning/15 text-warning dark:text-warning border-warning/30", accent: "from-warning/10 to-transparent", icon: Clock },
   em_rota: { label: "Em Rota", badge: "bg-primary/15 text-primary border-primary/30", accent: "from-primary/10 to-transparent", icon: Truck },
-  entregue: { label: "Entregue", badge: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30", accent: "from-emerald-500/10 to-transparent", icon: CheckCircle2 },
+  entregue: { label: "Entregue", badge: "bg-success/15 text-success dark:text-success border-success/30", accent: "from-success/10 to-transparent", icon: CheckCircle2 },
   cancelado: { label: "Cancelado", badge: "bg-destructive/15 text-destructive border-destructive/30", accent: "from-destructive/10 to-transparent", icon: Package },
 };
 
@@ -165,7 +165,7 @@ export default function ClienteHistorico() {
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <Truck className="h-8 w-8 mx-auto text-green-600 mb-2" />
+              <Truck className="h-8 w-8 mx-auto text-success mb-2" />
               <p className="text-2xl font-bold">
                 {pedidos.filter(p => p.status === "entregue").length}
               </p>
@@ -267,7 +267,7 @@ export default function ClienteHistorico() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1 gap-2 border-amber-300 text-amber-600 hover:bg-amber-50"
+                          className="flex-1 gap-2 border-warning text-warning hover:bg-warning"
                           onClick={() => {
                             setAvaliacaoPedido({ id: pedido.id, entregadorId: pedido.entregador_id });
                             setAvaliacaoOpen(true);
@@ -279,7 +279,7 @@ export default function ClienteHistorico() {
                       )}
                       {pedido.status === "entregue" && avaliadosIds.has(pedido.id) && (
                         <Badge variant="secondary" className="gap-1 self-center">
-                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                          <Star className="h-3 w-3 fill-warning text-warning" />
                           Avaliado
                         </Badge>
                       )}

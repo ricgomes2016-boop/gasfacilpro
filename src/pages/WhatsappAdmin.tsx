@@ -137,7 +137,7 @@ export default function WhatsappAdmin() {
                   <CardTitle className="flex items-center gap-2">
                     {config.displayName}
                     {config.isVerified ? (
-                      <Badge variant="default" className="bg-green-500">
+                      <Badge variant="default" className="bg-success">
                         <CheckCircle2 className="w-3 h-3 mr-1" />
                         Verificado
                       </Badge>
@@ -301,8 +301,8 @@ export default function WhatsappAdmin() {
                 />
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-900">
+              <div className="bg-info border border-info rounded-lg p-4">
+                <p className="text-sm text-info">
                   <strong>Dica:</strong> Você pode encontrar essas informações no{" "}
                   <a
                     href="https://developers.facebook.com/apps"
@@ -343,7 +343,7 @@ export default function WhatsappAdmin() {
                 href="https://developers.facebook.com/apps"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 underline"
+                className="text-info underline"
               >
                 Meta App Dashboard
               </a>
@@ -355,8 +355,8 @@ export default function WhatsappAdmin() {
             <li>Clique em "Verificar" para validar a configuração</li>
           </ol>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
-            <p className="text-sm text-amber-900">
+          <div className="bg-warning border border-warning rounded-lg p-4 mt-4">
+            <p className="text-sm text-warning">
               <strong>⚠️ Importante:</strong> Mantenha seus tokens seguros. Nunca
               compartilhe suas credenciais com terceiros.
             </p>

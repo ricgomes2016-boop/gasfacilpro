@@ -179,10 +179,10 @@ export default function MarketingMetricas() {
   }, [filtered, porPlataforma, totals, ctr, engajamentoTaxa, topPosts, periodo]);
 
   const kpiList = [
-    { label: "Alcance", value: totals.alcance, icon: Eye, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { label: "Engajamento", value: totals.curtidas + totals.comentarios + totals.compartilhamentos, icon: Heart, color: "text-pink-500", bg: "bg-pink-500/10" },
-    { label: "Cliques", value: totals.cliques, icon: MousePointerClick, color: "text-violet-500", bg: "bg-violet-500/10" },
-    { label: "Pedidos gerados", value: totals.pedidos_gerados, icon: ShoppingCart, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+    { label: "Alcance", value: totals.alcance, icon: Eye, color: "text-info", bg: "bg-info/10" },
+    { label: "Engajamento", value: totals.curtidas + totals.comentarios + totals.compartilhamentos, icon: Heart, color: "text-primary", bg: "bg-primary/10" },
+    { label: "Cliques", value: totals.cliques, icon: MousePointerClick, color: "text-primary", bg: "bg-primary/10" },
+    { label: "Pedidos gerados", value: totals.pedidos_gerados, icon: ShoppingCart, color: "text-success", bg: "bg-success/10" },
   ];
 
   return (
@@ -311,7 +311,7 @@ export default function MarketingMetricas() {
 
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2"><Trophy className="h-4 w-4 text-amber-500" /> Top posts</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2"><Trophy className="h-4 w-4 text-warning" /> Top posts</CardTitle>
                   <CardDescription>Maior engajamento + conversão</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -340,9 +340,9 @@ export default function MarketingMetricas() {
             </div>
 
             {insights.length > 0 && (
-              <Card className="border-violet-500/30 bg-violet-500/5">
+              <Card className="border-primary/30 bg-primary/5">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4 text-violet-500" /> Insights da IA</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Insights da IA</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {insights.map((t, i) => (
@@ -359,10 +359,10 @@ export default function MarketingMetricas() {
               const media = total ? (soma / total).toFixed(2) : "0";
               const positivas = avaliacoes.filter((a: any) => (a.nota || 0) >= 4 && (a.comentario || "").trim().length > 10).slice(0, 5);
               return (
-                <Card className="border-emerald-500/30 bg-emerald-500/5">
+                <Card className="border-success/30 bg-success/5">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
-                      <Heart className="h-4 w-4 text-emerald-500" /> Avaliações de entrega — combustível para conteúdo
+                      <Heart className="h-4 w-4 text-success" /> Avaliações de entrega — combustível para conteúdo
                     </CardTitle>
                     <CardDescription>
                       Média {media} ⭐ · {total} avaliações no período. Use os elogios abaixo como prova social em posts.
@@ -372,9 +372,9 @@ export default function MarketingMetricas() {
                     {positivas.length === 0 ? (
                       <p className="text-sm text-muted-foreground py-2">Sem comentários positivos suficientes ainda. Peça avaliações pós-entrega via WhatsApp.</p>
                     ) : positivas.map((a: any, i: number) => (
-                      <div key={i} className="p-3 rounded-lg bg-background/60 border border-emerald-500/20">
+                      <div key={i} className="p-3 rounded-lg bg-background/60 border border-success/20">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-amber-500 text-sm">{"⭐".repeat(a.nota || 0)}</span>
+                          <span className="text-warning text-sm">{"⭐".repeat(a.nota || 0)}</span>
                           <span className="text-[10px] text-muted-foreground">{format(new Date(a.created_at), "dd/MM/yyyy")}</span>
                         </div>
                         <p className="text-sm italic">"{a.comentario}"</p>

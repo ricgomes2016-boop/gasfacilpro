@@ -84,9 +84,9 @@ const PROVEDOR_DESCRICAO: Record<ProvedorTipo, string> = {
 };
 
 const STATUS_CONFIG: Record<StatusConexao, { color: string; label: string; icon: typeof Wifi }> = {
-  conectado: { color: "bg-emerald-500", label: "Conectado", icon: Wifi },
-  desconectado: { color: "bg-red-500", label: "Desconectado", icon: WifiOff },
-  aguardando: { color: "bg-amber-500", label: "Aguardando QR", icon: Loader2 },
+  conectado: { color: "bg-success", label: "Conectado", icon: Wifi },
+  desconectado: { color: "bg-destructive", label: "Desconectado", icon: WifiOff },
+  aguardando: { color: "bg-warning", label: "Aguardando QR", icon: Loader2 },
 };
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID || "gcrdftnnbgsogoqcmcxo";
@@ -607,7 +607,7 @@ export default function AdminWhatsAppConfig() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Smartphone className="h-6 w-6 text-green-500" />
+          <Smartphone className="h-6 w-6 text-success" />
           WhatsApp — Configuração de Conexões
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -616,11 +616,11 @@ export default function AdminWhatsAppConfig() {
       </div>
 
       {/* Informações sobre Webhook */}
-      <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
-        <Info className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-800 dark:text-blue-200 text-sm">
+      <Alert className="border-info bg-info dark:bg-info/20">
+        <Info className="h-4 w-4 text-info" />
+        <AlertDescription className="text-info dark:text-info text-sm">
           <strong>URL do Webhook Meta:</strong>{" "}
-          <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">{WEBHOOK_URL}</code>
+          <code className="text-xs bg-info dark:bg-info px-1 py-0.5 rounded">{WEBHOOK_URL}</code>
           <Button
             variant="ghost"
             size="sm"
@@ -631,7 +631,7 @@ export default function AdminWhatsAppConfig() {
           </Button>
           {" | "}
           <strong>Verify Token:</strong>{" "}
-          <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">{VERIFY_TOKEN}</code>
+          <code className="text-xs bg-info dark:bg-info px-1 py-0.5 rounded">{VERIFY_TOKEN}</code>
           <Button
             variant="ghost"
             size="sm"
@@ -682,7 +682,7 @@ export default function AdminWhatsAppConfig() {
                         {PROVEDOR_LABELS[(config.provedor as ProvedorTipo)] || config.provedor}
                       </Badge>
                       {isCoex && (
-                        <Badge className="text-xs bg-green-100 text-green-800 border-green-200">
+                        <Badge className="text-xs bg-success text-success border-success">
                           Coexistência
                         </Badge>
                       )}
@@ -758,7 +758,7 @@ export default function AdminWhatsAppConfig() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-green-500 text-green-700 hover:bg-green-50"
+                        className="border-success text-success hover:bg-success"
                         onClick={() => handleShowCoexQR(unidade)}
                       >
                         <QrCode className="h-3.5 w-3.5 mr-1" />
@@ -773,7 +773,7 @@ export default function AdminWhatsAppConfig() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 border-green-500 text-green-700 hover:bg-green-50"
+                        className="flex-1 border-success text-success hover:bg-success"
                         onClick={() => handleGenerateQREvolution(unidade)}
                       >
                         <QrCode className="h-3.5 w-3.5 mr-1" />
@@ -852,9 +852,9 @@ export default function AdminWhatsAppConfig() {
                 <p className="text-sm font-medium text-muted-foreground">Credenciais Meta</p>
 
                 {formProvedor === "meta_coex" && (
-                  <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    <AlertDescription className="text-amber-800 dark:text-amber-200 text-xs">
+                  <Alert className="border-warning bg-warning dark:bg-warning/20">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                    <AlertDescription className="text-warning dark:text-warning text-xs">
                       A <strong>Coexistência</strong> exige que seu App Meta tenha passado pelo{" "}
                       <strong>App Review</strong> e que a empresa esteja verificada no Business Manager.
                       Após salvar, clique em <strong>"Conectar via Facebook"</strong>.
@@ -1018,7 +1018,7 @@ export default function AdminWhatsAppConfig() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-blue-600" />
+              <Shield className="h-5 w-5 text-info" />
               Conectar via Facebook — {selectedUnidade?.nome}
             </DialogTitle>
             <DialogDescription>
@@ -1032,19 +1032,19 @@ export default function AdminWhatsAppConfig() {
               <p className="text-sm font-medium">Como funciona a Coexistência:</p>
               <ul className="text-sm text-muted-foreground space-y-1.5">
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
                   Você continua usando o WhatsApp normalmente no celular
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
                   A BIA responde automaticamente via API Oficial
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
                   Mensagens aparecem em ambos os lugares
                 </li>
                 <li className="flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                  <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                   Requer App Review aprovado na Meta
                 </li>
               </ul>
@@ -1094,7 +1094,7 @@ export default function AdminWhatsAppConfig() {
         <DialogContent className="max-w-sm text-center">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-center gap-2">
-              <QrCode className="h-5 w-5 text-green-600" />
+              <QrCode className="h-5 w-5 text-success" />
               QR Code — {selectedUnidade?.nome}
             </DialogTitle>
             <DialogDescription>
@@ -1114,15 +1114,15 @@ export default function AdminWhatsAppConfig() {
                         : `data:image/png;base64,${qrCode}`
                     }
                     alt="QR Code WhatsApp"
-                    className="w-64 h-64 rounded-xl border-4 border-green-500 shadow-lg"
+                    className="w-64 h-64 rounded-xl border-4 border-success shadow-lg"
                   />
-                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs px-3 py-1 rounded-full whitespace-nowrap">
+                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-success text-white text-xs px-3 py-1 rounded-full whitespace-nowrap">
                     Escaneie com o WhatsApp
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
-                  <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                  <Loader2 className="h-4 w-4 animate-spin text-warning" />
                   Aguardando conexão... expira em {qrCountdown}s
                 </div>
 
@@ -1133,8 +1133,8 @@ export default function AdminWhatsAppConfig() {
             ) : (
               <div className="flex flex-col items-center gap-3 py-8">
                 <div className="relative">
-                  <div className="h-16 w-16 rounded-full border-4 border-green-200 border-t-green-500 animate-spin" />
-                  <QrCode className="h-6 w-6 text-green-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                  <div className="h-16 w-16 rounded-full border-4 border-success border-t-green-500 animate-spin" />
+                  <QrCode className="h-6 w-6 text-success absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                 </div>
                 <span className="text-sm text-muted-foreground">Gerando QR Code...</span>
               </div>

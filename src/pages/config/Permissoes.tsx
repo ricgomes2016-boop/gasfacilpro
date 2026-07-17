@@ -40,19 +40,19 @@ export default function Permissoes() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Usuários</CardTitle>
-              <Users className="h-4 w-4 text-blue-600" />
+              <Users className="h-4 w-4 text-info" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{perfis.reduce((a, p) => a + p.usuarios, 0)}</div>
+              <div className="text-2xl font-bold text-info">{perfis.reduce((a, p) => a + p.usuarios, 0)}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Administradores</CardTitle>
-              <Shield className="h-4 w-4 text-green-600" />
+              <Shield className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">2</div>
+              <div className="text-2xl font-bold text-success">2</div>
             </CardContent>
           </Card>
         </div>

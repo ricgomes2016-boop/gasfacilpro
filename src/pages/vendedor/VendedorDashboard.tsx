@@ -34,12 +34,12 @@ export default function VendedorDashboard() {
   }, [user?.id]);
 
   const atalhos = [
-    { path: "/vendedor/nova-venda", icon: PlusCircle, label: "Nova Venda", color: "bg-emerald-500" },
-    { path: "/vendedor/historico", icon: History, label: "Histórico", color: "bg-blue-500" },
-    { path: "/vendedor/clientes", icon: Users, label: "Clientes", color: "bg-purple-500" },
-    { path: "/vendedor/metas", icon: Target, label: "Metas", color: "bg-orange-500" },
-    { path: "/vendedor/avisos", icon: Megaphone, label: "Avisos", color: "bg-pink-500" },
-    { path: "/vendedor/bolao", icon: Trophy, label: "Bolão", color: "bg-yellow-500" },
+    { path: "/vendedor/nova-venda", icon: PlusCircle, label: "Nova Venda", color: "bg-success" },
+    { path: "/vendedor/historico", icon: History, label: "Histórico", color: "bg-info" },
+    { path: "/vendedor/clientes", icon: Users, label: "Clientes", color: "bg-primary" },
+    { path: "/vendedor/metas", icon: Target, label: "Metas", color: "bg-warning" },
+    { path: "/vendedor/avisos", icon: Megaphone, label: "Avisos", color: "bg-primary" },
+    { path: "/vendedor/bolao", icon: Trophy, label: "Bolão", color: "bg-warning" },
   ];
 
   return (

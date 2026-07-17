@@ -638,7 +638,7 @@ export default function EntregadorIniciarJornada() {
                 <div className="flex items-center gap-2">
                   <p className="font-medium text-sm">{rotaInfo.nome}</p>
                   {rotaInfo.tipo === "atacado" && (
-                    <Badge className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/30">Atacado</Badge>
+                    <Badge className="text-xs bg-warning/10 text-warning border-warning/30">Atacado</Badge>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1">
@@ -742,15 +742,15 @@ export default function EntregadorIniciarJornada() {
                     <p className="text-[10px] text-muted-foreground">Carregado</p>
                   </div>
                   <div className="text-center p-2 bg-muted/50 rounded-lg">
-                    <p className="text-lg font-bold text-orange-500">{cargaReal.reduce((a, i) => a + i.quantidade_vendida, 0)}</p>
+                    <p className="text-lg font-bold text-warning">{cargaReal.reduce((a, i) => a + i.quantidade_vendida, 0)}</p>
                     <p className="text-[10px] text-muted-foreground">Vendido</p>
                   </div>
                   <div className="text-center p-2 bg-muted/50 rounded-lg">
-                    <p className="text-lg font-bold text-blue-500">{cargaReal.reduce((a, i) => a + i.quantidade_transferida, 0)}</p>
+                    <p className="text-lg font-bold text-info">{cargaReal.reduce((a, i) => a + i.quantidade_transferida, 0)}</p>
                     <p className="text-[10px] text-muted-foreground">Transf.</p>
                   </div>
                   <div className="text-center p-2 bg-muted/50 rounded-lg">
-                    <p className="text-lg font-bold text-green-600">{cargaReal.reduce((a, i) => a + i.quantidade_restante, 0)}</p>
+                    <p className="text-lg font-bold text-success">{cargaReal.reduce((a, i) => a + i.quantidade_restante, 0)}</p>
                     <p className="text-[10px] text-muted-foreground">Restante</p>
                   </div>
                 </div>
@@ -762,9 +762,9 @@ export default function EntregadorIniciarJornada() {
                         <p className="text-sm font-medium">{item.produto_nome}</p>
                         <div className="flex gap-2 mt-0.5">
                           <span className="text-xs text-muted-foreground">Saída: {item.quantidade_saida}</span>
-                          <span className="text-xs text-orange-500">Vend: {item.quantidade_vendida}</span>
+                          <span className="text-xs text-warning">Vend: {item.quantidade_vendida}</span>
                           {item.quantidade_transferida > 0 && (
-                            <span className="text-xs text-blue-500">Transf: {item.quantidade_transferida}</span>
+                            <span className="text-xs text-info">Transf: {item.quantidade_transferida}</span>
                           )}
                         </div>
                       </div>
@@ -773,8 +773,8 @@ export default function EntregadorIniciarJornada() {
                           item.quantidade_restante <= 0
                             ? "bg-destructive text-destructive-foreground"
                             : item.quantidade_restante <= 2
-                            ? "bg-orange-500 text-white"
-                            : "bg-green-600 text-white"
+                            ? "bg-warning text-white"
+                            : "bg-success text-white"
                         }
                       >
                         {item.quantidade_restante}

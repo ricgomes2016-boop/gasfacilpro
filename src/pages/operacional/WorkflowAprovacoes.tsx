@@ -92,8 +92,8 @@ export default function WorkflowAprovacoes() {
       <div className="p-3 sm:p-4 md:p-6 space-y-4">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-chart-4">{pendentes}</p><p className="text-xs text-muted-foreground">Pendentes</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-green-600">{aprovacoes.filter((a: any) => a.status === "aprovado").length}</p><p className="text-xs text-muted-foreground">Aprovados</p></CardContent></Card>
+          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-warning">{pendentes}</p><p className="text-xs text-muted-foreground">Pendentes</p></CardContent></Card>
+          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-success">{aprovacoes.filter((a: any) => a.status === "aprovado").length}</p><p className="text-xs text-muted-foreground">Aprovados</p></CardContent></Card>
           <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-destructive">{aprovacoes.filter((a: any) => a.status === "rejeitado").length}</p><p className="text-xs text-muted-foreground">Rejeitados</p></CardContent></Card>
           <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-primary">{alcadas.length}</p><p className="text-xs text-muted-foreground">Alçadas</p></CardContent></Card>
         </div>

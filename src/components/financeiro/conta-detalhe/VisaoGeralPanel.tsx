@@ -56,7 +56,7 @@ export default function VisaoGeralPanel({ contaId, accentColor, isCaixa, saldoAt
                       <p className="text-sm font-medium">{m.descricao}</p>
                       <p className="text-xs text-muted-foreground">{format(new Date(m.data), "dd/MM/yyyy")} • {m.categoria}</p>
                     </div>
-                    <span className={`text-sm font-bold ${m.tipo === "entrada" ? "text-green-600" : "text-destructive"}`}>
+                    <span className={`text-sm font-bold ${m.tipo === "entrada" ? "text-success" : "text-destructive"}`}>
                       {m.tipo === "entrada" ? "+" : "-"}R$ {Number(m.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </span>
                   </div>

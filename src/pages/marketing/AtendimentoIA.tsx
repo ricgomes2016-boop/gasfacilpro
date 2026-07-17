@@ -26,11 +26,11 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const intencaoConfig: Record<string, { label: string; icon: any; color: string }> = {
-  pedido: { label: "Pedido", icon: ShoppingCart, color: "text-emerald-500" },
-  duvida: { label: "Dúvida", icon: HelpCircle, color: "text-blue-500" },
-  reclamacao: { label: "Reclamação", icon: AlertTriangle, color: "text-red-500" },
-  promocao: { label: "Promoção", icon: Megaphone, color: "text-violet-500" },
-  suporte: { label: "Suporte", icon: Settings2, color: "text-amber-500" },
+  pedido: { label: "Pedido", icon: ShoppingCart, color: "text-success" },
+  duvida: { label: "Dúvida", icon: HelpCircle, color: "text-info" },
+  reclamacao: { label: "Reclamação", icon: AlertTriangle, color: "text-destructive" },
+  promocao: { label: "Promoção", icon: Megaphone, color: "text-primary" },
+  suporte: { label: "Suporte", icon: Settings2, color: "text-warning" },
   outro: { label: "Outro", icon: MessageSquare, color: "text-muted-foreground" },
 };
 
@@ -114,9 +114,9 @@ export default function AtendimentoIA() {
   });
 
   const statusConversaColors: Record<string, string> = {
-    ativo: "bg-green-500/10 text-green-600",
-    resolvido: "bg-blue-500/10 text-blue-600",
-    transferido: "bg-amber-500/10 text-amber-600",
+    ativo: "bg-success/10 text-success",
+    resolvido: "bg-info/10 text-info",
+    transferido: "bg-warning/10 text-warning",
     arquivado: "bg-muted text-muted-foreground",
   };
 
@@ -180,7 +180,7 @@ export default function AtendimentoIA() {
                           <div className="flex items-center gap-2 mt-1">
                             <Badge variant="outline" className="text-[10px]">{int.label}</Badge>
                             {f.transferir_humano && (
-                              <Badge variant="outline" className="text-[10px] text-amber-500">
+                              <Badge variant="outline" className="text-[10px] text-warning">
                                 <Users className="h-2.5 w-2.5 mr-0.5" /> Transfere
                               </Badge>
                             )}

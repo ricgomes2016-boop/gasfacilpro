@@ -322,13 +322,13 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center font-bold">{linha.inicial}</TableCell>
-                        <TableCell className="text-center font-bold text-green-600">
+                        <TableCell className="text-center font-bold text-success">
                           {linha.entradasManuais > 0 ? `+${linha.entradasManuais}` : "0"}
                         </TableCell>
-                        <TableCell className="text-center font-bold text-orange-600">
+                        <TableCell className="text-center font-bold text-warning">
                           {linha.saidasManuais > 0 ? `-${linha.saidasManuais}` : "0"}
                         </TableCell>
-                        <TableCell className="text-center font-bold text-blue-600">
+                        <TableCell className="text-center font-bold text-info">
                           {isVazio ? "—" : (linha.vendas > 0 ? `-${linha.vendas}` : "0")}
                         </TableCell>
                         <TableCell className="text-center font-bold text-destructive">

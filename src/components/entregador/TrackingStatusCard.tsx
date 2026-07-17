@@ -16,29 +16,29 @@ interface DeviceStatus {
 
 function getAccuracyLabel(accuracy: number | null): { label: string; color: string } {
   if (accuracy === null) return { label: "Sem dados", color: "text-muted-foreground" };
-  if (accuracy <= 10) return { label: `${Math.round(accuracy)}m — Excelente`, color: "text-emerald-500" };
-  if (accuracy <= 30) return { label: `${Math.round(accuracy)}m — Boa`, color: "text-blue-500" };
-  if (accuracy <= 100) return { label: `${Math.round(accuracy)}m — Moderada`, color: "text-yellow-500" };
-  return { label: `${Math.round(accuracy)}m — Fraca`, color: "text-red-500" };
+  if (accuracy <= 10) return { label: `${Math.round(accuracy)}m — Excelente`, color: "text-success" };
+  if (accuracy <= 30) return { label: `${Math.round(accuracy)}m — Boa`, color: "text-info" };
+  if (accuracy <= 100) return { label: `${Math.round(accuracy)}m — Moderada`, color: "text-warning" };
+  return { label: `${Math.round(accuracy)}m — Fraca`, color: "text-destructive" };
 }
 
 function getNetworkLabel(type: string | null, downlink: number | null): { label: string; color: string } {
   if (!type) return { label: "Desconhecido", color: "text-muted-foreground" };
   const speed = downlink ? ` (${downlink}Mbps)` : "";
   switch (type) {
-    case "4g": return { label: `4G Forte${speed}`, color: "text-emerald-500" };
-    case "3g": return { label: `3G Moderado${speed}`, color: "text-yellow-500" };
-    case "2g": return { label: `2G Fraco${speed}`, color: "text-red-500" };
-    case "slow-2g": return { label: `Muito Lento${speed}`, color: "text-red-600" };
-    default: return { label: `WiFi${speed}`, color: "text-emerald-500" };
+    case "4g": return { label: `4G Forte${speed}`, color: "text-success" };
+    case "3g": return { label: `3G Moderado${speed}`, color: "text-warning" };
+    case "2g": return { label: `2G Fraco${speed}`, color: "text-destructive" };
+    case "slow-2g": return { label: `Muito Lento${speed}`, color: "text-destructive" };
+    default: return { label: `WiFi${speed}`, color: "text-success" };
   }
 }
 
 function getBatteryColor(level: number | null): string {
   if (level === null) return "text-muted-foreground";
-  if (level > 0.5) return "text-emerald-500";
-  if (level > 0.2) return "text-yellow-500";
-  return "text-red-500";
+  if (level > 0.5) return "text-success";
+  if (level > 0.2) return "text-warning";
+  return "text-destructive";
 }
 
 export function TrackingStatusCard({ tracking }: TrackingStatusCardProps) {

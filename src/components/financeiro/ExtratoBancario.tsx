@@ -187,7 +187,7 @@ export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Saldo Atual</CardTitle></CardHeader>
             <CardContent>
-              <p className={`text-xl font-bold ${Number(conta.saldo_atual) >= 0 ? "text-green-600" : "text-destructive"}`}>
+              <p className={`text-xl font-bold ${Number(conta.saldo_atual) >= 0 ? "text-success" : "text-destructive"}`}>
                 R$ {Number(conta.saldo_atual).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
             </CardContent>
@@ -196,8 +196,8 @@ export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
             <CardHeader className="pb-2"><CardTitle className="text-xs font-medium text-muted-foreground">Entradas ({periodo}d)</CardTitle></CardHeader>
             <CardContent>
               <div className="flex items-center gap-1">
-                <TrendingUp className="h-4 w-4 text-green-600" />
-                <p className="text-xl font-bold text-green-600">
+                <TrendingUp className="h-4 w-4 text-success" />
+                <p className="text-xl font-bold text-success">
                   R$ {totalEntradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -260,7 +260,7 @@ export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
                       <TableRow key={m.id}>
                         <TableCell className="w-8 pl-4">
                           {Number(m.valor) >= 0 ? (
-                            <ArrowUpCircle className="h-4 w-4 text-green-600" />
+                            <ArrowUpCircle className="h-4 w-4 text-success" />
                           ) : (
                             <ArrowDownCircle className="h-4 w-4 text-destructive" />
                           )}
@@ -272,7 +272,7 @@ export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
                         <TableCell>
                           <Badge variant="outline" className="text-[10px]">{m.categoria}</Badge>
                         </TableCell>
-                        <TableCell className={`text-right font-bold ${Number(m.valor) >= 0 ? "text-green-600" : "text-destructive"}`}>
+                        <TableCell className={`text-right font-bold ${Number(m.valor) >= 0 ? "text-success" : "text-destructive"}`}>
                           {Number(m.valor) >= 0 ? "+" : ""}R$ {Math.abs(Number(m.valor)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-right text-xs text-muted-foreground pr-4">

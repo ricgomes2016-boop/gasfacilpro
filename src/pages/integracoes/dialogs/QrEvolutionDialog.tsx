@@ -36,10 +36,10 @@ export function QrEvolutionDialog({
             </div>
           ) : qrStatus === "connected" ? (
             <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <div className="bg-green-500/10 p-4 rounded-full">
-                <Wifi className="h-10 w-10 text-green-600" />
+              <div className="bg-success/10 p-4 rounded-full">
+                <Wifi className="h-10 w-10 text-success" />
               </div>
-              <p className="text-lg font-bold text-green-700">Conectado com Sucesso!</p>
+              <p className="text-lg font-bold text-success">Conectado com Sucesso!</p>
               <p className="text-sm text-muted-foreground">Sua unidade já está enviando mensagens.</p>
             </div>
           ) : qrCodeData ? (

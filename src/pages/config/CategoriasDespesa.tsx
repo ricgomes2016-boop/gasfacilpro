@@ -95,9 +95,9 @@ const grupoLabels: Record<string, string> = {
 
 const grupoColors: Record<string, string> = {
   custos_fixos: "bg-primary/10 text-primary border-primary/20",
-  compras_mercadorias: "bg-emerald-500/10 text-emerald-700 border-emerald-200",
-  frota_entrega: "bg-amber-500/10 text-amber-700 border-amber-200",
-  ocupacao_estrutura: "bg-sky-500/10 text-sky-700 border-sky-200",
+  compras_mercadorias: "bg-success/10 text-success border-success",
+  frota_entrega: "bg-warning/10 text-warning border-warning",
+  ocupacao_estrutura: "bg-info/10 text-info border-info",
   pessoal: "bg-info/10 text-info border-info/20",
   operacional: "bg-warning/10 text-warning border-warning/20",
   comercial: "bg-success/10 text-success border-success/20",

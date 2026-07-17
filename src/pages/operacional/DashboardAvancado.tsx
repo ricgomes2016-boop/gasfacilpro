@@ -115,7 +115,7 @@ export default function DashboardAvancado() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-green-500/10"><TrendingUp className="h-6 w-6 text-green-500" /></div>
+                    <div className="p-3 rounded-lg bg-success/10"><TrendingUp className="h-6 w-6 text-success" /></div>
                     <div>
                       <p className="text-2xl font-bold">R$ {(metricas.faturamento / 1000).toFixed(1)}k</p>
                       <p className="text-sm text-muted-foreground">Faturamento (6 meses)</p>

@@ -126,8 +126,8 @@ export default function Notificacoes() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-green-500/10">
-                  <MessageSquare className="h-6 w-6 text-green-600" />
+                <div className="p-3 rounded-lg bg-success/10">
+                  <MessageSquare className="h-6 w-6 text-success" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{canaisAtivos.whatsapp}</p>
@@ -139,8 +139,8 @@ export default function Notificacoes() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-blue-500/10">
-                  <Mail className="h-6 w-6 text-blue-600" />
+                <div className="p-3 rounded-lg bg-info/10">
+                  <Mail className="h-6 w-6 text-info" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{canaisAtivos.email}</p>

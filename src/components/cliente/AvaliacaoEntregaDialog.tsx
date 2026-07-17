@@ -30,7 +30,7 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
         >
           <Star
             className={`h-8 w-8 transition-colors ${
-              star <= (hover || value) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"
+              star <= (hover || value) ? "fill-warning text-warning" : "text-muted-foreground/30"
             }`}
           />
         </button>

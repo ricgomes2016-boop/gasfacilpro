@@ -373,9 +373,9 @@ export default function TransferenciaEstoque() {
 
   const statusBadge = (s: string) => {
     const map: Record<string, { label: string; className: string }> = {
-      pendente: { label: "Pendente", className: "bg-yellow-500 text-white" },
-      em_transito: { label: "Em Trânsito", className: "bg-blue-500 text-white" },
-      recebido: { label: "Recebido", className: "bg-green-600 text-white" },
+      pendente: { label: "Pendente", className: "bg-warning text-white" },
+      em_transito: { label: "Em Trânsito", className: "bg-info text-white" },
+      recebido: { label: "Recebido", className: "bg-success text-white" },
       cancelado: { label: "Cancelado", className: "bg-destructive text-destructive-foreground" },
     };
     const m = map[s] || { label: s, className: "" };

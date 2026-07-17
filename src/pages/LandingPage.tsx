@@ -25,14 +25,14 @@ const stats = [
 ];
 
 const features = [
-  { icon: ShoppingCart, title: "PDV & Vendas", desc: "Ponto de venda ágil com pedidos por WhatsApp, telefone e app do cliente.", color: "from-emerald-500/20 to-teal-500/20" },
-  { icon: Truck, title: "Entregas & Logística", desc: "App do entregador com GPS, rotas otimizadas e rastreamento em tempo real.", color: "from-blue-500/20 to-cyan-500/20" },
-  { icon: Package, title: "Estoque Inteligente", desc: "Controle de cilindros, comodatos e transferências entre filiais.", color: "from-amber-500/20 to-orange-500/20" },
-  { icon: Wallet, title: "Financeiro Completo", desc: "Contas a pagar/receber, fluxo de caixa e conciliação bancária.", color: "from-violet-500/20 to-purple-500/20" },
-  { icon: Users, title: "RH & Comissões", desc: "Folha de pagamento, ponto eletrônico e comissões automáticas.", color: "from-pink-500/20 to-rose-500/20" },
-  { icon: BarChart3, title: "Dashboards & IA", desc: "Insights com inteligência artificial e indicadores em tempo real.", color: "from-cyan-500/20 to-sky-500/20" },
-  { icon: Shield, title: "Fiscal & Compliance", desc: "Emissão de NF-e, NFC-e, CT-e e MDF-e integrada ao sistema.", color: "from-green-500/20 to-emerald-500/20" },
-  { icon: Globe, title: "Multi-unidades", desc: "Gerencie várias filiais com visão consolidada e permissões.", color: "from-indigo-500/20 to-blue-500/20" },
+  { icon: ShoppingCart, title: "PDV & Vendas", desc: "Ponto de venda ágil com pedidos por WhatsApp, telefone e app do cliente.", color: "from-success/20 to-success/20" },
+  { icon: Truck, title: "Entregas & Logística", desc: "App do entregador com GPS, rotas otimizadas e rastreamento em tempo real.", color: "from-info/20 to-info/20" },
+  { icon: Package, title: "Estoque Inteligente", desc: "Controle de cilindros, comodatos e transferências entre filiais.", color: "from-warning/20 to-warning/20" },
+  { icon: Wallet, title: "Financeiro Completo", desc: "Contas a pagar/receber, fluxo de caixa e conciliação bancária.", color: "from-primary/20 to-primary/20" },
+  { icon: Users, title: "RH & Comissões", desc: "Folha de pagamento, ponto eletrônico e comissões automáticas.", color: "from-primary/20 to-destructive/20" },
+  { icon: BarChart3, title: "Dashboards & IA", desc: "Insights com inteligência artificial e indicadores em tempo real.", color: "from-info/20 to-info/20" },
+  { icon: Shield, title: "Fiscal & Compliance", desc: "Emissão de NF-e, NFC-e, CT-e e MDF-e integrada ao sistema.", color: "from-success/20 to-success/20" },
+  { icon: Globe, title: "Multi-unidades", desc: "Gerencie várias filiais com visão consolidada e permissões.", color: "from-info/20 to-info/20" },
 ];
 
 const plans = [
@@ -396,7 +396,7 @@ export default function LandingPage() {
                   <CardContent className="p-8">
                     <div className="flex gap-0.5 mb-5">
                       {Array.from({ length: t.stars }).map((_, j) => (
-                        <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                        <Star key={j} className="h-4 w-4 fill-warning text-warning" />
                       ))}
                     </div>
                     <p className="text-sm leading-relaxed text-muted-foreground mb-8">

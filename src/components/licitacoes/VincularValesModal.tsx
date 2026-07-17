@@ -93,7 +93,7 @@ export function VincularValesModal({ empenho, onClose, onDone }: Props) {
               </div>
             </div>
             {intervaloValido && (
-              <div className={`rounded-lg p-3 text-sm flex items-start gap-2 ${bate ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+              <div className={`rounded-lg p-3 text-sm flex items-start gap-2 ${bate ? "bg-success text-success" : "bg-destructive text-destructive"}`}>
                 {bate ? <CheckCircle2 className="h-4 w-4 mt-0.5" /> : <AlertTriangle className="h-4 w-4 mt-0.5" />}
                 <div>
                   {bate

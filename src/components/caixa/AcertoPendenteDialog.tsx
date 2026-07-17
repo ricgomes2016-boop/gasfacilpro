@@ -47,7 +47,7 @@ export function AcertoPendenteDialog({ open, onOpenChange, detalhes }: Props) {
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-amber-500" />
+            <Clock className="h-5 w-5 text-warning" />
             Acertos Pendentes — Detalhes
           </DialogTitle>
         </DialogHeader>

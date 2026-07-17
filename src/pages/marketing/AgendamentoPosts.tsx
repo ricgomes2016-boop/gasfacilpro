@@ -34,9 +34,9 @@ import { Zap, AlertTriangle } from "lucide-react";
 const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/marketing-ai`;
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  agendado: { label: "Agendado", color: "bg-blue-500/10 text-blue-600", icon: Clock },
-  publicado: { label: "Publicado", color: "bg-green-500/10 text-green-600", icon: CheckCircle2 },
-  falhou: { label: "Falhou", color: "bg-red-500/10 text-red-600", icon: XCircle },
+  agendado: { label: "Agendado", color: "bg-info/10 text-info", icon: Clock },
+  publicado: { label: "Publicado", color: "bg-success/10 text-success", icon: CheckCircle2 },
+  falhou: { label: "Falhou", color: "bg-destructive/10 text-destructive", icon: XCircle },
   cancelado: { label: "Cancelado", color: "bg-muted text-muted-foreground", icon: AlertCircle },
 };
 
@@ -249,7 +249,7 @@ export default function AgendamentoPosts() {
                         </div>
                         <div className="flex gap-1 shrink-0">
                           {ag.status === "agendado" && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => cancelMut.mutate(ag.id)}><XCircle className="h-4 w-4 text-amber-500" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => cancelMut.mutate(ag.id)}><XCircle className="h-4 w-4 text-warning" /></Button>
                           )}
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(ag.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
@@ -282,12 +282,12 @@ export default function AgendamentoPosts() {
                   </Select>
                   {contaPlataforma ? (
                     isOAuthAccount ? (
-                      <div className="mt-2 flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20">
+                      <div className="mt-2 flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-success/10 text-success dark:text-success border border-success/20">
                         <Zap className="h-3.5 w-3.5" />
                         <span>Será publicado automaticamente no horário agendado</span>
                       </div>
                     ) : (
-                      <div className="mt-2 flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                      <div className="mt-2 flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-warning/10 text-warning dark:text-warning border border-warning/20">
                         <AlertTriangle className="h-3.5 w-3.5" />
                         <span>Apenas lembrete — você precisará publicar manualmente</span>
                       </div>

@@ -21,7 +21,7 @@ export function PostPreview({ plataforma, imagemUrl, texto }: Props) {
       <div className="max-w-sm mx-auto bg-background border border-border rounded-xl overflow-hidden shadow-sm">
         <div className="flex items-center justify-between p-3">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500 p-[2px]">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-warning via-primary to-primary p-[2px]">
               <div className="h-full w-full rounded-full bg-background flex items-center justify-center text-xs font-bold">
                 {inicial}
               </div>
@@ -62,7 +62,7 @@ export function PostPreview({ plataforma, imagemUrl, texto }: Props) {
       <div className="max-w-sm mx-auto bg-background border border-border rounded-xl overflow-hidden shadow-sm">
         <div className="flex items-center justify-between p-3">
           <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+            <div className="h-9 w-9 rounded-full bg-info flex items-center justify-center text-white font-bold text-sm">
               {inicial}
             </div>
             <div>

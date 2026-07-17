@@ -88,7 +88,7 @@ export default function ExtratoTabela({ contaId, saldoAtual }: Props) {
                     <div className="font-medium">{r.descricao}</div>
                     {r.categoria && <div className="text-xs text-muted-foreground">{r.categoria}</div>}
                   </TableCell>
-                  <TableCell className="text-right text-green-600 font-medium">{r.entrada ? fmt(r.entrada) : "-"}</TableCell>
+                  <TableCell className="text-right text-success font-medium">{r.entrada ? fmt(r.entrada) : "-"}</TableCell>
                   <TableCell className="text-right text-destructive font-medium">{r.saida ? fmt(r.saida) : "-"}</TableCell>
                   <TableCell className="text-right font-bold">{fmt(r.total)}</TableCell>
                 </TableRow>

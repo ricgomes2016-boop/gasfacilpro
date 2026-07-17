@@ -184,9 +184,9 @@ export default function ClienteDicas() {
           {/* Safety Tips Tab */}
           <TabsContent value="seguranca" className="space-y-4 mt-4">
             {/* Emergency Banner */}
-            <Card className="bg-red-50 border-red-200">
+            <Card className="bg-destructive border-destructive">
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 text-red-700 mb-3">
+                <div className="flex items-center gap-2 text-destructive mb-3">
                   <Phone className="h-5 w-5" />
                   <span className="font-semibold">Telefones de Emergência</span>
                 </div>
@@ -195,7 +195,7 @@ export default function ClienteDicas() {
                     <a
                       key={contact.number}
                       href={`tel:${contact.number}`}
-                      className="flex items-center justify-between bg-white p-2 rounded-lg border border-red-200"
+                      className="flex items-center justify-between bg-white p-2 rounded-lg border border-destructive"
                     >
                       <span className="text-sm">{contact.name}</span>
                       <Badge variant="destructive">{contact.number}</Badge>
@@ -218,7 +218,7 @@ export default function ClienteDicas() {
                   <ul className="space-y-2">
                     {section.tips.map((tip, index) => (
                       <li key={index} className="flex items-start gap-2 text-sm">
-                        <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                        <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />
                         <span>{tip}</span>
                       </li>
                     ))}

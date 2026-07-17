@@ -216,8 +216,8 @@ export const integracoes: Integracao[] = [
 ];
 
 export const statusConfig = {
-  conectado: { label: "Conectado", variant: "default" as const, dotColor: "bg-green-500" },
-  disponivel: { label: "Disponível", variant: "secondary" as const, dotColor: "bg-blue-500" },
+  conectado: { label: "Conectado", variant: "default" as const, dotColor: "bg-success" },
+  disponivel: { label: "Disponível", variant: "secondary" as const, dotColor: "bg-info" },
   em_breve: { label: "Em breve", variant: "outline" as const, dotColor: "bg-muted-foreground" },
 };
 

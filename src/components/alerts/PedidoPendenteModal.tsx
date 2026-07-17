@@ -19,16 +19,16 @@ interface Props {
 function formatCanal(canal: string | null): { label: string; color: string } {
   switch (canal) {
     case "site_ia":
-      return { label: "🤖 Bia (Site)", color: "bg-purple-500" };
+      return { label: "🤖 Bia (Site)", color: "bg-primary" };
     case "whatsapp":
-      return { label: "💬 WhatsApp", color: "bg-green-500" };
+      return { label: "💬 WhatsApp", color: "bg-success" };
     case "telefone":
     case "voip":
-      return { label: "📞 Telefone", color: "bg-blue-500" };
+      return { label: "📞 Telefone", color: "bg-info" };
     case "balcao":
-      return { label: "🏪 Balcão", color: "bg-amber-500" };
+      return { label: "🏪 Balcão", color: "bg-warning" };
     case "app":
-      return { label: "📱 App", color: "bg-pink-500" };
+      return { label: "📱 App", color: "bg-primary" };
     default:
       return { label: canal || "Direto", color: "bg-slate-500" };
   }
@@ -84,7 +84,7 @@ export function PedidoPendenteModal({
         className={cn(
           "max-w-md border-4 transition-all",
           urgencia === "critico" && "border-destructive animate-pulse shadow-[0_0_40px_hsl(var(--destructive)/0.6)]",
-          urgencia === "alerta" && "border-amber-500 shadow-[0_0_30px_hsl(45_93%_47%/0.4)]",
+          urgencia === "alerta" && "border-warning shadow-[0_0_30px_hsl(45_93%_47%/0.4)]",
           urgencia === "normal" && "border-primary"
         )}
       >
@@ -140,7 +140,7 @@ export function PedidoPendenteModal({
             className={cn(
               "gap-1 font-bold",
               urgencia === "critico" && "border-destructive text-destructive animate-pulse",
-              urgencia === "alerta" && "border-amber-500 text-amber-600",
+              urgencia === "alerta" && "border-warning text-warning",
             )}
           >
             <Clock className="h-3 w-3" />

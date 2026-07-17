@@ -110,7 +110,7 @@ export default function CockpitGestor() {
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Saudação */}
         <div className="flex items-center gap-3">
-          <Sun className="h-8 w-8 text-chart-4" />
+          <Sun className="h-8 w-8 text-warning" />
           <div>
             <h1 className="text-2xl font-bold text-foreground">{saudacao}, Gestor!</h1>
             <p className="text-muted-foreground">{getBrasiliaDate().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</p>
@@ -144,7 +144,7 @@ export default function CockpitGestor() {
                   <p className="text-sm text-muted-foreground">Faturamento Hoje</p>
                   <p className="text-2xl font-bold">R$ {dados.faturamentoHoje.toLocaleString("pt-BR")}</p>
                   {variacaoVendas !== 0 && (
-                    <p className={`text-xs flex items-center gap-1 mt-1 ${variacaoVendas > 0 ? "text-chart-3" : "text-destructive"}`}>
+                    <p className={`text-xs flex items-center gap-1 mt-1 ${variacaoVendas > 0 ? "text-success" : "text-destructive"}`}>
                       <TrendingUp className="h-3 w-3" />{variacaoVendas > 0 ? "+" : ""}{variacaoVendas.toFixed(0)}% vs ontem
                     </p>
                   )}

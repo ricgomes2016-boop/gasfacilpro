@@ -271,7 +271,7 @@ export default function ClienteConsumo() {
         {/* Results */}
         {result && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white">
+            <Card className="bg-gradient-to-br from-success to-success text-white">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <TrendingUp className="h-6 w-6" />
@@ -312,13 +312,13 @@ export default function ClienteConsumo() {
             </Card>
 
             {/* Tips */}
-            <Card className="bg-amber-50 border-amber-200">
+            <Card className="bg-warning border-warning">
               <CardContent className="p-4">
                 <div className="flex gap-3">
-                  <Lightbulb className="h-5 w-5 text-amber-600 shrink-0" />
+                  <Lightbulb className="h-5 w-5 text-warning shrink-0" />
                   <div className="text-sm">
-                    <p className="font-medium text-amber-800 mb-2">Dicas para economizar</p>
-                    <ul className="space-y-1 text-amber-700">
+                    <p className="font-medium text-warning mb-2">Dicas para economizar</p>
+                    <ul className="space-y-1 text-warning">
                       <li>• Tampe as panelas durante o cozimento</li>
                       <li>• Use a chama adequada ao tamanho da panela</li>
                       <li>• Descongele alimentos antes de cozinhar</li>

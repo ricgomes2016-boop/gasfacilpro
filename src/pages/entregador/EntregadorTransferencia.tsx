@@ -207,9 +207,9 @@ export default function EntregadorTransferencia() {
   };
 
   const statusColor: Record<string, string> = {
-    pendente: "bg-yellow-500 text-white",
-    em_transito: "bg-blue-500 text-white",
-    recebido: "bg-green-600 text-white",
+    pendente: "bg-warning text-white",
+    em_transito: "bg-info text-white",
+    recebido: "bg-success text-white",
     cancelado: "bg-destructive text-destructive-foreground",
   };
 

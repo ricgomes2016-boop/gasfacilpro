@@ -191,7 +191,7 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
                 const pendente = valesPendentes[parceiro.id];
                 if (!pendente || pendente.quantidade === 0) return null;
                 return (
-                  <Card key={parceiro.id} className="bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-700">
+                  <Card key={parceiro.id} className="bg-warning border-warning dark:bg-warning/20 dark:border-warning">
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between">
                         <div><p className="font-medium">{parceiro.nome}</p><p className="text-sm text-muted-foreground mt-1">{pendente.quantidade} vales utilizados</p></div>

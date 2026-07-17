@@ -595,7 +595,7 @@ export function ConcorrentesMap() {
           {/* Legend overlay */}
           <div className="absolute bottom-3 left-3 bg-background/90 backdrop-blur-sm rounded-lg p-2 z-[1000] text-xs space-y-1 border">
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-blue-500 border border-white" />
+              <span className="w-3 h-3 rounded-full bg-info border border-white" />
               <span>Sua unidade</span>
             </div>
             {siblingUnidades.length > 0 && (

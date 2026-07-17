@@ -147,7 +147,7 @@ export function ValeGasQRCode({ open, onClose, vale }: ValeGasQRCodeProps) {
             <div className="text-center mt-4 space-y-1">
               <p className="text-2xl font-bold">Vale Nº {vale.numero}</p>
               <p className="font-mono text-xs text-muted-foreground">{vale.codigo}</p>
-              <p className="text-3xl font-bold text-green-600 mt-2">
+              <p className="text-3xl font-bold text-success mt-2">
                 R$ {vale.valor.toFixed(2)}
               </p>
               {vale.parceiroNome && (

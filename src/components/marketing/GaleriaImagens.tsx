@@ -184,7 +184,7 @@ export function GaleriaImagens() {
                   {img.origem === "ia" ? <><Sparkles className="h-2.5 w-2.5" /> IA</> : <><Upload className="h-2.5 w-2.5" /> Importada</>}
                 </Badge>
                 {img.favorito && (
-                  <Star className="absolute top-1.5 right-1.5 h-4 w-4 text-yellow-500 fill-yellow-500 drop-shadow" />
+                  <Star className="absolute top-1.5 right-1.5 h-4 w-4 text-warning fill-warning drop-shadow" />
                 )}
               </div>
               <div className="p-2 space-y-1.5">
@@ -207,7 +207,7 @@ export function GaleriaImagens() {
                     title="Favoritar"
                     onClick={() => toggleFav.mutate({ id: img.id, favorito: !img.favorito })}
                   >
-                    {img.favorito ? <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" /> : <StarOff className="h-3.5 w-3.5" />}
+                    {img.favorito ? <Star className="h-3.5 w-3.5 text-warning fill-warning" /> : <StarOff className="h-3.5 w-3.5" />}
                   </Button>
                   <Button
                     variant="ghost" size="icon" className="h-7 w-7"

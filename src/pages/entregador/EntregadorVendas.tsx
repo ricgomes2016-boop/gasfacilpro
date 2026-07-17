@@ -126,9 +126,9 @@ export default function EntregadorVendas() {
           <div key={p.nome} className="space-y-1">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
-                {i === 0 && <Award className="h-3.5 w-3.5 text-yellow-500" />}
+                {i === 0 && <Award className="h-3.5 w-3.5 text-warning" />}
                 {i === 1 && <Award className="h-3.5 w-3.5 text-slate-400" />}
-                {i === 2 && <Award className="h-3.5 w-3.5 text-amber-700" />}
+                {i === 2 && <Award className="h-3.5 w-3.5 text-warning" />}
                 <span className="font-medium truncate max-w-[160px]">{p.nome}</span>
               </div>
               <div className="flex items-center gap-2">

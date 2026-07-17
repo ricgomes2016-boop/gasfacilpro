@@ -98,9 +98,9 @@ export default function DashboardLogistico() {
 
         <div className="grid gap-4 md:grid-cols-4">
           <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><Package className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">{entregasHoje}</p><p className="text-sm text-muted-foreground">Entregas Hoje</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-blue-500/10"><Clock className="h-6 w-6 text-blue-500" /></div><div><p className="text-2xl font-bold">-</p><p className="text-sm text-muted-foreground">Tempo Médio</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-green-500/10"><TrendingUp className="h-6 w-6 text-green-500" /></div><div><p className="text-2xl font-bold">{taxaSucesso.toFixed(0)}%</p><p className="text-sm text-muted-foreground">Taxa Sucesso</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-yellow-500/10"><Route className="h-6 w-6 text-yellow-500" /></div><div><p className="text-2xl font-bold">{emRota}</p><p className="text-sm text-muted-foreground">Em Rota</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-info/10"><Clock className="h-6 w-6 text-info" /></div><div><p className="text-2xl font-bold">-</p><p className="text-sm text-muted-foreground">Tempo Médio</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-success/10"><TrendingUp className="h-6 w-6 text-success" /></div><div><p className="text-2xl font-bold">{taxaSucesso.toFixed(0)}%</p><p className="text-sm text-muted-foreground">Taxa Sucesso</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-warning/10"><Route className="h-6 w-6 text-warning" /></div><div><p className="text-2xl font-bold">{emRota}</p><p className="text-sm text-muted-foreground">Em Rota</p></div></div></CardContent></Card>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">

@@ -254,7 +254,7 @@ export default function EntregadorProdutividade() {
                   <div key={b.bairro} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
-                        {i === 0 && <Star className="h-3 w-3 text-yellow-500" />}
+                        {i === 0 && <Star className="h-3 w-3 text-warning" />}
                         <span className="font-medium">{b.bairro}</span>
                       </div>
                       <Badge variant="outline" className="text-xs">{b.qtd}</Badge>

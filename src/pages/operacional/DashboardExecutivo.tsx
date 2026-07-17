@@ -164,8 +164,8 @@ export default function DashboardExecutivo() {
                   <p className="text-sm text-muted-foreground">Vendas Realizadas</p>
                   <p className="text-2xl font-bold">{totalVendas}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-blue-500/10">
-                  <Package className="h-6 w-6 text-blue-500" />
+                <div className="p-3 rounded-lg bg-info/10">
+                  <Package className="h-6 w-6 text-info" />
                 </div>
               </div>
             </CardContent>
@@ -177,8 +177,8 @@ export default function DashboardExecutivo() {
                   <p className="text-sm text-muted-foreground">Clientes Ativos</p>
                   <p className="text-2xl font-bold">{clientesAtivos}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-green-500/10">
-                  <Users className="h-6 w-6 text-green-500" />
+                <div className="p-3 rounded-lg bg-success/10">
+                  <Users className="h-6 w-6 text-success" />
                 </div>
               </div>
             </CardContent>
@@ -190,8 +190,8 @@ export default function DashboardExecutivo() {
                   <p className="text-sm text-muted-foreground">Ticket Médio</p>
                   <p className="text-2xl font-bold">R$ {ticketMedio.toFixed(2)}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-yellow-500/10">
-                  <Target className="h-6 w-6 text-yellow-500" />
+                <div className="p-3 rounded-lg bg-warning/10">
+                  <Target className="h-6 w-6 text-warning" />
                 </div>
               </div>
             </CardContent>

@@ -189,7 +189,7 @@ export default function MCMM() {
                   {analise.length === 0 ? (
                     <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum produto para análise</TableCell></TableRow>
                   ) : analise.map((p) => (
-                    <TableRow key={p.id} className={p.status === "critico" ? "bg-destructive/5" : p.status === "alerta" ? "bg-yellow-50 dark:bg-yellow-950/10" : ""}>
+                    <TableRow key={p.id} className={p.status === "critico" ? "bg-destructive/5" : p.status === "alerta" ? "bg-warning dark:bg-warning/10" : ""}>
                       <TableCell className="font-medium">{p.nome}</TableCell>
                       <TableCell className="text-center font-bold">{p.estoque}</TableCell>
                       <TableCell className="text-center">{p.mediaConsumo}</TableCell>

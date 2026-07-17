@@ -150,7 +150,7 @@ export default function FechamentoMensal() {
               <CardContent>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all ${progresso === 100 ? "bg-green-500" : "bg-primary"}`} style={{ width: `${progresso}%` }} />
+                    <div className={`h-full rounded-full transition-all ${progresso === 100 ? "bg-success" : "bg-primary"}`} style={{ width: `${progresso}%` }} />
                   </div>
                   <span className="text-sm font-semibold">{progresso}%</span>
                 </div>
@@ -164,7 +164,7 @@ export default function FechamentoMensal() {
 
                 <div className="space-y-2">
                   {checklist.map((item: any) => (
-                    <div key={item.id} className={`flex items-center gap-3 p-3 rounded-lg border ${item.concluido ? "bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800" : "bg-background"}`}>
+                    <div key={item.id} className={`flex items-center gap-3 p-3 rounded-lg border ${item.concluido ? "bg-success border-success dark:bg-success/10 dark:border-success" : "bg-background"}`}>
                       <Checkbox checked={item.concluido} disabled={selectedFech.status === "fechado"} onCheckedChange={(v) => marcarItem.mutate({ id: item.id, concluido: !!v })} />
                       <div className="flex-1">
                         <p className={`text-sm ${item.concluido ? "line-through text-muted-foreground" : "font-medium"}`}>{item.item}</p>

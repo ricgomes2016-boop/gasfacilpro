@@ -240,10 +240,10 @@ export default function ConfigDestinoPagamento({ contas }: Props) {
                           <TableCell className="hidden md:table-cell">
                             <div className="flex flex-wrap gap-1">
                               {(forma.disponivel === "ambos" || forma.disponivel === "recebimento") && (
-                                <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[10px]">Recebimento</Badge>
+                                <Badge className="bg-success hover:bg-success text-white text-[10px]">Recebimento</Badge>
                               )}
                               {(forma.disponivel === "ambos" || forma.disponivel === "pagamento") && (
-                                <Badge className="bg-rose-600 hover:bg-rose-600 text-white text-[10px]">Pagamento</Badge>
+                                <Badge className="bg-destructive hover:bg-destructive text-white text-[10px]">Pagamento</Badge>
                               )}
                             </div>
                           </TableCell>

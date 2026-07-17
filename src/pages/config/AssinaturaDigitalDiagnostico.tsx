@@ -78,11 +78,11 @@ export default function AssinaturaDigitalDiagnostico() {
               {loading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : statusOk ? (
-                <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                <ShieldCheck className="h-5 w-5 text-success" />
               ) : d?.vencido ? (
-                <ShieldX className="h-5 w-5 text-red-600" />
+                <ShieldX className="h-5 w-5 text-destructive" />
               ) : (
-                <ShieldAlert className="h-5 w-5 text-amber-600" />
+                <ShieldAlert className="h-5 w-5 text-warning" />
               )}
               Status do certificado
             </CardTitle>
@@ -118,7 +118,7 @@ export default function AssinaturaDigitalDiagnostico() {
                 label="ICP-Brasil"
                 value={
                   d.cadeia_icp_brasil ? (
-                    <Badge className="bg-emerald-600 hover:bg-emerald-600">Sim</Badge>
+                    <Badge className="bg-success hover:bg-success">Sim</Badge>
                   ) : (
                     <Badge variant="secondary">Não detectado</Badge>
                   )
@@ -128,7 +128,7 @@ export default function AssinaturaDigitalDiagnostico() {
               <Field
                 label="Válido até"
                 value={
-                  <span className={d.vencido ? "text-red-600 font-semibold" : d.dias_para_vencer < 30 ? "text-amber-600 font-semibold" : ""}>
+                  <span className={d.vencido ? "text-destructive font-semibold" : d.dias_para_vencer < 30 ? "text-warning font-semibold" : ""}>
                     {fmtData(d.validade_fim)} ({d.vencido ? "vencido" : `${d.dias_para_vencer} dias`})
                   </span>
                 }

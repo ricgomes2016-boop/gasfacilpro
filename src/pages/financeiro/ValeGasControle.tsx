@@ -144,8 +144,8 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
   const getStatusBadge = (status: StatusVale) => {
     switch (status) {
       case "disponivel": return <Badge variant="secondary">Disponível</Badge>;
-      case "vendido": return <Badge className="bg-amber-500">Vendido</Badge>;
-      case "utilizado": return <Badge className="bg-green-600">Utilizado</Badge>;
+      case "vendido": return <Badge className="bg-warning">Vendido</Badge>;
+      case "utilizado": return <Badge className="bg-success">Utilizado</Badge>;
       case "cancelado": return <Badge variant="destructive">Cancelado</Badge>;
     }
   };
@@ -160,7 +160,7 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
         {alertas.length > 0 && (
           <div className="space-y-2">
             {alertas.map((a, i) => (
-              <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border ${a.tipo === "error" ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-700 dark:text-warning"}`}>
+              <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border ${a.tipo === "error" ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-warning border-warning text-warning dark:bg-warning/20 dark:border-warning dark:text-warning"}`}>
                 <AlertTriangle className="h-5 w-5 shrink-0" />
                 <span className="text-sm font-medium">{a.msg}</span>
               </div>
@@ -440,7 +440,7 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
                 </div>
                 <div className="flex gap-2 justify-end pt-4">
                   <Button variant="outline" onClick={() => setUtilizacaoDialogOpen(false)}>Cancelar</Button>
-                  <Button onClick={handleUtilizarVale} className="bg-green-600 hover:bg-green-700">Confirmar Utilização</Button>
+                  <Button onClick={handleUtilizarVale} className="bg-success hover:bg-success">Confirmar Utilização</Button>
                 </div>
               </div>
             )}

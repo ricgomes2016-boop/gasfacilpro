@@ -302,7 +302,7 @@ export default function AdminUnidades() {
                                 {emp?.nome || "Empresa removida"}
                               </Badge>
                               {emp && !emp.ativo && (
-                                <span className="text-[10px] text-amber-600 dark:text-amber-400">Empresa inativa</span>
+                                <span className="text-[10px] text-warning dark:text-warning">Empresa inativa</span>
                               )}
                             </div>
                           );
@@ -353,7 +353,7 @@ export default function AdminUnidades() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-sm text-amber-700 dark:text-amber-400 flex gap-2">
+            <div className="rounded-lg bg-warning/10 border border-warning/20 p-3 text-sm text-warning dark:text-warning flex gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               <div>
                 <strong>Atenção:</strong> Esta operação é irreversível. Pedidos, clientes exclusivos e usuários vinculados apenas a esta unidade serão migrados.

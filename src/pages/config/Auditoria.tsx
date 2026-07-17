@@ -75,19 +75,19 @@ export default function Auditoria() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Executadas</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <CheckCircle2 className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-emerald-600">{logsIa.filter((log) => log.success).length}</div>
+              <div className="text-2xl font-bold text-success">{logsIa.filter((log) => log.success).length}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Falhas</CardTitle>
-              <ShieldAlert className="h-4 w-4 text-red-600" />
+              <ShieldAlert className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{falhas}</div>
+              <div className="text-2xl font-bold text-destructive">{falhas}</div>
             </CardContent>
           </Card>
           <Card>

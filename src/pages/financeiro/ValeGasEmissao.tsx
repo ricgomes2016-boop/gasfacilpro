@@ -648,11 +648,11 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                     </div>
                   </div>
                 ) : parceiro ? (
-                  <div className="border rounded-lg p-4 space-y-2 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700">
-                    <Label className="flex items-center gap-2 font-semibold text-amber-700 dark:text-amber-300">
+                  <div className="border rounded-lg p-4 space-y-2 bg-warning dark:bg-warning/20 border-warning dark:border-warning">
+                    <Label className="flex items-center gap-2 font-semibold text-warning dark:text-warning">
                       <Receipt className="h-4 w-4" /> Parceiro Consignado
                     </Label>
-                    <p className="text-xs text-amber-800 dark:text-amber-200">
+                    <p className="text-xs text-warning dark:text-warning">
                       Este parceiro paga depois. <strong>Nenhuma conta a receber será criada agora</strong> — o título financeiro
                       é gerado na tela <strong>Acerto</strong>, quando você apurar os vales utilizados na quinzena ou fechamento de mês.
                     </p>
