@@ -1,9 +1,10 @@
 import { cn } from "@/lib/utils";
 
 /** Base shimmer utility — mais rico que animate-pulse cru. */
-function Shimmer({ className }: { className?: string }) {
+function Shimmer({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <div
+      style={style}
       className={cn(
         "relative overflow-hidden rounded-md bg-muted/60",
         "before:absolute before:inset-0 before:-translate-x-full",
@@ -61,7 +62,7 @@ export function ChartCardSkeleton({ height = 260, title = true }: { height?: num
         {/* faux bars */}
         <div className="absolute inset-x-2 bottom-0 flex items-end justify-between gap-2">
           {[0.4, 0.65, 0.5, 0.8, 0.35, 0.9, 0.55, 0.7, 0.45, 0.75].map((h, i) => (
-            <Shimmer key={i} className="w-full rounded-t-md" style={{ height: `${h * 100}%` } as any} />
+            <Shimmer key={i} className="w-full rounded-t-md" style={{ height: `${h * 100}%` }} />
           ))}
         </div>
       </div>
