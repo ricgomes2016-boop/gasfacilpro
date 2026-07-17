@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Header } from "@/components/layout/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageSectionLoader } from "@/components/ui/page-loader";
 import { Truck, MapPin, Clock, Package, TrendingUp, Route } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { DashboardHero } from "@/components/dashboard/premium/DashboardHero";
+import { PremiumKpiCard } from "@/components/dashboard/premium/PremiumKpiCard";
+import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
+import { KpiCardSkeleton, ChartCardSkeleton } from "@/components/dashboard/premium/skeletons";
+import { chartGridProps, chartAxisTick, CHART_SEMANTIC } from "@/components/dashboard/premium/chartTheme";
 
 export default function DashboardLogistico() {
   const { unidadeAtual } = useUnidade();
@@ -27,7 +29,6 @@ export default function DashboardLogistico() {
       const hojeInicio = new Date();
       hojeInicio.setHours(0, 0, 0, 0);
 
-      // Entregas hoje
       let pq = supabase.from("pedidos").select("status, entregador_id, endereco_entrega").gte("created_at", hojeInicio.toISOString());
       if (unidadeAtual?.id) pq = pq.eq("unidade_id", unidadeAtual.id);
       const { data: pedidosHoje } = await pq;
@@ -37,29 +38,22 @@ export default function DashboardLogistico() {
       const total = pedidosHoje?.length || 1;
       setTaxaSucesso((entregues / total) * 100);
 
-      // Entregadores com status
       let entQ = supabase.from("entregadores").select("id, nome, status").eq("ativo", true);
       if (unidadeAtual?.id) entQ = entQ.eq("unidade_id", unidadeAtual.id);
       const { data: entregs } = await entQ;
       const emRotaCount = entregs?.filter(e => e.status === "em_rota").length || 0;
       setEmRota(emRotaCount);
 
-      // Contagem de entregas por entregador hoje
-      const entregadoresComEntregas = (entregs || []).map(e => {
-        const entregas = pedidosHoje?.filter(p => p.entregador_id === e.id).length || 0;
-        return { ...e, entregas };
-      }).filter(e => e.entregas > 0 || e.status === "em_rota").slice(0, 5);
+      const entregadoresComEntregas = (entregs || []).map(e => ({
+        ...e,
+        entregas: pedidosHoje?.filter(p => p.entregador_id === e.id).length || 0,
+      })).filter(e => e.entregas > 0 || e.status === "em_rota").slice(0, 5);
       setEntregadores(entregadoresComEntregas);
 
-      // Entregas por bairro (mês)
       const mesInicio = new Date();
       mesInicio.setDate(1);
       mesInicio.setHours(0, 0, 0, 0);
-      let bq = supabase.from("pedidos").select("endereco_entrega").gte("created_at", mesInicio.toISOString()).eq("status", "entregue");
-      if (unidadeAtual?.id) bq = bq.eq("unidade_id", unidadeAtual.id);
-      const { data: pedidosBairro } = await bq;
 
-      // Join com tabela de clientes para pegar bairros
       let cq = supabase.from("pedidos").select("cliente_id, clientes(bairro)").gte("created_at", mesInicio.toISOString()).eq("status", "entregue");
       if (unidadeAtual?.id) cq = cq.eq("unidade_id", unidadeAtual.id);
       const { data: pedidosClientes } = await cq;
@@ -82,82 +76,97 @@ export default function DashboardLogistico() {
     }
   };
 
-  if (loading) {
-    return (
-      <MainLayout>
-        <Header title="Dashboard Logístico" subtitle="Monitoramento de entregas e rotas" />
-        <PageSectionLoader label="Carregando dashboard logístico..." />
-      </MainLayout>
-    );
-  }
-
   return (
     <MainLayout>
-      <Header title="Dashboard Logístico" subtitle="Monitoramento de entregas e rotas" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-5 md:space-y-6">
+        <DashboardHero
+          eyebrow="Operação"
+          icon={Truck}
+          title="Dashboard Logístico"
+          description="Monitore entregas, rotas e produtividade da frota em tempo real."
+        />
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><Package className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">{entregasHoje}</p><p className="text-sm text-muted-foreground">Entregas Hoje</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-info/10"><Clock className="h-6 w-6 text-info" /></div><div><p className="text-2xl font-bold">-</p><p className="text-sm text-muted-foreground">Tempo Médio</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-success/10"><TrendingUp className="h-6 w-6 text-success" /></div><div><p className="text-2xl font-bold">{taxaSucesso.toFixed(0)}%</p><p className="text-sm text-muted-foreground">Taxa Sucesso</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-warning/10"><Route className="h-6 w-6 text-warning" /></div><div><p className="text-2xl font-bold">{emRota}</p><p className="text-sm text-muted-foreground">Em Rota</p></div></div></CardContent></Card>
-        </div>
+        {loading ? (
+          <>
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => <KpiCardSkeleton key={i} />)}
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <ChartCardSkeleton />
+              <ChartCardSkeleton />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              <PremiumKpiCard label="Entregas Hoje" value={String(entregasHoje)} icon={Package} tone="primary" />
+              <PremiumKpiCard label="Tempo Médio" value="—" icon={Clock} tone="info" subtitle="min por entrega" />
+              <PremiumKpiCard label="Taxa Sucesso" value={`${taxaSucesso.toFixed(0)}%`} icon={TrendingUp} tone="success" />
+              <PremiumKpiCard label="Em Rota" value={String(emRota)} icon={Route} tone="warning" subtitle="entregadores ativos" />
+            </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Truck className="h-5 w-5" />Status dos Entregadores</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {entregadores.length === 0 && (
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="rounded-[var(--radius)] border border-border/60 bg-card p-5 shadow-[var(--elev-2)]">
+                <div className="mb-4 flex items-center gap-2">
+                  <Truck className="h-5 w-5 text-primary" />
+                  <h3 className="text-base font-semibold">Status dos Entregadores</h3>
+                </div>
+                {entregadores.length === 0 ? (
                   <EmptyState
                     compact
                     icon={Truck}
                     title="Nenhum entregador ativo hoje"
                     description="Quando houver entregas ou rotas em andamento, os entregadores aparecerão aqui."
                   />
-                )}
-                {entregadores.map((e) => (
-                  <div key={e.id} className="flex items-center justify-between p-3 rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><Truck className="h-5 w-5 text-primary" /></div>
-                      <div><p className="font-medium">{e.nome}</p></div>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant={e.status === "em_rota" ? "default" : "secondary"}>
-                        {e.status === "em_rota" ? "Em Rota" : "Disponível"}
-                      </Badge>
-                      <p className="text-sm text-muted-foreground mt-1">{e.entregas} entregas</p>
-                    </div>
+                ) : (
+                  <div className="space-y-3">
+                    {entregadores.map((e) => (
+                      <div key={e.id} className="flex items-center justify-between rounded-lg border border-border/60 p-3 transition-colors hover:bg-muted/40">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-9 w-9 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Truck className="h-4 w-4 text-primary" />
+                          </div>
+                          <p className="font-medium truncate">{e.nome}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <Badge variant={e.status === "em_rota" ? "default" : "secondary"}>
+                            {e.status === "em_rota" ? "Em Rota" : "Disponível"}
+                          </Badge>
+                          <p className="text-xs text-muted-foreground mt-1 tabular-nums">{e.entregas} entregas</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader><CardTitle>Entregas por Bairro</CardTitle></CardHeader>
-            <CardContent>
-              {entregasPorBairro.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={entregasPorBairro} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis dataKey="bairro" type="category" width={80} />
-                    <Tooltip />
-                    <Bar dataKey="entregas" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <EmptyState
-                  compact
-                  icon={MapPin}
-                  title="Sem entregas por bairro"
-                  description="As entregas concluídas do mês formarão este ranking por região."
-                />
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              <div className="rounded-[var(--radius)] border border-border/60 bg-card p-5 shadow-[var(--elev-2)]">
+                <div className="mb-4 flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-info" />
+                  <h3 className="text-base font-semibold">Entregas por Bairro</h3>
+                </div>
+                {entregasPorBairro.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={entregasPorBairro} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 4 }}>
+                      <CartesianGrid {...chartGridProps} vertical horizontal={false} />
+                      <XAxis type="number" tick={chartAxisTick} axisLine={false} tickLine={false} allowDecimals={false} />
+                      <YAxis dataKey="bairro" type="category" width={92} tick={chartAxisTick} axisLine={false} tickLine={false} tickMargin={8} />
+                      <Tooltip content={<ChartTooltip formatter={(v) => `${v} entregas`} />} cursor={{ fill: "hsl(var(--info) / 0.08)" }} />
+                      <Bar dataKey="entregas" fill={CHART_SEMANTIC.info} radius={[0, 8, 8, 0]} barSize={18} name="Entregas" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <EmptyState
+                    compact
+                    icon={MapPin}
+                    title="Sem entregas por bairro"
+                    description="As entregas concluídas do mês formarão este ranking por região."
+                  />
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </MainLayout>
   );

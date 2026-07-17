@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageSectionLoader } from "@/components/ui/page-loader";
-import { FileDown, Printer, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { FileDown, Printer, TrendingUp, TrendingDown, Percent, Wallet, FileBarChart } from "lucide-react";
 import { exportDREtoPdf, handlePrint } from "@/services/reportPdfService";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine, Area, AreaChart } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +13,10 @@ import { getBrasiliaDate } from "@/lib/utils";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { DashboardHero } from "@/components/dashboard/premium/DashboardHero";
+import { PremiumKpiCard } from "@/components/dashboard/premium/PremiumKpiCard";
+import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
+import { chartGridProps, chartAxisTick, CHART_SEMANTIC, fmtBRLcompact } from "@/components/dashboard/premium/chartTheme";
 
 interface DRELine {
   categoria: string;
@@ -198,7 +201,9 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
     if (embedded) return loader;
     return (
       <MainLayout>
-        <Header title="DRE" subtitle="Demonstrativo de Resultados do Exercício" />
+        <div className="p-3 sm:p-4 md:p-6">
+          <DashboardHero eyebrow="Financeiro" icon={FileBarChart} title="DRE" description="Demonstrativo de Resultados do Exercício" />
+        </div>
         {loader}
       </MainLayout>
     );
@@ -279,76 +284,68 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 w-full min-w-0">
-        <KPICard
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full min-w-0">
+        <PremiumKpiCard
           label="Receita Bruta"
-          value={totalReceita}
-          icon={<TrendingUp className="h-4 w-4" />}
-          color="green"
+          value={formatCurrency(totalReceita)}
+          icon={TrendingUp}
+          tone="success"
+          sparkline={receitaArr}
         />
-        <KPICard
+        <PremiumKpiCard
           label="Custos + Despesas"
-          value={-totalDesp}
-          icon={<TrendingDown className="h-4 w-4" />}
-          color="red"
+          value={formatCurrency(totalDesp)}
+          icon={TrendingDown}
+          tone="destructive"
         />
-        <KPICard
+        <PremiumKpiCard
           label="Resultado Líquido"
-          value={totalLucro}
-          icon={totalLucro >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-          color={totalLucro >= 0 ? "green" : "red"}
-          badge={variacao !== 0 ? `${variacao > 0 ? "+" : ""}${variacao.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : undefined}
+          value={formatCurrency(totalLucro)}
+          icon={Wallet}
+          tone={totalLucro >= 0 ? "success" : "destructive"}
+          sparkline={lucroArr}
+          trend={variacao !== 0 ? { value: variacao, label: "vs mês anterior" } : undefined}
         />
-        <KPICard
+        <PremiumKpiCard
           label="Margem Líquida"
-          value={margemLiquida}
-          isPercent
-          icon={margemLiquida >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-          color={margemLiquida >= 0 ? "blue" : "red"}
+          value={`${margemLiquida.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}
+          icon={Percent}
+          tone={margemLiquida >= 0 ? "info" : "destructive"}
         />
       </div>
 
       {/* Gráfico de Evolução */}
-      <Card className="min-w-0 overflow-hidden">
+      <Card className="min-w-0 overflow-hidden shadow-[var(--elev-2)]">
         <CardContent className="pt-5">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Evolução Mensal</p>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={chartData}>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-base font-semibold">Evolução Mensal</h3>
+            <span className="text-xs text-muted-foreground">{periodoLabel}</span>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
               <defs>
-                <linearGradient id="gradReceita" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(152, 69%, 40%)" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="hsl(152, 69%, 40%)" stopOpacity={0} />
+                <linearGradient id="dreGradReceita" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_SEMANTIC.success} stopOpacity={0.32} />
+                  <stop offset="95%" stopColor={CHART_SEMANTIC.success} stopOpacity={0.02} />
                 </linearGradient>
-                <linearGradient id="gradLucro" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(215, 90%, 52%)" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="hsl(215, 90%, 52%)" stopOpacity={0} />
+                <linearGradient id="dreGradLucro" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_SEMANTIC.info} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={CHART_SEMANTIC.info} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tickFormatter={v => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <Tooltip
-                formatter={(value: number, name: string) => [
-                  formatCurrency(value),
-                  name === "receita" ? "Receita" : "Resultado"
-                ]}
-                contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: 12 }}
-              />
+              <CartesianGrid {...chartGridProps} />
+              <XAxis dataKey="mes" tick={chartAxisTick} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={fmtBRLcompact} tick={chartAxisTick} axisLine={false} tickLine={false} />
+              <Tooltip content={<ChartTooltip formatter={(v) => formatCurrency(v)} />} cursor={{ stroke: "hsl(var(--primary))", strokeDasharray: "3 3" }} />
               <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-              <Area type="monotone" dataKey="receita" stroke="hsl(152, 69%, 40%)" fill="url(#gradReceita)" strokeWidth={2} />
-              <Area type="monotone" dataKey="lucro" stroke="hsl(215, 90%, 52%)" fill="url(#gradLucro)" strokeWidth={2} />
+              <Area type="monotone" dataKey="receita" name="Receita" stroke={CHART_SEMANTIC.success} fill="url(#dreGradReceita)" strokeWidth={2.5} />
+              <Area type="monotone" dataKey="lucro" name="Resultado" stroke={CHART_SEMANTIC.info} fill="url(#dreGradLucro)" strokeWidth={2.5} />
             </AreaChart>
           </ResponsiveContainer>
-          <div className="flex items-center gap-4 mt-2 justify-center">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <div className="w-3 h-0.5 rounded" style={{ backgroundColor: "hsl(152, 69%, 40%)" }} /> Receita
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <div className="w-3 h-0.5 rounded" style={{ backgroundColor: "hsl(215, 90%, 52%)" }} /> Resultado
-            </div>
-          </div>
         </CardContent>
       </Card>
+
+
 
       {/* Tabela DRE Principal */}
       <Card className="min-w-0 max-w-full overflow-hidden border-border/80">
@@ -474,22 +471,21 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       </Card>
 
       {/* Margem por Mês - barras */}
-      <Card className="min-w-0 overflow-hidden">
+      <Card className="min-w-0 overflow-hidden shadow-[var(--elev-2)]">
         <CardContent className="pt-5">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Resultado por Mês</p>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tickFormatter={v => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <Tooltip
-                formatter={(value: number) => [formatCurrency(value), "Resultado"]}
-                contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: 12 }}
-              />
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-base font-semibold">Resultado por Mês</h3>
+          </div>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
+              <CartesianGrid {...chartGridProps} />
+              <XAxis dataKey="mes" tick={chartAxisTick} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={fmtBRLcompact} tick={chartAxisTick} axisLine={false} tickLine={false} />
+              <Tooltip content={<ChartTooltip formatter={(v) => formatCurrency(v)} />} cursor={{ fill: "hsl(var(--primary) / 0.06)" }} />
               <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-              <Bar dataKey="lucro" radius={[4, 4, 0, 0]}>
+              <Bar dataKey="lucro" name="Resultado" radius={[6, 6, 0, 0]} barSize={26}>
                 {chartData.map((entry, i) => (
-                  <Cell key={i} fill={entry.lucro >= 0 ? "hsl(152, 69%, 40%)" : "hsl(0, 72%, 51%)"} />
+                  <Cell key={i} fill={entry.lucro >= 0 ? CHART_SEMANTIC.success : CHART_SEMANTIC.destructive} />
                 ))}
               </Bar>
             </BarChart>
@@ -502,53 +498,16 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
   if (embedded) return content;
   return (
     <MainLayout>
-      <Header title="DRE" subtitle="Demonstrativo de Resultados do Exercício" />
-      <div className="p-3 sm:p-4 md:p-6 w-full min-w-0 max-w-full overflow-x-hidden">{content}</div>
+      <div className="p-3 sm:p-4 md:p-6 w-full min-w-0 max-w-full overflow-x-hidden space-y-5">
+        <DashboardHero
+          eyebrow="Financeiro"
+          icon={FileBarChart}
+          title="DRE"
+          description="Demonstrativo de Resultados do Exercício — visão consolidada de receitas, custos e margens."
+        />
+        {content}
+      </div>
     </MainLayout>
   );
 }
 
-// --- KPI Card Component ---
-function KPICard({ label, value, icon, color, isPercent, badge }: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  color: "green" | "red" | "blue";
-  isPercent?: boolean;
-  badge?: string;
-}) {
-  const colorMap = {
-    green: { bg: "bg-success/10", text: "text-success", gradient: "from-success/5" },
-    red: { bg: "bg-destructive/10", text: "text-destructive", gradient: "from-destructive/5" },
-    blue: { bg: "bg-info/10", text: "text-info", gradient: "from-info/5" },
-  };
-  const c = colorMap[color];
-
-  const display = isPercent
-    ? `${(Number.isFinite(value) ? value : 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
-    : `R$ ${(Math.abs(Number.isFinite(value) ? value : 0) / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}k`;
-
-  return (
-    <Card className="relative overflow-hidden min-w-0">
-      <div className={`absolute inset-0 bg-gradient-to-br ${c.gradient} to-transparent pointer-events-none`} />
-      <CardContent className="pt-4 pb-3">
-        <div className="flex items-center justify-between mb-1">
-          <div className={`p-1.5 rounded-lg ${c.bg}`}>
-            <span className={c.text}>{icon}</span>
-          </div>
-          {badge && (
-            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
-              badge.startsWith("+") ? "text-success border-success bg-success" : "text-destructive border-destructive/20 bg-destructive/5"
-            }`}>
-              {badge}
-            </Badge>
-          )}
-        </div>
-        <p className={`text-lg sm:text-xl font-bold tabular-nums truncate ${value < 0 && !isPercent ? "text-destructive" : c.text}`}>
-          {value < 0 && !isPercent ? `-${display}` : display}
-        </p>
-        <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{label}</p>
-      </CardContent>
-    </Card>
-  );
-}

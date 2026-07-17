@@ -1,9 +1,8 @@
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Header } from "@/components/layout/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Users, Truck, TrendingUp } from "lucide-react";
+import { BarChart3, Users, Truck, TrendingUp, LayoutDashboard } from "lucide-react";
+import { DashboardHero } from "@/components/dashboard/premium/DashboardHero";
 
-// Lazy imports of existing dashboard content
 import DashboardExecutivoContent from "./dashboards/ExecutivoContent";
 import DashboardAvancadoContent from "./dashboards/AvancadoContent";
 import DashboardTrabalhistaContent from "./dashboards/TrabalhistaContent";
@@ -50,8 +49,13 @@ export function CentralIndicadoresContent() {
 export default function CentralIndicadores() {
   return (
     <MainLayout>
-      <Header title="Central de Indicadores" subtitle="Visão consolidada do negócio" />
-      <div className="intelligence-workspace p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="intelligence-workspace p-3 sm:p-4 md:p-6 space-y-5 md:space-y-6">
+        <DashboardHero
+          eyebrow="Inteligência"
+          icon={LayoutDashboard}
+          title="Central de Indicadores"
+          description="Visão consolidada do negócio — indicadores executivos, avançados, trabalhistas e logísticos em um só lugar."
+        />
         <CentralIndicadoresContent />
       </div>
     </MainLayout>
