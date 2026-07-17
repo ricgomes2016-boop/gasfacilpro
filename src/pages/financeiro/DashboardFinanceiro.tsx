@@ -14,6 +14,9 @@ import { format, subMonths, startOfMonth, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { KpiCard, SectionCard } from "@/components/shared";
+import { PremiumKpiCard } from "@/components/dashboard/premium/PremiumKpiCard";
+import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
+import { chartGridProps, chartAxisTick, fmtBRLcompact } from "@/components/dashboard/premium/chartTheme";
 
 export default function DashboardFinanceiro() {
   const { unidadeAtual } = useUnidade();
