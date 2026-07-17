@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageSectionLoader } from "@/components/ui/page-loader";
-import { FileDown, Printer, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { FileDown, Printer, TrendingUp, TrendingDown, Percent, Wallet, FileBarChart } from "lucide-react";
 import { exportDREtoPdf, handlePrint } from "@/services/reportPdfService";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine, Area, AreaChart } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +13,10 @@ import { getBrasiliaDate } from "@/lib/utils";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { DashboardHero } from "@/components/dashboard/premium/DashboardHero";
+import { PremiumKpiCard } from "@/components/dashboard/premium/PremiumKpiCard";
+import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
+import { chartGridProps, chartAxisTick, CHART_SEMANTIC, fmtBRLcompact } from "@/components/dashboard/premium/chartTheme";
 
 interface DRELine {
   categoria: string;
