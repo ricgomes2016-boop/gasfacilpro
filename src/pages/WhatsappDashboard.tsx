@@ -220,7 +220,7 @@ export default function WhatsappDashboard() {
                       ? "bg-info text-white rounded-br-none"
                       : msg.sender === "bot"
                         ? "bg-gray-200 text-gray-900 rounded-bl-none"
-                        : "bg-success text-success rounded-bl-none"
+                        : "bg-success/10 text-success rounded-bl-none"
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>

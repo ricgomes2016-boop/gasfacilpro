@@ -155,7 +155,7 @@ export default function QRCodeLogin() {
                 {/* Status */}
                 <div className="w-full">
                   {status === "scanning" && (
-                    <div className="flex items-center justify-center gap-2 text-info bg-info p-3 rounded-lg">
+                    <div className="flex items-center justify-center gap-2 text-info bg-info/10 p-3 rounded-lg">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span className="text-sm font-medium">
                         Aguardando escaneamento...
@@ -164,7 +164,7 @@ export default function QRCodeLogin() {
                   )}
 
                   {status === "authenticated" && (
-                    <div className="flex items-center justify-center gap-2 text-success bg-success p-3 rounded-lg">
+                    <div className="flex items-center justify-center gap-2 text-success bg-success/10 p-3 rounded-lg">
                       <CheckCircle2 className="w-4 h-4" />
                       <span className="text-sm font-medium">
                         Autenticado com sucesso!

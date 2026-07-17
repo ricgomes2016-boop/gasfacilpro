@@ -682,7 +682,7 @@ export default function AdminWhatsAppConfig() {
                         {PROVEDOR_LABELS[(config.provedor as ProvedorTipo)] || config.provedor}
                       </Badge>
                       {isCoex && (
-                        <Badge className="text-xs bg-success text-success border-success">
+                        <Badge className="text-xs bg-success/10 text-success border-success">
                           Coexistência
                         </Badge>
                       )}
