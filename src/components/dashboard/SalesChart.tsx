@@ -59,17 +59,18 @@ export function SalesChart() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <Skeleton className="h-[200px] w-full" />
+          <ChartCardSkeleton height={200} title={false} />
         ) : (
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={chartData}>
-              <XAxis dataKey="hora" tick={{ fontSize: 11 }} interval={1} />
-              <YAxis tick={{ fontSize: 11 }} width={50} tickFormatter={(v) => `R$${v}`} />
+            <BarChart data={chartData} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid {...chartGridProps} />
+              <XAxis dataKey="hora" tick={chartAxisTick} tickLine={false} axisLine={false} interval={1} />
+              <YAxis tick={chartAxisTick} tickLine={false} axisLine={false} width={50} tickFormatter={fmtBRLcompact} />
               <Tooltip
-                formatter={(value: number) => [`R$ ${value.toFixed(2)}`, "Vendas"]}
-                contentStyle={{ borderRadius: 8, fontSize: 12 }}
+                content={<ChartTooltip formatter={(v) => fmtBRL(v)} />}
+                cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
               />
-              <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="valor" name="Vendas" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
