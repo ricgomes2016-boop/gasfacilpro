@@ -72,7 +72,7 @@ export function FrotaIAInsights() {
           description: "Média de custo total por km rodado",
           trend: costPerKM < 2 ? "down" : "up",
           icon: Fuel,
-          color: costPerKM < 3 ? "text-green-600" : "text-orange-600"
+          color: costPerKM < 3 ? "text-success" : "text-warning"
         },
         {
           title: "Custo por Entrega",
@@ -80,7 +80,7 @@ export function FrotaIAInsights() {
           description: "Impacto da frota no frete da venda",
           trend: "neutral",
           icon: Target,
-          color: "text-blue-600"
+          color: "text-info"
         },
         {
           title: "Eficiência de Manutenção",
@@ -88,7 +88,7 @@ export function FrotaIAInsights() {
           description: "Desgaste financeiro por km",
           trend: "neutral",
           icon: Wrench,
-          color: "text-purple-600"
+          color: "text-primary"
         }
       ];
 
@@ -150,7 +150,7 @@ export function FrotaIAInsights() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
-        <Zap className="h-5 w-5 text-amber-500 fill-amber-500" />
+        <Zap className="h-5 w-5 text-warning fill-warning" />
         <h3 className="text-lg font-bold tracking-tight">Insights da IA</h3>
       </div>
 
@@ -187,9 +187,9 @@ export function FrotaIAInsights() {
                 {rec.type === "warning" ? (
                   <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                 ) : rec.type === "tip" ? (
-                  <TrendingUp className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                  <TrendingUp className="h-4 w-4 text-success shrink-0 mt-0.5" />
                 ) : (
-                  <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                  <Info className="h-4 w-4 text-info shrink-0 mt-0.5" />
                 )}
                 <span className="leading-tight">{rec.text}</span>
               </div>

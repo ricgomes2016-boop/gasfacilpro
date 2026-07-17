@@ -82,14 +82,14 @@ export default function Gamificacao() {
         
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Líder do Mês</CardTitle><Trophy className="h-4 w-4 text-yellow-500" /></CardHeader><CardContent><div className="text-2xl font-bold">{ranking[0]?.nome || "-"}</div><p className="text-xs text-muted-foreground">{ranking[0]?.pontos || 0} pontos</p></CardContent></Card>
-          <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total de Pontos</CardTitle><Star className="h-4 w-4 text-orange-600" /></CardHeader><CardContent><div className="text-2xl font-bold text-orange-600">{totalPontos.toLocaleString("pt-BR")}</div><p className="text-xs text-muted-foreground">Distribuídos este mês</p></CardContent></Card>
-          <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Participantes</CardTitle><Target className="h-4 w-4 text-green-600" /></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{ranking.length}</div><p className="text-xs text-muted-foreground">No ranking</p></CardContent></Card>
-          <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Conquistas</CardTitle><Award className="h-4 w-4 text-purple-600" /></CardHeader><CardContent><div className="text-2xl font-bold text-purple-600">{totalConquistas}</div><p className="text-xs text-muted-foreground">Desbloqueadas total</p></CardContent></Card>
+          <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Líder do Mês</CardTitle><Trophy className="h-4 w-4 text-warning" /></CardHeader><CardContent><div className="text-2xl font-bold">{ranking[0]?.nome || "-"}</div><p className="text-xs text-muted-foreground">{ranking[0]?.pontos || 0} pontos</p></CardContent></Card>
+          <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Total de Pontos</CardTitle><Star className="h-4 w-4 text-warning" /></CardHeader><CardContent><div className="text-2xl font-bold text-warning">{totalPontos.toLocaleString("pt-BR")}</div><p className="text-xs text-muted-foreground">Distribuídos este mês</p></CardContent></Card>
+          <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Participantes</CardTitle><Target className="h-4 w-4 text-success" /></CardHeader><CardContent><div className="text-2xl font-bold text-success">{ranking.length}</div><p className="text-xs text-muted-foreground">No ranking</p></CardContent></Card>
+          <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Conquistas</CardTitle><Award className="h-4 w-4 text-primary" /></CardHeader><CardContent><div className="text-2xl font-bold text-primary">{totalConquistas}</div><p className="text-xs text-muted-foreground">Desbloqueadas total</p></CardContent></Card>
         </div>
 
         <Card>
-          <CardHeader><div className="flex items-center gap-2"><Trophy className="h-5 w-5 text-yellow-500" /><CardTitle>Ranking do Mês</CardTitle></div></CardHeader>
+          <CardHeader><div className="flex items-center gap-2"><Trophy className="h-5 w-5 text-warning" /><CardTitle>Ranking do Mês</CardTitle></div></CardHeader>
           <CardContent>
             <div className="space-y-4">
               {ranking.length === 0 && <p className="text-center text-muted-foreground py-4">Nenhum dado de ranking disponível</p>}
@@ -108,7 +108,7 @@ export default function Gamificacao() {
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                       <span>{m.entregas} entregas</span>
-                      <span className="flex items-center gap-1"><Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />{m.avaliacao}</span>
+                      <span className="flex items-center gap-1"><Star className="h-3 w-3 text-warning fill-warning" />{m.avaliacao}</span>
                       <span className="flex items-center gap-1"><Medal className="h-3 w-3" />{m.conquistas}</span>
                     </div>
                   </div>

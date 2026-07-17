@@ -422,23 +422,23 @@ export default function Combustivel() {
             <CardContent><div className="text-2xl font-bold">R$ {(hasFiltro ? totalValorFiltrado : gastoMensal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="text-xs text-muted-foreground">{hasFiltro ? `${filtered.length} registro(s)` : "Este mês"}</p></CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Litros Consumidos</CardTitle><Fuel className="h-4 w-4 text-orange-600" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-orange-600">{(hasFiltro ? totalLitrosFiltrado : litrosMensal).toLocaleString("pt-BR", { minimumFractionDigits: 1 })} L</div><p className="text-xs text-muted-foreground">{hasFiltro ? `Média R$/L: R$ ${mediaPorLitro.toFixed(2)}` : "Este mês"}</p></CardContent>
+            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Litros Consumidos</CardTitle><Fuel className="h-4 w-4 text-warning" /></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-warning">{(hasFiltro ? totalLitrosFiltrado : litrosMensal).toLocaleString("pt-BR", { minimumFractionDigits: 1 })} L</div><p className="text-xs text-muted-foreground">{hasFiltro ? `Média R$/L: R$ ${mediaPorLitro.toFixed(2)}` : "Este mês"}</p></CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Pendentes Acerto</CardTitle><Receipt className="h-4 w-4 text-yellow-600" /></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Pendentes Acerto</CardTitle><Receipt className="h-4 w-4 text-warning" /></CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{pendentes.length}</div>
+              <div className="text-2xl font-bold text-warning">{pendentes.length}</div>
               <p className="text-xs text-muted-foreground">R$ {pendentes.reduce((s, a) => s + Number(a.valor), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">{filtroVeiculo !== "todos" && kmPorLitro != null ? "Km/L Estimado" : "Veículos Ativos"}</CardTitle><Truck className="h-4 w-4 text-blue-600" /></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">{filtroVeiculo !== "todos" && kmPorLitro != null ? "Km/L Estimado" : "Veículos Ativos"}</CardTitle><Truck className="h-4 w-4 text-info" /></CardHeader>
             <CardContent>
               {filtroVeiculo !== "todos" && kmPorLitro != null ? (
-                <><div className="text-2xl font-bold text-blue-600">{kmPorLitro.toFixed(2)}</div><p className="text-xs text-muted-foreground">km por litro</p></>
+                <><div className="text-2xl font-bold text-info">{kmPorLitro.toFixed(2)}</div><p className="text-xs text-muted-foreground">km por litro</p></>
               ) : (
-                <><div className="text-2xl font-bold text-blue-600">{veiculosAtivos}</div><p className="text-xs text-muted-foreground">Na frota</p></>
+                <><div className="text-2xl font-bold text-info">{veiculosAtivos}</div><p className="text-xs text-muted-foreground">Na frota</p></>
               )}
             </CardContent>
           </Card>
@@ -529,7 +529,7 @@ export default function Combustivel() {
                       <TableRow key={r.key}>
                         <TableCell className="font-medium capitalize">{r.label}</TableCell>
                         <TableCell className="text-right">{r.qtd}</TableCell>
-                        <TableCell className="text-right font-semibold text-orange-600">{r.litros.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} L</TableCell>
+                        <TableCell className="text-right font-semibold text-warning">{r.litros.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} L</TableCell>
                         <TableCell className="text-right font-semibold">R$ {r.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-right">R$ {(r.litros > 0 ? r.valor / r.litros : 0).toFixed(2)}</TableCell>
                         <TableCell>

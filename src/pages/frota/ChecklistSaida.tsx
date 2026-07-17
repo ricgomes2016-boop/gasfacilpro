@@ -138,8 +138,8 @@ export default function ChecklistSaida() {
             <CardContent><div className="text-2xl font-bold">{checklistsHoje}</div><p className="text-xs text-muted-foreground">inspeções</p></CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">Aprovados</CardTitle><CheckCircle2 className="h-4 w-4 text-green-600" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-green-600">{aprovadosHoje}</div></CardContent>
+            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">Aprovados</CardTitle><CheckCircle2 className="h-4 w-4 text-success" /></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-success">{aprovadosHoje}</div></CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">Com Pendências</CardTitle><XCircle className="h-4 w-4 text-destructive" /></CardHeader>
@@ -256,7 +256,7 @@ export default function ChecklistSaida() {
             {ITENS_CHECKLIST.map(item => (
               <div key={item.key} className="flex items-center gap-2">
                 {showView?.[item.key] ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <CheckCircle2 className="h-4 w-4 text-success" />
                 ) : (
                   <XCircle className="h-4 w-4 text-destructive" />
                 )}

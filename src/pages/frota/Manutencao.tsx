@@ -449,30 +449,30 @@ export default function Manutencao() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Agendadas</CardTitle>
-              <Clock className="h-4 w-4 text-blue-600" />
+              <Clock className="h-4 w-4 text-info" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{agendadas}</div>
+              <div className="text-2xl font-bold text-info">{agendadas}</div>
               <p className="text-xs text-muted-foreground">Próximas manutenções</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
-              <Wrench className="h-4 w-4 text-orange-600" />
+              <Wrench className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{emAndamento}</div>
+              <div className="text-2xl font-bold text-warning">{emAndamento}</div>
               <p className="text-xs text-muted-foreground">Na oficina agora</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <CheckCircle2 className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{concluidas}</div>
+              <div className="text-2xl font-bold text-success">{concluidas}</div>
               <p className="text-xs text-muted-foreground">Aguardando acerto</p>
             </CardContent>
           </Card>

@@ -170,12 +170,12 @@ export default function MultasFrota() {
             <CardContent><div className="text-2xl font-bold">R$ {totalValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div></CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">Total Multas</CardTitle><AlertTriangle className="h-4 w-4 text-yellow-500" /></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">Total Multas</CardTitle><AlertTriangle className="h-4 w-4 text-warning" /></CardHeader>
             <CardContent><div className="text-2xl font-bold">{multas.length}</div></CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">Pontos Acumulados</CardTitle><AlertTriangle className="h-4 w-4 text-orange-600" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-orange-600">{totalPontos}</div></CardContent>
+            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">Pontos Acumulados</CardTitle><AlertTriangle className="h-4 w-4 text-warning" /></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-warning">{totalPontos}</div></CardContent>
           </Card>
         </div>
 
