@@ -284,76 +284,68 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 w-full min-w-0">
-        <KPICard
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full min-w-0">
+        <PremiumKpiCard
           label="Receita Bruta"
-          value={totalReceita}
-          icon={<TrendingUp className="h-4 w-4" />}
-          color="green"
+          value={formatCurrency(totalReceita)}
+          icon={TrendingUp}
+          tone="success"
+          sparkline={receitaArr}
         />
-        <KPICard
+        <PremiumKpiCard
           label="Custos + Despesas"
-          value={-totalDesp}
-          icon={<TrendingDown className="h-4 w-4" />}
-          color="red"
+          value={formatCurrency(totalDesp)}
+          icon={TrendingDown}
+          tone="destructive"
         />
-        <KPICard
+        <PremiumKpiCard
           label="Resultado Líquido"
-          value={totalLucro}
-          icon={totalLucro >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-          color={totalLucro >= 0 ? "green" : "red"}
-          badge={variacao !== 0 ? `${variacao > 0 ? "+" : ""}${variacao.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : undefined}
+          value={formatCurrency(totalLucro)}
+          icon={Wallet}
+          tone={totalLucro >= 0 ? "success" : "destructive"}
+          sparkline={lucroArr}
+          trend={variacao !== 0 ? { value: variacao, label: "vs mês anterior" } : undefined}
         />
-        <KPICard
+        <PremiumKpiCard
           label="Margem Líquida"
-          value={margemLiquida}
-          isPercent
-          icon={margemLiquida >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-          color={margemLiquida >= 0 ? "blue" : "red"}
+          value={`${margemLiquida.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}
+          icon={Percent}
+          tone={margemLiquida >= 0 ? "info" : "destructive"}
         />
       </div>
 
       {/* Gráfico de Evolução */}
-      <Card className="min-w-0 overflow-hidden">
+      <Card className="min-w-0 overflow-hidden shadow-[var(--elev-2)]">
         <CardContent className="pt-5">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Evolução Mensal</p>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={chartData}>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-base font-semibold">Evolução Mensal</h3>
+            <span className="text-xs text-muted-foreground">{periodoLabel}</span>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
               <defs>
-                <linearGradient id="gradReceita" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(152, 69%, 40%)" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="hsl(152, 69%, 40%)" stopOpacity={0} />
+                <linearGradient id="dreGradReceita" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_SEMANTIC.success} stopOpacity={0.32} />
+                  <stop offset="95%" stopColor={CHART_SEMANTIC.success} stopOpacity={0.02} />
                 </linearGradient>
-                <linearGradient id="gradLucro" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(215, 90%, 52%)" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="hsl(215, 90%, 52%)" stopOpacity={0} />
+                <linearGradient id="dreGradLucro" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={CHART_SEMANTIC.info} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={CHART_SEMANTIC.info} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tickFormatter={v => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <Tooltip
-                formatter={(value: number, name: string) => [
-                  formatCurrency(value),
-                  name === "receita" ? "Receita" : "Resultado"
-                ]}
-                contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: 12 }}
-              />
+              <CartesianGrid {...chartGridProps} />
+              <XAxis dataKey="mes" tick={chartAxisTick} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={fmtBRLcompact} tick={chartAxisTick} axisLine={false} tickLine={false} />
+              <Tooltip content={<ChartTooltip formatter={(v) => formatCurrency(v)} />} cursor={{ stroke: "hsl(var(--primary))", strokeDasharray: "3 3" }} />
               <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-              <Area type="monotone" dataKey="receita" stroke="hsl(152, 69%, 40%)" fill="url(#gradReceita)" strokeWidth={2} />
-              <Area type="monotone" dataKey="lucro" stroke="hsl(215, 90%, 52%)" fill="url(#gradLucro)" strokeWidth={2} />
+              <Area type="monotone" dataKey="receita" name="Receita" stroke={CHART_SEMANTIC.success} fill="url(#dreGradReceita)" strokeWidth={2.5} />
+              <Area type="monotone" dataKey="lucro" name="Resultado" stroke={CHART_SEMANTIC.info} fill="url(#dreGradLucro)" strokeWidth={2.5} />
             </AreaChart>
           </ResponsiveContainer>
-          <div className="flex items-center gap-4 mt-2 justify-center">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <div className="w-3 h-0.5 rounded" style={{ backgroundColor: "hsl(152, 69%, 40%)" }} /> Receita
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <div className="w-3 h-0.5 rounded" style={{ backgroundColor: "hsl(215, 90%, 52%)" }} /> Resultado
-            </div>
-          </div>
         </CardContent>
       </Card>
+
+
 
       {/* Tabela DRE Principal */}
       <Card className="min-w-0 max-w-full overflow-hidden border-border/80">
