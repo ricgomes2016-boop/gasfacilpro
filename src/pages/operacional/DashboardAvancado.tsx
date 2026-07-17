@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Header } from "@/components/layout/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Legend,
 } from "recharts";
-import { PageSectionLoader } from "@/components/ui/page-loader";
-import { TrendingUp, BarChart3, PieChart, Activity } from "lucide-react";
+import { TrendingUp, BarChart3, PieChart, Activity, LineChart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { DashboardHero } from "@/components/dashboard/premium/DashboardHero";
+import { PremiumKpiCard } from "@/components/dashboard/premium/PremiumKpiCard";
+import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
+import { KpiCardSkeleton, ChartCardSkeleton } from "@/components/dashboard/premium/skeletons";
+import { chartGridProps, chartAxisTick, CHART_SEMANTIC, fmtBRL, fmtBRLcompact } from "@/components/dashboard/premium/chartTheme";
 
 export default function DashboardAvancado() {
   const { unidadeAtual } = useUnidade();
@@ -27,7 +29,6 @@ export default function DashboardAvancado() {
       const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
       const dados: any[] = [];
 
-      // Últimos 6 meses
       for (let i = 5; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const inicio = d.toISOString();
@@ -51,7 +52,6 @@ export default function DashboardAvancado() {
       const totalDesp = dados.reduce((s, d) => s + d.despesas, 0);
       setMetricas(m => ({ ...m, faturamento: totalFat, despesas: totalDesp, lucro: totalFat - totalDesp }));
 
-      // Vendas por hora (hoje)
       const hojeInicio = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
       let hq = supabase.from("pedidos").select("created_at").gte("created_at", hojeInicio).neq("status", "cancelado");
       if (unidadeAtual?.id) hq = hq.eq("unidade_id", unidadeAtual.id);
@@ -66,7 +66,6 @@ export default function DashboardAvancado() {
       });
       setVendasPorHora(Object.entries(horasMap).map(([hora, vendas]) => ({ hora, vendas })));
 
-      // Métricas operacionais
       const mesInicio = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       let eq = supabase.from("pedidos").select("status, entregador_id").gte("created_at", mesInicio);
       if (unidadeAtual?.id) eq = eq.eq("unidade_id", unidadeAtual.id);
@@ -75,7 +74,7 @@ export default function DashboardAvancado() {
       const entregues = pedidosMes?.filter(p => p.status === "entregue").length || 0;
       const total = pedidosMes?.length || 1;
       const entregadores = new Set(pedidosMes?.map(p => p.entregador_id).filter(Boolean)).size || 1;
-      
+
       setMetricas(m => ({
         ...m,
         taxaConclusao: (entregues / total) * 100,
@@ -89,124 +88,112 @@ export default function DashboardAvancado() {
     }
   };
 
-  if (loading) {
-    return (
-      <MainLayout>
-        <Header title="Dashboard Avançado" subtitle="Análises detalhadas e métricas avançadas" />
-        <PageSectionLoader label="Carregando dashboard avançado..." />
-      </MainLayout>
-    );
-  }
+  const sparkVendas = dadosMensais.map(d => d.vendas);
+  const sparkDesp = dadosMensais.map(d => d.despesas);
+  const sparkLucro = dadosMensais.map(d => d.lucro);
 
   return (
     <MainLayout>
-      <Header title="Dashboard Avançado" subtitle="Análises detalhadas e métricas avançadas" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-5 md:space-y-6">
+        <DashboardHero
+          eyebrow="Analytics"
+          icon={LineChart}
+          title="Dashboard Avançado"
+          description="Análises detalhadas de performance financeira, comercial e operacional dos últimos 6 meses."
+        />
 
-        <Tabs defaultValue="financeiro" className="space-y-6">
-          <TabsList>
+        <Tabs defaultValue="financeiro" className="space-y-5">
+          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
             <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
             <TabsTrigger value="vendas">Vendas</TabsTrigger>
             <TabsTrigger value="operacional">Operacional</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="financeiro" className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-success/10"><TrendingUp className="h-6 w-6 text-success" /></div>
-                    <div>
-                      <p className="text-2xl font-bold">R$ {(metricas.faturamento / 1000).toFixed(1)}k</p>
-                      <p className="text-sm text-muted-foreground">Faturamento (6 meses)</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-destructive/10"><BarChart3 className="h-6 w-6 text-destructive" /></div>
-                    <div>
-                      <p className="text-2xl font-bold">R$ {(metricas.despesas / 1000).toFixed(1)}k</p>
-                      <p className="text-sm text-muted-foreground">Despesas (6 meses)</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-primary/10"><PieChart className="h-6 w-6 text-primary" /></div>
-                    <div>
-                      <p className="text-2xl font-bold">R$ {(metricas.lucro / 1000).toFixed(1)}k</p>
-                      <p className="text-sm text-muted-foreground">Lucro Líquido</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+          <TabsContent value="financeiro" className="space-y-5">
+            {loading ? (
+              <>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {Array.from({ length: 3 }).map((_, i) => <KpiCardSkeleton key={i} />)}
+                </div>
+                <ChartCardSkeleton height={340} />
+              </>
+            ) : (
+              <>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <PremiumKpiCard label="Faturamento (6 meses)" value={fmtBRL(metricas.faturamento)} icon={TrendingUp} tone="success" sparkline={sparkVendas} />
+                  <PremiumKpiCard label="Despesas (6 meses)" value={fmtBRL(metricas.despesas)} icon={BarChart3} tone="destructive" sparkline={sparkDesp} />
+                  <PremiumKpiCard label="Lucro Líquido" value={fmtBRL(metricas.lucro)} icon={PieChart} tone="primary" sparkline={sparkLucro} />
+                </div>
 
-            <Card>
-              <CardHeader><CardTitle>Evolução Financeira</CardTitle></CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={350}>
-                  <AreaChart data={dadosMensais}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="mes" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => `R$ ${Number(value).toLocaleString("pt-BR")}`} />
-                    <Area type="monotone" dataKey="vendas" stackId="1" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} name="Vendas" />
-                    <Area type="monotone" dataKey="lucro" stackId="2" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.3} name="Lucro" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+                <div className="rounded-[var(--radius)] border border-border/60 bg-card p-5 shadow-[var(--elev-2)]">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-base font-semibold">Evolução Financeira</h3>
+                    <span className="text-xs text-muted-foreground">Últimos 6 meses</span>
+                  </div>
+                  <ResponsiveContainer width="100%" height={340}>
+                    <AreaChart data={dadosMensais} margin={{ top: 10, right: 12, left: 0, bottom: 4 }}>
+                      <defs>
+                        <linearGradient id="advGradVendas" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={CHART_SEMANTIC.success} stopOpacity={0.35} />
+                          <stop offset="95%" stopColor={CHART_SEMANTIC.success} stopOpacity={0.02} />
+                        </linearGradient>
+                        <linearGradient id="advGradLucro" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={CHART_SEMANTIC.info} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={CHART_SEMANTIC.info} stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid {...chartGridProps} />
+                      <XAxis dataKey="mes" tick={chartAxisTick} axisLine={false} tickLine={false} tickMargin={10} />
+                      <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} tickMargin={8} width={58} tickFormatter={fmtBRLcompact} />
+                      <Tooltip content={<ChartTooltip formatter={(v) => fmtBRL(v)} />} cursor={{ stroke: "hsl(var(--primary))", strokeDasharray: "3 3" }} />
+                      <Legend iconType="circle" verticalAlign="top" align="right" height={30} wrapperStyle={{ fontSize: 12 }} />
+                      <Area type="monotone" dataKey="vendas" name="Vendas" stroke={CHART_SEMANTIC.success} strokeWidth={2.5} fill="url(#advGradVendas)" />
+                      <Area type="monotone" dataKey="lucro" name="Lucro" stroke={CHART_SEMANTIC.info} strokeWidth={2.5} fill="url(#advGradLucro)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            )}
           </TabsContent>
 
-          <TabsContent value="vendas" className="space-y-6">
-            <Card>
-              <CardHeader><CardTitle>Vendas por Hora do Dia (Hoje)</CardTitle></CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart data={vendasPorHora}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="hora" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="vendas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+          <TabsContent value="vendas" className="space-y-5">
+            {loading ? <ChartCardSkeleton height={340} /> : (
+              <div className="rounded-[var(--radius)] border border-border/60 bg-card p-5 shadow-[var(--elev-2)]">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-base font-semibold">Vendas por Hora do Dia</h3>
+                  <span className="text-xs text-muted-foreground">Hoje</span>
+                </div>
+                <ResponsiveContainer width="100%" height={340}>
+                  <BarChart data={vendasPorHora} margin={{ top: 10, right: 12, left: 0, bottom: 4 }}>
+                    <CartesianGrid {...chartGridProps} />
+                    <XAxis dataKey="hora" tick={chartAxisTick} axisLine={false} tickLine={false} tickMargin={8} />
+                    <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} tickMargin={8} width={36} allowDecimals={false} />
+                    <Tooltip content={<ChartTooltip formatter={(v) => `${v} vendas`} />} cursor={{ fill: "hsl(var(--primary) / 0.08)" }} />
+                    <Bar dataKey="vendas" name="Vendas" fill={CHART_SEMANTIC.primary} radius={[8, 8, 0, 0]} barSize={22} />
                   </BarChart>
                 </ResponsiveContainer>
-              </CardContent>
-            </Card>
+              </div>
+            )}
           </TabsContent>
 
-          <TabsContent value="operacional" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5" />Métricas Operacionais</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="p-4 rounded-lg border">
-                    <p className="text-sm text-muted-foreground">Taxa de Conclusão</p>
-                    <p className="text-2xl font-bold">{metricas.taxaConclusao.toFixed(1)}%</p>
-                  </div>
-                  <div className="p-4 rounded-lg border">
-                    <p className="text-sm text-muted-foreground">Entregas por Entregador/Mês</p>
-                    <p className="text-2xl font-bold">{metricas.entregasPorEntregador.toFixed(1)}</p>
-                  </div>
-                  <div className="p-4 rounded-lg border">
-                    <p className="text-sm text-muted-foreground">Custo por Entrega</p>
-                    <p className="text-2xl font-bold">R$ {metricas.custoPorEntrega.toFixed(2)}</p>
-                  </div>
-                  <div className="p-4 rounded-lg border">
-                    <p className="text-sm text-muted-foreground">Lucro Médio Mensal</p>
-                    <p className="text-2xl font-bold">R$ {(metricas.lucro / 6).toFixed(0)}</p>
-                  </div>
+          <TabsContent value="operacional" className="space-y-5">
+            {loading ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => <KpiCardSkeleton key={i} />)}
+              </div>
+            ) : (
+              <>
+                <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                  <Activity className="h-4 w-4" /> Métricas Operacionais
                 </div>
-              </CardContent>
-            </Card>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <PremiumKpiCard label="Taxa de Conclusão" value={`${metricas.taxaConclusao.toFixed(1)}%`} icon={TrendingUp} tone="success" />
+                  <PremiumKpiCard label="Entregas por Entregador/Mês" value={metricas.entregasPorEntregador.toFixed(1)} icon={Activity} tone="info" />
+                  <PremiumKpiCard label="Custo por Entrega" value={fmtBRL(metricas.custoPorEntrega)} icon={BarChart3} tone="warning" />
+                  <PremiumKpiCard label="Lucro Médio Mensal" value={fmtBRL(metricas.lucro / 6)} icon={PieChart} tone="primary" />
+                </div>
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </div>
