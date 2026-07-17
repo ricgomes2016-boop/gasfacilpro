@@ -3,9 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { format } from "date-fns";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getBrasiliaDate, getBrasiliaStartOfDay, getBrasiliaEndOfDay } from "@/lib/utils";
+import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
+import { ChartCardSkeleton } from "@/components/dashboard/premium/skeletons";
+import { chartGridProps, chartAxisTick, fmtBRL, fmtBRLcompact } from "@/components/dashboard/premium/chartTheme";
 
 export function SalesChart() {
   const { unidadeAtual } = useUnidade();
