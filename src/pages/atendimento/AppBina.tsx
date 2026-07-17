@@ -220,7 +220,7 @@ export default function AppBina() {
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Mensagens: identificação automática via Z-API (já ativo). Chamadas de voz: capturadas via listener de notificação no app Android.
                   </p>
-                  <Badge variant="secondary" className="mt-2 text-xs bg-success text-success">Z-API ativo ✓</Badge>
+                  <Badge variant="secondary" className="mt-2 text-xs bg-success/10 text-success">Z-API ativo ✓</Badge>
                 </div>
               </div>
             </CardContent>
@@ -236,7 +236,7 @@ export default function AppBina() {
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Webhook já configurado no sistema. Configure no GoTo Connect o endpoint abaixo para ativar a identificação automática de ramais.
                   </p>
-                  <Badge variant="secondary" className="mt-2 text-xs bg-info text-info">Webhook pronto ✓</Badge>
+                  <Badge variant="secondary" className="mt-2 text-xs bg-info/10 text-info">Webhook pronto ✓</Badge>
                 </div>
               </div>
             </CardContent>

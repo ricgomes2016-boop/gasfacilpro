@@ -42,10 +42,10 @@ export interface Empenho {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  aberto: "bg-info text-info",
-  parcial: "bg-warning text-warning",
-  concluido: "bg-success text-success",
-  cancelado: "bg-destructive text-destructive",
+  aberto: "bg-info/10 text-info",
+  parcial: "bg-warning/10 text-warning",
+  concluido: "bg-success/10 text-success",
+  cancelado: "bg-destructive/10 text-destructive",
 };
 
 const fmtBRL = (v: number) =>

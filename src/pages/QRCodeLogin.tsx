@@ -124,7 +124,7 @@ export default function QRCodeLogin() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-info to-info flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-info/20 to-info/5 flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-6">
         {/* Logo */}
         <div className="text-center">
@@ -155,7 +155,7 @@ export default function QRCodeLogin() {
                 {/* Status */}
                 <div className="w-full">
                   {status === "scanning" && (
-                    <div className="flex items-center justify-center gap-2 text-info bg-info p-3 rounded-lg">
+                    <div className="flex items-center justify-center gap-2 text-info bg-info/10 p-3 rounded-lg">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span className="text-sm font-medium">
                         Aguardando escaneamento...
@@ -164,7 +164,7 @@ export default function QRCodeLogin() {
                   )}
 
                   {status === "authenticated" && (
-                    <div className="flex items-center justify-center gap-2 text-success bg-success p-3 rounded-lg">
+                    <div className="flex items-center justify-center gap-2 text-success bg-success/10 p-3 rounded-lg">
                       <CheckCircle2 className="w-4 h-4" />
                       <span className="text-sm font-medium">
                         Autenticado com sucesso!
@@ -212,7 +212,7 @@ export default function QRCodeLogin() {
                 <Button
                   onClick={generateQRCode}
                   disabled={loading}
-                  className="w-full bg-info hover:bg-info"
+                  className="w-full bg-info hover:bg-info/90 text-info-foreground"
                   size="lg"
                 >
                   {loading ? (
@@ -230,7 +230,7 @@ export default function QRCodeLogin() {
         </Card>
 
         {/* Instruções */}
-        <Card className="bg-info border-info">
+        <Card className="bg-info/5 border-info/30">
           <CardContent className="pt-6">
             <div className="space-y-3 text-sm">
               <div className="flex gap-3">

@@ -538,8 +538,8 @@ export default function EntregadorNovaVenda({ noLayout = false }: EntregadorNova
 
   const getTipoBadge = (tipo: string | null) => {
     switch (tipo) {
-      case "revenda": return { label: "Revenda", className: "bg-warning text-warning border-warning" };
-      case "comercial": return { label: "Comercial", className: "bg-info text-info border-info" };
+      case "revenda": return { label: "Revenda", className: "bg-warning/10 text-warning border-warning" };
+      case "comercial": return { label: "Comercial", className: "bg-info/10 text-info border-info" };
       default: return { label: "Residencial", className: "bg-gray-100 text-gray-800 border-gray-200" };
     }
   };

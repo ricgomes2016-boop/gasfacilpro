@@ -12,10 +12,10 @@ interface Props {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  disponivel: "bg-info text-info",
-  utilizado: "bg-success text-success",
-  vendido: "bg-warning text-warning",
-  cancelado: "bg-destructive text-destructive",
+  disponivel: "bg-info/10 text-info",
+  utilizado: "bg-success/10 text-success",
+  vendido: "bg-warning/10 text-warning",
+  cancelado: "bg-destructive/10 text-destructive",
 };
 
 export function EmpenhoDetalheDialog({ empenho, onClose }: Props) {

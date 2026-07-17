@@ -98,15 +98,15 @@ const MODALIDADES: Record<string, string> = {
 };
 
 const STATUS_OPTIONS = [
-  { value: "prospeccao", label: "Prospecção", color: "bg-info text-info border-info" },
-  { value: "participando", label: "Participando", color: "bg-warning text-warning border-warning" },
-  { value: "proposta_enviada", label: "Proposta Enviada", color: "bg-warning text-warning border-warning" },
-  { value: "habilitada", label: "Habilitada", color: "bg-primary text-primary border-primary" },
-  { value: "vencida", label: "Vencida 🏆", color: "bg-success text-success border-success" },
-  { value: "perdida", label: "Perdida", color: "bg-destructive text-destructive border-destructive" },
+  { value: "prospeccao", label: "Prospecção", color: "bg-info/10 text-info border-info" },
+  { value: "participando", label: "Participando", color: "bg-warning/10 text-warning border-warning" },
+  { value: "proposta_enviada", label: "Proposta Enviada", color: "bg-warning/10 text-warning border-warning" },
+  { value: "habilitada", label: "Habilitada", color: "bg-primary/10 text-primary border-primary" },
+  { value: "vencida", label: "Vencida 🏆", color: "bg-success/10 text-success border-success" },
+  { value: "perdida", label: "Perdida", color: "bg-destructive/10 text-destructive border-destructive" },
   { value: "cancelada", label: "Cancelada", color: "bg-gray-100 text-gray-600 border-gray-200" },
-  { value: "em_execucao", label: "Em Execução", color: "bg-success text-success border-success" },
-  { value: "concluida", label: "Concluída", color: "bg-success text-success border-success" },
+  { value: "em_execucao", label: "Em Execução", color: "bg-success/10 text-success border-success" },
+  { value: "concluida", label: "Concluída", color: "bg-success/10 text-success border-success" },
 ];
 
 const EMPTY_FORM = {

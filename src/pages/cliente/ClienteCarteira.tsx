@@ -118,8 +118,8 @@ export default function ClienteCarteira() {
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-full ${
                         transaction.type === "credit" 
-                          ? "bg-success text-success" 
-                          : "bg-warning text-warning"
+                          ? "bg-success/10 text-success" 
+                          : "bg-warning/10 text-warning"
                       }`}>
                         {transaction.type === "credit" ? (
                           <ArrowUpRight className="h-4 w-4" />

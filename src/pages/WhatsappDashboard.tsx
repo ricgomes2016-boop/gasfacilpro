@@ -150,13 +150,13 @@ export default function WhatsappDashboard() {
               onClick={() => setSelectedConversation(conv.id)}
               className={`p-4 border-b cursor-pointer transition-colors ${
                 selectedConversation === conv.id
-                  ? "bg-info border-l-4 border-l-blue-500"
+                  ? "bg-info/10 border-l-4 border-l-info"
                   : "hover:bg-gray-50"
               }`}
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-full bg-info flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center">
                     <MessageCircle className="w-5 h-5 text-info" />
                   </div>
                   <div>
@@ -190,7 +190,7 @@ export default function WhatsappDashboard() {
           {/* Header */}
           <div className="p-4 border-b bg-white flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-info flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-info/10 flex items-center justify-center">
                 <MessageCircle className="w-6 h-6 text-info" />
               </div>
               <div>
@@ -220,7 +220,7 @@ export default function WhatsappDashboard() {
                       ? "bg-info text-white rounded-br-none"
                       : msg.sender === "bot"
                         ? "bg-gray-200 text-gray-900 rounded-bl-none"
-                        : "bg-success text-success rounded-bl-none"
+                        : "bg-success/10 text-success rounded-bl-none"
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>

@@ -119,10 +119,10 @@ export default function ValeGasRelatorio({ embedded }: { embedded?: boolean } = 
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
-      Disponível: "bg-info text-info dark:bg-info/30 dark:text-info",
-      Vendido: "bg-warning text-warning dark:bg-warning/30 dark:text-warning",
-      Utilizado: "bg-success text-success dark:bg-success/30 dark:text-success",
-      Cancelado: "bg-destructive text-destructive dark:bg-destructive/30 dark:text-destructive",
+      Disponível: "bg-info/10 text-info dark:bg-info/30 dark:text-info",
+      Vendido: "bg-warning/10 text-warning dark:bg-warning/30 dark:text-warning",
+      Utilizado: "bg-success/10 text-success dark:bg-success/30 dark:text-success",
+      Cancelado: "bg-destructive/10 text-destructive dark:bg-destructive/30 dark:text-destructive",
     };
     return (
       <Badge className={cn("font-medium", variants[status] || "")}>

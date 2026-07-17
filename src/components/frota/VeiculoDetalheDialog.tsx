@@ -131,8 +131,8 @@ export function VeiculoDetalheDialog({ open, onOpenChange, veiculo }: VeiculoDet
 
   const alertNivelColor = (n: string) => {
     if (n === "critico") return "bg-destructive/10 text-destructive border-destructive/30";
-    if (n === "atencao") return "bg-warning text-warning border-warning dark:bg-warning/20 dark:text-warning dark:border-warning";
-    return "bg-success text-success border-success dark:bg-success/20 dark:text-success dark:border-success";
+    if (n === "atencao") return "bg-warning/10 text-warning border-warning dark:bg-warning/20 dark:text-warning dark:border-warning";
+    return "bg-success/10 text-success border-success dark:bg-success/20 dark:text-success dark:border-success";
   };
 
   return (
