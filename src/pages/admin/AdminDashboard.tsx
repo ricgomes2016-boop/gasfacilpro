@@ -144,7 +144,7 @@ export default function AdminDashboard() {
           </Card>
 
           {/* Quick Actions */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <Card className="border-border/60 bg-card shadow-[var(--elev-1)]">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <ArrowUpRight className="h-4 w-4 text-primary" />
