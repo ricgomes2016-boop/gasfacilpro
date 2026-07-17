@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,6 +6,7 @@ import { PageSectionLoader } from "@/components/ui/page-loader";
 import { Users, Clock, AlertTriangle, CheckCircle, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { KpiCard, SectionCard } from "@/components/shared";
 
 export default function TrabalhistaContent() {
   const { unidadeAtual } = useUnidade();
@@ -50,52 +50,46 @@ export default function TrabalhistaContent() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end">
-        <Button className="w-full sm:w-auto"><FileText className="h-4 w-4 mr-2" />Gerar Relatório</Button>
+        <Button size="sm"><FileText className="h-4 w-4 mr-2" />Gerar Relatório</Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><Users className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">{totalFuncionarios}</p><p className="text-sm text-muted-foreground">Funcionários</p></div></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-chart-2/10"><Clock className="h-6 w-6 text-chart-2" /></div><div><p className="text-2xl font-bold">{totalFuncionarios * 44}h</p><p className="text-sm text-muted-foreground">Horas Previstas</p></div></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-chart-4/10"><AlertTriangle className="h-6 w-6 text-chart-4" /></div><div><p className="text-2xl font-bold">{alertasAtivos}</p><p className="text-sm text-muted-foreground">Alertas Ativos</p></div></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-chart-3/10"><CheckCircle className="h-6 w-6 text-chart-3" /></div><div><p className="text-2xl font-bold">{totalFuncionarios > 0 ? Math.round(((totalFuncionarios - alertasAtivos) / totalFuncionarios) * 100) : 0}%</p><p className="text-sm text-muted-foreground">Conformidade</p></div></div></CardContent></Card>
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <KpiCard icon={Users} label="Funcionários" value={totalFuncionarios} tone="primary" />
+        <KpiCard icon={Clock} label="Horas Previstas" value={`${totalFuncionarios * 44}h`} tone="info" />
+        <KpiCard icon={AlertTriangle} label="Alertas Ativos" value={alertasAtivos} tone="warning" />
+        <KpiCard icon={CheckCircle} label="Conformidade" value={`${totalFuncionarios > 0 ? Math.round(((totalFuncionarios - alertasAtivos) / totalFuncionarios) * 100) : 0}%`} tone="success" />
       </div>
 
       {alertas.length > 0 && (
-        <Card className="border-chart-4/50">
-          <CardHeader><CardTitle className="flex items-center gap-2 text-chart-4"><AlertTriangle className="h-5 w-5" />Alertas de Jornada</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {alertas.map((a: any) => (
-                <div key={a.id} className="flex flex-col gap-3 rounded-lg bg-chart-4/10 p-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div><p className="font-medium">{(a.funcionarios as any)?.nome} - {a.tipo}</p><p className="text-sm text-muted-foreground">{a.descricao}</p></div>
-                  <Badge variant={a.nivel === "alto" ? "destructive" : "default"}>{a.nivel}</Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <SectionCard title="Alertas de Jornada" icon={AlertTriangle} className="border-warning/40">
+          <div className="space-y-2">
+            {alertas.map((a: any) => (
+              <div key={a.id} className="flex flex-col gap-3 rounded-lg border border-warning/30 bg-warning/5 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0"><p className="font-medium truncate">{(a.funcionarios as any)?.nome} — {a.tipo}</p><p className="text-sm text-muted-foreground truncate">{a.descricao}</p></div>
+                <Badge variant={a.nivel === "alto" ? "destructive" : "default"} className="shrink-0">{a.nivel}</Badge>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
       )}
 
-      <Card>
-        <CardHeader><CardTitle>Controle de Jornada</CardTitle></CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader><TableRow><TableHead>Funcionário</TableHead><TableHead>Cargo</TableHead><TableHead>Horas Semanais</TableHead><TableHead>Horas Extras</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {funcionarios.map((f) => (
-                <TableRow key={f.id}>
-                  <TableCell className="font-medium">{f.nome}</TableCell>
-                  <TableCell>{f.cargo || "-"}</TableCell>
-                  <TableCell>{f.horasSemanais}h</TableCell>
-                  <TableCell>{f.horasExtras}h</TableCell>
-                  <TableCell><Badge variant={f.status === "regular" ? "default" : "destructive"}>{f.status === "regular" ? "Regular" : "Alerta"}</Badge></TableCell>
-                </TableRow>
-              ))}
-              {funcionarios.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Nenhum funcionário encontrado</TableCell></TableRow>}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <SectionCard title="Controle de Jornada" icon={Users} noPadding>
+        <Table>
+          <TableHeader><TableRow><TableHead className="text-xs uppercase text-muted-foreground">Funcionário</TableHead><TableHead className="text-xs uppercase text-muted-foreground">Cargo</TableHead><TableHead className="text-xs uppercase text-muted-foreground">Horas Semanais</TableHead><TableHead className="text-xs uppercase text-muted-foreground">Horas Extras</TableHead><TableHead className="text-xs uppercase text-muted-foreground">Status</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {funcionarios.map((f) => (
+              <TableRow key={f.id} className="hover:bg-muted/50">
+                <TableCell className="font-medium">{f.nome}</TableCell>
+                <TableCell>{f.cargo || "-"}</TableCell>
+                <TableCell>{f.horasSemanais}h</TableCell>
+                <TableCell>{f.horasExtras}h</TableCell>
+                <TableCell><Badge variant={f.status === "regular" ? "default" : "destructive"}>{f.status === "regular" ? "Regular" : "Alerta"}</Badge></TableCell>
+              </TableRow>
+            ))}
+            {funcionarios.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Nenhum funcionário encontrado</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+      </SectionCard>
     </div>
   );
 }

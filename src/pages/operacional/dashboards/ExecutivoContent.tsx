@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageSectionLoader } from "@/components/ui/page-loader";
 import { DollarSign, Package, Users, Target, Calendar } from "lucide-react";
@@ -8,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { getBrasiliaDate } from "@/lib/utils";
+import { KpiCard, SectionCard } from "@/components/shared";
 
 const COLORS = ["hsl(var(--success))", "hsl(var(--info))", "hsl(var(--warning))", "hsl(var(--secondary))", "hsl(var(--destructive))"];
 
@@ -69,77 +69,65 @@ export default function ExecutivoContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div />
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="h-4 w-4" />
-          {getBrasiliaDate().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
-        </div>
+      <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+        <Calendar className="h-4 w-4" />
+        {getBrasiliaDate().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Faturamento Mensal</p><p className="text-2xl font-bold">R$ {faturamento.toLocaleString("pt-BR")}</p></div><div className="p-3 rounded-lg bg-primary/10"><DollarSign className="h-6 w-6 text-primary" /></div></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Vendas Realizadas</p><p className="text-2xl font-bold">{totalVendas}</p></div><div className="p-3 rounded-lg bg-chart-2/10"><Package className="h-6 w-6 text-chart-2" /></div></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Clientes Ativos</p><p className="text-2xl font-bold">{clientesAtivos}</p></div><div className="p-3 rounded-lg bg-chart-3/10"><Users className="h-6 w-6 text-chart-3" /></div></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Ticket Médio</p><p className="text-2xl font-bold">R$ {ticketMedio.toFixed(2)}</p></div><div className="p-3 rounded-lg bg-chart-4/10"><Target className="h-6 w-6 text-chart-4" /></div></div></CardContent></Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard icon={DollarSign} label="Faturamento Mensal" value={`R$ ${faturamento.toLocaleString("pt-BR")}`} tone="primary" />
+        <KpiCard icon={Package} label="Vendas Realizadas" value={totalVendas} tone="info" />
+        <KpiCard icon={Users} label="Clientes Ativos" value={clientesAtivos} tone="success" />
+        <KpiCard icon={Target} label="Ticket Médio" value={`R$ ${ticketMedio.toFixed(2)}`} tone="warning" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle>Vendas da Semana</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={vendasSemana} margin={{ top: 12, right: 18, left: 0, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="4 8" vertical={false} stroke="hsl(var(--border) / 0.5)" />
-                <XAxis dataKey="dia" axisLine={false} tickLine={false} tickMargin={10} />
-                <YAxis axisLine={false} tickLine={false} tickMargin={10} width={58} tickFormatter={(value) => `R$ ${(Number(value) / 1000).toFixed(0)}k`} />
-                <Tooltip
-                  cursor={{ stroke: "hsl(var(--success))", strokeWidth: 1, strokeDasharray: "4 4" }}
-                  contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
-                  formatter={(value) => [`R$ ${Number(value).toLocaleString("pt-BR")}`, "Vendas"]}
-                />
-                <Line type="monotone" dataKey="valor" stroke="hsl(var(--success))" strokeWidth={3} dot={{ fill: "hsl(var(--success))", strokeWidth: 2, r: 4 }} activeDot={{ r: 7 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>Produtos Mais Vendidos</CardTitle></CardHeader>
-          <CardContent>
-            {produtosVendidos.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie data={produtosVendidos} cx="50%" cy="48%" innerRadius={58} outerRadius={96} paddingAngle={3} label={false} dataKey="valor">
-                  {produtosVendidos.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
-                    formatter={(value, name, item) => [`${value}%`, item.payload.nome]}
-                  />
-                  <Legend iconType="circle" verticalAlign="bottom" height={42} formatter={(value) => <span className="text-xs text-muted-foreground">{value}</span>} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyState
-                compact
-                icon={Package}
-                title="Sem produtos vendidos"
-                description="Os produtos mais vendidos aparecerão aqui quando houver itens em pedidos."
+        <SectionCard title="Vendas da Semana">
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={vendasSemana} margin={{ top: 12, right: 18, left: 0, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="4 8" vertical={false} stroke="hsl(var(--border) / 0.5)" />
+              <XAxis dataKey="dia" axisLine={false} tickLine={false} tickMargin={10} />
+              <YAxis axisLine={false} tickLine={false} tickMargin={10} width={58} tickFormatter={(value) => `R$ ${(Number(value) / 1000).toFixed(0)}k`} />
+              <Tooltip
+                cursor={{ stroke: "hsl(var(--success))", strokeWidth: 1, strokeDasharray: "4 4" }}
+                contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
+                formatter={(value) => [`R$ ${Number(value).toLocaleString("pt-BR")}`, "Vendas"]}
               />
-            )}
-          </CardContent>
-        </Card>
+              <Line type="monotone" dataKey="valor" stroke="hsl(var(--success))" strokeWidth={3} dot={{ fill: "hsl(var(--success))", strokeWidth: 2, r: 4 }} activeDot={{ r: 7 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </SectionCard>
+        <SectionCard title="Produtos Mais Vendidos">
+          {produtosVendidos.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie data={produtosVendidos} cx="50%" cy="48%" innerRadius={58} outerRadius={96} paddingAngle={3} label={false} dataKey="valor">
+                {produtosVendidos.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
+                  formatter={(value, name, item) => [`${value}%`, item.payload.nome]}
+                />
+                <Legend iconType="circle" verticalAlign="bottom" height={42} formatter={(value) => <span className="text-xs text-muted-foreground">{value}</span>} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyState
+              compact
+              icon={Package}
+              title="Sem produtos vendidos"
+              description="Os produtos mais vendidos aparecerão aqui quando houver itens em pedidos."
+            />
+          )}
+        </SectionCard>
       </div>
 
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" />Progresso da Meta Mensal</CardTitle></CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between text-sm"><span>Faturamento</span><span className="font-medium">R$ {faturamento.toLocaleString("pt-BR")}</span></div>
-            <div className="h-4 bg-muted rounded-full overflow-hidden"><div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min((faturamento / 150000) * 100, 100)}%` }} /></div>
-          </div>
-        </CardContent>
-      </Card>
+      <SectionCard title="Progresso da Meta Mensal" icon={Target}>
+        <div className="space-y-3">
+          <div className="flex justify-between text-sm"><span className="text-muted-foreground">Faturamento</span><span className="font-medium text-foreground">R$ {faturamento.toLocaleString("pt-BR")}</span></div>
+          <div className="h-3 bg-muted rounded-full overflow-hidden"><div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min((faturamento / 150000) * 100, 100)}%` }} /></div>
+        </div>
+      </SectionCard>
     </div>
   );
 }

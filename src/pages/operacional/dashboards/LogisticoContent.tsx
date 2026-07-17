@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageSectionLoader } from "@/components/ui/page-loader";
@@ -7,6 +6,8 @@ import { Truck, MapPin, Clock, Package, TrendingUp, Route } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { KpiCard, SectionCard } from "@/components/shared";
+
 
 export default function LogisticoContent() {
   const { unidadeAtual } = useUnidade();
@@ -53,68 +54,62 @@ export default function LogisticoContent() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><Package className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">{entregasHoje}</p><p className="text-sm text-muted-foreground">Entregas Hoje</p></div></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-chart-2/10"><Clock className="h-6 w-6 text-chart-2" /></div><div><p className="text-2xl font-bold">-</p><p className="text-sm text-muted-foreground">Tempo Médio</p></div></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-chart-3/10"><TrendingUp className="h-6 w-6 text-chart-3" /></div><div><p className="text-2xl font-bold">{taxaSucesso.toFixed(0)}%</p><p className="text-sm text-muted-foreground">Taxa Sucesso</p></div></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-chart-4/10"><Route className="h-6 w-6 text-chart-4" /></div><div><p className="text-2xl font-bold">{emRota}</p><p className="text-sm text-muted-foreground">Em Rota</p></div></div></CardContent></Card>
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <KpiCard icon={Package} label="Entregas Hoje" value={entregasHoje} tone="primary" />
+        <KpiCard icon={Clock} label="Tempo Médio" value="-" tone="info" />
+        <KpiCard icon={TrendingUp} label="Taxa Sucesso" value={`${taxaSucesso.toFixed(0)}%`} tone="success" />
+        <KpiCard icon={Route} label="Em Rota" value={emRota} tone="warning" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Truck className="h-5 w-5" />Status dos Entregadores</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {entregadores.length === 0 && (
-                <EmptyState
-                  compact
-                  icon={Truck}
-                  title="Nenhum entregador ativo hoje"
-                  description="Quando houver entregas ou rotas em andamento, os entregadores aparecerão aqui."
-                />
-              )}
-              {entregadores.map((e) => (
-                <div key={e.id} className="intelligence-list-item flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><Truck className="h-5 w-5 text-primary" /></div>
-                    <p className="font-medium">{e.nome}</p>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant={e.status === "em_rota" ? "default" : "secondary"}>{e.status === "em_rota" ? "Em Rota" : "Disponível"}</Badge>
-                    <p className="text-sm text-muted-foreground mt-1">{e.entregas} entregas</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>Entregas por Bairro</CardTitle></CardHeader>
-          <CardContent>
-            {entregasPorBairro.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={entregasPorBairro} layout="vertical" margin={{ top: 10, right: 22, left: 8, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="4 8" horizontal={false} stroke="hsl(var(--border) / 0.5)" />
-                  <XAxis type="number" axisLine={false} tickLine={false} allowDecimals={false} />
-                  <YAxis dataKey="bairro" type="category" width={92} axisLine={false} tickLine={false} tickMargin={8} />
-                  <Tooltip
-                    cursor={{ fill: "hsl(var(--info) / 0.08)" }}
-                    contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
-                    formatter={(value) => [value, "Entregas"]}
-                  />
-                  <Bar dataKey="entregas" fill="hsl(var(--info))" radius={[0, 8, 8, 0]} barSize={18} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
+        <SectionCard title="Status dos Entregadores" icon={Truck}>
+          <div className="space-y-3">
+            {entregadores.length === 0 && (
               <EmptyState
                 compact
-                icon={MapPin}
-                title="Sem entregas por bairro"
-                description="As entregas concluídas do mês formarão este ranking por região."
+                icon={Truck}
+                title="Nenhum entregador ativo hoje"
+                description="Quando houver entregas ou rotas em andamento, os entregadores aparecerão aqui."
               />
             )}
-          </CardContent>
-        </Card>
+            {entregadores.map((e) => (
+              <div key={e.id} className="flex flex-col gap-3 rounded-lg border border-border/60 p-3 hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-9 w-9 shrink-0 rounded-full bg-primary/10 flex items-center justify-center"><Truck className="h-4 w-4 text-primary" /></div>
+                  <p className="font-medium truncate">{e.nome}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <Badge variant={e.status === "em_rota" ? "default" : "secondary"}>{e.status === "em_rota" ? "Em Rota" : "Disponível"}</Badge>
+                  <p className="text-xs text-muted-foreground mt-1">{e.entregas} entregas</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+        <SectionCard title="Entregas por Bairro" icon={MapPin}>
+          {entregasPorBairro.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={entregasPorBairro} layout="vertical" margin={{ top: 10, right: 22, left: 8, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="4 8" horizontal={false} stroke="hsl(var(--border) / 0.5)" />
+                <XAxis type="number" axisLine={false} tickLine={false} allowDecimals={false} />
+                <YAxis dataKey="bairro" type="category" width={92} axisLine={false} tickLine={false} tickMargin={8} />
+                <Tooltip
+                  cursor={{ fill: "hsl(var(--info) / 0.08)" }}
+                  contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
+                  formatter={(value) => [value, "Entregas"]}
+                />
+                <Bar dataKey="entregas" fill="hsl(var(--info))" radius={[0, 8, 8, 0]} barSize={18} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyState
+              compact
+              icon={MapPin}
+              title="Sem entregas por bairro"
+              description="As entregas concluídas do mês formarão este ranking por região."
+            />
+          )}
+        </SectionCard>
       </div>
     </div>
   );
