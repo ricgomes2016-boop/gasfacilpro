@@ -4,6 +4,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { BarChart3 } from "lucide-react";
 import { format, eachDayOfInterval, startOfWeek, startOfMonth, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
+import { ChartCardSkeleton } from "@/components/dashboard/premium/skeletons";
+import { chartGridProps, chartAxisTick, fmtBRL, fmtBRLcompact } from "@/components/dashboard/premium/chartTheme";
 
 interface Pedido {
   id: string;
@@ -73,20 +76,18 @@ export function VendasPorHoraChart({ pedidos, isLoading, periodo = "hoje" }: Ven
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex items-center justify-center h-[220px]">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
+          <ChartCardSkeleton height={220} title={false} />
         ) : (
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} interval={periodo === "mes" ? 2 : 0} />
-              <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => `R$${v}`} width={55} />
+            <BarChart data={chartData} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid {...chartGridProps} />
+              <XAxis dataKey="label" tick={chartAxisTick} tickLine={false} axisLine={false} interval={periodo === "mes" ? 2 : 0} />
+              <YAxis tick={chartAxisTick} tickLine={false} axisLine={false} tickFormatter={fmtBRLcompact} width={55} />
               <Tooltip
-                formatter={(value: number) => [`R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, "Vendas"]}
-                contentStyle={{ backgroundColor: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                content={<ChartTooltip formatter={(v) => fmtBRL(v)} />}
+                cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
               />
-              <Bar dataKey="vendas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="vendas" name="Vendas" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}

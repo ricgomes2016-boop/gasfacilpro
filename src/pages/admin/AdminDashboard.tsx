@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, MapPin, Users, DollarSign, TrendingUp, Activity, ArrowUpRight, Flame, ChevronRight } from "lucide-react";
+import { Building2, MapPin, Users, DollarSign, Activity, ArrowUpRight, Flame, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
+import { PremiumKpiCard, KpiTone } from "@/components/dashboard/premium/PremiumKpiCard";
+import { KpiGridSkeleton } from "@/components/dashboard/premium/skeletons";
+import { DashboardHero } from "@/components/dashboard/premium/DashboardHero";
 
 interface Stats {
   empresas: number;
@@ -49,43 +52,11 @@ export default function AdminDashboard() {
     fetchStats();
   }, []);
 
-  const cards = [
-    {
-      title: "Empresas Ativas",
-      value: stats.empresas,
-      icon: Building2,
-      trend: "+2 este mês",
-      gradient: "from-primary/15 to-primary/5",
-      iconBg: "bg-primary/15",
-      iconColor: "text-primary",
-    },
-    {
-      title: "Unidades Operando",
-      value: stats.unidades,
-      icon: MapPin,
-      trend: "Todas ativas",
-      gradient: "from-success/15 to-success/5",
-      iconBg: "bg-success/15",
-      iconColor: "text-success",
-    },
-    {
-      title: "Usuários Totais",
-      value: stats.usuarios,
-      icon: Users,
-      trend: "Plataforma inteira",
-      gradient: "from-accent/15 to-accent/5",
-      iconBg: "bg-accent/15",
-      iconColor: "text-accent",
-    },
-    {
-      title: "MRR Estimado",
-      value: stats.mrr,
-      icon: DollarSign,
-      trend: "Em desenvolvimento",
-      gradient: "from-warning/15 to-warning/5",
-      iconBg: "bg-warning/15",
-      iconColor: "text-warning",
-    },
+  const cards: Array<{ title: string; value: string | number; icon: any; tone: KpiTone; sub: string }> = [
+    { title: "Empresas Ativas", value: stats.empresas, icon: Building2, tone: "primary", sub: "+2 este mês" },
+    { title: "Unidades Operando", value: stats.unidades, icon: MapPin, tone: "success", sub: "Todas ativas" },
+    { title: "Usuários Totais", value: stats.usuarios, icon: Users, tone: "info", sub: "Plataforma inteira" },
+    { title: "MRR Estimado", value: stats.mrr, icon: DollarSign, tone: "accent", sub: "Em desenvolvimento" },
   ];
 
   const greeting = () => {
@@ -97,59 +68,36 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-2xl gradient-primary p-8 text-primary-foreground">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSA2MCAwIEwgMCAwIDAgNjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-50" />
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-2">
-              <Flame className="h-5 w-5" />
-              <Badge className="bg-white/20 text-white border-white/20 text-xs">
-                Super Admin
-              </Badge>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-              {greeting()}, {profile?.full_name?.split(" ")[0] || "Admin"} 👋
-            </h1>
-            <p className="text-white/70 mt-1 text-sm md:text-base">
-              Painel de controle da plataforma Gás Fácil. Monitore todas as empresas e métricas em um só lugar.
-            </p>
-          </div>
-        </div>
+      <div className="space-y-6">
+        <DashboardHero
+          eyebrow="Super Admin"
+          icon={Flame}
+          title={`${greeting()}, ${profile?.full_name?.split(" ")[0] || "Admin"} 👋`}
+          description="Painel de controle da plataforma Gás Fácil. Monitore todas as empresas e métricas em um só lugar."
+        />
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {cards.map((card) => (
-            <Card key={card.title} className="border-border/50 bg-card/80 backdrop-blur-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{card.title}</p>
-                    <p className="text-3xl font-bold mt-2 tracking-tight">
-                      {loading ? (
-                        <span className="inline-block w-12 h-8 bg-muted/60 animate-pulse rounded" />
-                      ) : (
-                        card.value
-                      )}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
-                      <TrendingUp className="h-3 w-3" />
-                      {card.trend}
-                    </p>
-                  </div>
-                  <div className={`h-10 w-10 rounded-xl ${card.iconBg} flex items-center justify-center`}>
-                    <card.icon className={`h-5 w-5 ${card.iconColor}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {loading ? (
+          <KpiGridSkeleton count={4} />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {cards.map((c) => (
+              <PremiumKpiCard
+                key={c.title}
+                label={c.title}
+                value={String(c.value)}
+                icon={c.icon}
+                tone={c.tone}
+                subtitle={c.sub}
+              />
+            ))}
+          </div>
+        )}
+
 
         {/* Recent Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Empresas */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <Card className="border-border/60 bg-card shadow-[var(--elev-2)]">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -162,7 +110,10 @@ export default function AdminDashboard() {
             <CardContent className="space-y-2">
               {loading ? (
                 Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-14 bg-muted/40 animate-pulse rounded-xl" />
+                  <div
+                    key={i}
+                    className="relative h-14 overflow-hidden rounded-xl bg-muted/50 before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.6s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent dark:before:via-white/10"
+                  />
                 ))
               ) : recentEmpresas.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-6">Nenhuma empresa cadastrada.</p>
@@ -193,7 +144,7 @@ export default function AdminDashboard() {
           </Card>
 
           {/* Quick Actions */}
-          <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <Card className="border-border/60 bg-card shadow-[var(--elev-1)]">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <ArrowUpRight className="h-4 w-4 text-primary" />

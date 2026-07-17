@@ -14,6 +14,9 @@ import { format, subMonths, startOfMonth, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { KpiCard, SectionCard } from "@/components/shared";
+import { PremiumKpiCard } from "@/components/dashboard/premium/PremiumKpiCard";
+import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
+import { chartGridProps, chartAxisTick, fmtBRLcompact } from "@/components/dashboard/premium/chartTheme";
 
 export default function DashboardFinanceiro() {
   const { unidadeAtual } = useUnidade();
@@ -135,15 +138,27 @@ export default function DashboardFinanceiro() {
       <Header title="Dashboard Financeiro" subtitle="Visão consolidada das finanças" />
       <div className="p-4 md:p-6 space-y-6">
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div onClick={() => navigate("/financeiro/receber")} className="cursor-pointer">
-            <KpiCard icon={ArrowUpRight} label="A Receber" value={fmt(totalReceber)} tone="success" hint={`${receberPendente.length} pendente(s)`} />
-          </div>
-          <div onClick={() => navigate("/financeiro/pagar")} className="cursor-pointer">
-            <KpiCard icon={ArrowDownRight} label="A Pagar" value={fmt(totalPagar)} tone="destructive" hint={`${pagarPendente.length} pendente(s)`} />
-          </div>
-          <KpiCard icon={DollarSign} label="Saldo Projetado" value={fmt(saldoProjetado)} tone={saldoProjetado >= 0 ? "success" : "destructive"} hint="Receber − Pagar" />
-          <KpiCard icon={Banknote} label="Saldo Bancário" value={fmt(saldoBancario)} tone={saldoBancario >= 0 ? "primary" : "destructive"} hint="Todas as contas" />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <PremiumKpiCard
+            label="A Receber" value={fmt(totalReceber)} icon={ArrowUpRight} tone="success"
+            subtitle={`${receberPendente.length} pendente(s)`}
+            onClick={() => navigate("/financeiro/receber")}
+          />
+          <PremiumKpiCard
+            label="A Pagar" value={fmt(totalPagar)} icon={ArrowDownRight} tone="destructive"
+            subtitle={`${pagarPendente.length} pendente(s)`}
+            onClick={() => navigate("/financeiro/pagar")}
+          />
+          <PremiumKpiCard
+            label="Saldo Projetado" value={fmt(saldoProjetado)} icon={DollarSign}
+            tone={saldoProjetado >= 0 ? "success" : "destructive"}
+            subtitle="Receber − Pagar"
+          />
+          <PremiumKpiCard
+            label="Saldo Bancário" value={fmt(saldoBancario)} icon={Banknote}
+            tone={saldoBancario >= 0 ? "primary" : "destructive"}
+            subtitle="Todas as contas"
+          />
         </div>
 
         {/* Alertas */}
@@ -251,14 +266,17 @@ export default function DashboardFinanceiro() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <SectionCard title="Evolução Mensal — Entradas vs Saídas" className="lg:col-span-2">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
-                <XAxis dataKey="mes" />
-                <YAxis />
-                <Tooltip formatter={(v) => `R$ ${Number(v).toLocaleString("pt-BR")}`} />
-                <Legend />
-                <Bar dataKey="Entradas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Saídas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+              <BarChart data={chartData} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+                <CartesianGrid {...chartGridProps} />
+                <XAxis dataKey="mes" tick={chartAxisTick} tickLine={false} axisLine={false} />
+                <YAxis tick={chartAxisTick} tickLine={false} axisLine={false} tickFormatter={fmtBRLcompact} />
+                <Tooltip
+                  content={<ChartTooltip formatter={(v) => `R$ ${Number(v).toLocaleString("pt-BR")}`} />}
+                  cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
+                />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="Entradas" fill="hsl(var(--success))" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="Saídas" fill="hsl(var(--destructive))" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </SectionCard>
@@ -267,10 +285,10 @@ export default function DashboardFinanceiro() {
             {pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={95} innerRadius={55} paddingAngle={2} stroke="hsl(var(--card))" strokeWidth={2} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                     {pieData.map((d, i) => <Cell key={i} fill={d.color} />)}
                   </Pie>
-                  <Tooltip formatter={(v) => `R$ ${Number(v).toLocaleString("pt-BR")}`} />
+                  <Tooltip content={<ChartTooltip formatter={(v) => `R$ ${Number(v).toLocaleString("pt-BR")}`} />} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (

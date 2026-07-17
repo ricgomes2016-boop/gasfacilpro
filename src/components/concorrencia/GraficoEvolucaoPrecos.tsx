@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { parseLocalDate } from "@/lib/utils";
 import { TrendingUp } from "lucide-react";
+import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
+import { chartColor, chartGridProps, chartAxisTick, fmtBRLcompact } from "@/components/dashboard/premium/chartTheme";
 
 interface Props {
   registros: any[];
   nossosPrecos: Record<string, { portaria: number; telefone: number; unico: number }>;
 }
-
-const COLORS = ["#ef4444", "#8b5cf6", "#8b5cf6", "#06b6d4", "#ec4899", "#14b8a6"];
 
 export function GraficoEvolucaoPrecos({ registros, nossosPrecos }: Props) {
   const chartData = useMemo(() => {
@@ -64,13 +64,13 @@ export function GraficoEvolucaoPrecos({ registros, nossosPrecos }: Props) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={280}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="data" className="text-xs" tick={{ fontSize: 11 }} />
-            <YAxis className="text-xs" tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${v}`} />
+          <LineChart data={chartData} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+            <CartesianGrid {...chartGridProps} />
+            <XAxis dataKey="data" tick={chartAxisTick} tickLine={false} axisLine={false} />
+            <YAxis tick={chartAxisTick} tickLine={false} axisLine={false} tickFormatter={fmtBRLcompact} />
             <Tooltip
-              formatter={(value: number) => [`R$ ${value.toFixed(2)}`, ""]}
-              contentStyle={{ fontSize: 12 }}
+              content={<ChartTooltip formatter={(v) => `R$ ${Number(v).toFixed(2)}`} />}
+              cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             {concorrentes.map((c, i) => (
@@ -78,9 +78,10 @@ export function GraficoEvolucaoPrecos({ registros, nossosPrecos }: Props) {
                 key={c}
                 type="monotone"
                 dataKey={c}
-                stroke={COLORS[i % COLORS.length]}
+                stroke={chartColor(i)}
                 strokeWidth={2}
                 dot={{ r: 3 }}
+                activeDot={{ r: 5, strokeWidth: 0 }}
                 connectNulls
               />
             ))}
