@@ -713,6 +713,12 @@ export default function Pedidos() {
     };
   }, [pedidos]);
 
+  // Helper: número curto do UUID (legado), e número de exibição (sequencial > UUID curto)
+  const getIdCurto = (id: string) => id.substring(0, 8).toUpperCase();
+  const getNumExib = (p: PedidoFormatado) => p.numero_sequencial != null ? String(p.numero_sequencial) : getIdCurto(p.id);
+
+
+
   const getStatusBadgeEntregador = (status: string | null) => {
     switch (status) {
       case "disponivel":return <Badge variant="default" className="text-[10px] ml-2">Disponível</Badge>;
