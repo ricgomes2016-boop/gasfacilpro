@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_pedido_itens_pedido_id ON public.pedido_itens (pedido_id);
