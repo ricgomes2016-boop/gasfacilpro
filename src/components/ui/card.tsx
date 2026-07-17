@@ -40,7 +40,7 @@ Card.displayName = "Card";
 
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("app-card-header flex flex-col gap-1 px-5 py-4 text-card-foreground", className)} {...props} />
+    <div ref={ref} className={cn("app-card-header flex flex-col gap-1 px-4 py-4 text-card-foreground sm:px-5", className)} {...props} />
   ),
 );
 CardHeader.displayName = "CardHeader";
@@ -60,13 +60,13 @@ const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttribu
 CardDescription.displayName = "CardDescription";
 
 const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => <div ref={ref} className={cn("app-card-content p-5", className)} {...props} />,
+  ({ className, ...props }, ref) => <div ref={ref} className={cn("app-card-content p-4 sm:p-5", className)} {...props} />,
 );
 CardContent.displayName = "CardContent";
 
 const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("app-card-footer flex flex-wrap items-center gap-2 px-5 pb-5 pt-0", className)} {...props} />
+    <div ref={ref} className={cn("app-card-footer flex flex-wrap items-center gap-2 px-4 pb-4 pt-0 sm:px-5 sm:pb-5", className)} {...props} />
   ),
 );
 CardFooter.displayName = "CardFooter";
