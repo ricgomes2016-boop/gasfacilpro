@@ -134,9 +134,9 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
 
   const getStatusIcon = (status: StatusVale) => {
     switch (status) {
-      case "disponivel": return <Package className="h-4 w-4 text-blue-500" />;
-      case "vendido": return <Clock className="h-4 w-4 text-amber-500" />;
-      case "utilizado": return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case "disponivel": return <Package className="h-4 w-4 text-info" />;
+      case "vendido": return <Clock className="h-4 w-4 text-warning" />;
+      case "utilizado": return <CheckCircle2 className="h-4 w-4 text-success" />;
       case "cancelado": return <XCircle className="h-4 w-4 text-destructive" />;
     }
   };
@@ -160,7 +160,7 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
         {alertas.length > 0 && (
           <div className="space-y-2">
             {alertas.map((a, i) => (
-              <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border ${a.tipo === "error" ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-400"}`}>
+              <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border ${a.tipo === "error" ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-700 dark:text-warning"}`}>
                 <AlertTriangle className="h-5 w-5 shrink-0" />
                 <span className="text-sm font-medium">{a.msg}</span>
               </div>
@@ -184,7 +184,7 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-blue-500/10"><Package className="h-6 w-6 text-blue-500" /></div>
+                <div className="p-3 rounded-lg bg-info/10"><Package className="h-6 w-6 text-info" /></div>
                 <div>
                   <p className="text-2xl font-bold">{estatisticas.disponiveis}</p>
                   <p className="text-sm text-muted-foreground">Disponíveis</p>
@@ -195,7 +195,7 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-amber-500/10"><Clock className="h-6 w-6 text-amber-500" /></div>
+                <div className="p-3 rounded-lg bg-warning/10"><Clock className="h-6 w-6 text-warning" /></div>
                 <div>
                   <p className="text-2xl font-bold">{estatisticas.vendidos}</p>
                   <p className="text-sm text-muted-foreground">Vendidos</p>
@@ -206,7 +206,7 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-green-500/10"><CheckCircle2 className="h-6 w-6 text-green-500" /></div>
+                <div className="p-3 rounded-lg bg-success/10"><CheckCircle2 className="h-6 w-6 text-success" /></div>
                 <div>
                   <p className="text-2xl font-bold">{estatisticas.utilizados}</p>
                   <p className="text-sm text-muted-foreground">Utilizados</p>
@@ -430,7 +430,7 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
                       <p className="text-lg font-mono font-bold">Vale Nº {valeAtual.numero}</p>
                       <p className="text-sm text-muted-foreground">{valeAtual.codigo}</p>
                     </div>
-                    <p className="text-xl font-bold text-green-600">R$ {Number(valeAtual.valor).toFixed(2)}</p>
+                    <p className="text-xl font-bold text-success">R$ {Number(valeAtual.valor).toFixed(2)}</p>
                   </div>
                   <div className="border-t pt-3 space-y-1">
                     <p className="text-sm"><strong>Parceiro:</strong> {parceiroValeAtual?.nome}</p>

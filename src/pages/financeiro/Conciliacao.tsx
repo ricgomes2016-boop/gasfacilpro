@@ -423,10 +423,10 @@ export default function Conciliacao({ embedded, contas = [] }: { embedded?: bool
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Conciliados</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <CheckCircle2 className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{conciliados}</div>
+              <div className="text-2xl font-bold text-success">{conciliados}</div>
               <p className="text-xs text-muted-foreground">
                 {extrato.length > 0 ? `${Math.round(conciliados / extrato.length * 100)}%` : "0%"}
               </p>
@@ -435,20 +435,20 @@ export default function Conciliacao({ embedded, contas = [] }: { embedded?: bool
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertCircle className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{pendentes}</div>
+              <div className="text-2xl font-bold text-warning">{pendentes}</div>
               <p className="text-xs text-muted-foreground">Aguardando vínculo</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Saldo Extrato</CardTitle>
-              <FileSpreadsheet className="h-4 w-4 text-blue-600" />
+              <FileSpreadsheet className="h-4 w-4 text-info" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-info">
                 R$ {saldoExtrato.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </div>
               <p className="text-xs text-muted-foreground">Saldo calculado</p>
@@ -489,13 +489,13 @@ export default function Conciliacao({ embedded, contas = [] }: { embedded?: bool
                           {lancamento.tipo === "credito" ? "Crédito" : "Débito"}
                         </Badge>
                       </TableCell>
-                      <TableCell className={`font-medium ${Number(lancamento.valor) > 0 ? "text-green-600" : "text-red-600"}`}>
+                      <TableCell className={`font-medium ${Number(lancamento.valor) > 0 ? "text-success" : "text-destructive"}`}>
                         R$ {Math.abs(Number(lancamento.valor)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell>
                         {lancamento.pedido_id ? (
                           <div className="flex items-center gap-1">
-                            <Link2 className="h-3 w-3 text-green-600" />
+                            <Link2 className="h-3 w-3 text-success" />
                             <span className="text-xs text-muted-foreground">
                               {(lancamento.pedidos as any)?.clientes?.nome || lancamento.pedido_id.slice(0, 8)}
                             </span>

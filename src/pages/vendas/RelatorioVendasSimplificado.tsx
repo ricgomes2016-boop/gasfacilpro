@@ -264,7 +264,7 @@ export default function RelatorioVendasSimplificado() {
                       <TableCell className={cn(
                         "text-right whitespace-nowrap font-medium",
                         row.abaixoCusto && "text-destructive",
-                        row.margemBaixa && "text-amber-600 dark:text-amber-400",
+                        row.margemBaixa && "text-warning dark:text-warning",
                       )}>{row.temCusto ? money(row.margem) : "—"}</TableCell>
                       <TableCell className="text-right font-semibold whitespace-nowrap">{money(row.total)}</TableCell>
                     </TableRow>

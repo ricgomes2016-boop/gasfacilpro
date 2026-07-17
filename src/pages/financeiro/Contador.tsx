@@ -61,9 +61,9 @@ const PRAZOS_LEGAIS = [
 
 function getFileIcon(name = "") {
   const ext = name.split(".").pop()?.toLowerCase() || "";
-  if (ext === "pdf") return <FileText className="h-5 w-5 text-red-500" />;
-  if (["jpg", "jpeg", "png", "webp"].includes(ext)) return <Image className="h-5 w-5 text-blue-500" />;
-  if (["xls", "xlsx", "csv"].includes(ext)) return <FileSpreadsheet className="h-5 w-5 text-green-600" />;
+  if (ext === "pdf") return <FileText className="h-5 w-5 text-destructive" />;
+  if (["jpg", "jpeg", "png", "webp"].includes(ext)) return <Image className="h-5 w-5 text-info" />;
+  if (["xls", "xlsx", "csv"].includes(ext)) return <FileSpreadsheet className="h-5 w-5 text-success" />;
   return <File className="h-5 w-5 text-muted-foreground" />;
 }
 
@@ -420,20 +420,20 @@ export default function Contador() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Disponíveis</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <CheckCircle2 className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{disponiveis}</div>
+              <div className="text-2xl font-bold text-success">{disponiveis}</div>
               <p className="text-xs text-muted-foreground">Prontos para download</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-              <Clock className="h-4 w-4 text-yellow-600" />
+              <Clock className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{pendentes}</div>
+              <div className="text-2xl font-bold text-warning">{pendentes}</div>
               <p className="text-xs text-muted-foreground">Aguardando processamento</p>
             </CardContent>
           </Card>
@@ -608,7 +608,7 @@ export default function Contador() {
                   "Controle de estoque (inventário)",
                 ].map((item, i) => (
                   <div key={i} className="flex items-start gap-2">
-                    <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-green-600 shrink-0" />
+                    <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-success shrink-0" />
                     <span>{item}</span>
                   </div>
                 ))}

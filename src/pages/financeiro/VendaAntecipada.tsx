@@ -458,7 +458,7 @@ export default function VendaAntecipada() {
                   <p className="text-2xl font-bold mt-3">Vale {String(qrVale.numero).padStart(2, "0")}</p>
                   <p className="font-mono text-xs text-muted-foreground">{qrVale.codigo}</p>
                   <p className="text-base mt-1">{qrVale.produto_nome}</p>
-                  <p className="text-2xl font-bold text-green-600 mt-2">R$ {Number(qrVale.valor_unitario).toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-success mt-2">R$ {Number(qrVale.valor_unitario).toFixed(2)}</p>
                   <p className="text-sm text-muted-foreground mt-1">{qrVale.parceiroNome}</p>
                 </div>
                 <p className="text-xs text-muted-foreground text-center mt-4">Apresente este QR Code para retirar seu produto.</p>

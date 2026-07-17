@@ -156,8 +156,8 @@ export default function FechamentoMensal() {
                 </div>
 
                 {progresso < 100 && selectedFech.status === "em_fechamento" && (
-                  <div className="bg-chart-4/10 border border-chart-4/30 rounded-lg p-3 flex items-center gap-2 mb-4">
-                    <AlertTriangle className="h-4 w-4 text-chart-4" />
+                  <div className="bg-warning/10 border border-chart-4/30 rounded-lg p-3 flex items-center gap-2 mb-4">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
                     <p className="text-sm">Complete todos os itens antes de fechar o período.</p>
                   </div>
                 )}

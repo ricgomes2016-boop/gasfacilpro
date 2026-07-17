@@ -134,9 +134,9 @@ export default function EmailTransacional() {
   };
 
   const statusIcon = (s: string) => {
-    if (s === "enviado") return <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />;
+    if (s === "enviado") return <CheckCircle2 className="h-3.5 w-3.5 text-success" />;
     if (s === "erro") return <XCircle className="h-3.5 w-3.5 text-destructive" />;
-    return <Clock className="h-3.5 w-3.5 text-amber-500" />;
+    return <Clock className="h-3.5 w-3.5 text-warning" />;
   };
 
   return (
@@ -146,7 +146,7 @@ export default function EmailTransacional() {
         {/* Banner simulação */}
         <Card className="border-amber-500/30 bg-amber-500/5">
           <CardContent className="pt-4 pb-4 flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+            <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
             <div className="text-sm">
               <p className="font-medium">Modo simulação ativo</p>
               <p className="text-muted-foreground">Os e-mails são registrados no sistema mas não enviados de fato. Para envio real, configure um provedor SMTP (Resend, SendGrid ou AWS SES) na tela de Integrações.</p>
