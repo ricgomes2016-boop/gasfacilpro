@@ -212,7 +212,7 @@ export default function QRCodeLogin() {
                 <Button
                   onClick={generateQRCode}
                   disabled={loading}
-                  className="w-full bg-info hover:bg-info"
+                  className="w-full bg-info hover:bg-info/90 text-info-foreground"
                   size="lg"
                 >
                   {loading ? (
