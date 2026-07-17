@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { parseLocalDate } from "@/lib/utils";
 import { TrendingUp } from "lucide-react";
+import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
+import { chartColor, chartGridProps, chartAxisTick, fmtBRLcompact } from "@/components/dashboard/premium/chartTheme";
 
 interface Props {
   registros: any[];
   nossosPrecos: Record<string, { portaria: number; telefone: number; unico: number }>;
 }
-
-const COLORS = ["#ef4444", "#8b5cf6", "#8b5cf6", "#06b6d4", "#ec4899", "#14b8a6"];
 
 export function GraficoEvolucaoPrecos({ registros, nossosPrecos }: Props) {
   const chartData = useMemo(() => {
