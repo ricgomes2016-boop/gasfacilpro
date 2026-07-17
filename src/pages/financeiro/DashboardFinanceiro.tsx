@@ -266,14 +266,17 @@ export default function DashboardFinanceiro() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <SectionCard title="Evolução Mensal — Entradas vs Saídas" className="lg:col-span-2">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
-                <XAxis dataKey="mes" />
-                <YAxis />
-                <Tooltip formatter={(v) => `R$ ${Number(v).toLocaleString("pt-BR")}`} />
-                <Legend />
-                <Bar dataKey="Entradas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Saídas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+              <BarChart data={chartData} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+                <CartesianGrid {...chartGridProps} />
+                <XAxis dataKey="mes" tick={chartAxisTick} tickLine={false} axisLine={false} />
+                <YAxis tick={chartAxisTick} tickLine={false} axisLine={false} tickFormatter={fmtBRLcompact} />
+                <Tooltip
+                  content={<ChartTooltip formatter={(v) => `R$ ${Number(v).toLocaleString("pt-BR")}`} />}
+                  cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
+                />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="Entradas" fill="hsl(var(--success))" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="Saídas" fill="hsl(var(--destructive))" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </SectionCard>
@@ -282,10 +285,10 @@ export default function DashboardFinanceiro() {
             {pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={95} innerRadius={55} paddingAngle={2} stroke="hsl(var(--card))" strokeWidth={2} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                     {pieData.map((d, i) => <Cell key={i} fill={d.color} />)}
                   </Pie>
-                  <Tooltip formatter={(v) => `R$ ${Number(v).toLocaleString("pt-BR")}`} />
+                  <Tooltip content={<ChartTooltip formatter={(v) => `R$ ${Number(v).toLocaleString("pt-BR")}`} />} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
