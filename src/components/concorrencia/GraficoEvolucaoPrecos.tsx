@@ -64,13 +64,13 @@ export function GraficoEvolucaoPrecos({ registros, nossosPrecos }: Props) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={280}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="data" className="text-xs" tick={{ fontSize: 11 }} />
-            <YAxis className="text-xs" tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${v}`} />
+          <LineChart data={chartData} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+            <CartesianGrid {...chartGridProps} />
+            <XAxis dataKey="data" tick={chartAxisTick} tickLine={false} axisLine={false} />
+            <YAxis tick={chartAxisTick} tickLine={false} axisLine={false} tickFormatter={fmtBRLcompact} />
             <Tooltip
-              formatter={(value: number) => [`R$ ${value.toFixed(2)}`, ""]}
-              contentStyle={{ fontSize: 12 }}
+              content={<ChartTooltip formatter={(v) => `R$ ${Number(v).toFixed(2)}`} />}
+              cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             {concorrentes.map((c, i) => (
@@ -78,9 +78,10 @@ export function GraficoEvolucaoPrecos({ registros, nossosPrecos }: Props) {
                 key={c}
                 type="monotone"
                 dataKey={c}
-                stroke={COLORS[i % COLORS.length]}
+                stroke={chartColor(i)}
                 strokeWidth={2}
                 dot={{ r: 3 }}
+                activeDot={{ r: 5, strokeWidth: 0 }}
                 connectNulls
               />
             ))}
