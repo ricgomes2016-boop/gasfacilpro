@@ -337,7 +337,7 @@ export default function RelatorioDetalhadoVendas() {
     );
   };
 
-  const MedalhaIcon = ({ posicao }: { posicao: number }) => posicao === 1 ? <Crown className="h-5 w-5 text-yellow-500" /> : posicao === 2 ? <Medal className="h-5 w-5 text-slate-400" /> : posicao === 3 ? <Medal className="h-5 w-5 text-amber-600" /> : <span className="text-sm text-muted-foreground">{posicao}º</span>;
+  const MedalhaIcon = ({ posicao }: { posicao: number }) => posicao === 1 ? <Crown className="h-5 w-5 text-warning" /> : posicao === 2 ? <Medal className="h-5 w-5 text-slate-400" /> : posicao === 3 ? <Medal className="h-5 w-5 text-warning" /> : <span className="text-sm text-muted-foreground">{posicao}º</span>;
 
   const RankingEntregadores = () => (
     <div className="space-y-4">
@@ -357,7 +357,7 @@ export default function RelatorioDetalhadoVendas() {
         {produtosSemCusto.length > 0 && (
           <Card className="border-amber-400/60 bg-amber-50 dark:bg-amber-950/20">
             <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+              <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
               <div className="flex-1 text-sm">
                 <p className="font-medium text-amber-900 dark:text-amber-200">
                   {produtosSemCusto.length} produto(s) sem preço de custo cadastrado — lucro e margem incompletos.

@@ -142,7 +142,7 @@ export default function PagamentosCartaoRelatorio() {
         <Card>
           <CardContent className="pt-4">
             <div className="text-sm text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />A Receber</div>
-            <div className="text-xl font-bold text-amber-600 dark:text-amber-400">{fmtBRL(totalAReceber)}</div>
+            <div className="text-xl font-bold text-warning dark:text-warning">{fmtBRL(totalAReceber)}</div>
           </CardContent>
         </Card>
         <Card>

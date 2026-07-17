@@ -339,7 +339,7 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
                     </Button>
                   </div>
                   {formData.latitude && formData.longitude ? (
-                    <div className="flex items-center gap-1.5 text-xs text-green-600">
+                    <div className="flex items-center gap-1.5 text-xs text-success">
                       <MapPin className="h-3 w-3" />
                       Localizado: {formData.latitude.toFixed(5)}, {formData.longitude.toFixed(5)}
                     </div>
@@ -429,9 +429,9 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
 
         <div className="grid gap-4 md:grid-cols-4">
           <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><Building2 className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">{parceiros.length}</p><p className="text-sm text-muted-foreground">Total Parceiros</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-blue-500/10"><CreditCard className="h-6 w-6 text-blue-500" /></div><div><p className="text-2xl font-bold">{totais.prepago}</p><p className="text-sm text-muted-foreground">Pré-pago</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-amber-500/10"><Package className="h-6 w-6 text-amber-500" /></div><div><p className="text-2xl font-bold">{totais.consignado}</p><p className="text-sm text-muted-foreground">Consignado</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-green-500/10"><TrendingUp className="h-6 w-6 text-green-500" /></div><div><p className="text-2xl font-bold">{totais.ativos}</p><p className="text-sm text-muted-foreground">Ativos</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-info/10"><CreditCard className="h-6 w-6 text-info" /></div><div><p className="text-2xl font-bold">{totais.prepago}</p><p className="text-sm text-muted-foreground">Pré-pago</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-warning/10"><Package className="h-6 w-6 text-warning" /></div><div><p className="text-2xl font-bold">{totais.consignado}</p><p className="text-sm text-muted-foreground">Consignado</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-success/10"><TrendingUp className="h-6 w-6 text-success" /></div><div><p className="text-2xl font-bold">{totais.ativos}</p><p className="text-sm text-muted-foreground">Ativos</p></div></div></CardContent></Card>
         </div>
 
         <Card>
@@ -472,11 +472,11 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
                       <TableCell className="text-center">{stats.totalVales}</TableCell>
                       <TableCell className="text-center">{stats.valesUtilizados}</TableCell>
                       <TableCell className="text-right">
-                        {stats.valorPendente > 0 ? <span className="text-amber-600 font-medium">R$ {stats.valorPendente.toFixed(2)}</span> : <span className="text-green-600">Quitado</span>}
+                        {stats.valorPendente > 0 ? <span className="text-warning font-medium">R$ {stats.valorPendente.toFixed(2)}</span> : <span className="text-success">Quitado</span>}
                       </TableCell>
                       <TableCell className="text-center">
                         {hasLocation ? (
-                          <Badge variant="outline" className="gap-1 text-xs text-green-600">
+                          <Badge variant="outline" className="gap-1 text-xs text-success">
                             <MapPin className="h-3 w-3" />
                           </Badge>
                         ) : (

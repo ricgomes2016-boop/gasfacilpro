@@ -392,7 +392,7 @@ export default function ContaBancariaDetalhe() {
                                   <span className="font-medium">{t.conta_destino?.nome}</span>
                                   {t.descricao && <p className="text-xs text-muted-foreground">{t.descricao}</p>}
                                 </TableCell>
-                                <TableCell className={`text-right font-bold ${saiu ? "text-destructive" : "text-green-600"}`}>
+                                <TableCell className={`text-right font-bold ${saiu ? "text-destructive" : "text-success"}`}>
                                   {saiu ? "-" : "+"}R$ {Number(t.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                                 </TableCell>
                               </TableRow>

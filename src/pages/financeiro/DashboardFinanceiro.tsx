@@ -1,20 +1,19 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { parseLocalDate, getBrasiliaDateString } from "@/lib/utils";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  DollarSign, TrendingUp, TrendingDown, AlertTriangle, CreditCard,
+  DollarSign, TrendingUp, AlertTriangle, CreditCard,
   ArrowUpRight, ArrowDownRight, Clock, CheckCircle2, Banknote,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
-import { format, subMonths, startOfMonth, endOfMonth, addDays } from "date-fns";
+import { format, subMonths, startOfMonth, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { KpiCard, SectionCard } from "@/components/shared";
 
 export default function DashboardFinanceiro() {
   const { unidadeAtual } = useUnidade();
@@ -134,84 +133,40 @@ export default function DashboardFinanceiro() {
   return (
     <MainLayout>
       <Header title="Dashboard Financeiro" subtitle="Visão consolidada das finanças" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/financeiro/receber")}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">A Receber</CardTitle>
-              <ArrowUpRight className="h-4 w-4 text-success" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg sm:text-2xl font-bold text-success">{fmt(totalReceber)}</div>
-              <p className="text-xs text-muted-foreground">{receberPendente.length} pendente(s)</p>
-            </CardContent>
-          </Card>
-
-          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/financeiro/pagar")}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">A Pagar</CardTitle>
-              <ArrowDownRight className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg sm:text-2xl font-bold text-destructive">{fmt(totalPagar)}</div>
-              <p className="text-xs text-muted-foreground">{pagarPendente.length} pendente(s)</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">Saldo Projetado</CardTitle>
-              <DollarSign className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-lg sm:text-2xl font-bold ${saldoProjetado >= 0 ? "text-success" : "text-destructive"}`}>{fmt(saldoProjetado)}</div>
-              <p className="text-xs text-muted-foreground">Receber - Pagar</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">Saldo Bancário</CardTitle>
-              <Banknote className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-lg sm:text-2xl font-bold ${saldoBancario >= 0 ? "text-primary" : "text-destructive"}`}>{fmt(saldoBancario)}</div>
-              <p className="text-xs text-muted-foreground">Todas as contas</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div onClick={() => navigate("/financeiro/receber")} className="cursor-pointer">
+            <KpiCard icon={ArrowUpRight} label="A Receber" value={fmt(totalReceber)} tone="success" hint={`${receberPendente.length} pendente(s)`} />
+          </div>
+          <div onClick={() => navigate("/financeiro/pagar")} className="cursor-pointer">
+            <KpiCard icon={ArrowDownRight} label="A Pagar" value={fmt(totalPagar)} tone="destructive" hint={`${pagarPendente.length} pendente(s)`} />
+          </div>
+          <KpiCard icon={DollarSign} label="Saldo Projetado" value={fmt(saldoProjetado)} tone={saldoProjetado >= 0 ? "success" : "destructive"} hint="Receber − Pagar" />
+          <KpiCard icon={Banknote} label="Saldo Bancário" value={fmt(saldoBancario)} tone={saldoBancario >= 0 ? "primary" : "destructive"} hint="Todas as contas" />
         </div>
 
         {/* Alertas */}
         {alertas.length > 0 && (
-          <Card className="border-warning/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-warning" />
-                Alertas Financeiros
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
+          <SectionCard title="Alertas Financeiros" icon={AlertTriangle} className="border-warning/40">
+            <div className="space-y-2">
               {alertas.map((a, i) => (
-                <div key={i} className={`flex items-start gap-2 text-sm p-2 rounded-lg ${a.tipo === "danger" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"}`}>
+                <div key={i} className={`flex items-start gap-2 text-sm p-3 rounded-lg ${a.tipo === "danger" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"}`}>
                   <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                   <span>{a.msg}</span>
                 </div>
               ))}
-            </CardContent>
-          </Card>
+            </div>
+          </SectionCard>
         )}
 
-        {/* Recebíveis por Banco (cartão / PIX máquina / boleto pendentes) */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <div>
-              <CardTitle className="text-base">Recebíveis por Banco</CardTitle>
-              <p className="text-xs text-muted-foreground">Cartão, PIX-maquininha e boletos aguardando depósito</p>
-            </div>
+        {/* Recebíveis por Banco */}
+        <SectionCard
+          title="Recebíveis por Banco"
+          description="Cartão, PIX-maquininha e boletos aguardando depósito"
+          actions={
             <Button
               size="sm"
-              variant="default"
               onClick={async () => {
                 const hoje2 = getBrasiliaDateString();
                 const aLiquidar = receberPendente.filter((c: any) => c.vencimento <= hoje2 && c.conta_bancaria_destino_id);
@@ -220,7 +175,6 @@ export default function DashboardFinanceiro() {
                 const { criarMovimentacaoBancaria } = await import("@/services/paymentRoutingService");
                 for (const c of aLiquidar) {
                   const liquido = Number(c.valor_liquido || c.valor);
-                  // Idempotência: só liquida se ainda estiver pendente
                   const { data: upd } = await supabase
                     .from("contas_receber")
                     .update({ status: "recebida", data_recebimento: hoje2 } as any)
@@ -242,128 +196,102 @@ export default function DashboardFinanceiro() {
             >
               Liquidar vencidos hoje
             </Button>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const grupos: Record<string, { nome: string; banco: string; hoje: number; d7: number; d30: number; total: number; count: number }> = {};
-              const semBanco = { nome: "⚠ Sem banco vinculado", banco: "", hoje: 0, d7: 0, d30: 0, total: 0, count: 0 };
-              const d7 = format(addDays(new Date(), 7), "yyyy-MM-dd");
-              const d30 = format(addDays(new Date(), 30), "yyyy-MM-dd");
-              receberPendente.forEach((c: any) => {
-                const cbId = c.conta_bancaria_destino_id;
-                const target = cbId
-                  ? (grupos[cbId] ||= { nome: contasBancarias.find((b: any) => b.id === cbId)?.nome || "Conta", banco: contasBancarias.find((b: any) => b.id === cbId)?.banco || "", hoje: 0, d7: 0, d30: 0, total: 0, count: 0 })
-                  : semBanco;
-                const val = Number(c.valor_liquido || c.valor);
-                target.total += val;
-                target.count += 1;
-                if (c.vencimento <= hoje) target.hoje += val;
-                else if (c.vencimento <= d7) target.d7 += val;
-                else if (c.vencimento <= d30) target.d30 += val;
-              });
-              const lista = Object.values(grupos);
-              if (semBanco.count > 0) lista.push(semBanco);
-              if (!lista.length) return <p className="text-sm text-muted-foreground text-center py-4">Sem recebíveis pendentes.</p>;
-              return (
-                <div className="space-y-2">
-                  {lista.map((g, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                      <div>
-                        <p className="font-medium text-sm">{g.nome} {g.banco && <span className="text-xs text-muted-foreground ml-1">({g.banco})</span>}</p>
-                        <p className="text-xs text-muted-foreground">{g.count} título(s) · Total {fmt(g.total)}</p>
+          }
+        >
+          {(() => {
+            const grupos: Record<string, { nome: string; banco: string; hoje: number; d7: number; d30: number; total: number; count: number }> = {};
+            const semBanco = { nome: "⚠ Sem banco vinculado", banco: "", hoje: 0, d7: 0, d30: 0, total: 0, count: 0 };
+            const d7 = format(addDays(new Date(), 7), "yyyy-MM-dd");
+            const d30 = format(addDays(new Date(), 30), "yyyy-MM-dd");
+            receberPendente.forEach((c: any) => {
+              const cbId = c.conta_bancaria_destino_id;
+              const target = cbId
+                ? (grupos[cbId] ||= { nome: contasBancarias.find((b: any) => b.id === cbId)?.nome || "Conta", banco: contasBancarias.find((b: any) => b.id === cbId)?.banco || "", hoje: 0, d7: 0, d30: 0, total: 0, count: 0 })
+                : semBanco;
+              const val = Number(c.valor_liquido || c.valor);
+              target.total += val;
+              target.count += 1;
+              if (c.vencimento <= hoje) target.hoje += val;
+              else if (c.vencimento <= d7) target.d7 += val;
+              else if (c.vencimento <= d30) target.d30 += val;
+            });
+            const lista = Object.values(grupos);
+            if (semBanco.count > 0) lista.push(semBanco);
+            if (!lista.length) return <p className="text-sm text-muted-foreground text-center py-4">Sem recebíveis pendentes.</p>;
+            return (
+              <div className="space-y-2">
+                {lista.map((g, i) => (
+                  <div key={i} className="flex flex-col gap-3 rounded-lg border border-border/60 p-3 hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{g.nome} {g.banco && <span className="text-xs text-muted-foreground ml-1">({g.banco})</span>}</p>
+                      <p className="text-xs text-muted-foreground">{g.count} título(s) · Total {fmt(g.total)}</p>
+                    </div>
+                    <div className="flex gap-4 text-right shrink-0">
+                      <div className="text-xs">
+                        <p className="text-muted-foreground">Hoje/vencido</p>
+                        <p className="font-semibold text-warning">{fmt(g.hoje)}</p>
                       </div>
-                      <div className="flex gap-2 text-right">
-                        <div className="text-xs">
-                          <p className="text-muted-foreground">Hoje/vencido</p>
-                          <p className="font-semibold text-orange-600">{fmt(g.hoje)}</p>
-                        </div>
-                        <div className="text-xs">
-                          <p className="text-muted-foreground">Até 7d</p>
-                          <p className="font-semibold">{fmt(g.d7)}</p>
-                        </div>
-                        <div className="text-xs">
-                          <p className="text-muted-foreground">Até 30d</p>
-                          <p className="font-semibold">{fmt(g.d30)}</p>
-                        </div>
+                      <div className="text-xs">
+                        <p className="text-muted-foreground">Até 7d</p>
+                        <p className="font-semibold text-foreground">{fmt(g.d7)}</p>
+                      </div>
+                      <div className="text-xs">
+                        <p className="text-muted-foreground">Até 30d</p>
+                        <p className="font-semibold text-foreground">{fmt(g.d30)}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              );
-            })()}
-          </CardContent>
-        </Card>
-
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </SectionCard>
 
         {/* Gráficos */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-base">Evolução Mensal — Entradas vs Saídas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis />
-                  <Tooltip formatter={(v) => `R$ ${Number(v).toLocaleString("pt-BR")}`} />
-                  <Legend />
-                  <Bar dataKey="Entradas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Saídas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <SectionCard title="Evolução Mensal — Entradas vs Saídas" className="lg:col-span-2">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
+                <XAxis dataKey="mes" />
+                <YAxis />
+                <Tooltip formatter={(v) => `R$ ${Number(v).toLocaleString("pt-BR")}`} />
+                <Legend />
+                <Bar dataKey="Entradas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Saídas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </SectionCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Composição Financeira</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {pieData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
-                      {pieData.map((d, i) => <Cell key={i} fill={d.color} />)}
-                    </Pie>
-                    <Tooltip formatter={(v) => `R$ ${Number(v).toLocaleString("pt-BR")}`} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-center text-muted-foreground py-12">Sem dados</p>
-              )}
-            </CardContent>
-          </Card>
+          <SectionCard title="Composição Financeira">
+            {pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                    {pieData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(v) => `R$ ${Number(v).toLocaleString("pt-BR")}`} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-center text-sm text-muted-foreground py-12">Sem dados</p>
+            )}
+          </SectionCard>
         </div>
 
         {/* Próximos 7 dias */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="h-4 w-4" /> Próximos 7 dias — A Pagar
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-destructive">{fmt(pagarProx7)}</div>
-              <p className="text-sm text-muted-foreground mt-1">{pagarPendente.filter((c: any) => c.vencimento >= hoje && c.vencimento <= prox7).length} conta(s)</p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate("/financeiro/pagar")}>Ver todas</Button>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SectionCard title="Próximos 7 dias — A Pagar" icon={Clock}>
+            <div className="text-2xl font-bold text-destructive">{fmt(pagarProx7)}</div>
+            <p className="text-sm text-muted-foreground mt-1">{pagarPendente.filter((c: any) => c.vencimento >= hoje && c.vencimento <= prox7).length} conta(s)</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate("/financeiro/pagar")}>Ver todas</Button>
+          </SectionCard>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4" /> Próximos 7 dias — A Receber
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-success">{fmt(receberProx7)}</div>
-              <p className="text-sm text-muted-foreground mt-1">{receberPendente.filter((c: any) => c.vencimento >= hoje && c.vencimento <= prox7).length} recebível(is)</p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate("/financeiro/receber")}>Ver todos</Button>
-            </CardContent>
-          </Card>
+          <SectionCard title="Próximos 7 dias — A Receber" icon={CheckCircle2}>
+            <div className="text-2xl font-bold text-success">{fmt(receberProx7)}</div>
+            <p className="text-sm text-muted-foreground mt-1">{receberPendente.filter((c: any) => c.vencimento >= hoje && c.vencimento <= prox7).length} recebível(is)</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate("/financeiro/receber")}>Ver todos</Button>
+          </SectionCard>
         </div>
 
         {/* Atalhos */}

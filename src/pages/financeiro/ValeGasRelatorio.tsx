@@ -119,10 +119,10 @@ export default function ValeGasRelatorio({ embedded }: { embedded?: boolean } = 
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
-      Disponível: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-      Vendido: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-      Utilizado: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-      Cancelado: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+      Disponível: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-info",
+      Vendido: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-warning",
+      Utilizado: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-success",
+      Cancelado: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-destructive",
     };
     return (
       <Badge className={cn("font-medium", variants[status] || "")}>
@@ -409,11 +409,11 @@ export default function ValeGasRelatorio({ embedded }: { embedded?: boolean } = 
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={exportarExcel}>
-                <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
+                <FileSpreadsheet className="h-4 w-4 mr-2 text-success" />
                 Exportar para Excel (.xlsx)
               </DropdownMenuItem>
               <DropdownMenuItem onClick={exportarPDF}>
-                <File className="h-4 w-4 mr-2 text-red-600" />
+                <File className="h-4 w-4 mr-2 text-destructive" />
                 Exportar para PDF
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -570,8 +570,8 @@ export default function ValeGasRelatorio({ embedded }: { embedded?: boolean } = 
                   <p className="text-sm text-muted-foreground">Vendidos</p>
                   <p className="text-2xl font-bold">{totalVendidos}</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-amber-500" />
+                <div className="h-12 w-12 rounded-full bg-warning/10 flex items-center justify-center">
+                  <Users className="h-6 w-6 text-warning" />
                 </div>
               </div>
             </CardContent>
@@ -584,8 +584,8 @@ export default function ValeGasRelatorio({ embedded }: { embedded?: boolean } = 
                   <p className="text-sm text-muted-foreground">Utilizados</p>
                   <p className="text-2xl font-bold">{totalUtilizados}</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-green-500" />
+                <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
+                  <TrendingUp className="h-6 w-6 text-success" />
                 </div>
               </div>
             </CardContent>
@@ -600,8 +600,8 @@ export default function ValeGasRelatorio({ embedded }: { embedded?: boolean } = 
                     R$ {totalValor.toLocaleString("pt-BR")}
                   </p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-                  <Wallet className="h-6 w-6 text-blue-500" />
+                <div className="h-12 w-12 rounded-full bg-info/10 flex items-center justify-center">
+                  <Wallet className="h-6 w-6 text-info" />
                 </div>
               </div>
             </CardContent>

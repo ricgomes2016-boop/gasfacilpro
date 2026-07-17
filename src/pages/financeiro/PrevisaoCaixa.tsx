@@ -151,10 +151,10 @@ export default function PrevisaoCaixa({ embedded }: { embedded?: boolean } = {})
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Previsão 30 dias</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
+              <TrendingUp className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${previsao30 >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <div className={`text-2xl font-bold ${previsao30 >= 0 ? "text-success" : "text-destructive"}`}>
                 R$ {previsao30.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </div>
               <p className="text-xs text-muted-foreground">Saldo previsto</p>
@@ -163,10 +163,10 @@ export default function PrevisaoCaixa({ embedded }: { embedded?: boolean } = {})
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">A Receber</CardTitle>
-              <Calendar className="h-4 w-4 text-blue-600" />
+              <Calendar className="h-4 w-4 text-info" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-info">
                 R$ {receber30.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </div>
               <p className="text-xs text-muted-foreground">Próximos 30 dias</p>
@@ -175,10 +175,10 @@ export default function PrevisaoCaixa({ embedded }: { embedded?: boolean } = {})
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Alertas</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <AlertTriangle className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{alertas}</div>
+              <div className="text-2xl font-bold text-warning">{alertas}</div>
               <p className="text-xs text-muted-foreground">Períodos com saldo negativo</p>
             </CardContent>
           </Card>
@@ -212,19 +212,19 @@ export default function PrevisaoCaixa({ embedded }: { embedded?: boolean } = {})
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Entradas Previstas</span>
-                  <span className="font-medium text-green-600">
+                  <span className="font-medium text-success">
                     R$ {proj.entrada.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Saídas Previstas</span>
-                  <span className="font-medium text-red-600">
+                  <span className="font-medium text-destructive">
                     R$ {proj.saida.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="border-t pt-2 flex justify-between">
                   <span className="font-medium">Saldo Previsto</span>
-                  <span className={`font-bold ${proj.saldo >= 0 ? "text-blue-600" : "text-red-600"}`}>
+                  <span className={`font-bold ${proj.saldo >= 0 ? "text-info" : "text-destructive"}`}>
                     R$ {proj.saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </span>
                 </div>

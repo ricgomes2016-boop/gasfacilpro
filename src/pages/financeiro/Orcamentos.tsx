@@ -34,10 +34,10 @@ import { useAssinaturaDigital } from "@/hooks/useAssinaturaDigital";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  pendente: { label: "Pendente", color: "bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400", icon: <Clock className="h-3 w-3" /> },
+  pendente: { label: "Pendente", color: "bg-amber-500/15 text-warning border-amber-500/30 dark:text-warning", icon: <Clock className="h-3 w-3" /> },
   aprovado: { label: "Aprovado", color: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 dark:text-emerald-400", icon: <CheckCircle2 className="h-3 w-3" /> },
-  recusado: { label: "Recusado", color: "bg-red-500/15 text-red-600 border-red-500/30 dark:text-red-400", icon: <Trash2 className="h-3 w-3" /> },
-  convertido: { label: "Convertido", color: "bg-blue-500/15 text-blue-600 border-blue-500/30 dark:text-blue-400", icon: <TrendingUp className="h-3 w-3" /> },
+  recusado: { label: "Recusado", color: "bg-destructive/15 text-destructive border-destructive/30 dark:text-destructive", icon: <Trash2 className="h-3 w-3" /> },
+  convertido: { label: "Convertido", color: "bg-info/15 text-info border-info/30 dark:text-info", icon: <TrendingUp className="h-3 w-3" /> },
   vencido: { label: "Vencido", color: "bg-muted text-muted-foreground border-border", icon: <Clock className="h-3 w-3" /> },
 };
 
@@ -561,11 +561,11 @@ export default function Orcamentos() {
             <div><p className="text-2xl font-bold">{orcamentos.length}</p><p className="text-xs text-muted-foreground">Total Orçamentos</p></div>
           </div></CardContent></Card>
           <Card><CardContent className="p-4"><div className="flex items-center gap-3">
-            <div className="rounded-lg bg-amber-500/10 p-2"><Clock className="h-5 w-5 text-amber-600" /></div>
+            <div className="rounded-lg bg-warning/10 p-2"><Clock className="h-5 w-5 text-warning" /></div>
             <div><p className="text-2xl font-bold">{pendentes.length}</p><p className="text-xs text-muted-foreground">Pendentes</p></div>
           </div></CardContent></Card>
           <Card><CardContent className="p-4"><div className="flex items-center gap-3">
-            <div className="rounded-lg bg-blue-500/10 p-2"><DollarSign className="h-5 w-5 text-blue-600" /></div>
+            <div className="rounded-lg bg-info/10 p-2"><DollarSign className="h-5 w-5 text-info" /></div>
             <div><p className="text-2xl font-bold">R$ {valorPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-xs text-muted-foreground">Valor Pendente</p></div>
           </div></CardContent></Card>
           <Card><CardContent className="p-4"><div className="flex items-center gap-3">
@@ -626,7 +626,7 @@ export default function Orcamentos() {
               </DialogHeader>
               <div className="space-y-5">
                 {!unidadeAtual && (
-                  <div className="rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 px-3 py-2 text-sm">
+                  <div className="rounded-md bg-warning/10 border border-amber-500/30 text-amber-700 dark:text-warning px-3 py-2 text-sm">
                     Selecione uma unidade no topo da página para criar orçamentos.
                   </div>
                 )}
@@ -655,7 +655,7 @@ export default function Orcamentos() {
                                       <div className="flex items-center gap-2">
                                         <span className="font-medium">{label}</span>
                                         {c.__outraUnidade && (
-                                          <span className="text-[10px] uppercase tracking-wide bg-amber-500/15 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded">
+                                          <span className="text-[10px] uppercase tracking-wide bg-amber-500/15 text-amber-700 dark:text-warning px-1.5 py-0.5 rounded">
                                             outra unidade
                                           </span>
                                         )}
@@ -782,7 +782,7 @@ export default function Orcamentos() {
               </DialogHeader>
               <div className="space-y-4">
                 {!unidadeAtual && (
-                  <div className="rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 px-3 py-2 text-sm">
+                  <div className="rounded-md bg-warning/10 border border-amber-500/30 text-amber-700 dark:text-warning px-3 py-2 text-sm">
                     Selecione uma unidade no topo da página.
                   </div>
                 )}
@@ -907,9 +907,9 @@ export default function Orcamentos() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 flex justify-between items-center">
+                <div className="rounded-xl border border-info/30 bg-blue-500/5 p-4 flex justify-between items-center">
                   <span className="font-medium">Valor Total</span>
-                  <span className="text-2xl font-bold text-blue-600">R$ {fTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  <span className="text-2xl font-bold text-info">R$ {fTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                 </div>
 
                 <div>
@@ -952,7 +952,7 @@ export default function Orcamentos() {
                     {assinatura.disponivel ? (
                       <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
                     ) : (
-                      <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0" />
+                      <ShieldAlert className="h-4 w-4 text-warning shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
                       <Label className="text-xs">Assinar digitalmente (e-CNPJ)</Label>
@@ -1042,9 +1042,9 @@ export default function Orcamentos() {
                       const isFundepar = (orc.tipo || "padrao") === "fundepar";
                       return (
                         <TableRow key={orc.id} className="group hover:bg-orange-50/50 dark:hover:bg-orange-950/10 transition-colors">
-                          <TableCell className="font-mono text-sm font-semibold text-orange-600 dark:text-orange-400">#{orc.numero}</TableCell>
+                          <TableCell className="font-mono text-sm font-semibold text-warning dark:text-warning">#{orc.numero}</TableCell>
                           <TableCell>
-                            <Badge variant="outline" className={cn(isFundepar ? "bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-400" : "bg-muted text-muted-foreground")}>
+                            <Badge variant="outline" className={cn(isFundepar ? "bg-info/15 text-info border-info/30 dark:text-info" : "bg-muted text-muted-foreground")}>
                               {isFundepar ? "Fundepar" : "Padrão"}
                             </Badge>
                           </TableCell>

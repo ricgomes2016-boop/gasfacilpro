@@ -210,7 +210,7 @@ export default function ExportacaoContabil() {
 
           {ultimaExportacao && (
             <Badge variant="outline" className="gap-1">
-              <CheckCircle2 className="h-3 w-3 text-green-500" />
+              <CheckCircle2 className="h-3 w-3 text-success" />
               Última exportação: {format(new Date(ultimaExportacao), "dd/MM/yyyy HH:mm")}
             </Badge>
           )}
@@ -220,7 +220,7 @@ export default function ExportacaoContabil() {
         <Card className="border-dashed">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+              <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
               <div className="text-sm text-muted-foreground space-y-1">
                 <p><strong>Domínio / Alterdata / Fortes:</strong> O arquivo é gerado com colunas padronizadas (Data, Histórico, Débito, Crédito, Conta Contábil) para facilitar a importação.</p>
                 <p><strong>SPED EFD:</strong> Layout simplificado baseado nos registros C100/C170. Para SPED completo, consulte seu contador.</p>

@@ -187,7 +187,7 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
             </div>
             <div className="text-xl font-extrabold">Nº {previewCupom.numero}</div>
             <div className="font-mono text-[11px] text-muted-foreground">{previewCupom.codigo}</div>
-            <div className="text-2xl font-extrabold text-green-600 my-2">
+            <div className="text-2xl font-extrabold text-success my-2">
               R$ {previewCupom.valor.toFixed(2)}
             </div>
             <div className="text-[11px] text-left border-t border-dashed pt-2 space-y-0.5">
@@ -599,7 +599,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                     <span className="font-mono">{getNumeroInicial()} a {getNumeroInicial() + getQuantidadeEfetiva() - 1}</span>
                   </div>
                   <div className="flex justify-between text-sm"><span>Quantidade:</span><span className="font-bold">{getQuantidadeEfetiva()}</span></div>
-                  <div className="flex justify-between font-medium text-lg"><span>Valor Total:</span><span className="text-green-600">R$ {valorTotal.toFixed(2)}</span></div>
+                  <div className="flex justify-between font-medium text-lg"><span>Valor Total:</span><span className="text-success">R$ {valorTotal.toFixed(2)}</span></div>
                   <Button type="button" variant="outline" size="sm" className="w-full gap-2" onClick={gerarPreview}><Eye className="h-4 w-4" /> Visualizar Vales</Button>
                 </div>
 
@@ -686,9 +686,9 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
         {/* Cards resumo */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><FileText className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">{totais.lotes}</p><p className="text-sm text-muted-foreground">Lotes Ativos</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-blue-500/10"><CreditCard className="h-6 w-6 text-blue-500" /></div><div><p className="text-2xl font-bold">{totais.valesEmitidos}</p><p className="text-sm text-muted-foreground">Vales Emitidos</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-green-500/10"><Banknote className="h-6 w-6 text-green-500" /></div><div><p className="text-2xl font-bold">R$ {totais.valorRecebido.toFixed(0)}</p><p className="text-sm text-muted-foreground">Recebido</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-amber-500/10"><Package className="h-6 w-6 text-amber-500" /></div><div><p className="text-2xl font-bold">R$ {(totais.valorTotal - totais.valorRecebido).toFixed(0)}</p><p className="text-sm text-muted-foreground">A Receber</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-info/10"><CreditCard className="h-6 w-6 text-info" /></div><div><p className="text-2xl font-bold">{totais.valesEmitidos}</p><p className="text-sm text-muted-foreground">Vales Emitidos</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-success/10"><Banknote className="h-6 w-6 text-success" /></div><div><p className="text-2xl font-bold">R$ {totais.valorRecebido.toFixed(0)}</p><p className="text-sm text-muted-foreground">Recebido</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-warning/10"><Package className="h-6 w-6 text-warning" /></div><div><p className="text-2xl font-bold">R$ {(totais.valorTotal - totais.valorRecebido).toFixed(0)}</p><p className="text-sm text-muted-foreground">A Receber</p></div></div></CardContent></Card>
         </div>
 
         <Card className="bg-muted/50">

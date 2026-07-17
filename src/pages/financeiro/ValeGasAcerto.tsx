@@ -151,7 +151,7 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
                   <div className="p-4 bg-muted rounded-lg space-y-2">
                     <p className="font-medium">{parceiroInfo.nome}</p>
                     <div className="flex justify-between text-sm"><span>Vales pendentes:</span><span className="font-bold">{valesPendentes[parceiroInfo.id].quantidade}</span></div>
-                    <div className="flex justify-between text-sm"><span>Valor total:</span><span className="font-bold text-green-600">R$ {valesPendentes[parceiroInfo.id].valor.toFixed(2)}</span></div>
+                    <div className="flex justify-between text-sm"><span>Valor total:</span><span className="font-bold text-success">R$ {valesPendentes[parceiroInfo.id].valor.toFixed(2)}</span></div>
                   </div>
                 )}
                 <div className="space-y-2">
@@ -175,15 +175,15 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-amber-500/10"><Clock className="h-6 w-6 text-amber-500" /></div><div><p className="text-2xl font-bold">{totais.acertosPendentes}</p><p className="text-sm text-muted-foreground">Acertos Pendentes</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-warning/10"><Clock className="h-6 w-6 text-warning" /></div><div><p className="text-2xl font-bold">{totais.acertosPendentes}</p><p className="text-sm text-muted-foreground">Acertos Pendentes</p></div></div></CardContent></Card>
           <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-destructive/10"><Banknote className="h-6 w-6 text-destructive" /></div><div><p className="text-2xl font-bold">R$ {totais.valorPendente.toFixed(0)}</p><p className="text-sm text-muted-foreground">Valor Pendente</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-green-500/10"><CheckCircle2 className="h-6 w-6 text-green-500" /></div><div><p className="text-2xl font-bold">{totais.acertosPagos}</p><p className="text-sm text-muted-foreground">Acertos Pagos</p></div></div></CardContent></Card>
+          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-success/10"><CheckCircle2 className="h-6 w-6 text-success" /></div><div><p className="text-2xl font-bold">{totais.acertosPagos}</p><p className="text-sm text-muted-foreground">Acertos Pagos</p></div></div></CardContent></Card>
           <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><Banknote className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">R$ {totais.valorPago.toFixed(0)}</p><p className="text-sm text-muted-foreground">Total Recebido</p></div></div></CardContent></Card>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><AlertCircle className="h-5 w-5 text-amber-500" /> Parceiros com Vales Pendentes</CardTitle>
+            <CardTitle className="flex items-center gap-2"><AlertCircle className="h-5 w-5 text-warning" /> Parceiros com Vales Pendentes</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-3">
@@ -195,9 +195,9 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between">
                         <div><p className="font-medium">{parceiro.nome}</p><p className="text-sm text-muted-foreground mt-1">{pendente.quantidade} vales utilizados</p></div>
-                        <Building2 className="h-5 w-5 text-amber-600" />
+                        <Building2 className="h-5 w-5 text-warning" />
                       </div>
-                      <p className="text-2xl font-bold text-amber-600 mt-3">R$ {pendente.valor.toFixed(2)}</p>
+                      <p className="text-2xl font-bold text-warning mt-3">R$ {pendente.valor.toFixed(2)}</p>
                     </CardContent>
                   </Card>
                 );
@@ -252,7 +252,7 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
                               <div className="p-4 bg-muted rounded-lg">
                                 <p className="font-medium">{acerto.parceiro_nome}</p>
                                 <p className="text-sm text-muted-foreground">{acerto.quantidade} vales</p>
-                                <p className="text-2xl font-bold text-green-600 mt-2">R$ {Number(acerto.valor_total).toFixed(2)}</p>
+                                <p className="text-2xl font-bold text-success mt-2">R$ {Number(acerto.valor_total).toFixed(2)}</p>
                               </div>
                               <div className="space-y-2">
                                 <label className="text-sm font-medium">Forma de Pagamento</label>
