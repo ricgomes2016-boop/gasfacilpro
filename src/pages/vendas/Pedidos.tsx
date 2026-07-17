@@ -29,7 +29,7 @@ import {
   Search, Eye, Truck, CheckCircle, Clock, XCircle, Sparkles,
   User, RefreshCw, MoreHorizontal, Edit, ArrowRightLeft, Printer,
   Share2, DollarSign, Trash2, Lock, MessageCircle, CreditCard,
-  ChevronLeft, ChevronRight, CheckSquare, Building2, Pencil, MoveRight, Map as MapIcon,
+  ChevronLeft, ChevronRight, ChevronDown, CheckSquare, Building2, Pencil, MoveRight, Map as MapIcon,
   Download, Package, Calendar, SlidersHorizontal } from
 "lucide-react";
 import {
@@ -683,8 +683,10 @@ export default function Pedidos() {
   };
 
   // #5 - Payment method breakdown (split combined forms like "dinheiro, pix" and aggregate per method)
-  const pagamentoContadores = useMemo(() => {
+  const [formaExpandida, setFormaExpandida] = useState<string | null>(null);
+  const { pagamentoContadores, pagamentoDetalhes } = useMemo(() => {
     const map = new Map<string, number>();
+    const detalhes = new Map<string, Array<{ id: string; numero: string; cliente: string; formasCount: number; share: number; total: number }>>();
     pedidos.filter((p) => p.status !== "cancelado").forEach((p) => {
       const raw = (p.forma_pagamento || "").trim();
       const formas = raw
@@ -693,14 +695,29 @@ export default function Pedidos() {
       const share = p.valor / formas.length;
       formas.forEach((forma) => {
         map.set(forma, (map.get(forma) || 0) + share);
+        const arr = detalhes.get(forma) || [];
+        arr.push({
+          id: p.id,
+          numero: p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase(),
+          cliente: p.cliente,
+          formasCount: formas.length,
+          share,
+          total: p.valor,
+        });
+        detalhes.set(forma, arr);
       });
     });
-    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+    return {
+      pagamentoContadores: Array.from(map.entries()).sort((a, b) => b[1] - a[1]),
+      pagamentoDetalhes: detalhes,
+    };
   }, [pedidos]);
 
   // Helper: número curto do UUID (legado), e número de exibição (sequencial > UUID curto)
   const getIdCurto = (id: string) => id.substring(0, 8).toUpperCase();
   const getNumExib = (p: PedidoFormatado) => p.numero_sequencial != null ? String(p.numero_sequencial) : getIdCurto(p.id);
+
+
 
   const getStatusBadgeEntregador = (status: string | null) => {
     switch (status) {
@@ -1382,16 +1399,25 @@ export default function Pedidos() {
             </div>
             <p className="text-xs text-muted-foreground">Recebimentos por forma de pagamento (ignora cancelados).</p>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 space-y-3">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {pagamentoContadores.map(([method, valor]) => {
                 const pct = contadores.total > 0 ? Math.round(valor / contadores.total * 100) : 0;
+                const expandido = formaExpandida === method;
                 return (
-                  <div key={method} className="rounded-xl border bg-background px-3 py-2 min-w-0">
-                    <p className="text-xs text-muted-foreground truncate" title={formaLabel(method)}>{formaLabel(method)}</p>
+                  <button
+                    key={method}
+                    type="button"
+                    onClick={() => setFormaExpandida(expandido ? null : method)}
+                    className={`text-left rounded-xl border px-3 py-2 min-w-0 transition-colors hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/40 ${expandido ? "border-primary/60 bg-primary/5" : "bg-background"}`}
+                  >
+                    <p className="text-xs text-muted-foreground truncate flex items-center gap-1" title={formaLabel(method)}>
+                      <ChevronDown className={`h-3 w-3 transition-transform ${expandido ? "" : "-rotate-90"}`} />
+                      {formaLabel(method)}
+                    </p>
                     <p className="text-lg font-bold leading-tight">R$ {valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
                     <p className="text-[11px] text-muted-foreground">{pct}% do total</p>
-                  </div>
+                  </button>
                 );
               })}
               <div className="rounded-xl border border-success/40 bg-success/5 px-3 py-2 min-w-0">
@@ -1400,6 +1426,45 @@ export default function Pedidos() {
                 <p className="text-[11px] text-muted-foreground">100%</p>
               </div>
             </div>
+
+            {formaExpandida && pagamentoDetalhes.get(formaExpandida) && (
+              <div className="rounded-xl border bg-muted/30 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">
+                    Pedidos em {formaLabel(formaExpandida)}
+                    <span className="text-xs text-muted-foreground font-normal ml-2">
+                      ({pagamentoDetalhes.get(formaExpandida)!.length} lançamento(s))
+                    </span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setFormaExpandida(null)}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Fechar
+                  </button>
+                </div>
+                <div className="max-h-64 overflow-y-auto divide-y divide-border/60">
+                  {pagamentoDetalhes.get(formaExpandida)!
+                    .sort((a, b) => b.share - a.share)
+                    .map((d) => (
+                      <div key={d.id} className="flex items-center justify-between gap-2 py-1.5 text-sm">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium truncate">#{d.numero} — {d.cliente}</p>
+                          {d.formasCount > 1 && (
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              Pedido total R$ {d.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · dividido em {d.formasCount} formas
+                            </p>
+                          )}
+                        </div>
+                        <p className="font-semibold whitespace-nowrap">
+                          R$ {d.share.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
         }
