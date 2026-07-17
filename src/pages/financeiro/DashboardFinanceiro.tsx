@@ -138,15 +138,27 @@ export default function DashboardFinanceiro() {
       <Header title="Dashboard Financeiro" subtitle="Visão consolidada das finanças" />
       <div className="p-4 md:p-6 space-y-6">
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div onClick={() => navigate("/financeiro/receber")} className="cursor-pointer">
-            <KpiCard icon={ArrowUpRight} label="A Receber" value={fmt(totalReceber)} tone="success" hint={`${receberPendente.length} pendente(s)`} />
-          </div>
-          <div onClick={() => navigate("/financeiro/pagar")} className="cursor-pointer">
-            <KpiCard icon={ArrowDownRight} label="A Pagar" value={fmt(totalPagar)} tone="destructive" hint={`${pagarPendente.length} pendente(s)`} />
-          </div>
-          <KpiCard icon={DollarSign} label="Saldo Projetado" value={fmt(saldoProjetado)} tone={saldoProjetado >= 0 ? "success" : "destructive"} hint="Receber − Pagar" />
-          <KpiCard icon={Banknote} label="Saldo Bancário" value={fmt(saldoBancario)} tone={saldoBancario >= 0 ? "primary" : "destructive"} hint="Todas as contas" />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <PremiumKpiCard
+            label="A Receber" value={fmt(totalReceber)} icon={ArrowUpRight} tone="success"
+            subtitle={`${receberPendente.length} pendente(s)`}
+            onClick={() => navigate("/financeiro/receber")}
+          />
+          <PremiumKpiCard
+            label="A Pagar" value={fmt(totalPagar)} icon={ArrowDownRight} tone="destructive"
+            subtitle={`${pagarPendente.length} pendente(s)`}
+            onClick={() => navigate("/financeiro/pagar")}
+          />
+          <PremiumKpiCard
+            label="Saldo Projetado" value={fmt(saldoProjetado)} icon={DollarSign}
+            tone={saldoProjetado >= 0 ? "success" : "destructive"}
+            subtitle="Receber − Pagar"
+          />
+          <PremiumKpiCard
+            label="Saldo Bancário" value={fmt(saldoBancario)} icon={Banknote}
+            tone={saldoBancario >= 0 ? "primary" : "destructive"}
+            subtitle="Todas as contas"
+          />
         </div>
 
         {/* Alertas */}
