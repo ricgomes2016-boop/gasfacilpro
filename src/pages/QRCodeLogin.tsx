@@ -124,7 +124,7 @@ export default function QRCodeLogin() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-info to-info flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-info/20 to-info/5 flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-6">
         {/* Logo */}
         <div className="text-center">
@@ -230,7 +230,7 @@ export default function QRCodeLogin() {
         </Card>
 
         {/* Instruções */}
-        <Card className="bg-info border-info">
+        <Card className="bg-info/5 border-info/30">
           <CardContent className="pt-6">
             <div className="space-y-3 text-sm">
               <div className="flex gap-3">
