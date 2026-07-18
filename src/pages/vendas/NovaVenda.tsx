@@ -1595,6 +1595,72 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     </>
   );
 
+  const stepLabels: Record<VendaStepId, string> = {
+    cliente: "Cliente",
+    produtos: "Produtos",
+    pagamento: "Pagamento",
+    entregador: "Entregador",
+    confirmar: "Confirmar",
+  };
+  const stepOrder: VendaStepId[] = ["cliente", "produtos", "pagamento", "entregador", "confirmar"];
+  const activeStepIndex = Math.max(0, stepOrder.indexOf(activeStep));
+  const totalPagoHero = pagamentos.reduce((acc, p) => acc + (Number(p.valor) || 0), 0);
+
+  const pageHero = (
+    <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-800 text-white shadow-[0_10px_40px_-12px_rgba(6,95,70,0.45)]">
+      <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-white/5 blur-2xl" />
+      <div className="relative p-4 md:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white/70">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 backdrop-blur">
+                <ShoppingBag className="h-3 w-3" /> Pedido
+              </span>
+              <span className="text-white/60">·</span>
+              <span>Passo {activeStepIndex + 1} de {stepOrder.length} · {stepLabels[activeStep]}</span>
+            </div>
+            <h1 className="mt-1.5 text-2xl md:text-[28px] font-black leading-tight tracking-tight tabular-nums">
+              Nova Venda <span className="text-white/70">#{proximoNumero ?? "—"}</span>
+            </h1>
+            <p className="mt-1 text-sm text-white/75 truncate">
+              {customer.nome?.trim() ? `Cliente: ${customer.nome}` : "Selecione um cliente para começar"}
+              {itens.length > 0 && <> · {itens.length} {itens.length === 1 ? "item" : "itens"}</>}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/70">Total da venda</p>
+            <p className="mt-0.5 text-2xl md:text-3xl font-black tabular-nums leading-none">
+              R$ {totalVenda.toFixed(2).replace(".", ",")}
+            </p>
+            {totalPagoHero > 0 && (
+              <p className="mt-1 text-[11px] font-semibold text-white/80 tabular-nums">
+                Pago R$ {totalPagoHero.toFixed(2).replace(".", ",")}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Barra de progresso premium */}
+        <div className="mt-4 flex items-center gap-1.5">
+          {stepOrder.map((sid, i) => {
+            const done = i < activeStepIndex;
+            const current = i === activeStepIndex;
+            return (
+              <div
+                key={sid}
+                className={cn(
+                  "h-1.5 flex-1 rounded-full transition-all",
+                  done ? "bg-white" : current ? "bg-white/90" : "bg-white/25",
+                )}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
   const vendaContent = (
     <>
       <div className="min-h-full bg-[hsl(220,14%,96%)] p-3 md:p-6 space-y-3 md:space-y-4"> 
@@ -1603,7 +1669,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         {aiCommandPopover}
         {hiddenAiInputs}
 
-
+        {useNewView && pageHero}
 
         {useNewView ? (
           <div className="space-y-3 md:space-y-4">
