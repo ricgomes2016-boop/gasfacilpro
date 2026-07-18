@@ -1581,7 +1581,7 @@ export default function Compras() {
                             </Button>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div>
                               <Label className="text-xs">Forma</Label>
                               <Select
@@ -1590,7 +1590,7 @@ export default function Compras() {
                                   setPagamentosExtras(pagamentosExtras.map((r, i) => i === idx ? { ...r, forma: v, conta_bancaria_id: "" } : r))
                                 }
                               >
-                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="dinheiro">💵 Dinheiro</SelectItem>
                                   <SelectItem value="pix">⚡ PIX</SelectItem>
