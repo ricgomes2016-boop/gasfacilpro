@@ -29,9 +29,11 @@ import {
   Search, Eye, Truck, CheckCircle, Clock, XCircle, Sparkles,
   User, RefreshCw, MoreHorizontal, Edit, ArrowRightLeft, Printer,
   Share2, DollarSign, Trash2, Lock, MessageCircle, CreditCard,
-  ChevronLeft, ChevronRight, ChevronDown, CheckSquare, Building2, Pencil, MoveRight, Map as MapIcon,
-  Download, Package, Calendar, SlidersHorizontal } from
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckSquare, Building2, Pencil, MoveRight, Map as MapIcon,
+  Download, Package, Calendar, SlidersHorizontal, MapPin, Phone } from
 "lucide-react";
+import { PedidoStatusPill } from "@/components/pedidos/PedidoStatusPill";
+import { PedidoPaymentPill } from "@/components/pedidos/PedidoPaymentPill";
 import {
   ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader,
   ResponsiveDialogTitle, ResponsiveDialogTrigger, ResponsiveDialogFooter } from
@@ -125,6 +127,11 @@ function formatarItensComQtd(pedido: PedidoFormatado): string {
 
 const PEDIDOS_FILTROS_STORAGE_KEY = "pedidos:filtros:v1";
 
+const cnStatusTab = (active: boolean) =>
+  `flex shrink-0 items-center gap-1 rounded-xl px-3 py-2 text-xs font-medium transition-all whitespace-nowrap ${
+    active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+  }`;
+
 type PedidosFiltrosPersistidos = {
   dataInicio?: string;
   dataFim?: string;
@@ -163,6 +170,8 @@ export default function Pedidos() {
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [busca, setBusca] = useState(filtrosPersistidosIniciais.busca ?? "");
   const [paginaAtual, setPaginaAtual] = useState(1);
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const toggleExpandido = (id: string) => setExpandidos((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   // Persistir filtros na sessão para preservar ao navegar (ex.: editar pedido e voltar)
   useEffect(() => {
@@ -1072,13 +1081,45 @@ export default function Pedidos() {
           </Card>
         }
 
+        {/* Status Tabs - segmented control */}
+        {(() => {
+          const tabs: Array<{ key: string; label: string; count: number }> = [
+            { key: "todos", label: "Todos", count: pedidos.length },
+            { key: "pendente", label: "Pendentes", count: contadores.pendente },
+            { key: "em_rota", label: "Em rota", count: contadores.em_rota },
+            { key: "entregue", label: "Entregues", count: contadores.entregue },
+            { key: "agendado", label: "Agendados", count: pedidos.filter((p) => p.agendado && !["cancelado","entregue","finalizado"].includes(p.status)).length },
+            { key: "cancelado", label: "Cancelados", count: contadores.cancelado },
+          ];
+          return (
+            <div className="flex gap-1.5 overflow-x-auto rounded-2xl bg-muted/60 p-1.5 no-scrollbar">
+              {tabs.map((t) => {
+                const active = filtroStatus === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => setFiltroStatus(t.key)}
+                    className={cnStatusTab(active)}
+                  >
+                    <span className="truncate">{t.label}</span>
+                    <span className={`ml-1 rounded-full px-1.5 text-[10px] font-semibold ${active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                      {t.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
+
         {/* Table - #3 responsive with hidden columns on mobile */}
-        <Card className="modern-panel overflow-hidden">
-          <CardHeader className="section-header-catalog pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="section-header-title">Pedidos ({pedidosFiltrados.length})</CardTitle>
+        <Card className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+          <CardHeader className="border-b border-border bg-muted/40 px-4 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-sm font-semibold text-foreground">Pedidos <span className="text-muted-foreground font-normal">({pedidosFiltrados.length})</span></CardTitle>
               {/* #4 - Pagination info */}
-              <span className="text-xs font-medium text-info-foreground/80">
+              <span className="text-[11px] font-medium text-muted-foreground">
                 Pág. {paginaAtual}/{totalPages}
               </span>
             </div>
@@ -1092,97 +1133,188 @@ export default function Pedidos() {
             <div className="text-center py-8 text-muted-foreground"><p>Nenhum pedido encontrado.</p></div> :
 
             <>
-              {/* Mobile cards */}
-              <div className="md:hidden w-full min-w-0 divide-y divide-border/60 border-y border-border/60">
-                {pedidosPaginados.map((pedido) => (
-                  <div key={pedido.id} className={`bg-card p-3 space-y-2 w-full min-w-0 transition-colors hover:bg-muted/30 ${pedido.status === "cancelado" ? "opacity-60" : ""}`}>
+              {/* Mobile cards - premium compact + expansível */}
+              <div className="md:hidden w-full min-w-0 space-y-2 p-3">
+                {pedidosPaginados.map((pedido) => {
+                  const expandido = expandidos.has(pedido.id);
+                  const bloqueado = isPedidoBloqueado(pedido.status);
+                  const horario = pedido.data?.split(" ")[1] || "";
+                  const itensResumo = pedido.itens.length > 0
+                    ? `${pedido.itens[0].quantidade}x ${pedido.itens[0].produto?.nome || "Produto"}`
+                    : pedido.produtos;
+                  const itensExtras = Math.max(0, pedido.itens.length - 1);
 
-                    <div className="flex items-start justify-between gap-2 w-full min-w-0">
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} className="shrink-0" />
+                  // Ação principal por status
+                  const acaoPrincipal = (() => {
+                    if (pedido.status === "pendente") {
+                      return pedido.entregador
+                        ? { label: "Marcar em rota", onClick: () => alterarStatusPedido(pedido.id, "em_rota") }
+                        : { label: "Atribuir entregador", onClick: () => abrirTransferencia(pedido) };
+                    }
+                    if (pedido.status === "em_rota") return { label: "Marcar entregue", onClick: () => alterarStatusPedido(pedido.id, "entregue") };
+                    if (pedido.status === "entregue") return { label: "Comprovante", onClick: () => imprimirPedido(pedido) };
+                    if (pedido.status === "cancelado") return { label: "Ver detalhes", onClick: () => abrirVisualizacao(pedido) };
+                    return { label: "Visualizar", onClick: () => abrirVisualizacao(pedido) };
+                  })();
+
+                  return (
+                    <div
+                      key={pedido.id}
+                      className={`rounded-2xl border border-border bg-card shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition-all ${pedido.status === "cancelado" ? "opacity-60" : ""} ${expandido ? "ring-1 ring-primary/20" : ""}`}
+                    >
+                      {/* Header do card */}
+                      <div className="flex items-start gap-2 p-3">
+                        <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} className="mt-1 shrink-0" />
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <OrigemBadge origem={pedido.origem_pedido} />
-                            <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs truncate max-w-full" onClick={() => editarPedido(pedido.id)}>
-                              #{getNumExib(pedido)}
-                            </Button>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-[11px] font-mono text-muted-foreground">#{getNumExib(pedido)}</span>
+                              <OrigemBadge origem={pedido.origem_pedido} />
+                            </div>
+                            <PedidoStatusPill status={pedido.agendado && !bloqueado ? "agendado" : pedido.status} />
                           </div>
-                          <p className="text-sm font-medium truncate">{pedido.cliente}</p>
-                          {pedido.agendado && pedido.data_agendamento && (
-                            <Badge variant="secondary" className="mt-1 text-[10px] gap-1 bg-info/10 text-info border-info/20 hover:bg-info/20">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(pedido.data_agendamento).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
-                            </Badge>
-                          )}
+                          <p className="mt-1 text-[15px] font-semibold text-foreground truncate">{pedido.cliente}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {itensResumo}{itensExtras > 0 && <span className="text-muted-foreground/70"> · +{itensExtras} item{itensExtras > 1 ? "s" : ""}</span>}
+                          </p>
                         </div>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
-                          {!isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>}
-                          {pedido.agendado && !isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>}
-                          {!isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>}
-                          {!isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria (Retirada)</DropdownMenuItem>}
-                          {unidades.length > 1 && !isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}><MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial</DropdownMenuItem>}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
-                          {pedido.status === "entregue" && (
-                            <DropdownMenuItem onClick={async () => {
-                              try {
-                                await gerarComprovanteEntregaPdf({ pedidoId: pedido.id });
-                              } catch (e: any) {
-                                toast({ title: "Erro ao gerar PDF", description: e.message, variant: "destructive" });
-                              }
-                            }}><Download className="h-4 w-4 mr-2" />Comprovante de Entrega (PDF)</DropdownMenuItem>
-                          )}
-                          {!isPedidoBloqueado(pedido.status) && <>
-                            <DropdownMenuSeparator />
-                            {pedido.status !== "em_rota" && <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "em_rota")}><Truck className="h-4 w-4 mr-2" />Marcar Em Rota</DropdownMenuItem>}
-                            <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "entregue")}><CheckCircle className="h-4 w-4 mr-2" />Marcar Entregue</DropdownMenuItem>
-                            {pedido.status !== "pendente" && <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "pendente")}><Clock className="h-4 w-4 mr-2" />Voltar p/ Pendente</DropdownMenuItem>}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => cancelarPedido(pedido.id)}><XCircle className="h-4 w-4 mr-2" />Cancelar Pedido</DropdownMenuItem>
-                          </>}
-                          <DropdownMenuSeparator />
-                          {pedido.status !== "finalizado" && <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => abrirExclusao(pedido)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">{pedido.endereco}</p>
-                    <p className="text-xs truncate" title={formatarItensComQtd(pedido)}>{formatarItensComQtd(pedido)}</p>
-                    <div className="flex items-center justify-between gap-2 flex-wrap w-full min-w-0">
-                      <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
-                        <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
-                        {pedido.entregador && <Badge variant="outline" className="text-[10px] max-w-[140px] truncate"><Truck className="h-3 w-3 mr-1 shrink-0" /><span className="truncate">{pedido.entregador}</span></Badge>}
+
+                      {/* Linha valor + pagamento + horário */}
+                      <div className="flex items-center justify-between gap-2 px-3 pb-2">
+                        <span className="text-lg font-bold tabular-nums">R$ {pedido.valor.toFixed(2)}</span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <PedidoPaymentPill
+                            forma={pedido.forma_pagamento}
+                            label={pedido.forma_pagamento ? formaLabel(pedido.forma_pagamento) : ""}
+                            onClick={() => { setPedidoEditarPagamento(pedido); setEditarPagamentoAberto(true); }}
+                          />
+                          {horario && <span className="text-[11px] text-muted-foreground shrink-0">{horario}</span>}
+                        </div>
                       </div>
-                      <span className="font-bold text-sm shrink-0">R$ {pedido.valor.toFixed(2)}</span>
+
+                      {/* Linha endereço + entregador */}
+                      <div className="flex items-center gap-2 px-3 pb-2 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3 shrink-0" />
+                        <span className="truncate flex-1">{pedido.endereco}</span>
+                      </div>
+
+                      {/* Entregador */}
+                      <div className="flex items-center justify-between gap-2 border-t border-border/60 px-3 py-2">
+                        <div className="flex items-center gap-1.5 min-w-0 text-xs">
+                          <Truck className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          {pedido.entregador ? (
+                            <span className="truncate text-foreground/80">{pedido.entregador}</span>
+                          ) : bloqueado ? (
+                            <span className="text-muted-foreground">Sem entregador</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => abrirTransferencia(pedido)}
+                              className="text-primary font-medium hover:underline"
+                            >
+                              Atribuir
+                            </button>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleExpandido(pedido.id)}
+                          className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                        >
+                          {expandido ? "Recolher" : "Ver detalhes"}
+                          {expandido ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                        </button>
+                      </div>
+
+                      {/* Expansão */}
+                      {expandido && (
+                        <div className="space-y-3 border-t border-border/60 bg-muted/30 px-3 py-3">
+                          {pedido.itens.length > 0 && (
+                            <div>
+                              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Itens</p>
+                              <ul className="space-y-0.5 text-xs">
+                                {pedido.itens.map((it) => (
+                                  <li key={it.id} className="flex justify-between gap-2">
+                                    <span className="truncate">{it.quantidade}x {it.produto?.nome || "Produto"}</span>
+                                    <span className="tabular-nums text-muted-foreground shrink-0">R$ {(Number(it.preco_unitario) * Number(it.quantidade)).toFixed(2)}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            <div>
+                              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Canal</p>
+                              <p className="font-medium truncate">{pedido.canal_venda || "—"}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Entrega</p>
+                              <p className="font-medium truncate">{pedido.data}</p>
+                            </div>
+                            {pedido.agendado && pedido.data_agendamento && (
+                              <div className="col-span-2">
+                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Agendamento</p>
+                                <p className="font-medium">{new Date(pedido.data_agendamento).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</p>
+                              </div>
+                            )}
+                            {pedido.observacoes && (
+                              <div className="col-span-2">
+                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Observações</p>
+                                <p className="text-foreground/80">{pedido.observacoes}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Ação principal + menu */}
+                      <div className="flex items-center gap-2 border-t border-border/60 p-2">
+                        <Button
+                          size="sm"
+                          onClick={acaoPrincipal.onClick}
+                          className="flex-1 h-10 rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                          disabled={isUpdating}
+                        >
+                          {acaoPrincipal.label}
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 rounded-xl"><MoreHorizontal className="h-4 w-4" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
+                            {!bloqueado && <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>}
+                            {pedido.agendado && !bloqueado && <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>}
+                            {!bloqueado && <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>}
+                            {!bloqueado && <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria (Retirada)</DropdownMenuItem>}
+                            {unidades.length > 1 && !bloqueado && <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}><MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial</DropdownMenuItem>}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
+                            {pedido.status === "entregue" && (
+                              <DropdownMenuItem onClick={async () => { try { await gerarComprovanteEntregaPdf({ pedidoId: pedido.id }); } catch (e: any) { toast({ title: "Erro ao gerar PDF", description: e.message, variant: "destructive" }); } }}>
+                                <Download className="h-4 w-4 mr-2" />Comprovante (PDF)
+                              </DropdownMenuItem>
+                            )}
+                            {!bloqueado && <>
+                              <DropdownMenuSeparator />
+                              {pedido.status !== "em_rota" && <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "em_rota")}><Truck className="h-4 w-4 mr-2" />Marcar Em Rota</DropdownMenuItem>}
+                              <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "entregue")}><CheckCircle className="h-4 w-4 mr-2" />Marcar Entregue</DropdownMenuItem>
+                              {pedido.status !== "pendente" && <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "pendente")}><Clock className="h-4 w-4 mr-2" />Voltar p/ Pendente</DropdownMenuItem>}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => cancelarPedido(pedido.id)}><XCircle className="h-4 w-4 mr-2" />Cancelar Pedido</DropdownMenuItem>
+                            </>}
+                            <DropdownMenuSeparator />
+                            {pedido.status !== "finalizado" && <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => abrirExclusao(pedido)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] text-muted-foreground">Canal de venda</label>
-                      {podeEditarCanalPedido(pedido) ?
-                      <Popover open={editandoCanalId === `m-${pedido.id}`} onOpenChange={(open) => setEditandoCanalId(open ? `m-${pedido.id}` : null)}>
-                        <PopoverTrigger asChild>
-                          <button className="h-8 text-[11px] w-full inline-flex items-center justify-between gap-2 rounded-md border border-input bg-background px-2 hover:bg-accent transition-colors">
-                            <span className="truncate">{pedido.canal_venda || "Selecionar canal"}</span>
-                            <Pencil className="h-3 w-3 text-muted-foreground shrink-0" />
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-72 p-0 bg-popover border border-border shadow-lg z-50" align="start">
-                          {renderCanalCommand(pedido.id, pedido.canal_venda)}
-                        </PopoverContent>
-                      </Popover> :
-                      <Badge variant="outline" className="text-[10px]">{pedido.canal_venda || "Canal não informado"}</Badge>}
-                    </div>
-                    {podeAlterarDataEntrega ?
-                    <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 text-[11px]" /> :
-                    <p className="text-[10px] text-muted-foreground truncate">{pedido.data}</p>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+
 
               {/* Desktop table */}
               <div className="overflow-x-auto min-w-0 hidden md:block">
