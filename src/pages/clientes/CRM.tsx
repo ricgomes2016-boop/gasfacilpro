@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { FinancialHeroCard } from "@/components/ui/financial-hero-card";
 import {
   Users, Phone, MessageSquare, Clock, CheckCircle, AlertCircle, Search, Loader2,
   MapPin, TrendingDown, Bell, Star, Flame, Target, TrendingUp, BarChart3,
