@@ -1593,7 +1593,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   const vendaContent = (
     <>
-      <div className="p-3 md:p-4 space-y-3 md:space-y-4"> 
+      <div className="min-h-full bg-[hsl(220,14%,96%)] p-3 md:p-6 space-y-3 md:space-y-4"> 
         <CaixaBloqueadoBanner />
 
         {aiCommandPopover}
