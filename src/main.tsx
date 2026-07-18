@@ -18,9 +18,30 @@ const isPreviewHost =
   window.location.hostname.includes("lovableproject.com");
 
 if (isPreviewHost || isInIframe) {
-  navigator.serviceWorker?.getRegistrations().then((registrations) => {
-    registrations.forEach((registration) => registration.unregister());
-  });
+  const clearPreviewCache = async () => {
+    try {
+      const registrations = await navigator.serviceWorker?.getRegistrations();
+      await Promise.all((registrations ?? []).map((registration) => registration.unregister()));
+
+      if ("caches" in window) {
+        const cacheKeys = await caches.keys();
+        await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+      }
+
+      const resetKey = "gasfacil-preview-cache-reset-v2";
+      const alreadyReset = sessionStorage.getItem(resetKey) === "1";
+      if (!alreadyReset && navigator.serviceWorker?.controller) {
+        sessionStorage.setItem(resetKey, "1");
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set("previewRefresh", Date.now().toString());
+        window.location.replace(nextUrl.toString());
+      }
+    } catch (error) {
+      console.warn("[PWA] Não foi possível limpar o cache do preview", error);
+    }
+  };
+
+  void clearPreviewCache();
 } else {
   registerSW({
     onNeedRefresh() {
