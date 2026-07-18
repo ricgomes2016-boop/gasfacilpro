@@ -324,13 +324,13 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Entradas</p>
                       <p className="text-sm font-semibold text-success">
-                        {linha.entradasManuais > 0 ? `+${linha.entradasManuais}` : "0"}
+                        {linha.entradas > 0 ? `+${linha.entradas}` : "0"}
                       </p>
                     </div>
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Saídas</p>
                       <p className="text-sm font-semibold text-warning">
-                        {linha.saidasManuais > 0 ? `-${linha.saidasManuais}` : "0"}
+                        {linha.saidas > 0 ? `-${linha.saidas}` : "0"}
                       </p>
                     </div>
                     <div>
@@ -346,8 +346,8 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vasilhame</p>
-                      <p className="text-sm font-semibold text-foreground">{linha.estoqueAtual}</p>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Atual</p>
+                      <p className={`text-sm font-semibold ${totalTone}`}>{linha.total}</p>
                     </div>
                   </div>
 
