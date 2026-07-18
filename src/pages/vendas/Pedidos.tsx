@@ -791,133 +791,159 @@ export default function Pedidos() {
       <Header title="Pedidos" subtitle="Gerenciar pedidos de venda" />
       <div className="p-3 md:p-6 space-y-4 md:space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
 
-        {/* Top action */}
-        <div className="gap-2 flex flex-wrap items-center justify-center sm:justify-start w-full min-w-0">
-          <Button className="h-10 min-w-0 bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30" onClick={() => navigate("/vendas/nova")}>
-            <span className="truncate">+ Novo Pedido</span>
-          </Button>
-          <SmartImportButtons
-            edgeFunctionName="parse-orders-history"
-            onDataExtracted={handleImportData}
-            mode="menu"
-            menuLabel="Mais ações"
-            extraMenuContent={
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => {
-                    exportarPedidosCSV(pedidosFiltrados);
-                    sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);
-                  }}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Exportar CSV
-                </DropdownMenuItem>
-              </>
-            }
-          />
-          <Button variant="outline" className="h-10 min-w-0" onClick={() => navigate("/operacional/centro")}>
-            <MapIcon className="h-4 w-4 mr-2 shrink-0" />
-            <span className="truncate">Mapa Operacional</span>
-          </Button>
-          {(() => {
-            const filtrosAtivos =
-              (busca ? 1 : 0) +
-              (filtroStatus !== "todos" ? 1 : 0) +
-              (filtroEntregador !== "todos" ? 1 : 0) +
-              (dataInicio !== hoje || dataFim !== hoje ? 1 : 0);
-            return (
-              <Button variant="outline" className="h-10 min-w-0 relative" onClick={() => setFiltrosAbertos(true)}>
-                <SlidersHorizontal className="h-4 w-4 mr-2 shrink-0" />
+        {/* Top actions - grade 2x2 mobile / 4 col desktop, premium */}
+        {(() => {
+          const filtrosAtivos =
+            (busca ? 1 : 0) +
+            (filtroStatus !== "todos" ? 1 : 0) +
+            (filtroEntregador !== "todos" ? 1 : 0) +
+            (filtroOrigem !== "todos" ? 1 : 0) +
+            (dataInicio !== hoje || dataFim !== hoje ? 1 : 0);
+          const actionBase =
+            "w-full min-h-[64px] rounded-2xl px-4 flex items-center justify-center gap-2 text-sm font-semibold shadow-sm transition-all";
+          return (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full min-w-0">
+              <Button
+                onClick={() => navigate("/vendas/nova")}
+                className={`${actionBase} bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/25`}
+              >
+                <Sparkles className="h-4 w-4 shrink-0" />
+                <span className="truncate">Novo Pedido</span>
+              </Button>
+              <SmartImportButtons
+                edgeFunctionName="parse-orders-history"
+                onDataExtracted={handleImportData}
+                mode="menu"
+                menuLabel="Mais ações"
+                className={`${actionBase} !bg-card !text-foreground border border-border hover:!bg-muted/60 !h-auto`}
+                extraMenuContent={
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => {
+                        exportarPedidosCSV(pedidosFiltrados);
+                        sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Exportar CSV
+                    </DropdownMenuItem>
+                  </>
+                }
+              />
+              <Button
+                variant="outline"
+                onClick={() => navigate("/operacional/centro")}
+                className={`${actionBase} bg-card hover:bg-muted/60`}
+              >
+                <MapIcon className="h-4 w-4 shrink-0" />
+                <span className="truncate">Mapa Operacional</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setFiltrosAbertos((v) => !v)}
+                aria-expanded={filtrosAbertos}
+                aria-controls="orders-advanced-filters"
+                className={`${actionBase} bg-card hover:bg-muted/60 relative`}
+              >
+                <SlidersHorizontal className="h-4 w-4 shrink-0" />
                 <span className="truncate">Mais Filtros</span>
                 {filtrosAtivos > 0 && (
-                  <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">{filtrosAtivos}</Badge>
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{filtrosAtivos}</Badge>
                 )}
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 transition-transform duration-200 ${filtrosAbertos ? "rotate-180" : ""}`}
+                />
               </Button>
-            );
-          })()}
-        </div>
+            </div>
+          );
+        })()}
 
-        {/* Filters Dialog */}
-        <ResponsiveDialog open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
-          <ResponsiveDialogContent className="sm:max-w-lg">
-            <ResponsiveDialogHeader>
-              <ResponsiveDialogTitle>Filtros</ResponsiveDialogTitle>
-            </ResponsiveDialogHeader>
-            <div className="flex flex-col gap-3 py-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar nº pedido, cliente, endereço..."
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  className="h-10 pl-9" />
+        {/* Inline collapsible advanced filters */}
+        <Collapsible open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
+          <CollapsibleContent
+            id="orders-advanced-filters"
+            className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up"
+          >
+            <div className="rounded-2xl border border-border bg-card shadow-sm p-4 mt-1">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-foreground">Filtros avançados</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setBusca(""); setDataInicio(hoje); setDataFim(hoje);
+                    setFiltroStatus("todos"); setFiltroEntregador("todos"); setFiltroOrigem("todos");
+                    try { sessionStorage.removeItem(PEDIDOS_FILTROS_STORAGE_KEY); } catch { /* ignore */ }
+                  }}
+                  className="h-8 text-xs"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 mr-1" /> Limpar
+                </Button>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground block">Início</label>
-                  <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="h-10 text-sm" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="sm:col-span-2 lg:col-span-4 relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar nº pedido, cliente, endereço..."
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    className="h-11 pl-9 rounded-xl"
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground block">Fim</label>
-                  <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="h-10 text-sm" />
+                  <label className="text-[11px] uppercase tracking-wide text-muted-foreground block">Início</label>
+                  <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="h-11 text-sm rounded-xl" />
                 </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground block">Status</label>
-                <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                  <SelectTrigger className="h-10 text-sm">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos Status</SelectItem>
-                    <SelectItem value="agendado">📅 Agendados</SelectItem>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="em_rota">Em Rota</SelectItem>
-                    <SelectItem value="entregue">Entregue</SelectItem>
-                    <SelectItem value="finalizado">Finalizado</SelectItem>
-                    <SelectItem value="cancelado">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground block">Entregador</label>
-                <Select value={filtroEntregador} onValueChange={setFiltroEntregador}>
-                  <SelectTrigger className="h-10 text-sm">
-                    <SelectValue placeholder="Entregador" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos Entregadores</SelectItem>
-                    <SelectItem value="sem_entregador">Sem entregador</SelectItem>
-                    {entregadoresNoPeriodo.map((nome) =>
-                      <SelectItem key={nome} value={nome}>{nome}</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground block">Origem do pedido</label>
-                <Select value={filtroOrigem} onValueChange={setFiltroOrigem}>
-                  <SelectTrigger className="h-10 text-sm">
-                    <SelectValue placeholder="Origem" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todas Origens</SelectItem>
-                    {ORIGENS_PEDIDO.map((o) => (
-                      <SelectItem key={o} value={o}>{ORIGEM_PEDIDO_META[o].icon} {ORIGEM_PEDIDO_META[o].label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-1">
+                  <label className="text-[11px] uppercase tracking-wide text-muted-foreground block">Fim</label>
+                  <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="h-11 text-sm rounded-xl" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] uppercase tracking-wide text-muted-foreground block">Status</label>
+                  <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                    <SelectTrigger className="h-11 text-sm rounded-xl"><SelectValue placeholder="Status" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos Status</SelectItem>
+                      <SelectItem value="agendado">📅 Agendados</SelectItem>
+                      <SelectItem value="pendente">Pendente</SelectItem>
+                      <SelectItem value="em_rota">Em Rota</SelectItem>
+                      <SelectItem value="entregue">Entregue</SelectItem>
+                      <SelectItem value="finalizado">Finalizado</SelectItem>
+                      <SelectItem value="cancelado">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] uppercase tracking-wide text-muted-foreground block">Entregador</label>
+                  <Select value={filtroEntregador} onValueChange={setFiltroEntregador}>
+                    <SelectTrigger className="h-11 text-sm rounded-xl"><SelectValue placeholder="Entregador" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos Entregadores</SelectItem>
+                      <SelectItem value="sem_entregador">Sem entregador</SelectItem>
+                      {entregadoresNoPeriodo.map((nome) =>
+                        <SelectItem key={nome} value={nome}>{nome}</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1 sm:col-span-2 lg:col-span-2">
+                  <label className="text-[11px] uppercase tracking-wide text-muted-foreground block">Origem do pedido</label>
+                  <Select value={filtroOrigem} onValueChange={setFiltroOrigem}>
+                    <SelectTrigger className="h-11 text-sm rounded-xl"><SelectValue placeholder="Origem" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todas Origens</SelectItem>
+                      {ORIGENS_PEDIDO.map((o) => (
+                        <SelectItem key={o} value={o}>{ORIGEM_PEDIDO_META[o].icon} {ORIGEM_PEDIDO_META[o].label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-            <ResponsiveDialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => {setBusca("");setDataInicio(hoje);setDataFim(hoje);setFiltroStatus("todos");setFiltroEntregador("todos");setFiltroOrigem("todos");try { sessionStorage.removeItem(PEDIDOS_FILTROS_STORAGE_KEY); } catch { /* ignore */ }}}>
-                <RefreshCw className="h-3.5 w-3.5 mr-1" /> Limpar
-              </Button>
-              <Button onClick={() => setFiltrosAbertos(false)}>Aplicar</Button>
-            </ResponsiveDialogFooter>
-          </ResponsiveDialogContent>
-        </ResponsiveDialog>
+          </CollapsibleContent>
+        </Collapsible>
+
 
 
         {/* Alert for old pending orders */}
