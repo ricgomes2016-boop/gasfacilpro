@@ -493,22 +493,27 @@ export default function PDV() {
           {/* Right: Summary */}
           <Card className="flex flex-col w-full min-w-0 max-w-full overflow-hidden">
             <CardContent className="p-3 md:p-6 flex flex-col lg:flex-1 w-full min-w-0">
-              {/* Mobile: compact horizontal layout */}
-              <div className="flex items-center justify-between lg:hidden mb-3 gap-2 w-full min-w-0">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs text-muted-foreground truncate">Total ({totalItens} itens)</p>
-                  <p className="text-2xl font-bold text-primary truncate">
-                    R$ {total.toFixed(2)}
-                  </p>
+              {/* Mobile: compact hero total */}
+              <div className="lg:hidden mb-3 w-full min-w-0">
+                <div className="flex items-center justify-between gap-3 rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-3 text-primary-foreground shadow-[0_10px_30px_-12px_hsl(var(--primary)/0.5)]">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-primary-foreground/80 truncate">
+                      Total · {totalItens} {totalItens === 1 ? "item" : "itens"}
+                    </p>
+                    <p className="text-2xl font-extrabold tracking-tight truncate">
+                      R$ {total.toFixed(2)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    className="h-11 px-4 text-sm font-semibold shrink-0 shadow-sm"
+                    disabled={itens.length === 0}
+                    onClick={() => setPaymentOpen(true)}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1.5" />
+                    Finalizar
+                  </Button>
                 </div>
-                <Button
-                  className="h-12 px-4 text-base shrink-0"
-                  disabled={itens.length === 0}
-                  onClick={() => setPaymentOpen(true)}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Finalizar
-                </Button>
               </div>
               <div className="flex gap-2 lg:hidden w-full min-w-0">
                 <Button
@@ -530,25 +535,32 @@ export default function PDV() {
                 </Button>
               </div>
 
-              {/* Desktop: original vertical layout */}
+              {/* Desktop: premium vertical layout */}
               <div className="hidden lg:flex lg:flex-col lg:flex-1 w-full min-w-0">
                 <CardTitle className="text-base mb-4">Resumo</CardTitle>
                 <div className="flex-1 space-y-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Itens</span>
-                    <span className="font-medium">{totalItens}</span>
+                    <span className="font-semibold tabular-nums">{totalItens}</span>
                   </div>
-                  <Separator />
-                  <div className="text-center py-4">
-                    <p className="text-sm text-muted-foreground">Total</p>
-                    <p className="text-5xl font-bold text-primary truncate">
-                      R$ {total.toFixed(2)}
-                    </p>
+                  <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground shadow-[0_20px_50px_-20px_hsl(var(--primary)/0.55)]">
+                    <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary-foreground/10 blur-2xl" />
+                    <div className="relative">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-foreground/80">
+                        Total a pagar
+                      </p>
+                      <p className="mt-2 text-5xl font-extrabold tracking-tight tabular-nums truncate">
+                        R$ {total.toFixed(2)}
+                      </p>
+                      <p className="mt-1 text-xs font-medium text-primary-foreground/80">
+                        {totalItens} {totalItens === 1 ? "item no carrinho" : "itens no carrinho"}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2 mt-auto">
+                <div className="space-y-2 mt-4">
                   <Button
-                    className="w-full h-14 text-lg"
+                    className="w-full h-14 text-lg rounded-2xl shadow-md"
                     size="lg"
                     disabled={itens.length === 0}
                     onClick={() => setPaymentOpen(true)}
@@ -558,7 +570,7 @@ export default function PDV() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="w-full h-10"
+                    className="w-full h-10 rounded-xl"
                     onClick={clearCart}
                     disabled={itens.length === 0}
                   >
@@ -567,7 +579,7 @@ export default function PDV() {
                   </Button>
                   <Button
                     variant="ghost"
-                    className="w-full h-10 text-muted-foreground"
+                    className="w-full h-10 rounded-xl text-muted-foreground"
                     onClick={() => navigate("/vendas")}
                   >
                     <XCircle className="h-4 w-4 mr-2" />
@@ -577,6 +589,7 @@ export default function PDV() {
               </div>
             </CardContent>
           </Card>
+
         </div>
 
         {/* Payment Modal */}
