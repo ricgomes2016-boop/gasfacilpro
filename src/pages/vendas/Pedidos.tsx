@@ -154,7 +154,17 @@ function lerFiltrosPersistidos(): PedidosFiltrosPersistidos {
 export default function Pedidos() {
   const navigate = useNavigate();
   const hoje = (() => {const d = getBrasiliaDate();return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;})();
-  const formaLabel = useFormaPagamentoLabel();
+  const formaLabelRaw = useFormaPagamentoLabel();
+  const formaLabel = (raw: string | null | undefined) => {
+    if (!raw) return "—";
+    const s = String(raw).trim();
+    const semPrefixo = s.toLowerCase().startsWith("multiplo:") ? s.slice("multiplo:".length) : s;
+    const parts = semPrefixo.split(/[+,]/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length <= 1) return formaLabelRaw(raw);
+    const labels = parts.map((p) => formaLabelRaw(p));
+    if (labels.length <= 3) return labels.join(" + ");
+    return `${labels.slice(0, 2).join(" + ")} +${labels.length - 2}`;
+  };
   const filtrosPersistidosIniciais = (() => lerFiltrosPersistidos())();
   const [dataInicio, setDataInicio] = useState(filtrosPersistidosIniciais.dataInicio ?? hoje);
   const [dataFim, setDataFim] = useState(filtrosPersistidosIniciais.dataFim ?? hoje);
@@ -844,12 +854,12 @@ export default function Pedidos() {
             (filtroOrigem !== "todos" ? 1 : 0) +
             (dataInicio !== hoje || dataFim !== hoje ? 1 : 0);
           const actionBase =
-            "w-full min-h-[64px] rounded-2xl px-4 flex items-center justify-center gap-2 text-sm font-semibold shadow-sm transition-all";
+            "w-full h-11 rounded-xl px-3 flex items-center justify-center gap-2 text-sm font-medium transition-colors";
           return (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full min-w-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full min-w-0">
               <Button
                 onClick={() => navigate("/vendas/nova")}
-                className={`${actionBase} bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/25`}
+                className={`${actionBase} bg-primary text-primary-foreground hover:bg-primary/90`}
               >
                 <Sparkles className="h-4 w-4 shrink-0" />
                 <span className="truncate">Novo Pedido</span>
@@ -859,7 +869,7 @@ export default function Pedidos() {
                 onDataExtracted={handleImportData}
                 mode="menu"
                 menuLabel="Mais ações"
-                className={`${actionBase} !bg-card !text-foreground border border-border hover:!bg-muted/60 !h-auto`}
+                className={`${actionBase} !bg-card !text-foreground border border-border hover:!bg-muted/60 !h-11`}
                 extraMenuContent={
                   <>
                     <DropdownMenuSeparator />
@@ -891,9 +901,9 @@ export default function Pedidos() {
                 className={`${actionBase} bg-card hover:bg-muted/60 relative`}
               >
                 <SlidersHorizontal className="h-4 w-4 shrink-0" />
-                <span className="truncate">Mais Filtros</span>
+                <span className="truncate">Filtros</span>
                 {filtrosAtivos > 0 && (
-                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{filtrosAtivos}</Badge>
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] tabular-nums">{filtrosAtivos}</Badge>
                 )}
                 <ChevronDown
                   className={`h-4 w-4 shrink-0 transition-transform duration-200 ${filtrosAbertos ? "rotate-180" : ""}`}
@@ -949,7 +959,7 @@ export default function Pedidos() {
                     <SelectTrigger className="h-11 text-sm rounded-xl"><SelectValue placeholder="Status" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos Status</SelectItem>
-                      <SelectItem value="agendado">📅 Agendados</SelectItem>
+                      <SelectItem value="agendado">Agendados</SelectItem>
                       <SelectItem value="pendente">Pendente</SelectItem>
                       <SelectItem value="em_rota">Em Rota</SelectItem>
                       <SelectItem value="entregue">Entregue</SelectItem>
@@ -1011,7 +1021,7 @@ export default function Pedidos() {
                     <Clock className="h-5 w-5 text-destructive" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-sm text-destructive">⚠️ {pedidosAntigos.length} pedido(s) pendente(s) há mais de 24h</p>
+                    <p className="font-medium text-sm text-destructive">{pedidosAntigos.length} pedido(s) pendente(s) há mais de 24h</p>
                     <p className="text-xs text-muted-foreground">
                       Verifique se já foram entregues e atualize o status para evitar inconsistências no acerto financeiro.
                     </p>
@@ -1091,40 +1101,37 @@ export default function Pedidos() {
         }
 
 
-        {/* KPIs premium grid - 4 tiles + Total ocupando linha inteira no mobile */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full min-w-0">
+        {/* KPIs compactos - 4 status + Total */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 w-full min-w-0">
           {[
-            { tone: "warning", Icon: Clock,       value: contadores.pendente,  label: "Pendentes",  color: "text-warning",    bg: "bg-warning/10" },
-            { tone: "info",    Icon: Truck,       value: contadores.em_rota,   label: "Em Rota",    color: "text-info",       bg: "bg-info/10" },
-            { tone: "success", Icon: CheckCircle, value: contadores.entregue,  label: "Entregues",  color: "text-success",    bg: "bg-success/10" },
-            { tone: "destructive", Icon: XCircle, value: contadores.cancelado, label: "Cancelados", color: "text-destructive", bg: "bg-destructive/10" },
+            { Icon: Clock,       value: contadores.pendente,  label: "Pendentes",  color: "text-warning",     bg: "bg-warning/10" },
+            { Icon: Truck,       value: contadores.em_rota,   label: "Em Rota",    color: "text-info",        bg: "bg-info/10" },
+            { Icon: CheckCircle, value: contadores.entregue,  label: "Entregues",  color: "text-success",     bg: "bg-success/10" },
+            { Icon: XCircle,     value: contadores.cancelado, label: "Cancelados", color: "text-destructive", bg: "bg-destructive/10" },
           ].map((k) => (
-            <Card key={k.label} className="rounded-2xl border-border bg-card shadow-sm">
-              <CardContent className="flex items-center gap-3 p-4 min-h-[92px]">
-                <div className={`h-11 w-11 shrink-0 rounded-xl flex items-center justify-center ${k.bg}`}>
-                  <k.Icon className={`h-5 w-5 ${k.color}`} />
-                </div>
-                <div className="min-w-0">
-                  <p className={`text-2xl font-bold leading-none tabular-nums ${k.color}`}>{k.value}</p>
-                  <p className="text-xs text-muted-foreground mt-1 truncate">{k.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          <Card className="rounded-2xl border-border bg-gradient-to-br from-success/10 to-success/5 shadow-sm col-span-2 md:col-span-1">
-            <CardContent className="flex items-center gap-3 p-4 min-h-[92px]">
-              <div className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-success/15">
-                <DollarSign className="h-5 w-5 text-success" />
+            <div key={k.label} className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5">
+              <div className={`h-8 w-8 shrink-0 rounded-lg flex items-center justify-center ${k.bg}`}>
+                <k.Icon className={`h-4 w-4 ${k.color}`} />
               </div>
               <div className="min-w-0">
-                <p className="text-lg md:text-base lg:text-lg font-bold leading-none text-success truncate tabular-nums">
-                  R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1 truncate">Total Vendas</p>
+                <p className={`text-lg font-bold leading-none tabular-nums ${k.color}`}>{k.value}</p>
+                <p className="text-[11px] text-muted-foreground mt-1 truncate">{k.label}</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          ))}
+          <div className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5 col-span-2 md:col-span-1">
+            <div className="h-8 w-8 shrink-0 rounded-lg flex items-center justify-center bg-success/10">
+              <DollarSign className="h-4 w-4 text-success" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-base font-bold leading-none text-foreground truncate tabular-nums">
+                R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1 truncate">Total do período</p>
+            </div>
+          </div>
         </div>
+
 
 
 
@@ -1389,7 +1396,7 @@ export default function Pedidos() {
               {/* Desktop table */}
               <div className="overflow-x-auto min-w-0 hidden md:block">
                 <Table className="min-w-[600px]">
-                  <TableHeader>
+                  <TableHeader className="bg-muted/50 [&_th]:h-10 [&_th]:text-[11px] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
                     <TableRow>
                       <TableHead className="w-10">
                         <Checkbox
