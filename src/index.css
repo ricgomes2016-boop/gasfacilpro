@@ -178,9 +178,10 @@
 
 @layer components {
   .app-header-premium {
-    border-color: hsl(var(--border) / 0.55);
-    background: hsl(var(--card) / 0.94);
-    box-shadow: 0 14px 34px -28px hsl(220 35% 10% / 0.28);
+    border-color: hsl(var(--border));
+    background: hsl(var(--card) / 0.85);
+    backdrop-filter: saturate(180%) blur(12px);
+    box-shadow: none;
   }
 
   .brand-theme-operacional-clean .app-header-premium,
