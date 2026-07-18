@@ -37,20 +37,22 @@ export function QuickActions() {
   const navigate = useNavigate();
 
   return (
-    <Card className="w-full min-w-0 max-w-full">
-      <CardHeader className="pb-3">
-        <CardTitle>Acesso Rápido</CardTitle>
+    <Card className="w-full min-w-0 max-w-full overflow-hidden rounded-2xl border-border/60 shadow-[var(--elev-1)]">
+      <CardHeader className="px-3.5 pb-2.5 pt-3.5 sm:px-4 sm:pt-4">
+        <CardTitle className="text-sm font-semibold tracking-tight">Acesso Rápido</CardTitle>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="px-3.5 pb-3.5 pt-0 sm:px-4 sm:pb-4">
         <div className="grid w-full min-w-0 grid-cols-2 gap-2.5 min-[420px]:grid-cols-4 sm:grid-cols-5 lg:grid-cols-10">
           {actions.map((a) => (
             <button
               key={a.path}
               onClick={() => navigate(a.path)}
-              className={`quick-action-tile group flex min-h-[88px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-[var(--radius)] p-3 shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 ${a.tone}`}
+              className={`quick-action-tile group relative flex min-h-[84px] min-w-0 flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/15 px-2.5 py-3 shadow-md transition-all duration-200 before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-white/35 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 ${a.tone}`}
             >
-              <a.icon className="h-5 w-5 drop-shadow-sm" strokeWidth={2.25} />
-              <span className="line-clamp-2 text-center text-[11px] font-semibold leading-[1.15] tracking-tight">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 ring-1 ring-inset ring-white/20 transition-transform duration-200 group-hover:scale-105">
+                <a.icon className="h-[18px] w-[18px] drop-shadow-sm" strokeWidth={2.3} />
+              </span>
+              <span className="line-clamp-2 min-h-[24px] text-center text-[11px] font-semibold leading-[1.1] tracking-normal">
                 {a.label}
               </span>
             </button>

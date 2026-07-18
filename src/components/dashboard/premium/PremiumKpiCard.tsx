@@ -9,7 +9,7 @@ const toneMap: Record<KpiTone, { text: string; from: string; to: string; glow: s
   success:     { text: "text-success",     from: "from-success/12",     to: "to-success/0",     glow: "bg-success/25",     ring: "ring-success/15" },
   warning:     { text: "text-warning",     from: "from-warning/15",     to: "to-warning/0",     glow: "bg-warning/25",     ring: "ring-warning/15" },
   destructive: { text: "text-destructive", from: "from-destructive/12", to: "to-destructive/0", glow: "bg-destructive/25", ring: "ring-destructive/15" },
-  info:        { text: "text-info",        from: "from-info/12",        to: "to-info/0",        glow: "bg-info/25",        ring: "ring-info/15" },
+  info:        { text: "text-info",        from: "from-info/12",        to: "to-info/0",        glow: "bg-info/25",     ring: "ring-info/15" },
   accent:      { text: "text-accent",      from: "from-accent/12",      to: "to-accent/0",      glow: "bg-accent/25",      ring: "ring-accent/15" },
   violet:      { text: "text-secondary",   from: "from-secondary/12",   to: "to-secondary/0",   glow: "bg-secondary/25",   ring: "ring-secondary/15" },
 };
@@ -34,12 +34,8 @@ interface Props {
 }
 
 /**
- * Premium KPI card — nível HERO da escala de elevação.
- * - Gradiente sutil no fundo (tone-aware)
- * - Ícone com halo/glow
- * - Números em tabular-nums
- * - Trend vs período anterior com seta colorida
- * - Mini sparkline opcional (recharts Area)
+ * Premium KPI card para a grade compacta da dashboard.
+ * Mantem o visual premium, mas prioriza leitura em telas estreitas.
  */
 export function PremiumKpiCard({
   label, value, icon: Icon, tone = "primary", subtitle, trend, sparkline, className, onClick,
@@ -58,64 +54,63 @@ export function PremiumKpiCard({
     <div
       onClick={onClick}
       className={cn(
-        "group relative isolate flex min-h-[132px] flex-col overflow-hidden rounded-[var(--radius)] border border-border/60 bg-card p-5",
-        "shadow-[var(--elev-2)] ring-1 ring-inset transition-all duration-200",
-        "hover:-translate-y-0.5 hover:shadow-[var(--elev-3)]",
+        "group relative isolate flex min-h-[116px] flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-3.5",
+        "shadow-[var(--elev-1)] ring-1 ring-inset transition-all duration-200 sm:min-h-[124px] sm:p-4",
+        "hover:-translate-y-0.5 hover:shadow-[var(--elev-2)]",
         t.ring,
         onClick && "cursor-pointer",
         className,
       )}
     >
-      {/* Gradient wash */}
-      <div className={cn("pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br opacity-70", t.from, t.to)} />
-      {/* Glow blob */}
-      <div className={cn("pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full opacity-40 blur-3xl transition-opacity duration-300 group-hover:opacity-60", t.glow)} />
+      <div className={cn("pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br opacity-65", t.from, t.to)} />
+      <div className={cn("pointer-events-none absolute -right-10 -top-12 h-28 w-28 rounded-full opacity-35 blur-3xl transition-opacity duration-300 group-hover:opacity-55", t.glow)} />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-white/40 via-white/15 to-transparent" />
 
-      <div className="relative flex items-start justify-between gap-3">
+      <div className="relative flex items-start justify-between gap-2.5">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="line-clamp-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground sm:text-[11px]">
             {label}
           </p>
-          <p className="mt-1.5 truncate text-[1.5rem] font-semibold leading-tight tracking-tight tabular-nums text-foreground sm:text-[1.65rem]">
+          <p className="mt-2 whitespace-nowrap text-[1.22rem] font-semibold leading-none tracking-tight tabular-nums text-foreground sm:text-[1.42rem]">
             {value}
           </p>
           {subtitle && (
-            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{subtitle}</p>
+            <p className="mt-1 line-clamp-1 text-[11px] leading-tight text-muted-foreground">{subtitle}</p>
           )}
         </div>
 
-        {/* Icon with halo */}
         <div className="relative shrink-0">
-          <span className={cn("absolute inset-0 -m-1 rounded-full blur-md opacity-60", t.glow)} />
+          <span className={cn("absolute inset-0 -m-1 rounded-full blur-md opacity-50", t.glow)} />
           <div className={cn(
-            "relative flex h-10 w-10 items-center justify-center rounded-[calc(var(--radius)-4px)] bg-card/80 backdrop-blur ring-1 ring-inset",
+            "relative flex h-8 w-8 items-center justify-center rounded-xl bg-card/85 backdrop-blur ring-1 ring-inset sm:h-9 sm:w-9",
             t.ring, t.text,
           )}>
-            <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
+            <Icon className="h-4 w-4 sm:h-[17px] sm:w-[17px]" strokeWidth={2.25} />
           </div>
         </div>
       </div>
 
-      {/* Trend + sparkline row */}
       {(trend || spark) && (
-        <div className="relative mt-3 flex items-end justify-between gap-3">
+        <div className="relative mt-auto flex min-w-0 items-end justify-between gap-2 pt-2.5">
           {trend ? (
             <span className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums",
+              "inline-flex min-w-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums sm:px-2 sm:text-[11px]",
               trend.value === 0
                 ? "bg-muted text-muted-foreground"
                 : isPos
                   ? "bg-success/12 text-success"
                   : "bg-destructive/12 text-destructive",
             )}>
-              {TrendIcon && <TrendIcon className="h-3 w-3" strokeWidth={2.5} />}
-              {trend.value === 0 ? "0%" : `${isPos ? "+" : ""}${trend.value.toFixed(1)}%`}
-              {trend.label && <span className="ml-1 font-normal text-muted-foreground">{trend.label}</span>}
+              {TrendIcon && <TrendIcon className="h-3 w-3 shrink-0" strokeWidth={2.5} />}
+              <span className="shrink-0">
+                {trend.value === 0 ? "0%" : `${isPos ? "+" : ""}${trend.value.toFixed(1)}%`}
+              </span>
+              {trend.label && <span className="min-w-0 truncate font-normal text-muted-foreground">{trend.label}</span>}
             </span>
           ) : <span />}
 
           {spark && (
-            <div className="h-10 w-24 shrink-0 opacity-90">
+            <div className="hidden h-8 w-16 shrink-0 opacity-80 sm:block lg:w-20">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={spark} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
                   <defs>
