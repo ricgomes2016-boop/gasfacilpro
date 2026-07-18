@@ -406,14 +406,14 @@ export default function PDV() {
           </div>
 
           {/* Two-column layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-3 md:gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-3 md:gap-4">
             {/* Left: Products */}
-            <div className="space-y-3 md:space-y-4 min-w-0">
+            <div className="space-y-3 min-w-0">
               {/* Search bar */}
-              <Card className="rounded-2xl border-border shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
-                <CardContent className="p-2.5 md:p-3">
-                  <div className="flex items-center gap-2 rounded-2xl border border-border bg-background focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary h-[52px] px-3 relative">
-                    <Search className="h-5 w-5 text-muted-foreground shrink-0" />
+              <Card className="rounded-xl border-border shadow-none">
+                <CardContent className="p-2">
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-background focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary h-11 px-2.5 relative">
+                    <Search className="h-4 w-4 text-muted-foreground shrink-0" />
                     <Input
                       ref={searchInputRef}
                       placeholder="Buscar produto, código ou descrição"
@@ -422,7 +422,7 @@ export default function PDV() {
                         setSearchTerm(e.target.value);
                         searchProdutos(e.target.value);
                       }}
-                      className="flex-1 min-w-0 border-0 shadow-none focus-visible:ring-0 h-full text-[15px] px-0 bg-transparent"
+                      className="flex-1 min-w-0 border-0 shadow-none focus-visible:ring-0 h-full text-sm px-0 bg-transparent"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && searchResults.length > 0) {
                           addProduct(searchResults[0]);
@@ -433,7 +433,7 @@ export default function PDV() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-lg shrink-0"
+                        className="h-7 w-7 rounded-md shrink-0"
                         onClick={() => {
                           setSearchTerm("");
                           setSearchResults([]);
@@ -442,14 +442,14 @@ export default function PDV() {
                         }}
                         aria-label="Limpar busca"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3.5 w-3.5" />
                       </Button>
                     )}
-                    <div className="h-6 w-px bg-border" />
+                    <div className="h-5 w-px bg-border" />
                     <Button
                       variant={scannerActive ? "destructive" : "ghost"}
                       size="icon"
-                      className={cn("h-9 w-9 rounded-lg shrink-0", !scannerActive && "text-primary hover:bg-primary/10")}
+                      className={cn("h-8 w-8 rounded-md shrink-0", !scannerActive && "text-primary hover:bg-primary/10")}
                       onClick={() => setScannerActive(!scannerActive)}
                       aria-label={scannerActive ? "Fechar scanner" : "Escanear código de barras"}
                     >
@@ -457,20 +457,20 @@ export default function PDV() {
                     </Button>
 
                     {showResults && searchResults.length > 0 && (
-                      <div className="absolute z-40 left-0 right-0 top-full mt-2 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden">
+                      <div className="absolute z-40 left-0 right-0 top-full mt-2 bg-popover border border-border rounded-lg shadow-md overflow-hidden">
                         {searchResults.map((produto) => (
                           <button
                             key={produto.id}
-                            className="w-full px-3 py-3 text-left hover:bg-accent transition-colors border-b border-border last:border-0 flex justify-between items-center gap-2 min-w-0"
+                            className="w-full px-3 py-2.5 text-left hover:bg-accent transition-colors border-b border-border last:border-0 flex justify-between items-center gap-2 min-w-0"
                             onClick={() => addProduct(produto)}
                           >
                             <div className="min-w-0 flex-1">
-                              <p className="font-medium text-sm truncate">{produto.nome}</p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="font-medium text-[13px] truncate">{produto.nome}</p>
+                              <p className="text-[11px] text-muted-foreground">
                                 Estoque: {produto.estoque ?? 0}
                               </p>
                             </div>
-                            <span className="font-semibold text-primary shrink-0 tabular-nums">
+                            <span className="font-semibold text-foreground shrink-0 tabular-nums text-sm">
                               R$ {produto.preco.toFixed(2)}
                             </span>
                           </button>
@@ -480,9 +480,9 @@ export default function PDV() {
                   </div>
 
                   {scannerActive && (
-                    <div className="mt-2.5 rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                      <div className="flex items-center gap-2 text-xs text-primary font-medium">
-                        <Zap className="h-3.5 w-3.5" />
+                    <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-2.5 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="flex items-center gap-2 text-[11px] text-primary font-medium">
+                        <Zap className="h-3 w-3" />
                         Aponte a câmera para o código de barras
                       </div>
                       <BarcodeScanner
@@ -497,10 +497,10 @@ export default function PDV() {
               </Card>
 
               {/* Products grid */}
-              <Card className="rounded-2xl border-border shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
-                <CardContent className="p-3 md:p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-sm md:text-base font-semibold text-foreground">Produtos rápidos</h2>
+              <Card className="rounded-xl border-border shadow-none">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <h2 className="text-[13px] font-semibold text-foreground uppercase tracking-wide">Produtos rápidos</h2>
                   </div>
                   <PDVQuickProducts
                     onSelectProduct={addProduct}
