@@ -375,18 +375,6 @@ export default function Estoque() {
       </div>
     );
 
-  const kpis = [
-    { label: "Cheios", value: totalCheios.toLocaleString("pt-BR"), icon: Package, tone: "primary" as const, hint: "Botijões prontos p/ venda" },
-    { label: "Vazios", value: totalVazios.toLocaleString("pt-BR"), icon: Package, tone: "secondary" as const, hint: "Vasilhames disponíveis" },
-    { label: "Vendas no período", value: totalVendas.toLocaleString("pt-BR"), icon: TrendingUp, tone: "info" as const, hint: periodoLabel },
-    { label: "Produtos zerados", value: produtosZerados.toLocaleString("pt-BR"), icon: AlertTriangle, tone: "destructive" as const, hint: "Requer reposição" },
-  ];
-  const toneClasses: Record<"primary" | "secondary" | "info" | "destructive", string> = {
-    primary: "bg-success/12 text-success",
-    secondary: "bg-muted text-muted-foreground",
-    info: "bg-info/12 text-info",
-    destructive: "bg-destructive/12 text-destructive",
-  };
 
   const DateFields = (
     <>
