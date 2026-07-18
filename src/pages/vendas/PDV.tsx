@@ -1,12 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Header } from "@/components/layout/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   ShoppingCart,
   Search,
@@ -17,6 +14,8 @@ import {
   ScanBarcode,
   CameraOff,
   Zap,
+  X,
+  ShoppingBag,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,9 +27,11 @@ import { BarcodeScanner } from "@/components/pdv/BarcodeScanner";
 import { PDVProductList, PDVItem } from "@/components/pdv/PDVProductList";
 import { PDVPayment, PDVPagamento } from "@/components/pdv/PDVPayment";
 import { PDVQuickProducts } from "@/components/pdv/PDVQuickProducts";
+import { PdvProductLike } from "@/components/pdv/PdvProductCard";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { CaixaBloqueadoBanner } from "@/components/caixa/CaixaBloqueadoBanner";
+import { cn } from "@/lib/utils";
 
 interface Produto {
   id: string;
@@ -40,6 +41,7 @@ interface Produto {
   categoria?: string | null;
   tipo_botijao?: string | null;
   botijao_par_id?: string | null;
+  image_url?: string | null;
 }
 
 export default function PDV() {
@@ -56,27 +58,33 @@ export default function PDV() {
   const [scannerActive, setScannerActive] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [now, setNow] = useState<string>(() =>
+    new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+  );
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setNow(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+    }, 30_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const total = itens.reduce((acc, item) => acc + item.total, 0);
   const totalItens = itens.reduce((acc, item) => acc + item.quantidade, 0);
+  const carrinhoVazio = itens.length === 0;
 
   // Focus search input on mount and handle keyboard shortcuts
   useEffect(() => {
     searchInputRef.current?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // F12 - Finalizar venda
       if (e.key === "F12") {
         e.preventDefault();
-        if (itens.length > 0) {
-          setPaymentOpen(true);
-        }
+        if (itens.length > 0) setPaymentOpen(true);
       }
-      // Escape - Cancelar/Fechar
       if (e.key === "Escape") {
-        if (paymentOpen) {
-          setPaymentOpen(false);
-        } else if (showResults) {
+        if (paymentOpen) setPaymentOpen(false);
+        else if (showResults) {
           setShowResults(false);
           setSearchResults([]);
         }
@@ -87,7 +95,6 @@ export default function PDV() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [itens.length, paymentOpen, showResults]);
 
-  // Search products
   const searchProdutos = async (term: string) => {
     if (term.length < 2) {
       setSearchResults([]);
@@ -100,7 +107,6 @@ export default function PDV() {
         .from("produtos")
         .select("id, nome, preco, estoque, categoria, tipo_botijao, botijao_par_id")
         .eq("ativo", true)
-        
         .ilike("nome", `%${term}%`)
         .limit(8);
 
@@ -119,8 +125,7 @@ export default function PDV() {
     }
   };
 
-  // Add product to cart
-  const addProduct = useCallback((produto: Produto) => {
+  const addProduct = useCallback((produto: Produto | PdvProductLike) => {
     setItens((prev) => {
       const existingIndex = prev.findIndex((i) => i.produto_id === produto.id);
 
@@ -150,16 +155,13 @@ export default function PDV() {
     setSearchResults([]);
     searchInputRef.current?.focus();
 
-    // Play beep sound
-    const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQgAHoTPxaR2J...")
+    const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQgAHoTPxaR2J...");
     audio.volume = 0.3;
     audio.play().catch(() => {});
   }, []);
 
-  // Handle barcode scan
   const handleBarcodeScan = useCallback(async (barcode: string) => {
     try {
-      // Try to find product by barcode field first, then fallback to nome/ID
       let { data, error } = await supabase
         .from("produtos")
         .select("id, nome, preco, estoque, categoria, tipo_botijao, botijao_par_id")
@@ -167,7 +169,6 @@ export default function PDV() {
         .eq("codigo_barras", barcode)
         .limit(1);
 
-      // If not found by barcode, try nome/ID
       if (!data || data.length === 0) {
         const result = await supabase
           .from("produtos")
@@ -189,16 +190,12 @@ export default function PDV() {
       }
 
       addProduct(data[0]);
-      toast({
-        title: "Produto adicionado",
-        description: data[0].nome,
-      });
+      toast({ title: "Produto adicionado", description: data[0].nome });
     } catch (error) {
       console.error("Erro ao buscar produto por código:", error);
     }
   }, [addProduct, toast]);
 
-  // Update quantity
   const updateQuantity = (index: number, delta: number) => {
     setItens((prev) => {
       const newItens = [...prev];
@@ -210,7 +207,6 @@ export default function PDV() {
     });
   };
 
-  // Update price
   const updatePrice = (index: number, newPrice: number) => {
     setItens((prev) => {
       const newItens = [...prev];
@@ -220,19 +216,45 @@ export default function PDV() {
     });
   };
 
-  // Remove item
   const removeItem = (index: number) => {
     setItens((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Clear cart
   const clearCart = () => {
     if (itens.length > 0 && !confirm("Limpar todos os itens?")) return;
     setItens([]);
     searchInputRef.current?.focus();
   };
 
-  // Finalize sale
+  const getQuantidade = useCallback(
+    (produtoId: string) => itens.find((i) => i.produto_id === produtoId)?.quantidade ?? 0,
+    [itens]
+  );
+
+  const incrementByProduct = useCallback((produto: PdvProductLike) => {
+    setItens((prev) => {
+      const idx = prev.findIndex((i) => i.produto_id === produto.id);
+      if (idx < 0) return prev;
+      const newItens = [...prev];
+      newItens[idx].quantidade += 1;
+      newItens[idx].total = newItens[idx].quantidade * newItens[idx].preco_unitario;
+      return newItens;
+    });
+  }, []);
+
+  const decrementByProduct = useCallback((produto: PdvProductLike) => {
+    setItens((prev) => {
+      const idx = prev.findIndex((i) => i.produto_id === produto.id);
+      if (idx < 0) return prev;
+      const newItens = [...prev];
+      const nova = newItens[idx].quantidade - 1;
+      if (nova <= 0) return newItens.filter((_, i) => i !== idx);
+      newItens[idx].quantidade = nova;
+      newItens[idx].total = nova * newItens[idx].preco_unitario;
+      return newItens;
+    });
+  }, []);
+
   const finalizeSale = async (pagamentos: PDVPagamento[], _valorRecebidoDinheiro: number) => {
     if (itens.length === 0 || pagamentos.length === 0) return;
 
@@ -247,7 +269,6 @@ export default function PDV() {
           ? pagamentos[0].forma
           : `multiplo:${pagamentos.map((p) => p.forma).join("+")}`;
 
-      // Create order
       const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert({
@@ -256,7 +277,7 @@ export default function PDV() {
           canal_venda: null,
           origem_pedido: "balcao_pdv",
           responsavel_acerto: "portaria",
-          status: "finalizado", // PDV: venda imediata, sem acerto com entregador
+          status: "finalizado",
           endereco_entrega: "Retirada no local",
           unidade_id: unidadeAtual?.id || null,
         } as any)
@@ -265,7 +286,6 @@ export default function PDV() {
 
       if (pedidoError) throw pedidoError;
 
-      // Create order items
       const itensInsert = itens.map((item) => ({
         pedido_id: pedido.id,
         produto_id: item.produto_id,
@@ -276,16 +296,11 @@ export default function PDV() {
       const { error: itensError } = await supabase.from("pedido_itens").insert(itensInsert);
       if (itensError) throw itensError;
 
-      // Update stock using shared service
       await atualizarEstoqueVenda(
-        itens.map((item) => ({
-          produto_id: item.produto_id,
-          quantidade: item.quantidade,
-        })),
+        itens.map((item) => ({ produto_id: item.produto_id, quantidade: item.quantidade })),
         unidadeAtual?.id
       );
 
-      // Receipt company config: prioriza dados da unidade/loja atual
       let empresaConfig: EmpresaConfig | undefined;
       try {
         let cfgQuery = supabase
@@ -314,16 +329,11 @@ export default function PDV() {
         empresaConfig = { nome_empresa: unidadeAtual?.nome || empresa?.nome || "Empresa" };
       }
 
-      // Generate receipt
       generateReceiptPdf({
         pedidoId: pedido.id,
         pedidoNumero: (pedido as any).numero_sequencial ?? null,
         data: new Date(),
-        cliente: {
-          nome: "Consumidor Final",
-          telefone: "",
-          endereco: "Retirada no local",
-        },
+        cliente: { nome: "Consumidor Final", telefone: "", endereco: "Retirada no local" },
         itens,
         pagamentos: pagamentos.map((p) => ({ id: p.id, forma: p.forma, valor: p.valor })),
         entregadorNome: null,
@@ -332,7 +342,6 @@ export default function PDV() {
         empresa: empresaConfig,
       });
 
-      // Rotear pagamentos para caixa/financeiro
       await rotearPagamentosVenda({
         pedidoId: pedido.id,
         pedidoNumero: (pedido as any).numero_sequencial ?? null,
@@ -343,7 +352,6 @@ export default function PDV() {
           operadora_id: p.operadora_id,
           conta_bancaria_id: p.conta_bancaria_id,
         })),
-
         unidadeId: unidadeAtual?.id,
       });
 
@@ -352,7 +360,6 @@ export default function PDV() {
         description: `Pedido #${(pedido as any).numero_sequencial ?? pedido.id.slice(0, 8).toUpperCase()} - R$ ${total.toFixed(2)}`,
       });
 
-      // Reset
       setItens([]);
       setPaymentOpen(false);
       searchInputRef.current?.focus();
@@ -370,62 +377,94 @@ export default function PDV() {
 
   return (
     <MainLayout>
-      <Header title="PDV" subtitle="Venda rápida para retirada no local" />
-      <div className="h-[calc(100vh-4rem)] flex flex-col p-3 md:p-4 gap-3 md:gap-4 w-full min-w-0 max-w-full overflow-x-hidden">
-        <CaixaBloqueadoBanner />
-        {/* Header */}
-        <div className="flex items-center justify-between gap-2 w-full min-w-0">
-          <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-            <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={() => navigate("/vendas")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <ShoppingCart className="h-5 w-5 text-primary" />
+      <div className="min-h-[calc(100vh-0rem)] bg-[hsl(220,14%,96%)]">
+        <div className="mx-auto max-w-[1400px] px-3 md:px-6 pt-3 md:pt-5 pb-40 md:pb-6 space-y-3 md:space-y-4">
+          <CaixaBloqueadoBanner />
+
+          {/* Compact premium header */}
+          <div className="flex items-center justify-between gap-2 w-full min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 shrink-0 rounded-xl"
+                onClick={() => navigate("/vendas")}
+                aria-label="Voltar"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <ShoppingCart className="h-5 w-5 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-base md:text-lg font-bold truncate leading-tight">PDV – Portaria</h1>
+                <p className="text-[11px] md:text-xs text-muted-foreground truncate">
+                  {unidadeAtual ? `Loja: ${unidadeAtual.nome}` : "Venda rápida para retirada no local"}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-lg md:text-xl font-bold truncate">PDV - Portaria</h1>
-              <p className="text-xs text-muted-foreground truncate">
-                {unidadeAtual ? `Loja: ${unidadeAtual.nome}` : "Venda rápida para retirada no local"}
-              </p>
+            <div className="flex items-center gap-1.5 rounded-xl bg-card border border-border px-3 h-10 shrink-0 text-sm font-semibold tabular-nums shadow-sm">
+              {now}
             </div>
           </div>
-          <Badge variant="outline" className="text-sm md:text-lg px-2 md:px-4 py-1 md:py-2 shrink-0">
-            {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-          </Badge>
-        </div>
 
-        {/* Main Content */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 min-h-0 w-full min-w-0">
-          {/* Left: Products */}
-          <Card className="lg:col-span-2 flex flex-col min-h-0 w-full min-w-0 max-w-full overflow-hidden">
-            <CardHeader className="pb-2 flex-shrink-0">
-              <div className="space-y-2 w-full min-w-0">
-                <div className="flex items-center gap-2 w-full min-w-0">
-                  <div className="flex-1 relative min-w-0">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          {/* Two-column layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-3 md:gap-4">
+            {/* Left: Products */}
+            <div className="space-y-3 md:space-y-4 min-w-0">
+              {/* Search bar */}
+              <Card className="rounded-2xl border-border shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
+                <CardContent className="p-2.5 md:p-3">
+                  <div className="flex items-center gap-2 rounded-2xl border border-border bg-background focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary h-[52px] px-3 relative">
+                    <Search className="h-5 w-5 text-muted-foreground shrink-0" />
                     <Input
                       ref={searchInputRef}
-                      placeholder="Buscar produto..."
+                      placeholder="Buscar produto, código ou descrição"
                       value={searchTerm}
                       onChange={(e) => {
                         setSearchTerm(e.target.value);
                         searchProdutos(e.target.value);
                       }}
-                      className="pl-10 w-full min-w-0 h-10"
+                      className="flex-1 min-w-0 border-0 shadow-none focus-visible:ring-0 h-full text-[15px] px-0 bg-transparent"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && searchResults.length > 0) {
                           addProduct(searchResults[0]);
                         }
                       }}
                     />
-                    
-                    {/* Search Results Dropdown */}
+                    {searchTerm && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg shrink-0"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setSearchResults([]);
+                          setShowResults(false);
+                          searchInputRef.current?.focus();
+                        }}
+                        aria-label="Limpar busca"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <div className="h-6 w-px bg-border" />
+                    <Button
+                      variant={scannerActive ? "destructive" : "ghost"}
+                      size="icon"
+                      className={cn("h-9 w-9 rounded-lg shrink-0", !scannerActive && "text-primary hover:bg-primary/10")}
+                      onClick={() => setScannerActive(!scannerActive)}
+                      aria-label={scannerActive ? "Fechar scanner" : "Escanear código de barras"}
+                    >
+                      {scannerActive ? <CameraOff className="h-4 w-4" /> : <ScanBarcode className="h-4 w-4" />}
+                    </Button>
+
                     {showResults && searchResults.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-lg shadow-lg overflow-hidden max-w-full">
+                      <div className="absolute z-40 left-0 right-0 top-full mt-2 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden">
                         {searchResults.map((produto) => (
                           <button
                             key={produto.id}
-                            className="w-full px-3 py-3 text-left hover:bg-accent transition-colors border-b last:border-0 flex justify-between items-center gap-2 min-w-0"
+                            className="w-full px-3 py-3 text-left hover:bg-accent transition-colors border-b border-border last:border-0 flex justify-between items-center gap-2 min-w-0"
                             onClick={() => addProduct(produto)}
                           >
                             <div className="min-w-0 flex-1">
@@ -434,7 +473,7 @@ export default function PDV() {
                                 Estoque: {produto.estoque ?? 0}
                               </p>
                             </div>
-                            <span className="font-semibold text-primary shrink-0">
+                            <span className="font-semibold text-primary shrink-0 tabular-nums">
                               R$ {produto.preco.toFixed(2)}
                             </span>
                           </button>
@@ -443,153 +482,162 @@ export default function PDV() {
                     )}
                   </div>
 
-                  <Button
-                    variant={scannerActive ? "destructive" : "photo"}
-                    size="icon"
-                    className="h-10 w-10 shrink-0"
-                    onClick={() => setScannerActive(!scannerActive)}
-                    title={scannerActive ? "Fechar scanner" : "Escanear código de barras"}
-                  >
-                    {scannerActive ? <CameraOff className="h-4 w-4" /> : <ScanBarcode className="h-4 w-4" />}
-                  </Button>
-                </div>
-
-                {scannerActive && (
-                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="flex items-center gap-2 text-xs text-primary font-medium">
-                      <Zap className="h-3.5 w-3.5" />
-                      Aponte a câmera para o código de barras
+                  {scannerActive && (
+                    <div className="mt-2.5 rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="flex items-center gap-2 text-xs text-primary font-medium">
+                        <Zap className="h-3.5 w-3.5" />
+                        Aponte a câmera para o código de barras
+                      </div>
+                      <BarcodeScanner
+                        isActive={scannerActive}
+                        onToggle={() => setScannerActive(!scannerActive)}
+                        onScan={handleBarcodeScan}
+                        hideToggle
+                      />
                     </div>
-                    <BarcodeScanner
-                      isActive={scannerActive}
-                      onToggle={() => setScannerActive(!scannerActive)}
-                      onScan={handleBarcodeScan}
-                      hideToggle
-                    />
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Products grid */}
+              <Card className="rounded-2xl border-border shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
+                <CardContent className="p-3 md:p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-sm md:text-base font-semibold text-foreground">Produtos rápidos</h2>
                   </div>
-                )}
-              </div>
-            </CardHeader>
-            
-            <CardContent className="flex-1 flex flex-col min-h-0 pt-2">
-              {/* Quick Products Grid */}
-              <div className="mb-4">
-                <p className="text-sm font-medium text-muted-foreground mb-2">Produtos Rápidos</p>
-                <PDVQuickProducts onSelectProduct={addProduct} unidadeId={unidadeAtual?.id} />
-              </div>
+                  <PDVQuickProducts
+                    onSelectProduct={addProduct}
+                    onIncrement={incrementByProduct}
+                    onDecrement={decrementByProduct}
+                    getQuantidade={getQuantidade}
+                    unidadeId={unidadeAtual?.id}
+                  />
+                </CardContent>
+              </Card>
+            </div>
 
-              <Separator className="my-2" />
-
-              {/* Cart Items */}
-              <PDVProductList
-                itens={itens}
-                onUpdateQuantity={updateQuantity}
-                onRemoveItem={removeItem}
-                onUpdatePrice={updatePrice}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Right: Summary */}
-          <Card className="flex flex-col w-full min-w-0 max-w-full overflow-hidden">
-            <CardContent className="p-3 md:p-6 flex flex-col lg:flex-1 w-full min-w-0">
-              {/* Mobile: compact hero total */}
-              <div className="lg:hidden mb-3 w-full min-w-0">
-                <div className="flex items-center justify-between gap-3 rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-3 text-primary-foreground shadow-[0_10px_30px_-12px_hsl(var(--primary)/0.5)]">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-medium uppercase tracking-wider text-primary-foreground/80 truncate">
-                      Total · {totalItens} {totalItens === 1 ? "item" : "itens"}
-                    </p>
-                    <p className="text-2xl font-extrabold tracking-tight truncate">
-                      R$ {total.toFixed(2)}
-                    </p>
+            {/* Right: Cart */}
+            <div className="min-w-0 lg:sticky lg:top-4 lg:self-start space-y-3">
+              <Card className="rounded-2xl border-border shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
+                <CardContent className="p-3 md:p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <ShoppingBag className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold leading-tight">Carrinho</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {totalItens} {totalItens === 1 ? "item" : "itens"}
+                        </p>
+                      </div>
+                    </div>
+                    {!carrinhoVazio && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
+                        onClick={clearCart}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                        Limpar
+                      </Button>
+                    )}
                   </div>
-                  <Button
-                    variant="secondary"
-                    className="h-11 px-4 text-sm font-semibold shrink-0 shadow-sm"
-                    disabled={itens.length === 0}
-                    onClick={() => setPaymentOpen(true)}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-1.5" />
-                    Finalizar
-                  </Button>
+
+                  {carrinhoVazio ? (
+                    <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center">
+                      <ShoppingCart className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
+                      <p className="text-sm font-medium text-foreground">Carrinho vazio</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Adicione produtos para iniciar a venda.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="max-h-[46vh] lg:max-h-[52vh] overflow-y-auto -mx-1 px-1">
+                      <PDVProductList
+                        itens={itens}
+                        onUpdateQuantity={updateQuantity}
+                        onRemoveItem={removeItem}
+                        onUpdatePrice={updatePrice}
+                      />
+                    </div>
+                  )}
+
+                  {/* Desktop summary */}
+                  <div className="hidden lg:block mt-3 pt-3 border-t border-border">
+                    <div className="flex items-baseline justify-between mb-3">
+                      <span className="text-sm text-muted-foreground">Total</span>
+                      <span className="text-2xl font-bold tabular-nums text-foreground">
+                        R$ {total.toFixed(2)}
+                      </span>
+                    </div>
+                    <Button
+                      className="w-full h-12 rounded-xl text-[15px] font-semibold shadow-sm"
+                      disabled={carrinhoVazio}
+                      onClick={() => setPaymentOpen(true)}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      {carrinhoVazio ? "Adicione produtos" : "Finalizar venda"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full h-10 mt-1 rounded-xl text-muted-foreground text-xs"
+                      onClick={() => navigate("/vendas")}
+                    >
+                      <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                      Cancelar venda
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile sticky checkout bar */}
+        <div className="lg:hidden fixed bottom-16 left-0 right-0 z-30 px-3 pb-[env(safe-area-inset-bottom)]">
+          <div className="mx-auto max-w-[1400px]">
+            <div className="rounded-2xl border border-border bg-card shadow-[0_-8px_24px_rgba(15,23,42,0.10)] p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+                    {totalItens} {totalItens === 1 ? "item" : "itens"} · Total
+                  </p>
+                  <p className="text-[22px] font-bold tabular-nums leading-tight truncate">
+                    R$ {total.toFixed(2)}
+                  </p>
                 </div>
+                <Button
+                  className="h-12 px-5 rounded-xl text-sm font-semibold shrink-0"
+                  disabled={carrinhoVazio}
+                  onClick={() => setPaymentOpen(true)}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1.5" />
+                  {carrinhoVazio ? "Adicione itens" : "Finalizar"}
+                </Button>
               </div>
-              <div className="flex gap-2 lg:hidden w-full min-w-0">
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  className="flex-1 h-10 min-w-0"
+                  className="flex-1 h-9 rounded-xl text-xs"
                   onClick={clearCart}
-                  disabled={itens.length === 0}
+                  disabled={carrinhoVazio}
                 >
-                  <Trash2 className="h-4 w-4 mr-1 shrink-0" />
-                  <span className="truncate">Limpar</span>
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  Limpar
                 </Button>
                 <Button
                   variant="ghost"
-                  className="flex-1 h-10 min-w-0 text-muted-foreground"
+                  className="flex-1 h-9 rounded-xl text-xs text-muted-foreground"
                   onClick={() => navigate("/vendas")}
                 >
-                  <XCircle className="h-4 w-4 mr-1 shrink-0" />
-                  <span className="truncate">Cancelar</span>
+                  <XCircle className="h-3.5 w-3.5 mr-1" />
+                  Cancelar
                 </Button>
               </div>
-
-              {/* Desktop: premium vertical layout */}
-              <div className="hidden lg:flex lg:flex-col lg:flex-1 w-full min-w-0">
-                <CardTitle className="text-base mb-4">Resumo</CardTitle>
-                <div className="flex-1 space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Itens</span>
-                    <span className="font-semibold tabular-nums">{totalItens}</span>
-                  </div>
-                  <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground shadow-[0_20px_50px_-20px_hsl(var(--primary)/0.55)]">
-                    <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary-foreground/10 blur-2xl" />
-                    <div className="relative">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary-foreground/80">
-                        Total a pagar
-                      </p>
-                      <p className="mt-2 text-5xl font-extrabold tracking-tight tabular-nums truncate">
-                        R$ {total.toFixed(2)}
-                      </p>
-                      <p className="mt-1 text-xs font-medium text-primary-foreground/80">
-                        {totalItens} {totalItens === 1 ? "item no carrinho" : "itens no carrinho"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2 mt-4">
-                  <Button
-                    className="w-full h-14 text-lg rounded-2xl shadow-md"
-                    size="lg"
-                    disabled={itens.length === 0}
-                    onClick={() => setPaymentOpen(true)}
-                  >
-                    <CheckCircle className="h-5 w-5 mr-2" />
-                    Finalizar (F12)
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full h-10 rounded-xl"
-                    onClick={clearCart}
-                    disabled={itens.length === 0}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Limpar
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-full h-10 rounded-xl text-muted-foreground"
-                    onClick={() => navigate("/vendas")}
-                  >
-                    <XCircle className="h-4 w-4 mr-2" />
-                    Cancelar
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
+            </div>
+          </div>
         </div>
 
         {/* Payment Modal */}
