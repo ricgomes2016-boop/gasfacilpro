@@ -412,10 +412,10 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                         <TableCell className="text-center">{renderBadge(linha.tipoEstoque)}</TableCell>
                         <TableCell className="text-center font-semibold tabular-nums">{linha.inicial}</TableCell>
                         <TableCell className="text-center font-semibold text-success tabular-nums">
-                          {linha.entradasManuais > 0 ? `+${linha.entradasManuais}` : "0"}
+                          {linha.entradas > 0 ? `+${linha.entradas}` : "0"}
                         </TableCell>
                         <TableCell className="text-center font-semibold text-warning tabular-nums">
-                          {linha.saidasManuais > 0 ? `-${linha.saidasManuais}` : "0"}
+                          {linha.saidas > 0 ? `-${linha.saidas}` : "0"}
                         </TableCell>
                         <TableCell className="text-center font-semibold text-info tabular-nums">
                           {isVazio ? "—" : (linha.vendas > 0 ? `-${linha.vendas}` : "0")}
@@ -426,14 +426,9 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                         <TableCell className={`text-center font-bold text-base tabular-nums ${totalTone}`}>
                           {linha.total}
                         </TableCell>
-                        {!isPairedVazio && (
-                          <TableCell
-                            className="text-center font-bold text-base border-l tabular-nums"
-                            rowSpan={hasPairBelow ? 2 : 1}
-                          >
-                            {linha.estoqueAtual}
-                          </TableCell>
-                        )}
+                        <TableCell className="text-center font-bold text-base border-l tabular-nums">
+                          {linha.estoqueAtual}
+                        </TableCell>
                         <TableCell className="text-center">
                           <Button
                             variant="ghost"
