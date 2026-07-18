@@ -1689,9 +1689,9 @@ export default function Compras() {
                   )}
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="outline" onClick={() => { setOpen(false); resetForm(); }}>Cancelar</Button>
-                  <Button onClick={handleSave}>Registrar Compra</Button>
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+                  <Button variant="outline" className="h-11 w-full sm:w-auto" onClick={() => { setOpen(false); resetForm(); }}>Cancelar</Button>
+                  <Button className="h-11 w-full sm:w-auto" onClick={handleSave}>Registrar Compra</Button>
                 </div>
               </div>
             </DialogContent>
