@@ -58,7 +58,7 @@ export function PremiumKpiCard({
     <div
       onClick={onClick}
       className={cn(
-        "group relative isolate flex min-h-[132px] flex-col overflow-hidden rounded-[var(--radius)] border border-border/60 bg-card p-5",
+        "group relative isolate flex min-h-[128px] flex-col overflow-hidden rounded-[var(--radius)] border border-border/60 bg-card p-3 sm:p-5",
         "shadow-[var(--elev-2)] ring-1 ring-inset transition-all duration-200",
         "hover:-translate-y-0.5 hover:shadow-[var(--elev-3)]",
         t.ring,
@@ -71,16 +71,16 @@ export function PremiumKpiCard({
       {/* Glow blob */}
       <div className={cn("pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full opacity-40 blur-3xl transition-opacity duration-300 group-hover:opacity-60", t.glow)} />
 
-      <div className="relative flex items-start justify-between gap-3">
+      <div className="relative flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-[11px]">
             {label}
           </p>
-          <p className="mt-1.5 truncate text-[1.5rem] font-semibold leading-tight tracking-tight tabular-nums text-foreground sm:text-[1.65rem]">
+          <p className="mt-1 break-words text-[1.15rem] font-semibold leading-tight tracking-tight tabular-nums text-foreground sm:mt-1.5 sm:text-[1.65rem]">
             {value}
           </p>
           {subtitle && (
-            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{subtitle}</p>
+            <p className="mt-0.5 truncate text-[10px] text-muted-foreground sm:text-[11px]">{subtitle}</p>
           )}
         </div>
 
@@ -88,13 +88,14 @@ export function PremiumKpiCard({
         <div className="relative shrink-0">
           <span className={cn("absolute inset-0 -m-1 rounded-full blur-md opacity-60", t.glow)} />
           <div className={cn(
-            "relative flex h-10 w-10 items-center justify-center rounded-[calc(var(--radius)-4px)] bg-card/80 backdrop-blur ring-1 ring-inset",
+            "relative flex h-8 w-8 items-center justify-center rounded-[calc(var(--radius)-4px)] bg-card/80 backdrop-blur ring-1 ring-inset sm:h-10 sm:w-10",
             t.ring, t.text,
           )}>
-            <Icon className="h-[18px] w-[18px]" strokeWidth={2.2} />
+            <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" strokeWidth={2.2} />
           </div>
         </div>
       </div>
+
 
       {/* Trend + sparkline row */}
       {(trend || spark) && (
