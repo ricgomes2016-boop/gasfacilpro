@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { FinancialHeroCard } from "@/components/ui/financial-hero-card";
 import {
   Users, Phone, MessageSquare, Clock, CheckCircle, AlertCircle, Search, Loader2,
   MapPin, TrendingDown, Bell, Star, Flame, Target, TrendingUp, BarChart3,
@@ -124,49 +125,46 @@ export default function CRM() {
       <Header title="CRM Avançado" subtitle="Scoring, funil e automação de relacionamento" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
 
-        {/* KPI Cards */}
-        <div className="grid gap-4 md:grid-cols-5">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10"><Users className="h-5 w-5 text-primary" /></div>
-                <div><p className="text-2xl font-bold">{stats.total}</p><p className="text-xs text-muted-foreground">Total Clientes</p></div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="status-card-icon status-card-icon-warning"><Crown /></div>
-                <div><p className="text-2xl font-bold">{stats.vip}</p><p className="text-xs text-muted-foreground">Clientes VIP</p></div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="status-card-icon status-card-icon-warning"><AlertTriangle /></div>
-                <div><p className="text-2xl font-bold">{stats.emRisco}</p><p className="text-xs text-muted-foreground">Em Risco</p></div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-destructive/10"><AlertCircle className="h-5 w-5 text-destructive" /></div>
-                <div><p className="text-2xl font-bold">{stats.inativo}</p><p className="text-xs text-muted-foreground">Inativos</p></div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="status-card-icon status-card-icon-success"><TrendingUp /></div>
-                <div><p className="text-2xl font-bold">R$ {stats.ticketMedio.toFixed(0)}</p><p className="text-xs text-muted-foreground">Ticket Médio</p></div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <FinancialHeroCard
+            title="Total Clientes"
+            value={stats.total}
+            subtitle="Base ativa"
+            color="primary"
+            icon={Users}
+          />
+          <FinancialHeroCard
+            title="Clientes VIP"
+            value={stats.vip}
+            subtitle="Score ≥ 70"
+            color="warning"
+            icon={Crown}
+            progress={stats.total ? Math.round((stats.vip / stats.total) * 100) : 0}
+          />
+          <FinancialHeroCard
+            title="Em Risco"
+            value={stats.emRisco}
+            subtitle="Requer atenção"
+            color="danger"
+            icon={AlertTriangle}
+            progress={stats.total ? Math.round((stats.emRisco / stats.total) * 100) : 0}
+          />
+          <FinancialHeroCard
+            title="Inativos"
+            value={stats.inativo}
+            subtitle="Sem compra recente"
+            color="violet"
+            icon={AlertCircle}
+          />
+          <FinancialHeroCard
+            title="Ticket Médio"
+            value={`R$ ${stats.ticketMedio.toFixed(0)}`}
+            subtitle="Por cliente ativo"
+            color="success"
+            icon={TrendingUp}
+          />
         </div>
+
 
         <Tabs defaultValue="funil" className="space-y-4">
           <TabsList className="flex-wrap h-auto gap-1">
