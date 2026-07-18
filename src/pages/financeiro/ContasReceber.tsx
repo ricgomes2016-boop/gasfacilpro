@@ -48,6 +48,7 @@ import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsa
 import { ClienteAutocompleteInput } from "@/components/clientes/ClienteAutocompleteInput";
 import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
 import { LiquidarRecebivelModal } from "@/components/financeiro/LiquidarRecebivelModal";
+import { FinancialHeroCard } from "@/components/ui/financial-hero-card";
 
 interface ContaReceber {
   id: string;
@@ -1076,33 +1077,35 @@ export default function ContasReceber() {
       <Header title="Contas a Receber" subtitle="Recebíveis unificados por categoria" />
       <div className="p-3 md:p-6 space-y-4 md:space-y-6">
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            { title: "A Receber (Total)", value: totalAberto, count: countAberto, tone: "primary", icon: Wallet, detail: "Total em aberto" },
-            { title: "Vencidas", value: totalVencido, count: countVencido, tone: "destructive", icon: AlertCircle, detail: "Exigem cobrança" },
-            { title: "A Vencer", value: totalPendente, count: countPendente, tone: "success", icon: Clock, detail: "Dentro do prazo" },
-            { title: "Recebidos (Mês)", value: totalRecebido, count: countRecebido, tone: "info", icon: CheckCircle2, detail: "Liquidado no filtro" },
-          ].map((card) => {
-            const Icon = card.icon;
-            const valueClass = card.tone === "destructive" ? "text-destructive" : card.tone === "success" ? "text-success" : "";
-            const iconClass = card.tone === "destructive" ? "status-card-icon-destructive" : card.tone === "success" ? "status-card-icon-success" : "status-card-icon-primary";
-            return (
-              <Card key={card.title} className="kpi-card">
-                <CardContent className="flex items-center justify-between gap-3 p-4">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{card.title}</p>
-                    <p className={`mt-2 text-xl font-bold sm:text-2xl ${valueClass}`}>
-                      R$ {card.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">{card.count} título{card.count === 1 ? "" : "s"} · {card.detail}</p>
-                  </div>
-                  <div className={`status-card-icon ${iconClass} h-10 w-10 shrink-0`}>
-                    <Icon />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <FinancialHeroCard
+            title="A Receber (Total)"
+            value={`R$ ${totalAberto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            subtitle={`${countAberto} título${countAberto === 1 ? "" : "s"} em aberto`}
+            icon={Wallet}
+            color="primary"
+          />
+          <FinancialHeroCard
+            title="Vencidas"
+            value={`R$ ${totalVencido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            subtitle={`${countVencido} exigem cobrança`}
+            icon={AlertCircle}
+            color="danger"
+          />
+          <FinancialHeroCard
+            title="A Vencer"
+            value={`R$ ${totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            subtitle={`${countPendente} dentro do prazo`}
+            icon={Clock}
+            color="success"
+          />
+          <FinancialHeroCard
+            title="Recebidos (Mês)"
+            value={`R$ ${totalRecebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            subtitle={`${countRecebido} liquidado no filtro`}
+            icon={CheckCircle2}
+            color="info"
+          />
         </div>
 
         {totalVencido > 0 && (
