@@ -1689,7 +1689,11 @@ export default function Compras() {
               </div>
             </DialogContent>
           </Dialog>
-        </div>
+            </div>
+          }
+        />
+
+
 
         {/* KPI Cards */}
         <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
