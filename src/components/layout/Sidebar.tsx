@@ -253,13 +253,13 @@ export function Sidebar() {
   const userName = profile?.full_name || "Administrador";
   const userInitial = userName.charAt(0).toUpperCase();
 
-  const menuItemBase = "group flex items-center gap-3.5 rounded-full px-4 py-3.5 text-[13px] font-semibold transition-all duration-200";
-  const menuItemActive = "bg-sidebar-accent text-sidebar-accent-foreground shadow-lg shadow-foreground/10 ring-1 ring-sidebar-border/30";
-  const menuItemIdle = "text-sidebar-foreground/70 hover:bg-sidebar-accent/15 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15";
-  const collapsedItemBase = "mx-auto flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200";
-  const subMenuItemBase = "group flex items-center gap-3 rounded-full px-3.5 py-2.5 text-[12px] font-semibold transition-all duration-200";
-  const subMenuItemActive = "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border/30";
-  const subMenuItemIdle = "text-sidebar-foreground/70 hover:bg-sidebar-accent/15 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15";
+  const menuItemBase = "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors duration-150";
+  const menuItemActive = "bg-primary/10 text-primary ring-1 ring-primary/15";
+  const menuItemIdle = "text-sidebar-foreground/80 hover:bg-muted/60 hover:text-foreground";
+  const collapsedItemBase = "mx-auto flex h-10 w-10 items-center justify-center rounded-lg transition-colors duration-150";
+  const subMenuItemBase = "group flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12.5px] font-medium transition-colors duration-150";
+  const subMenuItemActive = "bg-primary/10 text-primary ring-1 ring-primary/15";
+  const subMenuItemIdle = "text-sidebar-foreground/75 hover:bg-muted/60 hover:text-foreground";
 
   const { themeClass, brandTheme } = useDashboardTheme();
 
