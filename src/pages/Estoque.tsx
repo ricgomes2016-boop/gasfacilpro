@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { format, eachDayOfInterval, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, TrendingUp, Filter as FilterIcon, Boxes } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { CalendarIcon, Filter as FilterIcon, Boxes } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
