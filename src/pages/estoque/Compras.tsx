@@ -1266,19 +1266,19 @@ export default function Compras() {
               <div className="space-y-4 pt-2">
                 {/* Fornecedor e NF */}
                 {!form.fornecedor_novo && (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                       <Label>Fornecedor *</Label>
-                      <div className="flex gap-1">
+                      <div className="flex gap-2">
                         <Select value={form.fornecedor_id} onValueChange={v => setForm({ ...form, fornecedor_id: v })}>
-                          <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectTrigger className="flex-1 h-11"><SelectValue placeholder="Selecione" /></SelectTrigger>
                           <SelectContent>
                             {fornecedores.map(f => (
                               <SelectItem key={f.id} value={f.id}>{f.razao_social}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => setQuickFornOpen(true)} title="Cadastrar fornecedor">
+                        <Button type="button" variant="outline" size="icon" className="shrink-0 h-11 w-11" onClick={() => setQuickFornOpen(true)} title="Cadastrar fornecedor">
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
