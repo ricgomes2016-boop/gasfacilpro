@@ -205,6 +205,11 @@ export default function Pedidos() {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [batchDialogAberto, setBatchDialogAberto] = useState(false);
   const [batchAction, setBatchAction] = useState<"status" | "entregador">("status");
+  // Visual Base44: modo de visualização (board/kanban por status como padrão, lista como alternativa)
+  const [viewMode, setViewMode] = useState<"board" | "lista">(() => {
+    try { return (localStorage.getItem("pedidos-view-mode") as any) === "lista" ? "lista" : "board"; } catch { return "board"; }
+  });
+  useEffect(() => { try { localStorage.setItem("pedidos-view-mode", viewMode); } catch { /* ignore */ } }, [viewMode]);
 
   // Transfer driver dialog
   const [transferDialogAberto, setTransferDialogAberto] = useState(false);
