@@ -959,7 +959,7 @@ export default function Pedidos() {
                     <SelectTrigger className="h-11 text-sm rounded-xl"><SelectValue placeholder="Status" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos Status</SelectItem>
-                      <SelectItem value="agendado">📅 Agendados</SelectItem>
+                      <SelectItem value="agendado">Agendados</SelectItem>
                       <SelectItem value="pendente">Pendente</SelectItem>
                       <SelectItem value="em_rota">Em Rota</SelectItem>
                       <SelectItem value="entregue">Entregue</SelectItem>
