@@ -51,6 +51,7 @@ import { MapPickerDialog } from "@/components/ui/map-picker-dialog";
 import { useRegrasCadastro } from "@/hooks/useRegrasCadastro";
 import { MesclarClientesDialog } from "@/components/clientes/MesclarClientesDialog";
 import { ClienteUnidadesDialog } from "@/components/clientes/ClienteUnidadesDialog";
+import { FinancialHeroCard } from "@/components/ui/financial-hero-card";
 
 interface Cliente {
   id: string;
