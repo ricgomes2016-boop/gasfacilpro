@@ -293,7 +293,7 @@
   }
 
   .app-sidebar-premium {
-    box-shadow: 1px 0 0 hsl(var(--sidebar-border));
+    box-shadow: 1px 0 0 hsl(var(--sidebar-border)) !important;
   }
 
   .app-mobile-sidebar-modern::before {
