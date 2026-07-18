@@ -1327,43 +1327,72 @@ export default function Compras() {
                   <h3 className="font-semibold text-sm">Itens da Compra</h3>
 
                   {itens.length > 0 && (
-                    <div className="overflow-x-auto -mx-3 px-3 sm:-mx-4 sm:px-4">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="min-w-[140px]">Produto</TableHead>
-                            <TableHead className="w-20 text-center">Qtd</TableHead>
-                            <TableHead className="w-28 text-right">Preço Un.</TableHead>
-                            <TableHead className="w-28 text-right">Subtotal</TableHead>
-                            <TableHead className="w-10"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {itens.map((item, idx) => (
-                            <TableRow key={idx}>
-                              <TableCell className="text-sm">
-                                {item.is_new ? (
-                                  <span className="flex items-center gap-1">
-                                    <Badge variant="outline" className="text-xs mr-1">Novo</Badge>
-                                    {item.produto_nome}
-                                  </span>
-                                ) : (
-                                  getProdutoNome(item.produto_id)
-                                )}
-                              </TableCell>
-                              <TableCell className="text-center">{item.quantidade}</TableCell>
-                              <TableCell className="text-right">R$ {item.preco_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                              <TableCell className="text-right">R$ {(item.preco_unitario * item.quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                              <TableCell>
-                                <Button variant="ghost" size="icon" onClick={() => removerItem(idx)} className="text-destructive h-8 w-8 p-0">
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </TableCell>
+                    <>
+                      {/* Mobile: cards */}
+                      <div className="md:hidden space-y-2">
+                        {itens.map((item, idx) => (
+                          <div key={idx} className="border rounded-lg p-2.5 bg-background w-full min-w-0">
+                            <div className="flex items-start justify-between gap-2 min-w-0">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-medium break-words">
+                                  {item.is_new && <Badge variant="outline" className="text-[10px] mr-1">Novo</Badge>}
+                                  {item.is_new ? item.produto_nome : getProdutoNome(item.produto_id)}
+                                </div>
+                                <div className="mt-1 text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
+                                  <span>Qtd: <b className="text-foreground">{item.quantidade}</b></span>
+                                  <span>Un: <b className="text-foreground">R$ {item.preco_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</b></span>
+                                </div>
+                                <div className="mt-1 text-sm font-semibold text-primary">
+                                  Subtotal: R$ {(item.preco_unitario * item.quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </div>
+                              </div>
+                              <Button variant="ghost" size="icon" onClick={() => removerItem(idx)} className="text-destructive h-8 w-8 p-0 shrink-0">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Desktop: tabela */}
+                      <div className="hidden md:block overflow-x-auto -mx-4 px-4">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="min-w-[140px]">Produto</TableHead>
+                              <TableHead className="w-20 text-center">Qtd</TableHead>
+                              <TableHead className="w-28 text-right">Preço Un.</TableHead>
+                              <TableHead className="w-28 text-right">Subtotal</TableHead>
+                              <TableHead className="w-10"></TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
+                          </TableHeader>
+                          <TableBody>
+                            {itens.map((item, idx) => (
+                              <TableRow key={idx}>
+                                <TableCell className="text-sm">
+                                  {item.is_new ? (
+                                    <span className="flex items-center gap-1">
+                                      <Badge variant="outline" className="text-xs mr-1">Novo</Badge>
+                                      {item.produto_nome}
+                                    </span>
+                                  ) : (
+                                    getProdutoNome(item.produto_id)
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-center">{item.quantidade}</TableCell>
+                                <TableCell className="text-right">R$ {item.preco_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                <TableCell className="text-right">R$ {(item.preco_unitario * item.quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                                <TableCell>
+                                  <Button variant="ghost" size="icon" onClick={() => removerItem(idx)} className="text-destructive h-8 w-8 p-0">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </>
                   )}
 
                   <div className="grid gap-2 items-end grid-cols-1 sm:grid-cols-[1fr_80px_120px_48px]">
