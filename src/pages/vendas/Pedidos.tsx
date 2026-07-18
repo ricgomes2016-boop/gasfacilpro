@@ -1148,36 +1148,6 @@ export default function Pedidos() {
         }
 
 
-        {/* KPIs compactos - 4 status + Total */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 w-full min-w-0">
-          {[
-            { Icon: Clock,       value: contadores.pendente,  label: "Pendentes",  color: "text-warning",     bg: "bg-warning/10" },
-            { Icon: Truck,       value: contadores.em_rota,   label: "Em Rota",    color: "text-info",        bg: "bg-info/10" },
-            { Icon: CheckCircle, value: contadores.entregue,  label: "Entregues",  color: "text-success",     bg: "bg-success/10" },
-            { Icon: XCircle,     value: contadores.cancelado, label: "Cancelados", color: "text-destructive", bg: "bg-destructive/10" },
-          ].map((k) => (
-            <div key={k.label} className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5">
-              <div className={`h-8 w-8 shrink-0 rounded-lg flex items-center justify-center ${k.bg}`}>
-                <k.Icon className={`h-4 w-4 ${k.color}`} />
-              </div>
-              <div className="min-w-0">
-                <p className={`text-lg font-bold leading-none tabular-nums ${k.color}`}>{k.value}</p>
-                <p className="text-[11px] text-muted-foreground mt-1 truncate">{k.label}</p>
-              </div>
-            </div>
-          ))}
-          <div className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5 col-span-2 md:col-span-1">
-            <div className="h-8 w-8 shrink-0 rounded-lg flex items-center justify-center bg-success/10">
-              <DollarSign className="h-4 w-4 text-success" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-base font-bold leading-none text-foreground truncate tabular-nums">
-                R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-1 truncate">Total do período</p>
-            </div>
-          </div>
-        </div>
 
 
 
