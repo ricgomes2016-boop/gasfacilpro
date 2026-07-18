@@ -68,8 +68,10 @@ export function OutlookImportButton({ onImported }: Props) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Mail className="h-4 w-4" /> Importar XML do Outlook
+        <Button variant="outline" className="gap-2 w-full sm:w-auto h-11">
+          <Mail className="h-4 w-4" />
+          <span className="sm:hidden">Importar XML</span>
+          <span className="hidden sm:inline">Importar XML do Outlook</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
