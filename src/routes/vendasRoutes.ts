@@ -9,7 +9,7 @@ const EditarPedido = lazy(() => import("@/pages/vendas/EditarPedido"));
 const PDV = lazy(() => import("@/pages/vendas/PDV"));
 const RelatorioVendas = lazy(() => import("@/pages/vendas/RelatorioDetalhadoVendas"));
 const Devolucoes = lazy(() => import("@/pages/vendas/Devolucoes"));
-const PedidosKanbanRedirect = () => <Navigate to="/vendas/pedidos" replace />;
+const PedidosKanbanRedirect = () => Navigate({ to: "/vendas/pedidos", replace: true });
 
 export const vendasRoutes: RouteConfig[] = [
   { path: "/vendas", component: Vendas, roles: ["admin", "gestor", "operacional", "entregador"] },
