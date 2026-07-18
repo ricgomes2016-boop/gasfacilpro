@@ -1076,6 +1076,38 @@ export default function Pedidos() {
           </Card>
         }
 
+        {/* Status Tabs - segmented control */}
+        {(() => {
+          const tabs: Array<{ key: string; label: string; count: number }> = [
+            { key: "todos", label: "Todos", count: pedidos.length },
+            { key: "pendente", label: "Pendentes", count: contadores.pendente },
+            { key: "em_rota", label: "Em rota", count: contadores.em_rota },
+            { key: "entregue", label: "Entregues", count: contadores.entregue },
+            { key: "agendado", label: "Agendados", count: pedidos.filter((p) => p.agendado && !["cancelado","entregue","finalizado"].includes(p.status)).length },
+            { key: "cancelado", label: "Cancelados", count: contadores.cancelado },
+          ];
+          return (
+            <div className="flex gap-1.5 overflow-x-auto rounded-2xl bg-muted/60 p-1.5 no-scrollbar">
+              {tabs.map((t) => {
+                const active = filtroStatus === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => setFiltroStatus(t.key)}
+                    className={cnStatusTab(active)}
+                  >
+                    <span className="truncate">{t.label}</span>
+                    <span className={`ml-1 rounded-full px-1.5 text-[10px] font-semibold ${active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                      {t.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
+
         {/* Table - #3 responsive with hidden columns on mobile */}
         <Card className="modern-panel overflow-hidden">
           <CardHeader className="section-header-catalog pb-3">
