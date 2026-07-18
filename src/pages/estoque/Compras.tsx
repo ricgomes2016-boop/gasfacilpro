@@ -1438,15 +1438,50 @@ export default function Compras() {
                       <Label className="text-xs">Produto</Label>
                       <Select value={novoItem.produto_id} onValueChange={v => {
                         const prod = produtos.find(p => p.id === v);
-                        setNovoItem({ ...novoItem, produto_id: v, preco_unitario: prod ? formatCurrency((prod.preco * 100).toFixed(0)) : novoItem.preco_unitario });
+                        // Preferir último preço deste fornecedor; senão média histórica; senão preço cadastrado
+                        const ultimo = form.fornecedor_id ? ultimoPrecoForn[`${form.fornecedor_id}__${v}`] : undefined;
+                        const media = precoMedioMap[v];
+                        const precoBase = ultimo?.preco ?? media?.avg ?? (prod ? Number(prod.preco) : 0);
+                        setNovoItem({
+                          ...novoItem,
+                          produto_id: v,
+                          preco_unitario: precoBase > 0 ? formatCurrency((precoBase * 100).toFixed(0)) : novoItem.preco_unitario,
+                        });
                       }}>
                         <SelectTrigger className="h-11"><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
                         <SelectContent>
-                          {produtos.map(p => (
-                            <SelectItem key={p.id} value={p.id}>{p.nome} - R$ {Number(p.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</SelectItem>
-                          ))}
+                          {produtos.map(p => {
+                            const media = precoMedioMap[p.id];
+                            return (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.nome}
+                                {media
+                                  ? ` · média R$ ${media.avg.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  : ` · venda R$ ${Number(p.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
+                      {novoItem.produto_id && (() => {
+                        const media = precoMedioMap[novoItem.produto_id];
+                        const ultimo = form.fornecedor_id ? ultimoPrecoForn[`${form.fornecedor_id}__${novoItem.produto_id}`] : undefined;
+                        if (!media && !ultimo) return null;
+                        return (
+                          <p className="text-[11px] text-muted-foreground mt-1 leading-tight">
+                            {ultimo && (
+                              <>
+                                Última do fornecedor: <b className="text-foreground">R$ {ultimo.preco.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</b>
+                                {ultimo.data && ` em ${new Date(ultimo.data).toLocaleDateString("pt-BR")}`}
+                                {media && " · "}
+                              </>
+                            )}
+                            {media && (
+                              <>Média geral: <b className="text-foreground">R$ {media.avg.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</b></>
+                            )}
+                          </p>
+                        );
+                      })()}
                     </div>
                     <div className="grid grid-cols-3 gap-2 sm:contents">
                       <div>
@@ -1466,6 +1501,7 @@ export default function Compras() {
                       </Button>
                     </div>
                   </div>
+
                 </div>
 
                 {/* Frete e Total */}
