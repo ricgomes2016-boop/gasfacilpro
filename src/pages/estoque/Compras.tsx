@@ -1233,13 +1233,13 @@ export default function Compras() {
               </DialogHeader>
 
               {/* Import buttons */}
-              <div className="flex gap-2 pt-2">
+              <div className="grid grid-cols-2 gap-2 pt-2">
                 <input ref={xmlInputRef} type="file" accept=".xml" className="hidden" onChange={handleImportXML} />
                 <input ref={photoInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoCapture} />
-                <Button variant="import" className="flex-1" onClick={() => xmlInputRef.current?.click()} disabled={isProcessingPhoto}>
+                <Button variant="import" className="h-11 w-full gap-2" onClick={() => xmlInputRef.current?.click()} disabled={isProcessingPhoto}>
                   <Upload className="h-4 w-4" />Importar XML
                 </Button>
-                <Button variant="photo" className="flex-1" onClick={() => photoInputRef.current?.click()} disabled={isProcessingPhoto}>
+                <Button variant="photo" className="h-11 w-full gap-2" onClick={() => photoInputRef.current?.click()} disabled={isProcessingPhoto}>
                   {isProcessingPhoto ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
