@@ -54,6 +54,8 @@ interface LinhaEstoque {
   estoqueAtual: number;
   vendas: number;
   compras: number;
+  entradas: number; // compras + entradas manuais (para exibição)
+  saidas: number;   // saídas manuais (para exibição)
   entradasManuais: number;
   saidasManuais: number;
   avarias: number;
@@ -75,37 +77,33 @@ function calcularLinha(
   const estoqueAtual = produto.estoque || 0;
   const { vendas, compras, entradas_manuais, saidas_manuais, avarias } = mov;
 
-  if (tipoBotijao === "cheio") {
-    const entradas = compras + entradas_manuais;
-    const saidas = saidas_manuais;
-    const inicial = estoqueAtual - entradas + saidas + vendas + avarias;
-    const total = inicial + entradas - saidas - vendas - avarias;
-    return {
-      produtoId: produto.id, nome: nomeBase, tipoEstoque: "Cheio", estoqueAtual,
-      vendas, compras, entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
-      avarias, inicial, total,
-    };
-  } else if (tipoBotijao === "vazio") {
+  if (tipoBotijao === "vazio") {
     const entradas = saidas_manuais + vendas;
     const saidas = compras + entradas_manuais;
     const inicial = estoqueAtual - entradas + saidas;
     const total = inicial + entradas - saidas;
     return {
       produtoId: produto.id, nome: nomeBase, tipoEstoque: "Vazio", estoqueAtual,
-      vendas: 0, compras: 0, entradasManuais: entradas, saidasManuais: saidas,
-      avarias, inicial, total,
-    };
-  } else {
-    const entradas = compras + entradas_manuais;
-    const saidas = saidas_manuais;
-    const inicial = estoqueAtual - entradas + saidas + vendas + avarias;
-    const total = inicial + entradas - saidas - vendas - avarias;
-    return {
-      produtoId: produto.id, nome: nomeBase, tipoEstoque: "Único", estoqueAtual,
-      vendas, compras, entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
+      vendas: 0, compras, entradas, saidas,
+      entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
       avarias, inicial, total,
     };
   }
+
+  // Cheio ou Único: inicial + (compras + manuais) - saídas manuais - vendas - avarias = atual
+  const entradas = compras + entradas_manuais;
+  const saidas = saidas_manuais;
+  const inicial = estoqueAtual - entradas + saidas + vendas + avarias;
+  const total = inicial + entradas - saidas - vendas - avarias;
+  return {
+    produtoId: produto.id,
+    nome: nomeBase,
+    tipoEstoque: tipoBotijao === "cheio" ? "Cheio" : "Único",
+    estoqueAtual,
+    vendas, compras, entradas, saidas,
+    entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
+    avarias, inicial, total,
+  };
 }
 
 export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, onRefresh }: EstoqueDiaTableProps) {
