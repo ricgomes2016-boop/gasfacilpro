@@ -692,36 +692,80 @@ export default function Pedidos() {
     total: pedidos.filter((p) => p.status !== "cancelado").reduce((acc, p) => acc + p.valor, 0)
   };
 
-  // #5 - Payment method breakdown (split combined forms like "dinheiro, pix" and aggregate per method)
+  // #5 - Payment method breakdown
   const [formaExpandida, setFormaExpandida] = useState<string | null>(null);
+
+  // Busca valores reais por forma em contas_receber (fonte da verdade quando há multi-pagamento)
+  const pedidoIdsAtivos = useMemo(
+    () => pedidos.filter((p) => p.status !== "cancelado").map((p) => p.id),
+    [pedidos]
+  );
+  const { data: recebiveisPorPedido = {} } = useQuery({
+    queryKey: ["pedidos-recebiveis-breakdown", pedidoIdsAtivos.slice(0, 1000).join(",")],
+    enabled: pedidoIdsAtivos.length > 0,
+    queryFn: async () => {
+      const ids = pedidoIdsAtivos.slice(0, 1000);
+      const { data } = await supabase
+        .from("contas_receber")
+        .select("pedido_id, forma_pagamento, valor")
+        .in("pedido_id", ids);
+      const map: Record<string, Array<{ forma: string; valor: number }>> = {};
+      (data || []).forEach((r: any) => {
+        if (!r.pedido_id) return;
+        const arr = map[r.pedido_id] || [];
+        arr.push({ forma: String(r.forma_pagamento || "nao_informado").toLowerCase(), valor: Number(r.valor) || 0 });
+        map[r.pedido_id] = arr;
+      });
+      return map;
+    },
+  });
+
   const { pagamentoContadores, pagamentoDetalhes } = useMemo(() => {
     const map = new Map<string, number>();
     const detalhes = new Map<string, Array<{ id: string; numero: string; cliente: string; formasCount: number; share: number; total: number }>>();
+
+    const parseFormasFromString = (raw: string): string[] => {
+      const s = raw.trim();
+      if (!s) return ["nao_informado"];
+      // Formatos suportados: "dinheiro", "dinheiro, pix", "multiplo:dinheiro+cartao_credito"
+      const semPrefixo = s.toLowerCase().startsWith("multiplo:") ? s.slice("multiplo:".length) : s;
+      return semPrefixo
+        .split(/[,+]/)
+        .map((x) => x.trim().toLowerCase())
+        .filter(Boolean);
+    };
+
     pedidos.filter((p) => p.status !== "cancelado").forEach((p) => {
-      const raw = (p.forma_pagamento || "").trim();
-      const formas = raw
-        ? raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean)
-        : ["nao_informado"];
-      const share = p.valor / formas.length;
-      formas.forEach((forma) => {
-        map.set(forma, (map.get(forma) || 0) + share);
-        const arr = detalhes.get(forma) || [];
-        arr.push({
-          id: p.id,
-          numero: p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase(),
-          cliente: p.cliente,
-          formasCount: formas.length,
-          share,
-          total: p.valor,
+      const recebiveis = recebiveisPorPedido[p.id];
+      const numero = p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase();
+
+      if (recebiveis && recebiveis.length > 0) {
+        // Valores reais por forma (fonte: contas_receber)
+        const porForma = new Map<string, number>();
+        recebiveis.forEach((r) => porForma.set(r.forma, (porForma.get(r.forma) || 0) + r.valor));
+        porForma.forEach((valor, forma) => {
+          map.set(forma, (map.get(forma) || 0) + valor);
+          const arr = detalhes.get(forma) || [];
+          arr.push({ id: p.id, numero, cliente: p.cliente, formasCount: porForma.size, share: valor, total: p.valor });
+          detalhes.set(forma, arr);
         });
-        detalhes.set(forma, arr);
-      });
+      } else {
+        // Fallback: parseia string do pedido e divide o valor
+        const formas = parseFormasFromString(p.forma_pagamento || "");
+        const share = p.valor / formas.length;
+        formas.forEach((forma) => {
+          map.set(forma, (map.get(forma) || 0) + share);
+          const arr = detalhes.get(forma) || [];
+          arr.push({ id: p.id, numero, cliente: p.cliente, formasCount: formas.length, share, total: p.valor });
+          detalhes.set(forma, arr);
+        });
+      }
     });
     return {
       pagamentoContadores: Array.from(map.entries()).sort((a, b) => b[1] - a[1]),
       pagamentoDetalhes: detalhes,
     };
-  }, [pedidos]);
+  }, [pedidos, recebiveisPorPedido]);
 
   // Helper: número curto do UUID (legado), e número de exibição (sequencial > UUID curto)
   const getIdCurto = (id: string) => id.substring(0, 8).toUpperCase();
