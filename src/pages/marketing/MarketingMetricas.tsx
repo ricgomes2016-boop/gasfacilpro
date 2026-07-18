@@ -302,7 +302,7 @@ export default function MarketingMetricas() {
                         <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
                         <Legend wrapperStyle={{ fontSize: 11 }} />
                         <Bar dataKey="alcance" fill="hsl(var(--primary))" name="Alcance" />
-                        <Bar dataKey="engajamento" fill="#ec4899" name="Engajamento" />
+                        <Bar dataKey="engajamento" fill="hsl(var(--accent))" name="Engajamento" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
