@@ -39,6 +39,7 @@ export function ComprasListaTableEstoque({ compras, unidadesMap, onChanged, onDe
   const [editingVenc, setEditingVenc] = useState<Record<string, string>>({});
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("todos");
   const [filtroConf, setFiltroConf] = useState<"todos" | "conferidas" | "nao_conferidas">("todos");
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const qtdTotal = (c: any) =>
     (c.compra_itens || []).reduce((s: number, i: any) => s + Number(i.quantidade || 0), 0);
