@@ -77,7 +77,7 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   cancelado: { label: "Cancelado", variant: "destructive" },
 };
 
-const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--chart-4))", "hsl(var(--chart-5))", "#6366f1", "#8b5cf6", "#10b981", "#ef4444", "#2fc2b5"];
+const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--accent))", "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--destructive))", "hsl(var(--success))"];
 
 const canalLabels: Record<string, string> = {
   telefone: "Telefone",
