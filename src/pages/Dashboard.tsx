@@ -34,6 +34,7 @@ export default function Dashboard() {
             </h2>
           </div>
         </div>
+        <DashboardFinancialHero />
         <DashboardKpis />
         <QuickActions />
       </div>
