@@ -23,14 +23,16 @@ export default function Dashboard() {
   return (
     <MainLayout>
       <Header title="Dashboard" subtitle="Visão geral da operação" />
-      <div className={`${themeClass} dashboard-shell space-y-4`}>
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <h2 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-            {greeting()}, {nome}
-          </h2>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
-          </p>
+      <div className={`${themeClass} dashboard-shell space-y-5`}>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+              {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
+            </p>
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+              {greeting()}, {nome} 👋
+            </h2>
+          </div>
         </div>
         <DashboardFinancialHero />
         <DashboardKpis />

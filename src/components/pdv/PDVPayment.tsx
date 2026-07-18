@@ -214,52 +214,48 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
   const cardTipo = formaPagamento === "credito" ? "credito" : formaPagamento === "pix_maquininha" ? "pix_maquininha" : "debito";
   const formaLabel = (f: string) => formasPagamento.find((x) => x.value === f)?.label || f;
 
-  const quickValues = [10, 20, 50, 100];
-
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-0 gap-0">
-          <DialogHeader className="px-5 pt-5 pb-3 border-b border-border">
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <Receipt className="h-4 w-4 text-muted-foreground" />
-              Finalizar venda
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Finalizar Venda
             </DialogTitle>
           </DialogHeader>
 
-          <div className="p-5 space-y-4">
-            {/* Total em destaque no topo */}
-            <div className="rounded-xl border border-border bg-muted/40 px-4 py-3">
-              <div className="flex items-baseline justify-between">
-                <span className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Total</span>
-                <span className="text-2xl font-bold tabular-nums text-foreground">R$ {total.toFixed(2)}</span>
+          <div className="space-y-4">
+            {/* Total / Restante */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="text-center p-3 bg-primary/10 rounded-lg">
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="text-2xl font-bold text-primary">R$ {total.toFixed(2)}</p>
               </div>
-              <div className="mt-1 flex items-baseline justify-between text-xs">
-                <span className="text-muted-foreground">Restante</span>
-                <span className={`font-semibold tabular-nums ${restante > 0 ? "text-destructive" : "text-success"}`}>
+              <div className={`text-center p-3 rounded-lg ${restante > 0 ? "bg-destructive/10" : "bg-success/10"}`}>
+                <p className="text-xs text-muted-foreground">Restante</p>
+                <p className={`text-2xl font-bold ${restante > 0 ? "text-destructive" : "text-success"}`}>
                   R$ {restante.toFixed(2)}
-                </span>
+                </p>
               </div>
             </div>
 
             {/* Lista de pagamentos adicionados */}
             {pagamentos.length > 0 && (
-              <div className="rounded-xl border border-border overflow-hidden">
-                <p className="text-[10.5px] uppercase tracking-wide text-muted-foreground font-semibold px-3 py-1.5 bg-muted/40 border-b border-border">Pagamentos</p>
-                <ul className="divide-y divide-border">
-                  {pagamentos.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium truncate leading-tight">{formaLabel(p.forma)}</p>
-                        {p.info && <p className="text-[11px] text-muted-foreground truncate">{p.info}</p>}
-                      </div>
-                      <span className="font-semibold shrink-0 tabular-nums">R$ {p.valor.toFixed(2)}</span>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removePagamento(p.id)} aria-label="Remover">
-                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
+              <div className="space-y-1 border rounded-lg p-2">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide px-1">Pagamentos</p>
+                {pagamentos.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between gap-2 text-sm p-2 rounded bg-muted/40">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{formaLabel(p.forma)}</p>
+                      {p.info && <p className="text-xs text-muted-foreground truncate">{p.info}</p>}
+                    </div>
+                    <span className="font-semibold shrink-0">R$ {p.valor.toFixed(2)}</span>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removePagamento(p.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -267,21 +263,20 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
             {restante > 0 && (
               <>
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Forma de pagamento</Label>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <Label>Forma de Pagamento</Label>
+                  <div className="grid grid-cols-2 gap-2">
                     {formasPagamento.map((forma) => {
                       const Icon = forma.icon;
-                      const active = formaPagamento === forma.value;
                       return (
                         <Button
                           key={forma.value}
                           type="button"
-                          variant={active ? "default" : "outline"}
-                          className="h-14 flex-col gap-1 rounded-lg px-1"
+                          variant={formaPagamento === forma.value ? "default" : "outline"}
+                          className="h-12 flex-col gap-0.5"
                           onClick={() => handleSelectForma(forma.value)}
                         >
                           <Icon className="h-4 w-4" />
-                          <span className="text-[10.5px] leading-none">{forma.label}</span>
+                          <span className="text-[11px]">{forma.label}</span>
                         </Button>
                       );
                     })}
@@ -289,90 +284,66 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
                 </div>
 
                 {pendingExtras?.info && (
-                  <div className="px-3 py-2 rounded-lg bg-success/10 text-success text-[11px] text-center font-medium">
+                  <div className="p-2 rounded-lg bg-success/10 text-success text-xs text-center font-medium">
                     {pendingExtras.info}
                   </div>
                 )}
 
                 {formaPagamento === "gas_do_povo" && (
-                  <div className="space-y-1.5 p-3 rounded-lg border border-dashed border-border bg-muted/30">
-                    <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Taxa de entrega (opcional)</Label>
+                  <div className="space-y-2 p-2 rounded-lg border border-dashed">
+                    <Label className="text-xs">Taxa de entrega (opcional)</Label>
                     <Input
                       type="text"
                       placeholder="0,00"
                       value={taxaEntregaGasPovo}
                       onChange={(e) => setTaxaEntregaGasPovo(e.target.value)}
-                      className="h-10 text-base text-center font-mono tabular-nums"
+                      className="text-base text-center font-mono"
                     />
-                    <p className="text-[10.5px] text-muted-foreground">
-                      Cobrada à parte. Após adicionar, escolha a forma de recebimento da taxa.
+                    <p className="text-[11px] text-muted-foreground">
+                      Cobrada à parte do Gás do Povo. Após adicionar, escolha a forma de recebimento da taxa.
                     </p>
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Valor recebido</Label>
+                  <Label>Valor</Label>
                   <div className="flex gap-2">
                     <Input
                       type="text"
-                      inputMode="decimal"
                       placeholder="0,00"
                       value={valorParcial}
                       onChange={(e) => setValorParcial(e.target.value)}
-                      className="h-11 text-lg text-center font-mono tabular-nums"
+                      className="text-lg text-center font-mono"
                     />
-                    <Button type="button" onClick={addPagamento} disabled={valorParcialNum <= 0} className="shrink-0 h-11 px-3 rounded-lg">
+                    <Button type="button" onClick={addPagamento} disabled={valorParcialNum <= 0} className="shrink-0">
                       <Plus className="h-4 w-4 mr-1" /> Adicionar
                     </Button>
                   </div>
-                  {formaPagamento === "dinheiro" && (
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {quickValues.map((v) => (
-                        <Button
-                          key={v}
-                          type="button"
-                          variant="outline"
-                          className="h-9 rounded-lg text-xs font-semibold px-0 tabular-nums"
-                          onClick={() => setValorParcial(v.toFixed(2).replace(".", ","))}
-                        >
-                          {v}
-                        </Button>
-                      ))}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-9 rounded-lg text-xs font-semibold px-0"
-                        onClick={() => setValorParcial(restante.toFixed(2).replace(".", ","))}
-                      >
-                        Exato
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </>
             )}
 
             {/* Troco */}
             {troco > 0 && (
-              <div className="flex items-baseline justify-between px-4 py-2.5 rounded-lg bg-success/10">
-                <span className="text-xs font-semibold uppercase tracking-wide text-success">Troco</span>
-                <span className="text-xl font-bold tabular-nums text-success">R$ {troco.toFixed(2)}</span>
+              <div className="text-center p-3 bg-success/10 rounded-lg">
+                <p className="text-sm text-muted-foreground">Troco</p>
+                <p className="text-2xl font-bold text-success">R$ {troco.toFixed(2)}</p>
               </div>
             )}
-          </div>
 
-          {/* Botões fixos no footer */}
-          <div className="flex gap-2 px-5 py-4 border-t border-border bg-muted/20">
-            <Button variant="outline" className="flex-1 h-11 min-w-0 rounded-lg" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button
-              className="flex-[1.5] h-11 min-w-0 rounded-lg font-semibold"
-              disabled={!podeFinalizar || isLoading}
-              onClick={handleConfirm}
-            >
-              {isLoading ? "Processando..." : "Confirmar venda"}
-            </Button>
+            {/* Botões */}
+            <div className="flex gap-2 w-full min-w-0">
+              <Button variant="outline" className="flex-1 h-11 min-w-0" onClick={onClose}>
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1 h-11 min-w-0"
+                disabled={!podeFinalizar || isLoading}
+                onClick={handleConfirm}
+              >
+                {isLoading ? "Processando..." : "Confirmar"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

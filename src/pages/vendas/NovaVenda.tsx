@@ -379,15 +379,31 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [pendingReceiptData, setPendingReceiptData] = useState<any>(null);
   const [boletoAsaasConta, setBoletoAsaasConta] = useState<any>(null);
-  // Visual Base44: layout linear/tri-coluna sem stepper/hero. Mantemos o estado por compatibilidade
-  // com handlers/refs internos, porém a UI não usa mais o fluxo por etapas.
-  const [useNewView, setUseNewView] = useState(false);
+  const [useNewView, setUseNewView] = useState(() => {
+    // No mobile, a Nova Venda sempre usa o fluxo por etapas para manter o stepper fixo visível.
+    if (isMobileViewport()) return true;
+    const saved = getSavedViewMode();
+    return saved ? saved === "new" : true;
+  });
   const [activeStep, setActiveStep] = useState<VendaStepId>("cliente");
   const recognitionRef = useRef<any>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const draftLoaded = useRef(false);
   const previousStepState = useRef({ cliente: false, produtos: false, pagamento: false, entregador: false });
+
+  useEffect(() => {
+    if (!getSavedViewMode() && isGasmais) setUseNewView(true);
+  }, [isGasmais]);
+
+  useEffect(() => {
+    const enforceMobileStepper = () => {
+      if (isMobileViewport()) setUseNewView(true);
+    };
+    enforceMobileStepper();
+    window.addEventListener("resize", enforceMobileStepper);
+    return () => window.removeEventListener("resize", enforceMobileStepper);
+  }, []);
 
   // Permite que o botão "Assistente IA" do Header global abra o diálogo desta tela
   useEffect(() => {
@@ -1591,152 +1607,193 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const totalPagoHero = pagamentos.reduce((acc, p) => acc + (Number(p.valor) || 0), 0);
 
   const pageHero = (
-    <div className="rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-5 md:py-3.5">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <ShoppingBag className="h-4 w-4" />
-          </span>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <span>Pedido #{proximoNumero ?? "—"}</span>
-              <span className="text-border">·</span>
-              <span>Passo {activeStepIndex + 1}/{stepOrder.length}</span>
-              <span className="text-border">·</span>
-              <span className="text-foreground/80">{stepLabels[activeStep]}</span>
+    <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-800 text-white shadow-[0_10px_40px_-12px_rgba(6,95,70,0.45)]">
+      <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-white/5 blur-2xl" />
+      <div className="relative p-4 md:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white/70">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 backdrop-blur">
+                <ShoppingBag className="h-3 w-3" /> Pedido
+              </span>
+              <span className="text-white/60">·</span>
+              <span>Passo {activeStepIndex + 1} de {stepOrder.length} · {stepLabels[activeStep]}</span>
             </div>
-            <p className="mt-0.5 text-sm font-medium text-foreground truncate">
-              {customer.nome?.trim() ? customer.nome : "Selecione um cliente"}
-              {itens.length > 0 && (
-                <span className="text-muted-foreground font-normal"> · {itens.length} {itens.length === 1 ? "item" : "itens"}</span>
-              )}
+            <h1 className="mt-1.5 text-2xl md:text-[28px] font-black leading-tight tracking-tight tabular-nums">
+              Nova Venda <span className="text-white/70">#{proximoNumero ?? "—"}</span>
+            </h1>
+            <p className="mt-1 text-sm text-white/75 truncate">
+              {customer.nome?.trim() ? `Cliente: ${customer.nome}` : "Selecione um cliente para começar"}
+              {itens.length > 0 && <> · {itens.length} {itens.length === 1 ? "item" : "itens"}</>}
             </p>
           </div>
-        </div>
-        <div className="flex items-center gap-4 md:gap-6">
-          {totalPagoHero > 0 && (
-            <div className="text-right">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Pago</p>
-              <p className="text-sm font-semibold tabular-nums text-foreground">
-                R$ {totalPagoHero.toFixed(2).replace(".", ",")}
-              </p>
-            </div>
-          )}
           <div className="text-right">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Total</p>
-            <p className="text-lg md:text-xl font-bold tabular-nums text-foreground leading-none">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/70">Total da venda</p>
+            <p className="mt-0.5 text-2xl md:text-3xl font-black tabular-nums leading-none">
               R$ {totalVenda.toFixed(2).replace(".", ",")}
             </p>
+            {totalPagoHero > 0 && (
+              <p className="mt-1 text-[11px] font-semibold text-white/80 tabular-nums">
+                Pago R$ {totalPagoHero.toFixed(2).replace(".", ",")}
+              </p>
+            )}
           </div>
         </div>
-      </div>
-      {/* Barra de progresso discreta */}
-      <div className="flex items-center gap-1 px-4 pb-3 md:px-5">
-        {stepOrder.map((sid, i) => {
-          const done = i < activeStepIndex;
-          const current = i === activeStepIndex;
-          return (
-            <div
-              key={sid}
-              className={cn(
-                "h-1 flex-1 rounded-full transition-all",
-                done ? "bg-primary" : current ? "bg-primary/70" : "bg-muted",
-              )}
-            />
-          );
-        })}
+
+        {/* Barra de progresso premium */}
+        <div className="mt-4 flex items-center gap-1.5">
+          {stepOrder.map((sid, i) => {
+            const done = i < activeStepIndex;
+            const current = i === activeStepIndex;
+            return (
+              <div
+                key={sid}
+                className={cn(
+                  "h-1.5 flex-1 rounded-full transition-all",
+                  done ? "bg-white" : current ? "bg-white/90" : "bg-white/25",
+                )}
+              />
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 
   const vendaContent = (
     <>
-      <div className="min-h-full bg-[#f8fafc] p-4 md:p-6 space-y-4">
+      <div className="min-h-full bg-[hsl(220,14%,96%)] p-3 md:p-6 space-y-3 md:space-y-4"> 
         <CaixaBloqueadoBanner />
 
         {aiCommandPopover}
         {hiddenAiInputs}
 
-        {/* Botão Voltar pequeno (Base44) */}
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (embedded && onClose) onClose();
-              else navigate(-1);
-            }}
-            className="h-8 gap-1 px-2 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Voltar
-          </Button>
-        </div>
+        {useNewView && pageHero}
 
-        {/* Layout Base44: 3 colunas no desktop, empilhado no mobile */}
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)_minmax(0,380px)]">
-          {/* Coluna 1: Dados do Cliente + Dados do Pedido */}
-          <div className="space-y-4 min-w-0 order-1">
-            <CustomerSearch value={customer} onChange={setCustomer} />
-            {metaCard}
-            <QuickSelectorsRow
-              unidadeId={unidadeAtual?.id}
-              clienteId={customer.id}
-              entregadorId={entregador.id}
-              itens={itens}
-              onItensChange={setItens}
-              pagamentos={pagamentos}
-              onPagamentosChange={setPagamentos}
-              totalVenda={totalVenda}
-              onSelectEntregador={handleSelecionarEntregador}
-              onVendedorAuto={handleVendedorAuto}
-            />
-            <label
-              className={cn(
-                "flex items-start gap-3 rounded-lg border border-border bg-card p-3 transition-colors",
-                entregador.id ? "cursor-pointer hover:bg-muted/40" : "cursor-not-allowed opacity-50",
-              )}
-            >
-              <Checkbox
-                checked={jaEntregue}
-                disabled={!entregador.id}
-                onCheckedChange={(v) => setJaEntregue(v === true)}
-                className="mt-0.5"
-              />
-              <div className="text-sm">
-                <div className="font-medium">Pedido já entregue</div>
-                <div className="text-xs text-muted-foreground">
-                  Apenas lançamento — não notifica o entregador.
+        {useNewView ? (
+          <div className="space-y-3 md:space-y-4">
+            {activeStep === "cliente" && (
+              <div className="venda-step-panel grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]" onKeyDown={handleStepEnterNavigation}>
+                <div className="space-y-3 md:space-y-4 min-w-0">
+                  
+                  {metaCard}
+                  <div className="venda-tone-cliente"><CustomerSearch value={customer} onChange={setCustomer} /></div>
+                </div>
+                <div className="venda-tone-cliente min-w-0 xl:sticky xl:top-4 self-start">
+                  <CustomerHistory clienteId={customer.id} />
                 </div>
               </div>
-            </label>
-            <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
+            )}
+            {activeStep === "produtos" && (
+              <div className="venda-step-panel w-full" onKeyDown={handleStepEnterNavigation}>
+                <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
+              </div>
+            )}
+            {activeStep === "pagamento" && (
+              <div className="venda-step-panel venda-tone-pagamento w-full" onKeyDown={handleStepEnterNavigation}>
+                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} />
+              </div>
+            )}
+            {activeStep === "entregador" && (
+              <div className="venda-step-panel venda-tone-entregador w-full space-y-3">
+                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} onVendedorAuto={handleVendedorAuto} endereco={customer.endereco} />
+                <label
+                  className={cn(
+                    "flex items-start gap-3 rounded-lg border p-3 transition-colors",
+                    entregador.id ? "cursor-pointer bg-muted/40 hover:bg-muted/60" : "cursor-not-allowed opacity-50",
+                  )}
+                >
+                  <Checkbox
+                    checked={jaEntregue}
+                    disabled={!entregador.id}
+                    onCheckedChange={(v) => setJaEntregue(v === true)}
+                    className="mt-0.5"
+                  />
+                  <div className="text-sm">
+                    <div className="font-medium">Pedido já entregue</div>
+                    <div className="text-xs text-muted-foreground">
+                      Apenas lançamento — a entrega já aconteceu. Não envia notificação ao app do entregador e o pedido entra como <b>entregue</b>.
+                    </div>
+                  </div>
+                </label>
+                <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
+              </div>
+            )}
+            {activeStep === "confirmar" && (
+              <div className="venda-step-panel venda-tone-confirmar w-full">
+                <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
+              </div>
+            )}
           </div>
+        ) : (
+          <div className="grid gap-3 md:gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-3 md:space-y-4 order-1">
+              {metaCard}
+              <CustomerSearch value={customer} onChange={setCustomer} />
+              <QuickSelectorsRow
+                unidadeId={unidadeAtual?.id}
+                clienteId={customer.id}
+                entregadorId={entregador.id}
+                itens={itens}
+                onItensChange={setItens}
+                pagamentos={pagamentos}
+                onPagamentosChange={setPagamentos}
+                totalVenda={totalVenda}
+                onSelectEntregador={handleSelecionarEntregador}
+                onVendedorAuto={handleVendedorAuto}
+              />
+              <label
+                className={cn(
+                  "flex items-start gap-3 rounded-lg border p-3 transition-colors",
+                  entregador.id ? "cursor-pointer bg-muted/40 hover:bg-muted/60" : "cursor-not-allowed opacity-50",
+                )}
+              >
+                <Checkbox
+                  checked={jaEntregue}
+                  disabled={!entregador.id}
+                  onCheckedChange={(v) => setJaEntregue(v === true)}
+                  className="mt-0.5"
+                />
+                <div className="text-sm">
+                  <div className="font-medium">Pedido já entregue</div>
+                  <div className="text-xs text-muted-foreground">
+                    Apenas lançamento — não notifica o app do entregador e o pedido entra como <b>entregue</b>.
+                  </div>
+                </div>
+              </label>
+              <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
+              <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
+              <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} />
+            </div>
+            <div className="lg:sticky lg:top-4 space-y-3 md:space-y-4 self-start order-2">
+              <CustomerHistory clienteId={customer.id} />
+            </div>
+            <div className="order-3 lg:col-span-3">
+              <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
+            </div>
+          </div>
+        )}
 
-          {/* Coluna 2: Produtos + Pagamento + Histórico */}
-          <div className="space-y-4 min-w-0 order-2">
-            <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
-            <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} />
-            <CustomerHistory clienteId={customer.id} />
-          </div>
-
-          {/* Coluna 3: Resumo do Pedido sticky */}
-          <div className="min-w-0 order-3 lg:sticky lg:top-20 self-start">
-            <OrderSummary
-              itens={itens}
-              pagamentos={pagamentos}
-              entregadorNome={entregador.nome}
-              canalVenda={canalVenda}
-              onFinalizar={handleFinalizar}
-              onCancelar={handleCancelar}
-              onAgendar={handleAgendar}
-              isLoading={isLoading}
-            />
-          </div>
-        </div>
+        {/* Espaço para não esconder conteúdo atrás do rodapé fixo */}
+        <div aria-hidden className="h-24 md:h-20" />
       </div>
 
-
+      {/* Rodapé fixo: Stepper + navegação Voltar/Continuar (portal único no SystemFooter — fixo em mobile e desktop) */}
+      {useNewView && (
+        <NovaVendaFooterStepper>
+          <StepperFooterBar
+            activeStep={activeStep}
+            canOpenStep={canOpenStep}
+            setActiveStep={setActiveStep}
+            customer={customer}
+            itens={itens}
+            pagamentos={pagamentos}
+            totalVenda={totalVenda}
+            entregadorPreenchido={entregadorPreenchido}
+          />
+        </NovaVendaFooterStepper>
+      )}
 
 
 

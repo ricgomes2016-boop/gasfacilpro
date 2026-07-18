@@ -154,17 +154,7 @@ function lerFiltrosPersistidos(): PedidosFiltrosPersistidos {
 export default function Pedidos() {
   const navigate = useNavigate();
   const hoje = (() => {const d = getBrasiliaDate();return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;})();
-  const formaLabelRaw = useFormaPagamentoLabel();
-  const formaLabel = (raw: string | null | undefined) => {
-    if (!raw) return "—";
-    const s = String(raw).trim();
-    const semPrefixo = s.toLowerCase().startsWith("multiplo:") ? s.slice("multiplo:".length) : s;
-    const parts = semPrefixo.split(/[+,]/).map((p) => p.trim()).filter(Boolean);
-    if (parts.length <= 1) return formaLabelRaw(raw);
-    const labels = parts.map((p) => formaLabelRaw(p));
-    if (labels.length <= 3) return labels.join(" + ");
-    return `${labels.slice(0, 2).join(" + ")} +${labels.length - 2}`;
-  };
+  const formaLabel = useFormaPagamentoLabel();
   const filtrosPersistidosIniciais = (() => lerFiltrosPersistidos())();
   const [dataInicio, setDataInicio] = useState(filtrosPersistidosIniciais.dataInicio ?? hoje);
   const [dataFim, setDataFim] = useState(filtrosPersistidosIniciais.dataFim ?? hoje);
@@ -205,11 +195,6 @@ export default function Pedidos() {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [batchDialogAberto, setBatchDialogAberto] = useState(false);
   const [batchAction, setBatchAction] = useState<"status" | "entregador">("status");
-  // Visual Base44: modo de visualização (board/kanban por status como padrão, lista como alternativa)
-  const [viewMode, setViewMode] = useState<"board" | "lista">(() => {
-    try { return (localStorage.getItem("pedidos-view-mode-base44") as any) === "lista" ? "lista" : "board"; } catch { return "board"; }
-  });
-  useEffect(() => { try { localStorage.setItem("pedidos-view-mode-base44", viewMode); } catch { /* ignore */ } }, [viewMode]);
 
   // Transfer driver dialog
   const [transferDialogAberto, setTransferDialogAberto] = useState(false);
@@ -847,10 +832,10 @@ export default function Pedidos() {
   return (
     <MainLayout>
       {/* #2 - removed duplicate title, kept only Header */}
-      <Header title="Pedidos" subtitle="Acompanhamento de entregas" />
-      <div className="p-3 md:p-6 space-y-4 w-full min-w-0 max-w-full overflow-x-hidden bg-background min-h-full">
+      <Header title="Pedidos" subtitle="Gerenciar pedidos de venda" />
+      <div className="p-3 md:p-6 space-y-4 md:space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
 
-        {/* Toolbar Base44: busca + datas + visualização + Nova Venda */}
+        {/* Top actions - grade 2x2 mobile / 4 col desktop, premium */}
         {(() => {
           const filtrosAtivos =
             (busca ? 1 : 0) +
@@ -858,106 +843,65 @@ export default function Pedidos() {
             (filtroEntregador !== "todos" ? 1 : 0) +
             (filtroOrigem !== "todos" ? 1 : 0) +
             (dataInicio !== hoje || dataFim !== hoje ? 1 : 0);
+          const actionBase =
+            "w-full min-h-[64px] rounded-2xl px-4 flex items-center justify-center gap-2 text-sm font-semibold shadow-sm transition-all";
           return (
-            <div className="rounded-2xl border border-border bg-card/60 backdrop-blur px-3 py-2.5 md:px-4 md:py-3 shadow-sm">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative flex-1 min-w-[180px]">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por cliente, produto..."
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    className="h-9 pl-9 rounded-lg text-sm bg-background"
-                  />
-                </div>
-                <Input
-                  type="date"
-                  value={dataInicio}
-                  onChange={(e) => setDataInicio(e.target.value)}
-                  className="h-9 w-[140px] text-sm rounded-lg bg-background"
-                  aria-label="Data início"
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full min-w-0">
+              <Button
+                onClick={() => navigate("/vendas/nova")}
+                className={`${actionBase} bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/25`}
+              >
+                <Sparkles className="h-4 w-4 shrink-0" />
+                <span className="truncate">Novo Pedido</span>
+              </Button>
+              <SmartImportButtons
+                edgeFunctionName="parse-orders-history"
+                onDataExtracted={handleImportData}
+                mode="menu"
+                menuLabel="Mais ações"
+                className={`${actionBase} !bg-card !text-foreground border border-border hover:!bg-muted/60 !h-auto`}
+                extraMenuContent={
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => {
+                        exportarPedidosCSV(pedidosFiltrados);
+                        sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Exportar CSV
+                    </DropdownMenuItem>
+                  </>
+                }
+              />
+              <Button
+                variant="outline"
+                onClick={() => navigate("/operacional/centro")}
+                className={`${actionBase} bg-card hover:bg-muted/60`}
+              >
+                <MapIcon className="h-4 w-4 shrink-0" />
+                <span className="truncate">Mapa Operacional</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setFiltrosAbertos((v) => !v)}
+                aria-expanded={filtrosAbertos}
+                aria-controls="orders-advanced-filters"
+                className={`${actionBase} bg-card hover:bg-muted/60 relative`}
+              >
+                <SlidersHorizontal className="h-4 w-4 shrink-0" />
+                <span className="truncate">Mais Filtros</span>
+                {filtrosAtivos > 0 && (
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{filtrosAtivos}</Badge>
+                )}
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 transition-transform duration-200 ${filtrosAbertos ? "rotate-180" : ""}`}
                 />
-                <Input
-                  type="date"
-                  value={dataFim}
-                  onChange={(e) => setDataFim(e.target.value)}
-                  className="h-9 w-[140px] text-sm rounded-lg bg-background hidden sm:block"
-                  aria-label="Data fim"
-                />
-
-                {/* Controles pequenos de visualização */}
-                <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("board")}
-                    className={`h-8 px-2.5 rounded-md text-xs font-medium transition-colors ${viewMode === "board" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-                    title="Board por status"
-                  >
-                    Board
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("lista")}
-                    className={`h-8 px-2.5 rounded-md text-xs font-medium transition-colors ${viewMode === "lista" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
-                    title="Lista"
-                  >
-                    Lista
-                  </button>
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setFiltrosAbertos((v) => !v)}
-                  aria-expanded={filtrosAbertos}
-                  aria-controls="orders-advanced-filters"
-                  className="h-9 rounded-lg bg-background text-sm gap-1.5"
-                >
-                  <SlidersHorizontal className="h-4 w-4" />
-                  <span className="hidden sm:inline">Filtros</span>
-                  {filtrosAtivos > 0 && (
-                    <Badge variant="secondary" className="h-4 px-1 text-[10px] tabular-nums">{filtrosAtivos}</Badge>
-                  )}
-                </Button>
-
-                <SmartImportButtons
-                  edgeFunctionName="parse-orders-history"
-                  onDataExtracted={handleImportData}
-                  mode="menu"
-                  menuLabel="Mais"
-                  className="!h-9 !rounded-lg !bg-background !text-foreground border border-border hover:!bg-muted/60 text-sm px-3"
-                  extraMenuContent={
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => navigate("/operacional/centro")}>
-                        <MapIcon className="h-4 w-4 mr-2" />
-                        Mapa Operacional
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          exportarPedidosCSV(pedidosFiltrados);
-                          sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);
-                        }}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Exportar CSV
-                      </DropdownMenuItem>
-                    </>
-                  }
-                />
-
-                <Button
-                  onClick={() => navigate("/vendas/nova")}
-                  size="sm"
-                  className="h-9 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 ml-auto sm:ml-0"
-                >
-                  Nova Venda
-                </Button>
-              </div>
+              </Button>
             </div>
           );
         })()}
-
 
         {/* Inline collapsible advanced filters */}
         <Collapsible open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
@@ -1005,7 +949,7 @@ export default function Pedidos() {
                     <SelectTrigger className="h-11 text-sm rounded-xl"><SelectValue placeholder="Status" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos Status</SelectItem>
-                      <SelectItem value="agendado">Agendados</SelectItem>
+                      <SelectItem value="agendado">📅 Agendados</SelectItem>
                       <SelectItem value="pendente">Pendente</SelectItem>
                       <SelectItem value="em_rota">Em Rota</SelectItem>
                       <SelectItem value="entregue">Entregue</SelectItem>
@@ -1047,7 +991,7 @@ export default function Pedidos() {
 
 
         {/* Alert for old pending orders */}
-        {viewMode === "lista" && (() => {
+        {(() => {
           const now = new Date();
           const pedidosAntigos = pedidos.filter((p) => {
             if (p.status !== "pendente" && p.status !== "em_rota") return false;
@@ -1067,7 +1011,7 @@ export default function Pedidos() {
                     <Clock className="h-5 w-5 text-destructive" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-sm text-destructive">{pedidosAntigos.length} pedido(s) pendente(s) há mais de 24h</p>
+                    <p className="font-medium text-sm text-destructive">⚠️ {pedidosAntigos.length} pedido(s) pendente(s) há mais de 24h</p>
                     <p className="text-xs text-muted-foreground">
                       Verifique se já foram entregues e atualize o status para evitar inconsistências no acerto financeiro.
                     </p>
@@ -1082,7 +1026,7 @@ export default function Pedidos() {
         })()}
 
         {/* AI suggestion for pending orders */}
-        {viewMode === "lista" && pedidosPendentes.length > 0 &&
+        {pedidosPendentes.length > 0 &&
         <Card className="modern-panel border-info/25 bg-info/5">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3 mb-4">
@@ -1147,13 +1091,46 @@ export default function Pedidos() {
         }
 
 
-
+        {/* KPIs premium grid - 4 tiles + Total ocupando linha inteira no mobile */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full min-w-0">
+          {[
+            { tone: "warning", Icon: Clock,       value: contadores.pendente,  label: "Pendentes",  color: "text-warning",    bg: "bg-warning/10" },
+            { tone: "info",    Icon: Truck,       value: contadores.em_rota,   label: "Em Rota",    color: "text-info",       bg: "bg-info/10" },
+            { tone: "success", Icon: CheckCircle, value: contadores.entregue,  label: "Entregues",  color: "text-success",    bg: "bg-success/10" },
+            { tone: "destructive", Icon: XCircle, value: contadores.cancelado, label: "Cancelados", color: "text-destructive", bg: "bg-destructive/10" },
+          ].map((k) => (
+            <Card key={k.label} className="rounded-2xl border-border bg-card shadow-sm">
+              <CardContent className="flex items-center gap-3 p-4 min-h-[92px]">
+                <div className={`h-11 w-11 shrink-0 rounded-xl flex items-center justify-center ${k.bg}`}>
+                  <k.Icon className={`h-5 w-5 ${k.color}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className={`text-2xl font-bold leading-none tabular-nums ${k.color}`}>{k.value}</p>
+                  <p className="text-xs text-muted-foreground mt-1 truncate">{k.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          <Card className="rounded-2xl border-border bg-gradient-to-br from-success/10 to-success/5 shadow-sm col-span-2 md:col-span-1">
+            <CardContent className="flex items-center gap-3 p-4 min-h-[92px]">
+              <div className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-success/15">
+                <DollarSign className="h-5 w-5 text-success" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-lg md:text-base lg:text-lg font-bold leading-none text-success truncate tabular-nums">
+                  R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 truncate">Total Vendas</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
 
 
 
         {/* #7 - Batch actions bar */}
-        {viewMode === "lista" && selecionados.size > 0 &&
+        {selecionados.size > 0 &&
         <Card className="modern-panel border-primary/25 bg-primary/5">
             <CardContent className="flex items-center gap-3 p-3 flex-wrap">
               <CheckSquare className="h-4 w-4 text-primary" />
@@ -1174,8 +1151,8 @@ export default function Pedidos() {
           </Card>
         }
 
-        {/* Status Tabs - só aparecem no modo Lista (Board tem colunas próprias) */}
-        {viewMode === "lista" && (() => {
+        {/* Status Tabs - segmented control */}
+        {(() => {
           const tabs: Array<{ key: string; label: string; count: number }> = [
             { key: "todos", label: "Todos", count: pedidos.length },
             { key: "pendente", label: "Pendentes", count: contadores.pendente },
@@ -1206,163 +1183,8 @@ export default function Pedidos() {
           );
         })()}
 
-        {/* Board por status (visual Base44) */}
-        {viewMode === "board" && (() => {
-          type ColKey = "pendente" | "visualizado" | "em_rota" | "entregue" | "cancelado";
-          const cols: Array<{ key: ColKey; label: string; color: string }> = [
-            { key: "pendente", label: "Pendente", color: "#f59f0a" },
-            { key: "visualizado", label: "Visualizado", color: "#2463eb" },
-            { key: "em_rota", label: "Em Rota", color: "#21c45d" },
-            { key: "entregue", label: "Entregue", color: "#10b981" },
-            { key: "cancelado", label: "Cancelado", color: "#dc2828" },
-          ];
-          const bucketOf = (p: PedidoFormatado): ColKey => {
-            const status = String(p.status);
-            if (status === "cancelado") return "cancelado";
-            if (status === "em_rota") return "em_rota";
-            if (status === "entregue" || status === "finalizado") return "entregue";
-            if (["visualizado", "novo", "aguardando_pagamento_cartao", "pagamento_em_processamento", "pago_cartao"].includes(status)) return "visualizado";
-            return "pendente";
-          };
-          const grupos: Record<ColKey, PedidoFormatado[]> = { pendente: [], visualizado: [], em_rota: [], entregue: [], cancelado: [] };
-          pedidosFiltrados.forEach((p) => { grupos[bucketOf(p)].push(p); });
-
-          if (isLoading) {
-            return (
-              <div className="overflow-x-auto pb-2">
-                <div className="grid min-w-[1120px] grid-cols-5 gap-3 xl:min-w-0">
-                {cols.map((c) => (
-                  <div key={c.key} className="rounded-xl border border-border bg-card p-2 space-y-2">
-                    <Skeleton className="h-6 w-24" />
-                    <Skeleton className="h-16 w-full" />
-                    <Skeleton className="h-16 w-full" />
-                  </div>
-                ))}
-                </div>
-              </div>
-            );
-          }
-
-          return (
-            <div className="overflow-x-auto pb-2">
-              <div className="grid min-w-[1120px] grid-cols-5 gap-3 xl:min-w-0">
-              {cols.map((c) => {
-                const items = grupos[c.key];
-                const softBorder = `color-mix(in srgb, ${c.color} 40%, transparent)`;
-                const softBg = `color-mix(in srgb, ${c.color} 5%, transparent)`;
-                const badgeBg = `color-mix(in srgb, ${c.color} 15%, transparent)`;
-                const badgeBorder = `color-mix(in srgb, ${c.color} 30%, transparent)`;
-                return (
-                  <section key={c.key} className="flex min-w-0 flex-col">
-                    <header
-                      className="flex items-center justify-between gap-2 rounded-t-xl border px-3 py-2"
-                      style={{ background: softBg, borderColor: softBorder }}
-                    >
-                      <span className="text-xs font-semibold text-foreground">{c.label}</span>
-                      <span
-                        className="inline-flex h-[18px] min-w-[22px] items-center justify-center rounded-full border px-1.5 text-[11px] font-bold tabular-nums"
-                        style={{ background: badgeBg, borderColor: badgeBorder, color: c.color }}
-                      >
-                        {items.length}
-                      </span>
-                    </header>
-                    <div
-                      className="flex-1 min-h-[340px] rounded-b-xl border border-t-0 p-2 space-y-2"
-                      style={{ background: softBg, borderColor: softBorder }}
-                    >
-                      {items.length === 0 ? (
-                        <div className="flex items-center justify-center h-20 rounded-lg border border-dashed border-border/60 text-[11px] text-muted-foreground/60">
-                          Sem pedidos
-                        </div>
-                      ) : (
-                        items.slice(0, 40).map((pedido) => {
-                          const bloqueado = isPedidoBloqueado(pedido.status);
-                          const horario = pedido.data?.split(" ")[1] || "";
-                          return (
-                            <div
-                              key={pedido.id}
-                              className="group rounded-lg border border-border bg-card p-2.5 shadow-none transition-colors hover:bg-muted/20 cursor-pointer"
-                              onClick={() => abrirVisualizacao(pedido)}
-                            >
-                              <div className="flex items-center justify-between gap-2 mb-1">
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <span className="text-[10px] font-mono text-muted-foreground">#{getNumExib(pedido)}</span>
-                                  <OrigemBadge origem={pedido.origem_pedido} />
-                                </div>
-                                <span className="text-sm font-bold tabular-nums">R$ {pedido.valor.toFixed(2)}</span>
-                              </div>
-                              <p className="text-[13px] font-semibold text-foreground truncate">{pedido.cliente}</p>
-                              <p className="text-[11px] text-muted-foreground truncate">{formatarItensComQtd(pedido)}</p>
-                              <p className="text-[11px] text-muted-foreground/80 truncate">{pedido.endereco}</p>
-                              <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-border/50">
-                                <div className="flex items-center gap-1 min-w-0 text-[11px]">
-                                  <PedidoPaymentPill
-                                    forma={pedido.forma_pagamento}
-                                    label={pedido.forma_pagamento ? formaLabel(pedido.forma_pagamento) : ""}
-                                    className="h-5 max-w-[118px] px-1.5"
-                                    onClick={() => { setPedidoEditarPagamento(pedido); setEditarPagamentoAberto(true); }}
-                                  />
-                                  {horario && <span className="text-muted-foreground shrink-0">{horario}</span>}
-                                </div>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6 opacity-70 group-hover:opacity-100"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <MoreHorizontal className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                    <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
-                                    {!bloqueado && <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>}
-                                    {!bloqueado && <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>}
-                                    {!bloqueado && <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria</DropdownMenuItem>}
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
-                                    {!bloqueado && (
-                                      <>
-                                        <DropdownMenuSeparator />
-                                        {pedido.status !== "em_rota" && <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "em_rota")}><Truck className="h-4 w-4 mr-2" />Marcar Em Rota</DropdownMenuItem>}
-                                        <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "entregue")}><CheckCircle className="h-4 w-4 mr-2" />Marcar Entregue</DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => cancelarPedido(pedido.id)}><XCircle className="h-4 w-4 mr-2" />Cancelar</DropdownMenuItem>
-                                      </>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                              {pedido.entregador && (
-                                <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1 truncate">
-                                  <Truck className="h-2.5 w-2.5 shrink-0" />
-                                  {pedido.entregador}
-                                </p>
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
-                      {items.length > 40 && (
-                        <p className="text-center text-[11px] text-muted-foreground pt-1">
-                          + {items.length - 40} — mude para Lista para ver todos
-                        </p>
-                      )}
-                    </div>
-                  </section>
-                );
-              })}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Table - só aparece no modo Lista */}
-        {viewMode === "lista" && (
+        {/* Table - #3 responsive with hidden columns on mobile */}
         <Card className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
-
           <CardHeader className="border-b border-border bg-muted/40 px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-sm font-semibold text-foreground">Pedidos <span className="text-muted-foreground font-normal">({pedidosFiltrados.length})</span></CardTitle>
@@ -1567,7 +1389,7 @@ export default function Pedidos() {
               {/* Desktop table */}
               <div className="overflow-x-auto min-w-0 hidden md:block">
                 <Table className="min-w-[600px]">
-                  <TableHeader className="bg-muted/50 [&_th]:h-10 [&_th]:text-[11px] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
+                  <TableHeader>
                     <TableRow>
                       <TableHead className="w-10">
                         <Checkbox
@@ -1744,10 +1566,9 @@ export default function Pedidos() {
             }
           </CardContent>
         </Card>
-        )}
 
         {/* Product sold summary: follows current period/status/driver/search filters and ignores cancelled orders */}
-        {viewMode === "lista" && resumoProdutos.length > 0 &&
+        {resumoProdutos.length > 0 &&
         <Card className="modern-panel">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-2">
@@ -1771,7 +1592,7 @@ export default function Pedidos() {
         }
 
         {/* Resumo Financeiro - breakdown por forma de pagamento */}
-        {viewMode === "lista" && pagamentoContadores.length > 0 &&
+        {pagamentoContadores.length > 0 &&
         <Card className="modern-panel">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-2">

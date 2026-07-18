@@ -10,7 +10,7 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
+    --background: 220 14% 97%;
     --foreground: 222 30% 11%;
 
     --card: 0 0% 100%;
@@ -43,8 +43,8 @@
     --info: 216 100% 62%;
     --info-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --border: 225 18% 91%;
+    --input: 225 18% 91%;
     --ring: 174 61% 47%;
 
     --radius: 1rem;
@@ -74,16 +74,16 @@
     --shadow-soft: 0 2px 10px hsl(222 40% 18% / 0.05);
     --shadow-floating: 0 8px 24px hsl(222 40% 18% / 0.10);
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-gradient-from: 0 0% 100%;
-    --sidebar-gradient-to: 0 0% 100%;
-    --sidebar-foreground: 222 22% 30%;
-    --sidebar-primary: 221 83% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 221 83% 53%;
-    --sidebar-accent-foreground: 221 83% 53%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 221 83% 53%;
+    --sidebar-background: 174 61% 47%;
+    --sidebar-gradient-from: 174 61% 47%;
+    --sidebar-gradient-to: 243 100% 69%;
+    --sidebar-foreground: 220 14% 96%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 18%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 0 0% 18%;
+    --sidebar-border: 0 0% 100%;
+    --sidebar-ring: 0 0% 100%;
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--sidebar-gradient-from)) 0%, hsl(var(--sidebar-gradient-to)) 100%);
@@ -178,10 +178,9 @@
 
 @layer components {
   .app-header-premium {
-    border-color: hsl(var(--border));
-    background: hsl(var(--card) / 0.85);
-    backdrop-filter: saturate(180%) blur(12px);
-    box-shadow: none;
+    border-color: hsl(var(--border) / 0.55);
+    background: hsl(var(--card) / 0.94);
+    box-shadow: 0 14px 34px -28px hsl(220 35% 10% / 0.28);
   }
 
   .brand-theme-operacional-clean .app-header-premium,
@@ -290,11 +289,19 @@
   }
 
   .app-sidebar-premium::after {
-    content: none;
-  }
-
-  .app-sidebar-premium {
-    box-shadow: 1px 0 0 hsl(var(--sidebar-border)) !important;
+    content: "";
+    position: absolute;
+    left: 1rem;
+    right: 1rem;
+    bottom: 0.75rem;
+    height: 9.5rem;
+    pointer-events: none;
+    border-radius: 2rem;
+    background:
+      radial-gradient(circle at 24% 78%, hsl(var(--sidebar-accent) / 0.18) 0 18%, transparent 19%),
+      radial-gradient(circle at 72% 62%, hsl(var(--sidebar-accent) / 0.14) 0 16%, transparent 17%),
+      linear-gradient(135deg, hsl(var(--sidebar-accent) / 0.08), transparent 68%);
+    opacity: 0.72;
   }
 
   .app-mobile-sidebar-modern::before {
