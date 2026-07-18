@@ -1047,42 +1047,41 @@ export default function Pedidos() {
         }
 
 
-        {/* Stats - compact KPIs, 5 across on md+ */}
-        <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
-          <Card className="kpi-card kpi-card-warning">
-            <CardContent className="flex items-center gap-2 p-2.5">
-              <div className="status-card-icon status-card-icon-warning h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><Clock /></div>
-              <div className="min-w-0"><p className="text-lg font-bold leading-none text-warning">{contadores.pendente}</p><p className="text-[11px] text-muted-foreground mt-0.5">Pendentes</p></div>
-            </CardContent>
-          </Card>
-          <Card className="kpi-card kpi-card-info">
-            <CardContent className="flex items-center gap-2 p-2.5">
-              <div className="status-card-icon status-card-icon-info h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><Truck /></div>
-              <div className="min-w-0"><p className="text-lg font-bold leading-none text-info">{contadores.em_rota}</p><p className="text-[11px] text-muted-foreground mt-0.5">Em Rota</p></div>
-            </CardContent>
-          </Card>
-          <Card className="kpi-card kpi-card-success">
-            <CardContent className="flex items-center gap-2 p-2.5">
-              <div className="status-card-icon status-card-icon-success h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><CheckCircle /></div>
-              <div className="min-w-0"><p className="text-lg font-bold leading-none text-success">{contadores.entregue}</p><p className="text-[11px] text-muted-foreground mt-0.5">Entregues</p></div>
-            </CardContent>
-          </Card>
-          <Card className="kpi-card kpi-card-destructive">
-            <CardContent className="flex items-center gap-2 p-2.5">
-              <div className="status-card-icon status-card-icon-destructive h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><XCircle /></div>
-              <div className="min-w-0"><p className="text-lg font-bold leading-none text-destructive">{contadores.cancelado}</p><p className="text-[11px] text-muted-foreground mt-0.5">Cancelados</p></div>
-            </CardContent>
-          </Card>
-          <Card className="kpi-card kpi-card-success col-span-2 sm:col-span-3 md:col-span-1">
-            <CardContent className="flex items-center gap-2 p-2.5">
-              <div className="status-card-icon status-card-icon-success h-8 w-8 [&_svg]:h-4 [&_svg]:w-4"><DollarSign /></div>
+        {/* KPIs premium grid - 4 tiles + Total ocupando linha inteira no mobile */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full min-w-0">
+          {[
+            { tone: "warning", Icon: Clock,       value: contadores.pendente,  label: "Pendentes",  color: "text-warning",    bg: "bg-warning/10" },
+            { tone: "info",    Icon: Truck,       value: contadores.em_rota,   label: "Em Rota",    color: "text-info",       bg: "bg-info/10" },
+            { tone: "success", Icon: CheckCircle, value: contadores.entregue,  label: "Entregues",  color: "text-success",    bg: "bg-success/10" },
+            { tone: "destructive", Icon: XCircle, value: contadores.cancelado, label: "Cancelados", color: "text-destructive", bg: "bg-destructive/10" },
+          ].map((k) => (
+            <Card key={k.label} className="rounded-2xl border-border bg-card shadow-sm">
+              <CardContent className="flex items-center gap-3 p-4 min-h-[92px]">
+                <div className={`h-11 w-11 shrink-0 rounded-xl flex items-center justify-center ${k.bg}`}>
+                  <k.Icon className={`h-5 w-5 ${k.color}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className={`text-2xl font-bold leading-none tabular-nums ${k.color}`}>{k.value}</p>
+                  <p className="text-xs text-muted-foreground mt-1 truncate">{k.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          <Card className="rounded-2xl border-border bg-gradient-to-br from-success/10 to-success/5 shadow-sm col-span-2 md:col-span-1">
+            <CardContent className="flex items-center gap-3 p-4 min-h-[92px]">
+              <div className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-success/15">
+                <DollarSign className="h-5 w-5 text-success" />
+              </div>
               <div className="min-w-0">
-                <p className="text-base md:text-sm lg:text-base font-bold leading-none text-success truncate">R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Total Vendas</p>
+                <p className="text-lg md:text-base lg:text-lg font-bold leading-none text-success truncate tabular-nums">
+                  R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 truncate">Total Vendas</p>
               </div>
             </CardContent>
           </Card>
         </div>
+
 
 
 
