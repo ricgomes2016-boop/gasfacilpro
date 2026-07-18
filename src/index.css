@@ -527,6 +527,34 @@
       linear-gradient(180deg, hsl(220 11% 96%) 0%, hsl(230 22% 98%) 100%);
   }
 
+  /* ============================================================
+   * Onda B — Normalização premium do conteúdo (Financeiro + all)
+   * Aplica cantos, borda suave, sombra e cabeçalhos consistentes
+   * para todos os Cards renderizados em qualquer página do ERP,
+   * sem exigir refactor de cada arquivo.
+   * ============================================================ */
+  .system-surface main :where([data-slot="card"], .rounded-lg.border.bg-card, .rounded-xl.border.bg-card) {
+    border-radius: 1rem;
+    border-color: hsl(var(--border) / 0.55);
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.6) inset, 0 12px 32px -28px hsl(var(--foreground) / 0.22);
+    transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
+  }
+  .system-surface main :where([data-slot="card"]:hover) {
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.7) inset, 0 22px 46px -30px hsl(var(--foreground) / 0.28);
+    border-color: hsl(var(--border) / 0.85);
+  }
+  .system-surface main :where([data-slot="card"] [data-slot="card-header"]) {
+    border-bottom: 1px solid hsl(var(--border) / 0.5);
+  }
+  .system-surface main :where([data-slot="card"] [data-slot="card-title"]) {
+    letter-spacing: -0.01em;
+  }
+  /* Números financeiros com tabular-nums para alinhamento */
+  .system-surface main :where(.font-bold, .font-semibold):where([class*="text-2xl"], [class*="text-3xl"], [class*="text-xl"]) {
+    font-variant-numeric: tabular-nums;
+  }
+
+
   .brand-theme-pastel-dashboard .bg-card,
   .brand-theme-pastel-dashboard [class*="bg-card"] {
     border-color: hsl(225 20% 88% / 0.7);
