@@ -1323,53 +1323,57 @@ export default function Compras() {
                 </div>
 
                 {/* Itens */}
-                <div className="border rounded-lg p-4 space-y-3">
+                <div className="border rounded-xl p-3 sm:p-4 space-y-3 bg-card/50">
                   <h3 className="font-semibold text-sm">Itens da Compra</h3>
 
                   {itens.length > 0 && (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Produto</TableHead>
-                          <TableHead className="w-20">Qtd</TableHead>
-                          <TableHead className="w-28">Preço Un.</TableHead>
-                          <TableHead className="w-28 text-right">Subtotal</TableHead>
-                          <TableHead className="w-10"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {itens.map((item, idx) => (
-                          <TableRow key={idx}>
-                            <TableCell className="text-sm">
-                              {item.is_new ? (
-                                <span className="flex items-center gap-1">
-                                  <Badge variant="outline" className="text-xs mr-1">Novo</Badge>
-                                  {item.produto_nome}
-                                </span>
-                              ) : (
-                                getProdutoNome(item.produto_id)
-                              )}
-                            </TableCell>
-                            <TableCell>{item.quantidade}</TableCell>
-                            <TableCell>R$ {item.preco_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                            <TableCell className="text-right">R$ {(item.preco_unitario * item.quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm" onClick={() => removerItem(idx)} className="text-destructive h-6 w-6 p-0">×</Button>
-                            </TableCell>
+                    <div className="overflow-x-auto -mx-3 px-3 sm:-mx-4 sm:px-4">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[140px]">Produto</TableHead>
+                            <TableHead className="w-20 text-center">Qtd</TableHead>
+                            <TableHead className="w-28 text-right">Preço Un.</TableHead>
+                            <TableHead className="w-28 text-right">Subtotal</TableHead>
+                            <TableHead className="w-10"></TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {itens.map((item, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell className="text-sm">
+                                {item.is_new ? (
+                                  <span className="flex items-center gap-1">
+                                    <Badge variant="outline" className="text-xs mr-1">Novo</Badge>
+                                    {item.produto_nome}
+                                  </span>
+                                ) : (
+                                  getProdutoNome(item.produto_id)
+                                )}
+                              </TableCell>
+                              <TableCell className="text-center">{item.quantidade}</TableCell>
+                              <TableCell className="text-right">R$ {item.preco_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                              <TableCell className="text-right">R$ {(item.preco_unitario * item.quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                              <TableCell>
+                                <Button variant="ghost" size="icon" onClick={() => removerItem(idx)} className="text-destructive h-8 w-8 p-0">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   )}
 
-                  <div className="grid grid-cols-[1fr_80px_120px_auto] gap-2 items-end">
+                  <div className="grid gap-2 items-end grid-cols-1 sm:grid-cols-[1fr_80px_120px_48px]">
                     <div>
                       <Label className="text-xs">Produto</Label>
                       <Select value={novoItem.produto_id} onValueChange={v => {
                         const prod = produtos.find(p => p.id === v);
                         setNovoItem({ ...novoItem, produto_id: v, preco_unitario: prod ? formatCurrency((prod.preco * 100).toFixed(0)) : novoItem.preco_unitario });
                       }}>
-                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectTrigger className="h-11"><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
                         <SelectContent>
                           {produtos.map(p => (
                             <SelectItem key={p.id} value={p.id}>{p.nome} - R$ {Number(p.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</SelectItem>
@@ -1377,19 +1381,23 @@ export default function Compras() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div>
-                      <Label className="text-xs">Qtd</Label>
-                      <Input type="number" min="1" value={novoItem.quantidade} onChange={e => setNovoItem({ ...novoItem, quantidade: e.target.value })} />
+                    <div className="grid grid-cols-3 gap-2 sm:contents">
+                      <div>
+                        <Label className="text-xs">Qtd</Label>
+                        <Input type="number" min="1" value={novoItem.quantidade} onChange={e => setNovoItem({ ...novoItem, quantidade: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Preço Unit.</Label>
+                        <Input
+                          value={novoItem.preco_unitario}
+                          onChange={e => setNovoItem({ ...novoItem, preco_unitario: formatCurrency(e.target.value) })}
+                          placeholder="0,00"
+                        />
+                      </div>
+                      <Button type="button" size="icon" onClick={adicionarItem} className="h-11 w-full sm:w-11">
+                        <Plus className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <div>
-                      <Label className="text-xs">Preço Unit.</Label>
-                      <Input
-                        value={novoItem.preco_unitario}
-                        onChange={e => setNovoItem({ ...novoItem, preco_unitario: formatCurrency(e.target.value) })}
-                        placeholder="0,00"
-                      />
-                    </div>
-                    <Button size="sm" onClick={adicionarItem} className="mb-0">+</Button>
                   </div>
                 </div>
 
