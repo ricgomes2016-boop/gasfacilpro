@@ -2,6 +2,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { DashboardKpis } from "@/components/dashboard/DashboardKpis";
+import { DashboardFinancialHero } from "@/components/dashboard/DashboardFinancialHero";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
@@ -33,6 +34,7 @@ export default function Dashboard() {
             </h2>
           </div>
         </div>
+        <DashboardFinancialHero />
         <DashboardKpis />
         <QuickActions />
       </div>
