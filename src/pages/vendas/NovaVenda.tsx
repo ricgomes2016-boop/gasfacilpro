@@ -1429,29 +1429,34 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
 
   const metaCard = (
-    <Card className="venda-card venda-gasmais-card venda-tone-cliente border-primary/20 bg-card/95">
-      <CardContent className="p-3 md:p-4 space-y-3">
-        {/* Cabeçalho da venda dentro do card da data */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
-          <div className="flex items-center gap-2 min-w-0">
-            <Badge variant="outline" className="h-6 px-2 text-[11px] border-primary/30 bg-primary/5 text-primary font-semibold">
-              #{proximoNumero ?? "—"}
-            </Badge>
-            <span className="text-sm font-semibold text-foreground truncate">Nova Venda</span>
+    <Card className="venda-card venda-gasmais-card venda-tone-cliente border-border bg-card shadow-[0_4px_20px_rgba(15,23,42,0.05)] rounded-[20px] overflow-hidden">
+      <CardContent className="p-4 space-y-4">
+        {/* Cabeçalho premium */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <ShoppingBag className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Pedido</p>
+              <p className="text-sm font-bold text-foreground truncate leading-tight">
+                Nova Venda <span className="text-primary">#{proximoNumero ?? "—"}</span>
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
               size="sm"
               onClick={() => openNovaVendaWindow({})}
-              className="h-7 gap-1 text-[11px]"
+              className="h-8 gap-1 rounded-lg text-xs"
             >
               <PlusCircle className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Nova Venda</span>
+              <span className="hidden sm:inline">Nova</span>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label="Mais ações">
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground" aria-label="Mais ações">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -1480,18 +1485,18 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <Label className="text-xs font-semibold text-foreground flex items-center gap-1">
+            <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               Data de Entrega
             </Label>
-            <Input type="date" value={dataEntrega} onChange={(e) => setDataEntrega(e.target.value)} className="mt-1" data-venda-enter-next />
+            <Input type="date" value={dataEntrega} onChange={(e) => setDataEntrega(e.target.value)} className="mt-1 h-11 rounded-xl" data-venda-enter-next />
           </div>
           <div>
-            <Label className="text-xs font-semibold text-foreground">Canal de Venda</Label>
+            <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Canal de Venda</Label>
             <Select value={canalVenda} onValueChange={setCanalVenda}>
-              <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o canal de venda" /></SelectTrigger>
+              <SelectTrigger className="mt-1 h-11 rounded-xl"><SelectValue placeholder="Selecione o canal" /></SelectTrigger>
               <SelectContent>
                 {allChannels.map((ch) => (
                   <SelectItem key={ch.value} value={ch.value}>{ch.label}</SelectItem>
@@ -1500,6 +1505,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             </Select>
           </div>
         </div>
+
         {parceirosComEmpenho.length > 0 && (
           <div className="grid gap-3 md:grid-cols-2 border-t pt-3">
             <div>
