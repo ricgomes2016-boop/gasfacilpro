@@ -378,32 +378,29 @@ export default function PDV() {
   return (
     <MainLayout>
       <div className="min-h-[calc(100vh-0rem)] bg-[hsl(220,14%,96%)]">
-        <div className="mx-auto max-w-[1400px] px-3 md:px-6 pt-3 md:pt-5 pb-40 md:pb-6 space-y-3 md:space-y-4">
+        <div className="mx-auto max-w-[1400px] px-3 md:px-6 pt-3 md:pt-4 pb-40 md:pb-6 space-y-3 md:space-y-4">
           <CaixaBloqueadoBanner />
 
-          {/* Compact premium header */}
+          {/* Compact operational header */}
           <div className="flex items-center justify-between gap-2 w-full min-w-0">
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 shrink-0 rounded-xl"
+                className="h-9 w-9 shrink-0 rounded-lg"
                 onClick={() => navigate("/vendas")}
                 aria-label="Voltar"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <ShoppingCart className="h-5 w-5 text-primary" />
-              </div>
               <div className="min-w-0 flex-1">
-                <h1 className="text-base md:text-lg font-bold truncate leading-tight">PDV – Portaria</h1>
-                <p className="text-[11px] md:text-xs text-muted-foreground truncate">
-                  {unidadeAtual ? `Loja: ${unidadeAtual.nome}` : "Venda rápida para retirada no local"}
+                <h1 className="text-[15px] md:text-base font-bold truncate leading-tight text-foreground">PDV – Portaria</h1>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {unidadeAtual ? unidadeAtual.nome : "Venda rápida para retirada no local"}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 rounded-xl bg-card border border-border px-3 h-10 shrink-0 text-sm font-semibold tabular-nums shadow-sm">
+            <div className="hidden sm:flex items-center gap-1.5 rounded-lg bg-card border border-border px-2.5 h-9 shrink-0 text-[13px] font-semibold tabular-nums text-muted-foreground">
               {now}
             </div>
           </div>
