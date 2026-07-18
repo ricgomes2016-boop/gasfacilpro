@@ -1226,20 +1226,20 @@ export default function Compras() {
                     <Plus className="h-4 w-4 mr-2" />Nova Compra
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6">
                   <DialogHeader>
                     <DialogTitle>Registrar Nova Compra</DialogTitle>
                 <DialogDescription>Preencha os dados, importe XML ou tire foto da nota fiscal</DialogDescription>
               </DialogHeader>
 
               {/* Import buttons */}
-              <div className="flex gap-2 pt-2">
+              <div className="grid grid-cols-2 gap-2 pt-2">
                 <input ref={xmlInputRef} type="file" accept=".xml" className="hidden" onChange={handleImportXML} />
                 <input ref={photoInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoCapture} />
-                <Button variant="import" className="flex-1" onClick={() => xmlInputRef.current?.click()} disabled={isProcessingPhoto}>
+                <Button variant="import" className="h-11 w-full gap-2" onClick={() => xmlInputRef.current?.click()} disabled={isProcessingPhoto}>
                   <Upload className="h-4 w-4" />Importar XML
                 </Button>
-                <Button variant="photo" className="flex-1" onClick={() => photoInputRef.current?.click()} disabled={isProcessingPhoto}>
+                <Button variant="photo" className="h-11 w-full gap-2" onClick={() => photoInputRef.current?.click()} disabled={isProcessingPhoto}>
                   {isProcessingPhoto ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -1266,19 +1266,19 @@ export default function Compras() {
               <div className="space-y-4 pt-2">
                 {/* Fornecedor e NF */}
                 {!form.fornecedor_novo && (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                       <Label>Fornecedor *</Label>
-                      <div className="flex gap-1">
+                      <div className="flex gap-2">
                         <Select value={form.fornecedor_id} onValueChange={v => setForm({ ...form, fornecedor_id: v })}>
-                          <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectTrigger className="flex-1 h-11"><SelectValue placeholder="Selecione" /></SelectTrigger>
                           <SelectContent>
                             {fornecedores.map(f => (
                               <SelectItem key={f.id} value={f.id}>{f.razao_social}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => setQuickFornOpen(true)} title="Cadastrar fornecedor">
+                        <Button type="button" variant="outline" size="icon" className="shrink-0 h-11 w-11" onClick={() => setQuickFornOpen(true)} title="Cadastrar fornecedor">
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -1311,7 +1311,7 @@ export default function Compras() {
                 </div>
 
                 {/* Data da compra */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <Label>Data da Compra</Label>
                     <Input type="date" value={form.data_compra} onChange={e => setForm({ ...form, data_compra: e.target.value })} />
@@ -1323,53 +1323,57 @@ export default function Compras() {
                 </div>
 
                 {/* Itens */}
-                <div className="border rounded-lg p-4 space-y-3">
+                <div className="border rounded-xl p-3 sm:p-4 space-y-3 bg-card/50">
                   <h3 className="font-semibold text-sm">Itens da Compra</h3>
 
                   {itens.length > 0 && (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Produto</TableHead>
-                          <TableHead className="w-20">Qtd</TableHead>
-                          <TableHead className="w-28">Preço Un.</TableHead>
-                          <TableHead className="w-28 text-right">Subtotal</TableHead>
-                          <TableHead className="w-10"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {itens.map((item, idx) => (
-                          <TableRow key={idx}>
-                            <TableCell className="text-sm">
-                              {item.is_new ? (
-                                <span className="flex items-center gap-1">
-                                  <Badge variant="outline" className="text-xs mr-1">Novo</Badge>
-                                  {item.produto_nome}
-                                </span>
-                              ) : (
-                                getProdutoNome(item.produto_id)
-                              )}
-                            </TableCell>
-                            <TableCell>{item.quantidade}</TableCell>
-                            <TableCell>R$ {item.preco_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                            <TableCell className="text-right">R$ {(item.preco_unitario * item.quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm" onClick={() => removerItem(idx)} className="text-destructive h-6 w-6 p-0">×</Button>
-                            </TableCell>
+                    <div className="overflow-x-auto -mx-3 px-3 sm:-mx-4 sm:px-4">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[140px]">Produto</TableHead>
+                            <TableHead className="w-20 text-center">Qtd</TableHead>
+                            <TableHead className="w-28 text-right">Preço Un.</TableHead>
+                            <TableHead className="w-28 text-right">Subtotal</TableHead>
+                            <TableHead className="w-10"></TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {itens.map((item, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell className="text-sm">
+                                {item.is_new ? (
+                                  <span className="flex items-center gap-1">
+                                    <Badge variant="outline" className="text-xs mr-1">Novo</Badge>
+                                    {item.produto_nome}
+                                  </span>
+                                ) : (
+                                  getProdutoNome(item.produto_id)
+                                )}
+                              </TableCell>
+                              <TableCell className="text-center">{item.quantidade}</TableCell>
+                              <TableCell className="text-right">R$ {item.preco_unitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                              <TableCell className="text-right">R$ {(item.preco_unitario * item.quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                              <TableCell>
+                                <Button variant="ghost" size="icon" onClick={() => removerItem(idx)} className="text-destructive h-8 w-8 p-0">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   )}
 
-                  <div className="grid grid-cols-[1fr_80px_120px_auto] gap-2 items-end">
+                  <div className="grid gap-2 items-end grid-cols-1 sm:grid-cols-[1fr_80px_120px_48px]">
                     <div>
                       <Label className="text-xs">Produto</Label>
                       <Select value={novoItem.produto_id} onValueChange={v => {
                         const prod = produtos.find(p => p.id === v);
                         setNovoItem({ ...novoItem, produto_id: v, preco_unitario: prod ? formatCurrency((prod.preco * 100).toFixed(0)) : novoItem.preco_unitario });
                       }}>
-                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectTrigger className="h-11"><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
                         <SelectContent>
                           {produtos.map(p => (
                             <SelectItem key={p.id} value={p.id}>{p.nome} - R$ {Number(p.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</SelectItem>
@@ -1377,24 +1381,28 @@ export default function Compras() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div>
-                      <Label className="text-xs">Qtd</Label>
-                      <Input type="number" min="1" value={novoItem.quantidade} onChange={e => setNovoItem({ ...novoItem, quantidade: e.target.value })} />
+                    <div className="grid grid-cols-3 gap-2 sm:contents">
+                      <div>
+                        <Label className="text-xs">Qtd</Label>
+                        <Input type="number" min="1" value={novoItem.quantidade} onChange={e => setNovoItem({ ...novoItem, quantidade: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Preço Unit.</Label>
+                        <Input
+                          value={novoItem.preco_unitario}
+                          onChange={e => setNovoItem({ ...novoItem, preco_unitario: formatCurrency(e.target.value) })}
+                          placeholder="0,00"
+                        />
+                      </div>
+                      <Button type="button" size="icon" onClick={adicionarItem} className="h-11 w-full sm:w-11">
+                        <Plus className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <div>
-                      <Label className="text-xs">Preço Unit.</Label>
-                      <Input
-                        value={novoItem.preco_unitario}
-                        onChange={e => setNovoItem({ ...novoItem, preco_unitario: formatCurrency(e.target.value) })}
-                        placeholder="0,00"
-                      />
-                    </div>
-                    <Button size="sm" onClick={adicionarItem} className="mb-0">+</Button>
                   </div>
                 </div>
 
                 {/* Frete e Total */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div>
                     <Label>Valor Frete</Label>
                     <Input
@@ -1420,7 +1428,7 @@ export default function Compras() {
                 </div>
 
                 {/* Pagamento */}
-                <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                <div className="border rounded-xl p-3 sm:p-4 space-y-3 bg-muted/30">
                   <h3 className="font-semibold text-sm flex items-center gap-2">
                     <DollarSign className="h-4 w-4" /> Pagamento
                   </h3>
@@ -1429,7 +1437,7 @@ export default function Compras() {
                     <Button
                       type="button"
                       variant={pagamento.situacao === "avista" ? "default" : "outline"}
-                      size="sm"
+                      className="h-11"
                       onClick={() => setPagamento({ ...pagamento, situacao: "avista" })}
                     >
                       À vista
@@ -1437,7 +1445,7 @@ export default function Compras() {
                     <Button
                       type="button"
                       variant={pagamento.situacao === "aprazo" ? "default" : "outline"}
-                      size="sm"
+                      className="h-11"
                       onClick={() => setPagamento({ ...pagamento, situacao: "aprazo", forma: "a_prazo" })}
                     >
                       A prazo
@@ -1454,7 +1462,7 @@ export default function Compras() {
                             setPagamento({ ...pagamento, forma: v, conta_bancaria_id: "" })
                           }
                         >
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="dinheiro">💵 Dinheiro (caixa da loja)</SelectItem>
                             <SelectItem value="pix">⚡ PIX</SelectItem>
@@ -1490,7 +1498,7 @@ export default function Compras() {
                             value={pagamento.conta_bancaria_id || "nenhum"}
                             onValueChange={(v) => setPagamento({ ...pagamento, conta_bancaria_id: v === "nenhum" ? "" : v })}
                           >
-                            <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
+                            <SelectTrigger className="h-11"><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
                             <SelectContent>
                               {pagamento.forma === "cheque" && <SelectItem value="nenhum">— Sem vínculo bancário —</SelectItem>}
                               {contasBancarias.map((c) => (
@@ -1526,7 +1534,7 @@ export default function Compras() {
                       )}
 
                       {pagamento.forma === "cheque" && (
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <div>
                             <Label className="text-xs">Nº cheque</Label>
                             <Input value={pagamento.numero_cheque} onChange={(e) => setPagamento({ ...pagamento, numero_cheque: e.target.value })} />
@@ -1573,7 +1581,7 @@ export default function Compras() {
                             </Button>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div>
                               <Label className="text-xs">Forma</Label>
                               <Select
@@ -1582,7 +1590,7 @@ export default function Compras() {
                                   setPagamentosExtras(pagamentosExtras.map((r, i) => i === idx ? { ...r, forma: v, conta_bancaria_id: "" } : r))
                                 }
                               >
-                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="dinheiro">💵 Dinheiro</SelectItem>
                                   <SelectItem value="pix">⚡ PIX</SelectItem>
@@ -1614,7 +1622,7 @@ export default function Compras() {
                                 value={row.conta_bancaria_id || "nenhum"}
                                 onValueChange={(v) => setPagamentosExtras(pagamentosExtras.map((r, i) => i === idx ? { ...r, conta_bancaria_id: v === "nenhum" ? "" : v } : r))}
                               >
-                                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectTrigger className="h-11"><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 <SelectContent>
                                   {row.forma === "cheque" && <SelectItem value="nenhum">— Sem vínculo bancário —</SelectItem>}
                                   {contasBancarias.map((c) => (
@@ -1626,7 +1634,7 @@ export default function Compras() {
                           )}
 
                           {row.forma === "cheque" && (
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                               <div>
                                 <Label className="text-xs">Nº cheque</Label>
                                 <Input value={row.numero_cheque} onChange={(e) => setPagamentosExtras(pagamentosExtras.map((r, i) => i === idx ? { ...r, numero_cheque: e.target.value } : r))} />
@@ -1647,8 +1655,7 @@ export default function Compras() {
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
-                        className="w-full"
+                        className="w-full h-11"
                         onClick={() =>
                           setPagamentosExtras([
                             ...pagamentosExtras,
@@ -1656,7 +1663,7 @@ export default function Compras() {
                           ])
                         }
                       >
-                        <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar forma de pagamento
+                        <Plus className="h-4 w-4 mr-1" /> Adicionar forma de pagamento
                       </Button>
 
                       {pagamentosExtras.length > 0 && (() => {
@@ -1682,9 +1689,9 @@ export default function Compras() {
                   )}
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="outline" onClick={() => { setOpen(false); resetForm(); }}>Cancelar</Button>
-                  <Button onClick={handleSave}>Registrar Compra</Button>
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+                  <Button variant="outline" className="h-11 w-full sm:w-auto" onClick={() => { setOpen(false); resetForm(); }}>Cancelar</Button>
+                  <Button className="h-11 w-full sm:w-auto" onClick={handleSave}>Registrar Compra</Button>
                 </div>
               </div>
             </DialogContent>
