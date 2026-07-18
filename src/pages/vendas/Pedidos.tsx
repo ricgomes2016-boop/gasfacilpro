@@ -847,10 +847,10 @@ export default function Pedidos() {
   return (
     <MainLayout>
       {/* #2 - removed duplicate title, kept only Header */}
-      <Header title="Pedidos" subtitle="Gerenciar pedidos de venda" />
-      <div className="p-3 md:p-6 space-y-4 md:space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
+      <Header title="Pedidos" subtitle="Acompanhamento de entregas" />
+      <div className="p-3 md:p-6 space-y-4 w-full min-w-0 max-w-full overflow-x-hidden bg-[#f8fafc] min-h-full">
 
-        {/* Top actions - grade 2x2 mobile / 4 col desktop, premium */}
+        {/* Toolbar Base44: busca + datas + visualização + Nova Venda */}
         {(() => {
           const filtrosAtivos =
             (busca ? 1 : 0) +
@@ -858,65 +858,107 @@ export default function Pedidos() {
             (filtroEntregador !== "todos" ? 1 : 0) +
             (filtroOrigem !== "todos" ? 1 : 0) +
             (dataInicio !== hoje || dataFim !== hoje ? 1 : 0);
-          const actionBase =
-            "w-full h-11 rounded-xl px-3 flex items-center justify-center gap-2 text-sm font-medium transition-colors";
           return (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full min-w-0">
-              <Button
-                onClick={() => navigate("/vendas/nova")}
-                className={`${actionBase} bg-primary text-primary-foreground hover:bg-primary/90`}
-              >
-                <Sparkles className="h-4 w-4 shrink-0" />
-                <span className="truncate">Novo Pedido</span>
-              </Button>
-              <SmartImportButtons
-                edgeFunctionName="parse-orders-history"
-                onDataExtracted={handleImportData}
-                mode="menu"
-                menuLabel="Mais ações"
-                className={`${actionBase} !bg-card !text-foreground border border-border hover:!bg-muted/60 !h-11`}
-                extraMenuContent={
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => {
-                        exportarPedidosCSV(pedidosFiltrados);
-                        sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);
-                      }}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Exportar CSV
-                    </DropdownMenuItem>
-                  </>
-                }
-              />
-              <Button
-                variant="outline"
-                onClick={() => navigate("/operacional/centro")}
-                className={`${actionBase} bg-card hover:bg-muted/60`}
-              >
-                <MapIcon className="h-4 w-4 shrink-0" />
-                <span className="truncate">Mapa Operacional</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setFiltrosAbertos((v) => !v)}
-                aria-expanded={filtrosAbertos}
-                aria-controls="orders-advanced-filters"
-                className={`${actionBase} bg-card hover:bg-muted/60 relative`}
-              >
-                <SlidersHorizontal className="h-4 w-4 shrink-0" />
-                <span className="truncate">Filtros</span>
-                {filtrosAtivos > 0 && (
-                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] tabular-nums">{filtrosAtivos}</Badge>
-                )}
-                <ChevronDown
-                  className={`h-4 w-4 shrink-0 transition-transform duration-200 ${filtrosAbertos ? "rotate-180" : ""}`}
+            <div className="rounded-2xl border border-border bg-card/60 backdrop-blur px-3 py-2.5 md:px-4 md:py-3 shadow-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative flex-1 min-w-[180px]">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por cliente, produto..."
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    className="h-9 pl-9 rounded-lg text-sm bg-background"
+                  />
+                </div>
+                <Input
+                  type="date"
+                  value={dataInicio}
+                  onChange={(e) => setDataInicio(e.target.value)}
+                  className="h-9 w-[140px] text-sm rounded-lg bg-background"
+                  aria-label="Data início"
                 />
-              </Button>
+                <Input
+                  type="date"
+                  value={dataFim}
+                  onChange={(e) => setDataFim(e.target.value)}
+                  className="h-9 w-[140px] text-sm rounded-lg bg-background hidden sm:block"
+                  aria-label="Data fim"
+                />
+
+                {/* Controles pequenos de visualização */}
+                <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("board")}
+                    className={`h-8 px-2.5 rounded-md text-xs font-medium transition-colors ${viewMode === "board" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    title="Board por status"
+                  >
+                    Board
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("lista")}
+                    className={`h-8 px-2.5 rounded-md text-xs font-medium transition-colors ${viewMode === "lista" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    title="Lista"
+                  >
+                    Lista
+                  </button>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFiltrosAbertos((v) => !v)}
+                  aria-expanded={filtrosAbertos}
+                  aria-controls="orders-advanced-filters"
+                  className="h-9 rounded-lg bg-background text-sm gap-1.5"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  <span className="hidden sm:inline">Filtros</span>
+                  {filtrosAtivos > 0 && (
+                    <Badge variant="secondary" className="h-4 px-1 text-[10px] tabular-nums">{filtrosAtivos}</Badge>
+                  )}
+                </Button>
+
+                <SmartImportButtons
+                  edgeFunctionName="parse-orders-history"
+                  onDataExtracted={handleImportData}
+                  mode="menu"
+                  menuLabel="Mais"
+                  className="!h-9 !rounded-lg !bg-background !text-foreground border border-border hover:!bg-muted/60 text-sm px-3"
+                  extraMenuContent={
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => navigate("/operacional/centro")}>
+                        <MapIcon className="h-4 w-4 mr-2" />
+                        Mapa Operacional
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          exportarPedidosCSV(pedidosFiltrados);
+                          sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);
+                        }}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Exportar CSV
+                      </DropdownMenuItem>
+                    </>
+                  }
+                />
+
+                <Button
+                  onClick={() => navigate("/vendas/nova")}
+                  size="sm"
+                  className="h-9 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 ml-auto sm:ml-0"
+                >
+                  <Sparkles className="h-4 w-4 mr-1.5" />
+                  Nova Venda
+                </Button>
+              </div>
             </div>
           );
         })()}
+
 
         {/* Inline collapsible advanced filters */}
         <Collapsible open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
