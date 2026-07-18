@@ -1256,7 +1256,7 @@ export default function Compras() {
           actions={
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               <OutlookImportButton
-                onImported={() => { fetchCompras(); fetchProdutos(); fetchFornecedores(); }}
+                onImported={() => { fetchCompras(); fetchProdutos(); fetchFornecedores(); fetchHistoricoPrecos(); }}
               />
               <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
                 <DialogTrigger asChild>
