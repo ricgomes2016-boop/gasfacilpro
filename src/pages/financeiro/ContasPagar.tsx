@@ -57,7 +57,11 @@ export default function ContasPagar() {
   const totalPagoVisivel = visibleContas.filter(c => c.status === "paga").reduce((a, c) => a + Number(c.valor), 0);
   const totalAbertoVisivel = totalPendenteVisivel + totalVencidoVisivel;
   const contasVencemHoje = visibleContas.filter(c => c.status !== "paga" && c.vencimento === cp.hoje);
-  const summaryCards = [
+  const summaryCards: Array<{
+    key: string; title: string; subtitle: string; total: number;
+    contas: typeof visibleContas; icon: any; color: HeroColor;
+    cardClass?: string; iconClass?: string; valueClass?: string;
+  }> = [
     {
       key: "abertas",
       title: "Total a pagar",
@@ -65,9 +69,7 @@ export default function ContasPagar() {
       total: totalAbertoVisivel,
       contas: visibleContas.filter(c => c.status !== "paga"),
       icon: CreditCard,
-      cardClass: "kpi-card-primary",
-      iconClass: "status-card-icon-primary",
-      valueClass: "",
+      color: "primary",
     },
     {
       key: "a-vencer",
@@ -76,9 +78,7 @@ export default function ContasPagar() {
       total: totalPendenteVisivel,
       contas: visibleContas.filter(c => c.status === "pendente" && c.vencimento >= cp.hoje),
       icon: Clock,
-      cardClass: "kpi-card-warning",
-      iconClass: "status-card-icon-warning",
-      valueClass: "text-warning",
+      color: "warning",
     },
     {
       key: "vencidas",
@@ -87,9 +87,7 @@ export default function ContasPagar() {
       total: totalVencidoVisivel,
       contas: visibleContas.filter(c => (c.status === "pendente" || c.status === "vencida") && c.vencimento < cp.hoje),
       icon: AlertCircle,
-      cardClass: "kpi-card-destructive",
-      iconClass: "status-card-icon-destructive",
-      valueClass: "text-destructive",
+      color: "danger",
     },
     {
       key: "pagas",
@@ -98,9 +96,7 @@ export default function ContasPagar() {
       total: totalPagoVisivel,
       contas: visibleContas.filter(c => c.status === "paga"),
       icon: CheckCircle2,
-      cardClass: "kpi-card-success",
-      iconClass: "status-card-icon-success",
-      valueClass: "text-success",
+      color: "success",
     },
   ];
   const selectedSummary = summaryCards.find(card => card.key === selectedSummaryKey);
