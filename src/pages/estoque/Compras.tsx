@@ -1428,7 +1428,7 @@ export default function Compras() {
                 </div>
 
                 {/* Pagamento */}
-                <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                <div className="border rounded-xl p-3 sm:p-4 space-y-3 bg-muted/30">
                   <h3 className="font-semibold text-sm flex items-center gap-2">
                     <DollarSign className="h-4 w-4" /> Pagamento
                   </h3>
