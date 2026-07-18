@@ -259,7 +259,7 @@ export default function PromocoesCupons() {
 
         {/* Tabs */}
         <Tabs defaultValue="cupons">
-          <TabsList>
+          <TabsList className="h-11">
             <TabsTrigger value="cupons"><Ticket className="h-4 w-4 mr-2" />Cupons de Desconto</TabsTrigger>
             <TabsTrigger value="promocoes"><Percent className="h-4 w-4 mr-2" />Promoções</TabsTrigger>
           </TabsList>
