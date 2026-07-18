@@ -1462,7 +1462,7 @@ export default function Compras() {
                             setPagamento({ ...pagamento, forma: v, conta_bancaria_id: "" })
                           }
                         >
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="dinheiro">💵 Dinheiro (caixa da loja)</SelectItem>
                             <SelectItem value="pix">⚡ PIX</SelectItem>
