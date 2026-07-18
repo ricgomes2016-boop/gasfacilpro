@@ -371,11 +371,12 @@ export function ComprasListaTableEstoque({ compras, unidadesMap, precoMedioMap, 
                               <p className="text-foreground truncate">
                                 {item.quantidade}x {item.produtos?.nome || item.descricao || "Item"}
                               </p>
-                              {item.produto_id && precoMedioMap?.[item.produto_id] && (
+                              {Number(item.preco_unitario) > 0 && (
                                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                                  Preço médio: {fmtBRL(precoMedioMap[item.produto_id].avg)}
+                                  Unit.: {fmtBRL(Number(item.preco_unitario))}
                                 </p>
                               )}
+
                             </div>
                             <span className="text-foreground font-medium whitespace-nowrap shrink-0">
                               {fmtBRL(Number(item.valor_total || item.quantidade * item.preco_unitario || 0))}
