@@ -289,7 +289,86 @@ export function ComprasListaTableEstoque({ compras, unidadesMap, onChanged, onDe
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile cards */}
+        <div className="md:hidden divide-y divide-border/40">
+          {display.length === 0 && (
+            <p className="text-center py-8 text-sm text-muted-foreground">Nenhuma compra encontrada</p>
+          )}
+          {display.map((c: any) => {
+            const isDup = dupNFs.has(c.numero_nota_fiscal || c.id);
+            const vencido = isVencido(c);
+            const tipoBase = TIPO_LABEL[c.tipo_produto || "outros"] || TIPO_LABEL.outros;
+            const subtipos = subtiposFor(c);
+            const qtd = qtdTotal(c);
+            const dataExibida = c.data_compra ? c.data_compra : String(c.created_at || "").slice(0, 10);
+            return (
+              <div key={c.id} className={`p-3 space-y-2 ${isDup ? "bg-warning/5" : ""} ${c.pago ? "opacity-70" : ""}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm text-foreground truncate">
+                      {c.fornecedores?.razao_social || "—"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {fmtDate(dataExibida)} · NF {c.numero_nota_fiscal || "—"}
+                      {isDup && <AlertTriangle className="inline h-3 w-3 text-warning ml-1" />}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="font-bold text-sm text-foreground whitespace-nowrap">
+                      {fmtBRL(Number(c.valor_total || 0))}
+                    </p>
+                    {qtd > 0 && (
+                      <p className="text-[10px] text-muted-foreground">{fmtNum(qtd, 0)} un</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {(subtipos.length > 0 ? subtipos.map((s) => (
+                    <span key={s} className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${SUBTIPO_CLS[s]}`}>{s}</span>
+                  )) : (
+                    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${tipoBase.cls}`}>{tipoBase.label}</span>
+                  ))}
+                  {c.data_vencimento && (
+                    <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium border ${
+                      c.pago ? "bg-success/10 text-success border-success/30"
+                        : vencido ? "bg-destructive/10 text-destructive border-destructive/30"
+                        : "bg-muted text-muted-foreground border-border"
+                    }`}>
+                      <Calendar className="h-2.5 w-2.5" /> Venc {fmtDate(c.data_vencimento)}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => toggleConferida(c)}
+                      className={`inline-flex items-center gap-1 h-8 px-2.5 rounded-md border text-[11px] font-medium ${
+                        c.conferida ? "bg-primary/10 border-primary/40 text-primary" : "border-border text-muted-foreground"
+                      }`}
+                    >
+                      <Check className="h-3 w-3" />{c.conferida ? "Conferida" : "Conferir"}
+                    </button>
+                    <button
+                      onClick={() => togglePago(c)}
+                      className={`inline-flex items-center gap-1 h-8 px-2.5 rounded-md border text-[11px] font-medium ${
+                        c.pago ? "bg-success/10 border-success/40 text-success" : "border-border text-muted-foreground"
+                      }`}
+                    >
+                      <Wallet className="h-3 w-3" />{c.pago ? "Pago" : "Marcar pago"}
+                    </button>
+                  </div>
+                  {onDelete && (
+                    <button onClick={() => onDelete(c.id)} className="h-8 w-8 inline-flex items-center justify-center rounded-md text-destructive/70 hover:text-destructive hover:bg-destructive/10">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-xs">
             <thead className="bg-muted/40">
               <tr className="text-left">
