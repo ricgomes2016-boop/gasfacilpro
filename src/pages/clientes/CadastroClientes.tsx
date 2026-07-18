@@ -1468,7 +1468,7 @@ export default function CadastroClientesCad() {
             </DialogTitle>
           </DialogHeader>
           <Tabs defaultValue="cadastro" className="flex-1 flex flex-col min-h-0">
-            <TabsList className="grid grid-cols-2 w-full sm:w-fit shrink-0">
+            <TabsList className="grid grid-cols-2 w-full sm:w-fit shrink-0 h-11">
               <TabsTrigger value="cadastro" className="text-xs sm:text-sm">Dados Cadastrais</TabsTrigger>
               <TabsTrigger value="precos" disabled={!editingCliente} className="text-xs sm:text-sm">
                 Preço Negociado

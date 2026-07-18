@@ -280,7 +280,7 @@ export default function ProgramaIndicacao() {
         </div>
 
         <Tabs defaultValue="ranking">
-          <TabsList>
+          <TabsList className="h-11">
             <TabsTrigger value="ranking"><Crown className="h-4 w-4 mr-1.5" />Ranking</TabsTrigger>
             <TabsTrigger value="creditos"><ReceiptText className="h-4 w-4 mr-1.5" />Créditos</TabsTrigger>
             <TabsTrigger value="config"><Zap className="h-4 w-4 mr-1.5" />Configurações</TabsTrigger>
