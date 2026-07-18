@@ -54,6 +54,8 @@ interface LinhaEstoque {
   estoqueAtual: number;
   vendas: number;
   compras: number;
+  entradas: number; // compras + entradas manuais (para exibição)
+  saidas: number;   // saídas manuais (para exibição)
   entradasManuais: number;
   saidasManuais: number;
   avarias: number;
@@ -75,37 +77,33 @@ function calcularLinha(
   const estoqueAtual = produto.estoque || 0;
   const { vendas, compras, entradas_manuais, saidas_manuais, avarias } = mov;
 
-  if (tipoBotijao === "cheio") {
-    const entradas = compras + entradas_manuais;
-    const saidas = saidas_manuais;
-    const inicial = estoqueAtual - entradas + saidas + vendas + avarias;
-    const total = inicial + entradas - saidas - vendas - avarias;
-    return {
-      produtoId: produto.id, nome: nomeBase, tipoEstoque: "Cheio", estoqueAtual,
-      vendas, compras, entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
-      avarias, inicial, total,
-    };
-  } else if (tipoBotijao === "vazio") {
+  if (tipoBotijao === "vazio") {
     const entradas = saidas_manuais + vendas;
     const saidas = compras + entradas_manuais;
     const inicial = estoqueAtual - entradas + saidas;
     const total = inicial + entradas - saidas;
     return {
       produtoId: produto.id, nome: nomeBase, tipoEstoque: "Vazio", estoqueAtual,
-      vendas: 0, compras: 0, entradasManuais: entradas, saidasManuais: saidas,
-      avarias, inicial, total,
-    };
-  } else {
-    const entradas = compras + entradas_manuais;
-    const saidas = saidas_manuais;
-    const inicial = estoqueAtual - entradas + saidas + vendas + avarias;
-    const total = inicial + entradas - saidas - vendas - avarias;
-    return {
-      produtoId: produto.id, nome: nomeBase, tipoEstoque: "Único", estoqueAtual,
-      vendas, compras, entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
+      vendas: 0, compras, entradas, saidas,
+      entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
       avarias, inicial, total,
     };
   }
+
+  // Cheio ou Único: inicial + (compras + manuais) - saídas manuais - vendas - avarias = atual
+  const entradas = compras + entradas_manuais;
+  const saidas = saidas_manuais;
+  const inicial = estoqueAtual - entradas + saidas + vendas + avarias;
+  const total = inicial + entradas - saidas - vendas - avarias;
+  return {
+    produtoId: produto.id,
+    nome: nomeBase,
+    tipoEstoque: tipoBotijao === "cheio" ? "Cheio" : "Único",
+    estoqueAtual,
+    vendas, compras, entradas, saidas,
+    entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
+    avarias, inicial, total,
+  };
 }
 
 export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, onRefresh }: EstoqueDiaTableProps) {
@@ -135,13 +133,9 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
     Object.entries(grupoMap)
       .sort(([a], [b]) => a.localeCompare(b))
       .forEach(([, grupo]) => {
-        const estoqueCombinado = (grupo.cheio?.estoque || 0) + (grupo.vazio?.estoque || 0);
-
         if (grupo.cheio) {
           const mov = movimentacoes[grupo.cheio.id] || emptyMov;
-          const linha = calcularLinha(grupo.cheio, mov, "cheio");
-          linha.estoqueAtual = estoqueCombinado;
-          resultado.push(linha);
+          resultado.push(calcularLinha(grupo.cheio, mov, "cheio"));
         }
         if (grupo.vazio) {
           const parCheioId = grupo.cheio?.id;
@@ -152,9 +146,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
             entradas_manuais: movCheio.entradas_manuais, saidas_manuais: movCheio.saidas_manuais,
             avarias: movVazio.avarias,
           };
-          const linha = calcularLinha(grupo.vazio, movCombinado, "vazio");
-          linha.estoqueAtual = estoqueCombinado;
-          resultado.push(linha);
+          resultado.push(calcularLinha(grupo.vazio, movCombinado, "vazio"));
         }
         if (grupo.unico && !grupo.cheio && !grupo.vazio) {
           const mov = movimentacoes[grupo.unico.id] || emptyMov;
@@ -332,13 +324,13 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Entradas</p>
                       <p className="text-sm font-semibold text-success">
-                        {linha.entradasManuais > 0 ? `+${linha.entradasManuais}` : "0"}
+                        {linha.entradas > 0 ? `+${linha.entradas}` : "0"}
                       </p>
                     </div>
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Saídas</p>
                       <p className="text-sm font-semibold text-warning">
-                        {linha.saidasManuais > 0 ? `-${linha.saidasManuais}` : "0"}
+                        {linha.saidas > 0 ? `-${linha.saidas}` : "0"}
                       </p>
                     </div>
                     <div>
@@ -354,8 +346,8 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vasilhame</p>
-                      <p className="text-sm font-semibold text-foreground">{linha.estoqueAtual}</p>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Atual</p>
+                      <p className={`text-sm font-semibold ${totalTone}`}>{linha.total}</p>
                     </div>
                   </div>
 
@@ -383,7 +375,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                   <TableHead className="font-semibold text-foreground text-center">Vendas</TableHead>
                   <TableHead className="font-semibold text-foreground text-center">Avarias</TableHead>
                   <TableHead className="font-semibold text-foreground text-center">Total</TableHead>
-                  <TableHead className="font-semibold text-foreground text-center">Vasilhame</TableHead>
+                  <TableHead className="font-semibold text-foreground text-center">Atual</TableHead>
                   <TableHead className="font-semibold text-foreground text-center w-[60px]">Ação</TableHead>
                 </TableRow>
               </TableHeader>
@@ -420,10 +412,10 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                         <TableCell className="text-center">{renderBadge(linha.tipoEstoque)}</TableCell>
                         <TableCell className="text-center font-semibold tabular-nums">{linha.inicial}</TableCell>
                         <TableCell className="text-center font-semibold text-success tabular-nums">
-                          {linha.entradasManuais > 0 ? `+${linha.entradasManuais}` : "0"}
+                          {linha.entradas > 0 ? `+${linha.entradas}` : "0"}
                         </TableCell>
                         <TableCell className="text-center font-semibold text-warning tabular-nums">
-                          {linha.saidasManuais > 0 ? `-${linha.saidasManuais}` : "0"}
+                          {linha.saidas > 0 ? `-${linha.saidas}` : "0"}
                         </TableCell>
                         <TableCell className="text-center font-semibold text-info tabular-nums">
                           {isVazio ? "—" : (linha.vendas > 0 ? `-${linha.vendas}` : "0")}
@@ -434,14 +426,9 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                         <TableCell className={`text-center font-bold text-base tabular-nums ${totalTone}`}>
                           {linha.total}
                         </TableCell>
-                        {!isPairedVazio && (
-                          <TableCell
-                            className="text-center font-bold text-base border-l tabular-nums"
-                            rowSpan={hasPairBelow ? 2 : 1}
-                          >
-                            {linha.estoqueAtual}
-                          </TableCell>
-                        )}
+                        <TableCell className="text-center font-bold text-base border-l tabular-nums">
+                          {linha.estoqueAtual}
+                        </TableCell>
                         <TableCell className="text-center">
                           <Button
                             variant="ghost"
