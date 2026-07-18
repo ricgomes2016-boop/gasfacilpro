@@ -531,6 +531,7 @@ export default function Compras() {
     fetchFornecedores();
     fetchProdutos();
     fetchContasBancarias();
+    fetchHistoricoPrecos();
   };
 
   const handleDeleteCompra = async () => {
