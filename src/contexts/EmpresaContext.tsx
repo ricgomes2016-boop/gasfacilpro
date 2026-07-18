@@ -67,9 +67,19 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
 
     setSubscriptionLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("check-subscription");
+      // Tolerar falhas transitórias de rede (FunctionsFetchError) com 1 retry silencioso.
+      let data: any = null;
+      let error: any = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const res = await supabase.functions.invoke("check-subscription");
+        data = res.data;
+        error = res.error;
+        if (!error) break;
+        await new Promise((r) => setTimeout(r, 1500));
+      }
       if (error) {
-        console.error("Error checking subscription:", error);
+        // Falha transitória — não poluir o console; app segue com estado padrão.
+        console.warn("[subscription] verificação indisponível no momento");
         return;
       }
 
