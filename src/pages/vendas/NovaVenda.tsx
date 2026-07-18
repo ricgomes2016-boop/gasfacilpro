@@ -379,31 +379,15 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [pendingReceiptData, setPendingReceiptData] = useState<any>(null);
   const [boletoAsaasConta, setBoletoAsaasConta] = useState<any>(null);
-  const [useNewView, setUseNewView] = useState(() => {
-    // No mobile, a Nova Venda sempre usa o fluxo por etapas para manter o stepper fixo visível.
-    if (isMobileViewport()) return true;
-    const saved = getSavedViewMode();
-    return saved ? saved === "new" : true;
-  });
+  // Visual Base44: layout linear/tri-coluna sem stepper/hero. Mantemos o estado por compatibilidade
+  // com handlers/refs internos, porém a UI não usa mais o fluxo por etapas.
+  const [useNewView, setUseNewView] = useState(false);
   const [activeStep, setActiveStep] = useState<VendaStepId>("cliente");
   const recognitionRef = useRef<any>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const draftLoaded = useRef(false);
   const previousStepState = useRef({ cliente: false, produtos: false, pagamento: false, entregador: false });
-
-  useEffect(() => {
-    if (!getSavedViewMode() && isGasmais) setUseNewView(true);
-  }, [isGasmais]);
-
-  useEffect(() => {
-    const enforceMobileStepper = () => {
-      if (isMobileViewport()) setUseNewView(true);
-    };
-    enforceMobileStepper();
-    window.addEventListener("resize", enforceMobileStepper);
-    return () => window.removeEventListener("resize", enforceMobileStepper);
-  }, []);
 
   // Permite que o botão "Assistente IA" do Header global abra o diálogo desta tela
   useEffect(() => {
