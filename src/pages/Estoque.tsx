@@ -449,27 +449,6 @@ export default function Estoque() {
         />
 
 
-        {/* KPI cards */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
-          {kpis.map((kpi) => {
-            const Icon = kpi.icon;
-            return (
-              <Card key={kpi.label} className="border-border bg-card rounded-2xl shadow-[0_4px_16px_rgba(15,23,42,0.06)]">
-                <CardContent className="flex items-start gap-3 p-4">
-                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", toneClasses[kpi.tone])}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground truncate">{kpi.label}</p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums leading-tight">{kpi.value}</p>
-                    {kpi.hint && <p className="text-[11px] text-muted-foreground truncate mt-0.5">{kpi.hint}</p>}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
         {/* Filter bar */}
         <div className="rounded-2xl border border-border bg-card p-3 shadow-[0_4px_16px_rgba(15,23,42,0.06)]">
           {/* Desktop */}
