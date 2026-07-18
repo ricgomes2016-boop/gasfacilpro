@@ -1402,7 +1402,7 @@ export default function Compras() {
                 </div>
 
                 {/* Frete e Total */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div>
                     <Label>Valor Frete</Label>
                     <Input
