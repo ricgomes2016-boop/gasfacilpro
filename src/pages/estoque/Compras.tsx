@@ -441,19 +441,46 @@ export default function Compras() {
       const fornecedorNome = fornecedor?.razao_social || form.fornecedor_novo?.razao_social || "";
       const descricao = `Compra NF ${form.numero_nota_fiscal || "S/N"} - ${fornecedorNome}`;
       try {
-        await registrarPagamentoCompra(compra.id, {
-          forma: pagamento.situacao === "aprazo" ? "a_prazo" : pagamento.forma,
-          valor: totalCompra,
-          data_pagamento: form.data_pagamento || form.data_compra || null,
-          conta_bancaria_id: pagamento.conta_bancaria_id || null,
-          parcelas: pagamento.parcelas,
-          numero_cheque: pagamento.numero_cheque || null,
-          banco_cheque: pagamento.banco_cheque || null,
-          bom_para: pagamento.bom_para || null,
-          descricao,
-          fornecedor: fornecedorNome,
-          unidade_id: unidadeAtual?.id || null,
-        });
+        if (pagamento.situacao === "aprazo" || pagamentosExtras.length === 0) {
+          await registrarPagamentoCompra(compra.id, {
+            forma: pagamento.situacao === "aprazo" ? "a_prazo" : pagamento.forma,
+            valor: totalCompra,
+            data_pagamento: form.data_pagamento || form.data_compra || null,
+            conta_bancaria_id: pagamento.conta_bancaria_id || null,
+            parcelas: pagamento.parcelas,
+            numero_cheque: pagamento.numero_cheque || null,
+            banco_cheque: pagamento.banco_cheque || null,
+            bom_para: pagamento.bom_para || null,
+            descricao,
+            fornecedor: fornecedorNome,
+            unidade_id: unidadeAtual?.id || null,
+          });
+        } else {
+          // Múltiplas formas de pagamento à vista
+          const somaExtras = pagamentosExtras.reduce((a, r) => a + parseCurrency(r.valor), 0);
+          const valorPrimaria = Math.max(0, +(totalCompra - somaExtras).toFixed(2));
+          const rows: Array<{ tag: string; row: typeof pagamento | PagExtra; valor: number }> = [
+            { tag: "primaria", row: pagamento, valor: valorPrimaria },
+            ...pagamentosExtras.map((r, i) => ({ tag: `extra_${i + 1}`, row: r, valor: parseCurrency(r.valor) })),
+          ];
+          for (const r of rows) {
+            if (r.valor <= 0) continue;
+            const isPrim = r.tag === "primaria";
+            await registrarPagamentoCompra(compra.id, {
+              forma: (r.row as any).forma,
+              valor: r.valor,
+              data_pagamento: form.data_pagamento || form.data_compra || null,
+              conta_bancaria_id: (r.row as any).conta_bancaria_id || null,
+              parcelas: isPrim ? pagamento.parcelas : 1,
+              numero_cheque: (r.row as any).numero_cheque || null,
+              banco_cheque: (r.row as any).banco_cheque || null,
+              bom_para: (r.row as any).bom_para || null,
+              descricao: `${descricao} · ${r.tag === "primaria" ? "parte 1" : `parte ${Number(r.tag.split("_")[1]) + 1}`}`,
+              fornecedor: fornecedorNome,
+              unidade_id: unidadeAtual?.id || null,
+            });
+          }
+        }
       } catch (e: any) {
         toast.error("Compra salva, mas houve erro no lançamento financeiro: " + e.message);
       }
