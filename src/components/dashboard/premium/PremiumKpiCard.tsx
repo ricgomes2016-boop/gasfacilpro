@@ -111,7 +111,7 @@ export function PremiumKpiCard({
             )}>
               {TrendIcon && <TrendIcon className="h-3 w-3" strokeWidth={2.5} />}
               {trend.value === 0 ? "0%" : `${isPos ? "+" : ""}${trend.value.toFixed(1)}%`}
-              {trend.label && <span className="ml-1 font-normal text-muted-foreground">{trend.label}</span>}
+              {trend.label && <span className="ml-1 hidden font-normal text-muted-foreground sm:inline">{trend.label}</span>}
             </span>
           ) : <span />}
 
