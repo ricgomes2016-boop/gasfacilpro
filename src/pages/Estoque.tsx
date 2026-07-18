@@ -357,13 +357,16 @@ export default function Estoque() {
   const detalheVazios = produtos
     .filter((p) => p.tipo_botijao === "vazio" && (p.estoque || 0) > 0)
     .sort((a, b) => (b.estoque || 0) - (a.estoque || 0))
-    .map((p) => ({ nome: simplificarNome(p.nome), qtd: p.estoque || 0 }));
+    .map((p) => ({
+      nome: simplificarNome(p.nome).startsWith("vasilhame") ? simplificarNome(p.nome) : `vasilhame ${simplificarNome(p.nome)}`,
+      qtd: p.estoque || 0,
+    }));
 
   const formatarLista = (itens: { nome: string; qtd: number }[]) =>
     itens.length === 0 ? (
       <span className="text-white/70">—</span>
     ) : (
-      <div className="flex flex-col gap-0.5">
+      <div className="flex flex-col gap-1">
         {itens.map((item, idx) => (
           <div key={idx} className="flex items-baseline justify-between gap-2">
             <span className="truncate text-white/90">{item.qtd} {item.nome}</span>
