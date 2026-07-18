@@ -1534,7 +1534,7 @@ export default function Compras() {
                       )}
 
                       {pagamento.forma === "cheque" && (
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <div>
                             <Label className="text-xs">Nº cheque</Label>
                             <Input value={pagamento.numero_cheque} onChange={(e) => setPagamento({ ...pagamento, numero_cheque: e.target.value })} />
