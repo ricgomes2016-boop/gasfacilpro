@@ -1727,6 +1727,7 @@ export default function Pedidos() {
             }
           </CardContent>
         </Card>
+        )}
 
         {/* Product sold summary: follows current period/status/driver/search filters and ignores cancelled orders */}
         {resumoProdutos.length > 0 &&
