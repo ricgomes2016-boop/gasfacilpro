@@ -54,9 +54,8 @@ interface LinhaEstoque {
   estoqueAtual: number;
   vendas: number;
   compras: number;
-  entradas: number; // Cheio: compras + manuais; Vazio: apenas manuais
-  saidas: number;   // Cheio: saídas manuais; Vazio: compras (troca) + saídas manuais
-  retornos: number; // Apenas Vazio: vasilhames devolvidos via venda do cheio
+  entradas: number;
+  saidas: number;
   entradasManuais: number;
   saidasManuais: number;
   avarias: number;
@@ -78,32 +77,23 @@ function calcularLinha(
   const estoqueAtual = produto.estoque || 0;
   const { vendas, compras, entradas_manuais, saidas_manuais, avarias } = mov;
 
-  if (tipoBotijao === "vazio") {
-    // Vazio: vendas do cheio devolvem vasilhame (retornos). Compras do cheio consomem vasilhame (troca).
-    const entradas = entradas_manuais;
-    const retornos = vendas;
-    const saidas = compras + saidas_manuais;
-    const inicial = estoqueAtual;
-    const total = inicial + entradas + retornos - saidas - avarias;
-    return {
-      produtoId: produto.id, nome: nomeBase, tipoEstoque: "Vazio", estoqueAtual,
-      vendas: 0, compras, entradas, saidas, retornos,
-      entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
-      avarias, inicial, total,
-    };
-  }
-
-  // Cheio ou Único: inicial + (compras + manuais) - saídas manuais - vendas - avarias = atual
+  // Fórmula única: Inicial + Entradas − Saídas − Vendas − Avarias = Atual
+  // Para vazio, entradas_manuais já vem somado com vendas do cheio
+  // e saidas_manuais já vem somado com compras do cheio (via movCombinado).
   const entradas = compras + entradas_manuais;
   const saidas = saidas_manuais;
   const inicial = estoqueAtual - entradas + saidas + vendas + avarias;
   const total = inicial + entradas - saidas - vendas - avarias;
+
+  const tipoLabel =
+    tipoBotijao === "cheio" ? "Cheio" : tipoBotijao === "vazio" ? "Vazio" : "Único";
+
   return {
     produtoId: produto.id,
     nome: nomeBase,
-    tipoEstoque: tipoBotijao === "cheio" ? "Cheio" : "Único",
+    tipoEstoque: tipoLabel,
     estoqueAtual,
-    vendas, compras, entradas, saidas, retornos: 0,
+    vendas, compras, entradas, saidas,
     entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
     avarias, inicial, total,
   };
@@ -144,9 +134,13 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
           const parCheioId = grupo.cheio?.id;
           const movCheio = parCheioId ? (movimentacoes[parCheioId] || emptyMov) : emptyMov;
           const movVazio = movimentacoes[grupo.vazio.id] || emptyMov;
+          // Vazio: vendas do cheio viram entradas (vasilhame devolvido);
+          // compras do cheio viram saídas (vasilhame trocado).
           const movCombinado: MovimentacaoPorProduto = {
-            vendas: movCheio.vendas, compras: movCheio.compras,
-            entradas_manuais: movCheio.entradas_manuais, saidas_manuais: movCheio.saidas_manuais,
+            vendas: movVazio.vendas,
+            compras: movVazio.compras,
+            entradas_manuais: movVazio.entradas_manuais + movCheio.vendas,
+            saidas_manuais: movVazio.saidas_manuais + movCheio.compras,
             avarias: movVazio.avarias,
           };
           resultado.push(calcularLinha(grupo.vazio, movCombinado, "vazio"));
