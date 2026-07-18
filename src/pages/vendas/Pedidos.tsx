@@ -205,6 +205,11 @@ export default function Pedidos() {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [batchDialogAberto, setBatchDialogAberto] = useState(false);
   const [batchAction, setBatchAction] = useState<"status" | "entregador">("status");
+  // Visual Base44: modo de visualização (board/kanban por status como padrão, lista como alternativa)
+  const [viewMode, setViewMode] = useState<"board" | "lista">(() => {
+    try { return (localStorage.getItem("pedidos-view-mode") as any) === "lista" ? "lista" : "board"; } catch { return "board"; }
+  });
+  useEffect(() => { try { localStorage.setItem("pedidos-view-mode", viewMode); } catch { /* ignore */ } }, [viewMode]);
 
   // Transfer driver dialog
   const [transferDialogAberto, setTransferDialogAberto] = useState(false);
@@ -842,10 +847,10 @@ export default function Pedidos() {
   return (
     <MainLayout>
       {/* #2 - removed duplicate title, kept only Header */}
-      <Header title="Pedidos" subtitle="Gerenciar pedidos de venda" />
-      <div className="p-3 md:p-6 space-y-4 md:space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
+      <Header title="Pedidos" subtitle="Acompanhamento de entregas" />
+      <div className="p-3 md:p-6 space-y-4 w-full min-w-0 max-w-full overflow-x-hidden bg-[#f8fafc] min-h-full">
 
-        {/* Top actions - grade 2x2 mobile / 4 col desktop, premium */}
+        {/* Toolbar Base44: busca + datas + visualização + Nova Venda */}
         {(() => {
           const filtrosAtivos =
             (busca ? 1 : 0) +
@@ -853,65 +858,107 @@ export default function Pedidos() {
             (filtroEntregador !== "todos" ? 1 : 0) +
             (filtroOrigem !== "todos" ? 1 : 0) +
             (dataInicio !== hoje || dataFim !== hoje ? 1 : 0);
-          const actionBase =
-            "w-full h-11 rounded-xl px-3 flex items-center justify-center gap-2 text-sm font-medium transition-colors";
           return (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full min-w-0">
-              <Button
-                onClick={() => navigate("/vendas/nova")}
-                className={`${actionBase} bg-primary text-primary-foreground hover:bg-primary/90`}
-              >
-                <Sparkles className="h-4 w-4 shrink-0" />
-                <span className="truncate">Novo Pedido</span>
-              </Button>
-              <SmartImportButtons
-                edgeFunctionName="parse-orders-history"
-                onDataExtracted={handleImportData}
-                mode="menu"
-                menuLabel="Mais ações"
-                className={`${actionBase} !bg-card !text-foreground border border-border hover:!bg-muted/60 !h-11`}
-                extraMenuContent={
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => {
-                        exportarPedidosCSV(pedidosFiltrados);
-                        sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);
-                      }}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Exportar CSV
-                    </DropdownMenuItem>
-                  </>
-                }
-              />
-              <Button
-                variant="outline"
-                onClick={() => navigate("/operacional/centro")}
-                className={`${actionBase} bg-card hover:bg-muted/60`}
-              >
-                <MapIcon className="h-4 w-4 shrink-0" />
-                <span className="truncate">Mapa Operacional</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setFiltrosAbertos((v) => !v)}
-                aria-expanded={filtrosAbertos}
-                aria-controls="orders-advanced-filters"
-                className={`${actionBase} bg-card hover:bg-muted/60 relative`}
-              >
-                <SlidersHorizontal className="h-4 w-4 shrink-0" />
-                <span className="truncate">Filtros</span>
-                {filtrosAtivos > 0 && (
-                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] tabular-nums">{filtrosAtivos}</Badge>
-                )}
-                <ChevronDown
-                  className={`h-4 w-4 shrink-0 transition-transform duration-200 ${filtrosAbertos ? "rotate-180" : ""}`}
+            <div className="rounded-2xl border border-border bg-card/60 backdrop-blur px-3 py-2.5 md:px-4 md:py-3 shadow-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative flex-1 min-w-[180px]">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por cliente, produto..."
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    className="h-9 pl-9 rounded-lg text-sm bg-background"
+                  />
+                </div>
+                <Input
+                  type="date"
+                  value={dataInicio}
+                  onChange={(e) => setDataInicio(e.target.value)}
+                  className="h-9 w-[140px] text-sm rounded-lg bg-background"
+                  aria-label="Data início"
                 />
-              </Button>
+                <Input
+                  type="date"
+                  value={dataFim}
+                  onChange={(e) => setDataFim(e.target.value)}
+                  className="h-9 w-[140px] text-sm rounded-lg bg-background hidden sm:block"
+                  aria-label="Data fim"
+                />
+
+                {/* Controles pequenos de visualização */}
+                <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("board")}
+                    className={`h-8 px-2.5 rounded-md text-xs font-medium transition-colors ${viewMode === "board" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    title="Board por status"
+                  >
+                    Board
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("lista")}
+                    className={`h-8 px-2.5 rounded-md text-xs font-medium transition-colors ${viewMode === "lista" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    title="Lista"
+                  >
+                    Lista
+                  </button>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFiltrosAbertos((v) => !v)}
+                  aria-expanded={filtrosAbertos}
+                  aria-controls="orders-advanced-filters"
+                  className="h-9 rounded-lg bg-background text-sm gap-1.5"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  <span className="hidden sm:inline">Filtros</span>
+                  {filtrosAtivos > 0 && (
+                    <Badge variant="secondary" className="h-4 px-1 text-[10px] tabular-nums">{filtrosAtivos}</Badge>
+                  )}
+                </Button>
+
+                <SmartImportButtons
+                  edgeFunctionName="parse-orders-history"
+                  onDataExtracted={handleImportData}
+                  mode="menu"
+                  menuLabel="Mais"
+                  className="!h-9 !rounded-lg !bg-background !text-foreground border border-border hover:!bg-muted/60 text-sm px-3"
+                  extraMenuContent={
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => navigate("/operacional/centro")}>
+                        <MapIcon className="h-4 w-4 mr-2" />
+                        Mapa Operacional
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          exportarPedidosCSV(pedidosFiltrados);
+                          sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);
+                        }}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Exportar CSV
+                      </DropdownMenuItem>
+                    </>
+                  }
+                />
+
+                <Button
+                  onClick={() => navigate("/vendas/nova")}
+                  size="sm"
+                  className="h-9 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 ml-auto sm:ml-0"
+                >
+                  <Sparkles className="h-4 w-4 mr-1.5" />
+                  Nova Venda
+                </Button>
+              </div>
             </div>
           );
         })()}
+
 
         {/* Inline collapsible advanced filters */}
         <Collapsible open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
@@ -1101,36 +1148,6 @@ export default function Pedidos() {
         }
 
 
-        {/* KPIs compactos - 4 status + Total */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 w-full min-w-0">
-          {[
-            { Icon: Clock,       value: contadores.pendente,  label: "Pendentes",  color: "text-warning",     bg: "bg-warning/10" },
-            { Icon: Truck,       value: contadores.em_rota,   label: "Em Rota",    color: "text-info",        bg: "bg-info/10" },
-            { Icon: CheckCircle, value: contadores.entregue,  label: "Entregues",  color: "text-success",     bg: "bg-success/10" },
-            { Icon: XCircle,     value: contadores.cancelado, label: "Cancelados", color: "text-destructive", bg: "bg-destructive/10" },
-          ].map((k) => (
-            <div key={k.label} className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5">
-              <div className={`h-8 w-8 shrink-0 rounded-lg flex items-center justify-center ${k.bg}`}>
-                <k.Icon className={`h-4 w-4 ${k.color}`} />
-              </div>
-              <div className="min-w-0">
-                <p className={`text-lg font-bold leading-none tabular-nums ${k.color}`}>{k.value}</p>
-                <p className="text-[11px] text-muted-foreground mt-1 truncate">{k.label}</p>
-              </div>
-            </div>
-          ))}
-          <div className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5 col-span-2 md:col-span-1">
-            <div className="h-8 w-8 shrink-0 rounded-lg flex items-center justify-center bg-success/10">
-              <DollarSign className="h-4 w-4 text-success" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-base font-bold leading-none text-foreground truncate tabular-nums">
-                R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-1 truncate">Total do período</p>
-            </div>
-          </div>
-        </div>
 
 
 
@@ -1158,8 +1175,8 @@ export default function Pedidos() {
           </Card>
         }
 
-        {/* Status Tabs - segmented control */}
-        {(() => {
+        {/* Status Tabs - só aparecem no modo Lista (Board tem colunas próprias) */}
+        {viewMode === "lista" && (() => {
           const tabs: Array<{ key: string; label: string; count: number }> = [
             { key: "todos", label: "Todos", count: pedidos.length },
             { key: "pendente", label: "Pendentes", count: contadores.pendente },
@@ -1190,8 +1207,145 @@ export default function Pedidos() {
           );
         })()}
 
-        {/* Table - #3 responsive with hidden columns on mobile */}
+        {/* Board por status (visual Base44) */}
+        {viewMode === "board" && (() => {
+          type ColKey = "pendente" | "em_rota" | "entregue" | "cancelado";
+          const cols: Array<{ key: ColKey; label: string; tone: string; toneBorder: string; toneBg: string; toneBadge: string; }> = [
+            { key: "pendente",  label: "Pendente",  tone: "text-warning",     toneBorder: "border-warning/40",     toneBg: "bg-warning/5",     toneBadge: "bg-warning/15 border-warning/30 text-warning" },
+            { key: "em_rota",   label: "Em Rota",   tone: "text-info",        toneBorder: "border-info/40",        toneBg: "bg-info/5",        toneBadge: "bg-info/15 border-info/30 text-info" },
+            { key: "entregue",  label: "Entregue",  tone: "text-success",     toneBorder: "border-success/40",     toneBg: "bg-success/5",     toneBadge: "bg-success/15 border-success/30 text-success" },
+            { key: "cancelado", label: "Cancelado", tone: "text-destructive", toneBorder: "border-destructive/40", toneBg: "bg-destructive/5", toneBadge: "bg-destructive/15 border-destructive/30 text-destructive" },
+          ];
+          const bucketOf = (p: PedidoFormatado): ColKey => {
+            if (p.status === "cancelado") return "cancelado";
+            if (p.status === "em_rota") return "em_rota";
+            if (p.status === "entregue" || p.status === "finalizado") return "entregue";
+            return "pendente";
+          };
+          const grupos: Record<ColKey, PedidoFormatado[]> = { pendente: [], em_rota: [], entregue: [], cancelado: [] };
+          pedidosFiltrados.forEach((p) => { grupos[bucketOf(p)].push(p); });
+
+          if (isLoading) {
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                {cols.map((c) => (
+                  <div key={c.key} className="rounded-xl border border-border bg-card p-2 space-y-2">
+                    <Skeleton className="h-6 w-24" />
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                  </div>
+                ))}
+              </div>
+            );
+          }
+
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+              {cols.map((c) => {
+                const items = grupos[c.key];
+                return (
+                  <section key={c.key} className={`flex flex-col rounded-xl border ${c.toneBorder} overflow-hidden`}>
+                    <header className={`flex items-center justify-between gap-2 px-3 py-2 ${c.toneBg} border-b ${c.toneBorder}`}>
+                      <span className={`text-xs font-semibold ${c.tone}`}>{c.label}</span>
+                      <span className={`inline-flex items-center justify-center min-w-[22px] h-[18px] px-1.5 rounded-full text-[11px] font-bold border ${c.toneBadge}`}>
+                        {items.length}
+                      </span>
+                    </header>
+                    <div className={`flex-1 min-h-[120px] p-2 space-y-2 ${c.toneBg}`}>
+                      {items.length === 0 ? (
+                        <div className="flex items-center justify-center h-20 rounded-lg border border-dashed border-border/60 text-[11px] text-muted-foreground/60">
+                          Sem pedidos
+                        </div>
+                      ) : (
+                        items.slice(0, 40).map((pedido) => {
+                          const bloqueado = isPedidoBloqueado(pedido.status);
+                          const horario = pedido.data?.split(" ")[1] || "";
+                          return (
+                            <div
+                              key={pedido.id}
+                              className="group rounded-lg border border-border bg-card p-2.5 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                              onClick={() => abrirVisualizacao(pedido)}
+                            >
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="text-[10px] font-mono text-muted-foreground">#{getNumExib(pedido)}</span>
+                                  <OrigemBadge origem={pedido.origem_pedido} />
+                                </div>
+                                <span className="text-sm font-bold tabular-nums">R$ {pedido.valor.toFixed(2)}</span>
+                              </div>
+                              <p className="text-[13px] font-semibold text-foreground truncate">{pedido.cliente}</p>
+                              <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
+                                <MapPin className="h-3 w-3 shrink-0" />
+                                {pedido.endereco}
+                              </p>
+                              <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-border/50">
+                                <div className="flex items-center gap-1 min-w-0 text-[11px]">
+                                  {pedido.forma_pagamento && (
+                                    <Badge variant="outline" className="h-5 px-1.5 text-[10px] gap-1 font-normal">
+                                      <CreditCard className="h-2.5 w-2.5" />
+                                      <span className="truncate max-w-[80px]">{formaLabel(pedido.forma_pagamento)}</span>
+                                    </Badge>
+                                  )}
+                                  {horario && <span className="text-muted-foreground shrink-0">{horario}</span>}
+                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 opacity-70 group-hover:opacity-100"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MoreHorizontal className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                    <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
+                                    {!bloqueado && <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>}
+                                    {!bloqueado && <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>}
+                                    {!bloqueado && <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria</DropdownMenuItem>}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
+                                    {!bloqueado && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        {pedido.status !== "em_rota" && <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "em_rota")}><Truck className="h-4 w-4 mr-2" />Marcar Em Rota</DropdownMenuItem>}
+                                        <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "entregue")}><CheckCircle className="h-4 w-4 mr-2" />Marcar Entregue</DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => cancelarPedido(pedido.id)}><XCircle className="h-4 w-4 mr-2" />Cancelar</DropdownMenuItem>
+                                      </>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                              {pedido.entregador && (
+                                <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1 truncate">
+                                  <Truck className="h-2.5 w-2.5 shrink-0" />
+                                  {pedido.entregador}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                      {items.length > 40 && (
+                        <p className="text-center text-[11px] text-muted-foreground pt-1">
+                          + {items.length - 40} — mude para Lista para ver todos
+                        </p>
+                      )}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          );
+        })()}
+
+        {/* Table - só aparece no modo Lista */}
+        {viewMode === "lista" && (
         <Card className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+
           <CardHeader className="border-b border-border bg-muted/40 px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-sm font-semibold text-foreground">Pedidos <span className="text-muted-foreground font-normal">({pedidosFiltrados.length})</span></CardTitle>
@@ -1573,6 +1727,7 @@ export default function Pedidos() {
             }
           </CardContent>
         </Card>
+        )}
 
         {/* Product sold summary: follows current period/status/driver/search filters and ignores cancelled orders */}
         {resumoProdutos.length > 0 &&
