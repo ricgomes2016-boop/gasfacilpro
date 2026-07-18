@@ -556,6 +556,7 @@ export default function Compras() {
     setDeleteId(null);
     fetchCompras();
     fetchContasBancarias();
+    fetchHistoricoPrecos();
   };
 
   const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
