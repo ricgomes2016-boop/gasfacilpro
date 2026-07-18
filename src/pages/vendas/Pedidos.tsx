@@ -165,6 +165,8 @@ export default function Pedidos() {
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [busca, setBusca] = useState(filtrosPersistidosIniciais.busca ?? "");
   const [paginaAtual, setPaginaAtual] = useState(1);
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const toggleExpandido = (id: string) => setExpandidos((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   // Persistir filtros na sessão para preservar ao navegar (ex.: editar pedido e voltar)
   useEffect(() => {
