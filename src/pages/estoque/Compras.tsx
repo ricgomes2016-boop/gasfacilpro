@@ -1655,8 +1655,7 @@ export default function Compras() {
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
-                        className="w-full"
+                        className="w-full h-11"
                         onClick={() =>
                           setPagamentosExtras([
                             ...pagamentosExtras,
@@ -1664,7 +1663,7 @@ export default function Compras() {
                           ])
                         }
                       >
-                        <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar forma de pagamento
+                        <Plus className="h-4 w-4 mr-1" /> Adicionar forma de pagamento
                       </Button>
 
                       {pagamentosExtras.length > 0 && (() => {
