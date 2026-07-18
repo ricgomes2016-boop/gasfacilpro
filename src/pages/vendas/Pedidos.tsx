@@ -1396,7 +1396,7 @@ export default function Pedidos() {
               {/* Desktop table */}
               <div className="overflow-x-auto min-w-0 hidden md:block">
                 <Table className="min-w-[600px]">
-                  <TableHeader>
+                  <TableHeader className="bg-muted/50 [&_th]:h-10 [&_th]:text-[11px] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
                     <TableRow>
                       <TableHead className="w-10">
                         <Checkbox
