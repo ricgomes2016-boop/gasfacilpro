@@ -232,6 +232,39 @@ export default function Compras() {
     setContasBancarias((data || []) as any);
   };
 
+  const fetchHistoricoPrecos = async () => {
+    let q = (supabase as any)
+      .from("compra_itens")
+      .select("produto_id, preco_unitario, quantidade, compras!inner(fornecedor_id, unidade_id, data_compra, created_at)")
+      .order("created_at", { ascending: false, foreignTable: "compras" })
+      .limit(2000);
+    if (unidadeAtual?.id) q = q.eq("compras.unidade_id", unidadeAtual.id);
+    const { data, error } = await q;
+    if (error || !data) return;
+
+    const acc: Record<string, { total: number; qtd: number }> = {};
+    const ult: Record<string, { preco: number; data: string }> = {};
+    for (const row of data as any[]) {
+      const pid = row.produto_id as string;
+      const preco = Number(row.preco_unitario) || 0;
+      const qtd = Number(row.quantidade) || 0;
+      if (!pid || preco <= 0 || qtd <= 0) continue;
+      if (!acc[pid]) acc[pid] = { total: 0, qtd: 0 };
+      acc[pid].total += preco * qtd;
+      acc[pid].qtd += qtd;
+      const forn = row.compras?.fornecedor_id;
+      const dt = row.compras?.data_compra || row.compras?.created_at;
+      if (forn) {
+        const key = `${forn}__${pid}`;
+        if (!ult[key] || (dt && dt > ult[key].data)) ult[key] = { preco, data: dt || "" };
+      }
+    }
+    const media: Record<string, { avg: number; count: number }> = {};
+    for (const [pid, v] of Object.entries(acc)) media[pid] = { avg: v.total / v.qtd, count: v.qtd };
+    setPrecoMedioMap(media);
+    setUltimoPrecoForn(ult);
+  };
+
   useEffect(() => {
     fetchFornecedores();
   }, []);
@@ -240,6 +273,7 @@ export default function Compras() {
     fetchCompras();
     fetchProdutos();
     fetchContasBancarias();
+    fetchHistoricoPrecos();
   }, [unidadeAtual?.id]);
 
   const subtotalItens = itens.reduce((a, i) => a + i.preco_unitario * i.quantidade, 0);
