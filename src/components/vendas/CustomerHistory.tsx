@@ -82,9 +82,11 @@ export function CustomerHistory({ clienteId }: CustomerHistoryProps) {
       <VendaSectionHeader title="Histórico do Cliente" icon={<History className="h-5 w-5 shrink-0" />} tone="info" className="pb-3" />
       <CardContent className="w-full min-w-0">
         {!clienteId ? (
-          <div className="text-center py-6 text-muted-foreground">
-            <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Selecione um cliente para ver o histórico</p>
+          <div className="flex items-center gap-3 rounded-xl border border-dashed border-border/70 bg-muted/30 px-3 py-3 text-muted-foreground" style={{ maxHeight: 120 }}>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <Package className="h-4 w-4" />
+            </span>
+            <p className="text-xs sm:text-sm">Selecione um cliente para ver o histórico</p>
           </div>
         ) : loading ? (
           <div className="text-center py-6 text-muted-foreground">
