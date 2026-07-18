@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { format, eachDayOfInterval, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, TrendingUp, Filter as FilterIcon, Boxes } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { CalendarIcon, Filter as FilterIcon, Boxes } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Package, AlertTriangle, ArrowUpDown, RefreshCw } from "lucide-react";
+import { ArrowUpDown, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -375,18 +374,6 @@ export default function Estoque() {
       </div>
     );
 
-  const kpis = [
-    { label: "Cheios", value: totalCheios.toLocaleString("pt-BR"), icon: Package, tone: "primary" as const, hint: "Botijões prontos p/ venda" },
-    { label: "Vazios", value: totalVazios.toLocaleString("pt-BR"), icon: Package, tone: "secondary" as const, hint: "Vasilhames disponíveis" },
-    { label: "Vendas no período", value: totalVendas.toLocaleString("pt-BR"), icon: TrendingUp, tone: "info" as const, hint: periodoLabel },
-    { label: "Produtos zerados", value: produtosZerados.toLocaleString("pt-BR"), icon: AlertTriangle, tone: "destructive" as const, hint: "Requer reposição" },
-  ];
-  const toneClasses: Record<"primary" | "secondary" | "info" | "destructive", string> = {
-    primary: "bg-success/12 text-success",
-    secondary: "bg-muted text-muted-foreground",
-    info: "bg-info/12 text-info",
-    destructive: "bg-destructive/12 text-destructive",
-  };
 
   const DateFields = (
     <>
@@ -460,27 +447,6 @@ export default function Estoque() {
           ]}
         />
 
-
-        {/* KPI cards */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
-          {kpis.map((kpi) => {
-            const Icon = kpi.icon;
-            return (
-              <Card key={kpi.label} className="border-border bg-card rounded-2xl shadow-[0_4px_16px_rgba(15,23,42,0.06)]">
-                <CardContent className="flex items-start gap-3 p-4">
-                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", toneClasses[kpi.tone])}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground truncate">{kpi.label}</p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums leading-tight">{kpi.value}</p>
-                    {kpi.hint && <p className="text-[11px] text-muted-foreground truncate mt-0.5">{kpi.hint}</p>}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
 
         {/* Filter bar */}
         <div className="rounded-2xl border border-border bg-card p-3 shadow-[0_4px_16px_rgba(15,23,42,0.06)]">
