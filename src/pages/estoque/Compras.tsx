@@ -1216,23 +1216,19 @@ export default function Compras() {
           title="Compras e notas fiscais"
           description="Registre notas, importe XML e acompanhe o gasto por fornecedor"
           actions={
-            <>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               <OutlookImportButton
                 onImported={() => { fetchCompras(); fetchProdutos(); fetchFornecedores(); }}
               />
-              {/* placeholder — o Dialog Nova Compra continua logo abaixo */}
-            </>
-          }
-        />
-        <div className="flex items-center justify-end gap-2 flex-wrap">
-
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" />Nova Compra</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Registrar Nova Compra</DialogTitle>
+              <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+                <DialogTrigger asChild>
+                  <Button className="w-full sm:w-auto h-11">
+                    <Plus className="h-4 w-4 mr-2" />Nova Compra
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Registrar Nova Compra</DialogTitle>
                 <DialogDescription>Preencha os dados, importe XML ou tire foto da nota fiscal</DialogDescription>
               </DialogHeader>
 
