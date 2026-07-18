@@ -329,6 +329,49 @@ export default function Estoque() {
     (p) => (p.estoque || 0) <= 0 && p.tipo_botijao !== "vazio"
   ).length;
 
+  const simplificarNome = (nome: string) =>
+    nome
+      .replace(/\s*\(Vazio\)\s*/i, "")
+      .replace(/\s*\(Cheio\)\s*/i, "")
+      .replace(/^Gás\s+/i, "")
+      .replace(/^Vasilhame\s+/i, "vasilhame ")
+      .replace(/^Água Mineral\s+/i, "água ")
+      .replace(/\s+Vazio$/i, "")
+      .replace(/\s+Cheio$/i, "")
+      .trim()
+      .toLowerCase();
+
+  const detalheCheios = produtos
+    .filter((p) =>
+      (p.tipo_botijao === "cheio" || (p.categoria === "gas" && !p.tipo_botijao) || p.categoria === "agua") &&
+      (p.estoque || 0) > 0
+    )
+    .sort((a, b) => (b.estoque || 0) - (a.estoque || 0))
+    .map((p) => ({ nome: simplificarNome(p.nome), qtd: p.estoque || 0 }));
+
+  const detalheVendas = produtos
+    .filter((p) => (movimentacoesTotal[p.id]?.vendas || 0) > 0)
+    .sort((a, b) => (movimentacoesTotal[b.id]?.vendas || 0) - (movimentacoesTotal[a.id]?.vendas || 0))
+    .map((p) => ({ nome: simplificarNome(p.nome), qtd: movimentacoesTotal[p.id]?.vendas || 0 }));
+
+  const detalheVazios = produtos
+    .filter((p) => p.tipo_botijao === "vazio" && (p.estoque || 0) > 0)
+    .sort((a, b) => (b.estoque || 0) - (a.estoque || 0))
+    .map((p) => ({ nome: simplificarNome(p.nome), qtd: p.estoque || 0 }));
+
+  const formatarLista = (itens: { nome: string; qtd: number }[]) =>
+    itens.length === 0 ? (
+      <span className="text-white/70">—</span>
+    ) : (
+      <div className="flex flex-col gap-0.5">
+        {itens.map((item, idx) => (
+          <div key={idx} className="flex items-baseline justify-between gap-2">
+            <span className="truncate text-white/90">{item.qtd} {item.nome}</span>
+          </div>
+        ))}
+      </div>
+    );
+
   const kpis = [
     { label: "Cheios", value: totalCheios.toLocaleString("pt-BR"), icon: Package, tone: "primary" as const, hint: "Botijões prontos p/ venda" },
     { label: "Vazios", value: totalVazios.toLocaleString("pt-BR"), icon: Package, tone: "secondary" as const, hint: "Vasilhames disponíveis" },
