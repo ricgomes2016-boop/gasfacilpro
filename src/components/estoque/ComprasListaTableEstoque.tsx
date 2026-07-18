@@ -366,11 +366,18 @@ export function ComprasListaTableEstoque({ compras, unidadesMap, precoMedioMap, 
                       <div className="bg-muted/40 rounded-xl p-2.5 space-y-1.5">
                         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Itens</p>
                         {itens.map((item: any, idx: number) => (
-                          <div key={idx} className="flex items-center justify-between gap-2 text-xs">
-                            <span className="text-foreground truncate flex-1">
-                              {item.quantidade}x {item.produtos?.nome || item.descricao || "Item"}
-                            </span>
-                            <span className="text-foreground font-medium whitespace-nowrap">
+                          <div key={idx} className="flex items-start justify-between gap-2 text-xs">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-foreground truncate">
+                                {item.quantidade}x {item.produtos?.nome || item.descricao || "Item"}
+                              </p>
+                              {item.produto_id && precoMedioMap?.[item.produto_id] && (
+                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                  Preço médio: {fmtBRL(precoMedioMap[item.produto_id].avg)}
+                                </p>
+                              )}
+                            </div>
+                            <span className="text-foreground font-medium whitespace-nowrap shrink-0">
                               {fmtBRL(Number(item.valor_total || item.quantidade * item.preco_unitario || 0))}
                             </span>
                           </div>
