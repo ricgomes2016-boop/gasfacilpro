@@ -53,7 +53,7 @@ export default function EmitirCTe() {
       <Header title="CT-e" subtitle="Gestão Fiscal" />
       <div className="space-y-6 p-4 md:p-6">
         <Tabs defaultValue="consultar">
-          <TabsList>
+          <TabsList className="h-11">
             <TabsTrigger value="consultar"><Search className="h-4 w-4 mr-2" />Consultar</TabsTrigger>
             <TabsTrigger value="emitir"><Plus className="h-4 w-4 mr-2" />Novo CT-e</TabsTrigger>
           </TabsList>
