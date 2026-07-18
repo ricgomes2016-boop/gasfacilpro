@@ -193,7 +193,7 @@ export default function Compras() {
   const fetchCompras = async () => {
     let query = supabase
       .from("compras")
-      .select("*, fornecedores(razao_social), compra_itens(quantidade, produtos(nome))")
+      .select("*, fornecedores(razao_social), compra_itens(quantidade, preco_unitario, produto_id, produtos(nome))")
       .order("created_at", { ascending: false });
 
     if (unidadeAtual?.id) {
