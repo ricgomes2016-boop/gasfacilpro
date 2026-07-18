@@ -196,8 +196,8 @@ export default function PrevisaoCaixa({ embedded }: { embedded?: boolean } = {})
                 <YAxis />
                 <Tooltip formatter={(value) => `R$ ${Number(value).toLocaleString("pt-BR")}`} />
                 <Legend />
-                <Line type="monotone" dataKey="entradas" stroke="#22c55e" strokeWidth={2} name="Entradas" />
-                <Line type="monotone" dataKey="saidas" stroke="#ef4444" strokeWidth={2} name="Saídas" />
+                <Line type="monotone" dataKey="entradas" stroke="hsl(var(--success))" strokeWidth={2} name="Entradas" />
+                <Line type="monotone" dataKey="saidas" stroke="hsl(var(--destructive))" strokeWidth={2} name="Saídas" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
