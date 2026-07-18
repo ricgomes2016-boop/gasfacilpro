@@ -1226,7 +1226,7 @@ export default function Compras() {
                     <Plus className="h-4 w-4 mr-2" />Nova Compra
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6">
                   <DialogHeader>
                     <DialogTitle>Registrar Nova Compra</DialogTitle>
                 <DialogDescription>Preencha os dados, importe XML ou tire foto da nota fiscal</DialogDescription>
