@@ -154,7 +154,17 @@ function lerFiltrosPersistidos(): PedidosFiltrosPersistidos {
 export default function Pedidos() {
   const navigate = useNavigate();
   const hoje = (() => {const d = getBrasiliaDate();return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;})();
-  const formaLabel = useFormaPagamentoLabel();
+  const formaLabelRaw = useFormaPagamentoLabel();
+  const formaLabel = (raw: string | null | undefined) => {
+    if (!raw) return "—";
+    const s = String(raw).trim();
+    const semPrefixo = s.toLowerCase().startsWith("multiplo:") ? s.slice("multiplo:".length) : s;
+    const parts = semPrefixo.split(/[+,]/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length <= 1) return formaLabelRaw(raw);
+    const labels = parts.map((p) => formaLabelRaw(p));
+    if (labels.length <= 3) return labels.join(" + ");
+    return `${labels.slice(0, 2).join(" + ")} +${labels.length - 2}`;
+  };
   const filtrosPersistidosIniciais = (() => lerFiltrosPersistidos())();
   const [dataInicio, setDataInicio] = useState(filtrosPersistidosIniciais.dataInicio ?? hoje);
   const [dataFim, setDataFim] = useState(filtrosPersistidosIniciais.dataFim ?? hoje);
