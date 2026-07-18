@@ -179,6 +179,10 @@ export default function Compras() {
   const [novoItem, setNovoItem] = useState({ produto_id: "", quantidade: "1", preco_unitario: "" });
   const [nfFiscal, setNfFiscal] = useState<NfFiscal | null>(null);
 
+  // Histórico de preços: média por produto e último preço por (fornecedor, produto)
+  const [precoMedioMap, setPrecoMedioMap] = useState<Record<string, { avg: number; count: number }>>({});
+  const [ultimoPrecoForn, setUltimoPrecoForn] = useState<Record<string, { preco: number; data: string }>>({});
+
   // Confirmação de novos produtos detectados no XML
   const [novosProdDialogOpen, setNovosProdDialogOpen] = useState(false);
   const [novosCandidatos, setNovosCandidatos] = useState<NovoProdutoCandidato[]>([]);
@@ -228,6 +232,39 @@ export default function Compras() {
     setContasBancarias((data || []) as any);
   };
 
+  const fetchHistoricoPrecos = async () => {
+    let q = (supabase as any)
+      .from("compra_itens")
+      .select("produto_id, preco_unitario, quantidade, compras!inner(fornecedor_id, unidade_id, data_compra, created_at)")
+      .order("created_at", { ascending: false, foreignTable: "compras" })
+      .limit(2000);
+    if (unidadeAtual?.id) q = q.eq("compras.unidade_id", unidadeAtual.id);
+    const { data, error } = await q;
+    if (error || !data) return;
+
+    const acc: Record<string, { total: number; qtd: number }> = {};
+    const ult: Record<string, { preco: number; data: string }> = {};
+    for (const row of data as any[]) {
+      const pid = row.produto_id as string;
+      const preco = Number(row.preco_unitario) || 0;
+      const qtd = Number(row.quantidade) || 0;
+      if (!pid || preco <= 0 || qtd <= 0) continue;
+      if (!acc[pid]) acc[pid] = { total: 0, qtd: 0 };
+      acc[pid].total += preco * qtd;
+      acc[pid].qtd += qtd;
+      const forn = row.compras?.fornecedor_id;
+      const dt = row.compras?.data_compra || row.compras?.created_at;
+      if (forn) {
+        const key = `${forn}__${pid}`;
+        if (!ult[key] || (dt && dt > ult[key].data)) ult[key] = { preco, data: dt || "" };
+      }
+    }
+    const media: Record<string, { avg: number; count: number }> = {};
+    for (const [pid, v] of Object.entries(acc)) media[pid] = { avg: v.total / v.qtd, count: v.qtd };
+    setPrecoMedioMap(media);
+    setUltimoPrecoForn(ult);
+  };
+
   useEffect(() => {
     fetchFornecedores();
   }, []);
@@ -236,6 +273,7 @@ export default function Compras() {
     fetchCompras();
     fetchProdutos();
     fetchContasBancarias();
+    fetchHistoricoPrecos();
   }, [unidadeAtual?.id]);
 
   const subtotalItens = itens.reduce((a, i) => a + i.preco_unitario * i.quantidade, 0);
@@ -493,6 +531,7 @@ export default function Compras() {
     fetchFornecedores();
     fetchProdutos();
     fetchContasBancarias();
+    fetchHistoricoPrecos();
   };
 
   const handleDeleteCompra = async () => {
@@ -517,6 +556,7 @@ export default function Compras() {
     setDeleteId(null);
     fetchCompras();
     fetchContasBancarias();
+    fetchHistoricoPrecos();
   };
 
   const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1218,7 +1258,7 @@ export default function Compras() {
           actions={
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               <OutlookImportButton
-                onImported={() => { fetchCompras(); fetchProdutos(); fetchFornecedores(); }}
+                onImported={() => { fetchCompras(); fetchProdutos(); fetchFornecedores(); fetchHistoricoPrecos(); }}
               />
               <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
                 <DialogTrigger asChild>
@@ -1400,15 +1440,50 @@ export default function Compras() {
                       <Label className="text-xs">Produto</Label>
                       <Select value={novoItem.produto_id} onValueChange={v => {
                         const prod = produtos.find(p => p.id === v);
-                        setNovoItem({ ...novoItem, produto_id: v, preco_unitario: prod ? formatCurrency((prod.preco * 100).toFixed(0)) : novoItem.preco_unitario });
+                        // Preferir último preço deste fornecedor; senão média histórica; senão preço cadastrado
+                        const ultimo = form.fornecedor_id ? ultimoPrecoForn[`${form.fornecedor_id}__${v}`] : undefined;
+                        const media = precoMedioMap[v];
+                        const precoBase = ultimo?.preco ?? media?.avg ?? (prod ? Number(prod.preco) : 0);
+                        setNovoItem({
+                          ...novoItem,
+                          produto_id: v,
+                          preco_unitario: precoBase > 0 ? formatCurrency((precoBase * 100).toFixed(0)) : novoItem.preco_unitario,
+                        });
                       }}>
                         <SelectTrigger className="h-11"><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
                         <SelectContent>
-                          {produtos.map(p => (
-                            <SelectItem key={p.id} value={p.id}>{p.nome} - R$ {Number(p.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</SelectItem>
-                          ))}
+                          {produtos.map(p => {
+                            const media = precoMedioMap[p.id];
+                            return (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.nome}
+                                {media
+                                  ? ` · média R$ ${media.avg.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  : ` · venda R$ ${Number(p.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
+                      {novoItem.produto_id && (() => {
+                        const media = precoMedioMap[novoItem.produto_id];
+                        const ultimo = form.fornecedor_id ? ultimoPrecoForn[`${form.fornecedor_id}__${novoItem.produto_id}`] : undefined;
+                        if (!media && !ultimo) return null;
+                        return (
+                          <p className="text-[11px] text-muted-foreground mt-1 leading-tight">
+                            {ultimo && (
+                              <>
+                                Última do fornecedor: <b className="text-foreground">R$ {ultimo.preco.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</b>
+                                {ultimo.data && ` em ${new Date(ultimo.data).toLocaleDateString("pt-BR")}`}
+                                {media && " · "}
+                              </>
+                            )}
+                            {media && (
+                              <>Média geral: <b className="text-foreground">R$ {media.avg.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</b></>
+                            )}
+                          </p>
+                        );
+                      })()}
                     </div>
                     <div className="grid grid-cols-3 gap-2 sm:contents">
                       <div>
@@ -1428,6 +1503,7 @@ export default function Compras() {
                       </Button>
                     </div>
                   </div>
+
                 </div>
 
                 {/* Frete e Total */}
