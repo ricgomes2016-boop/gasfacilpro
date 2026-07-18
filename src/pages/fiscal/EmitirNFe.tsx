@@ -182,7 +182,7 @@ export default function EmitirNFe() {
       <div className="space-y-6 p-4 md:p-6">
         <Tabs defaultValue="consultar">
           <div className="flex items-center justify-between">
-            <TabsList>
+            <TabsList className="h-11">
               <TabsTrigger value="consultar"><Search className="h-4 w-4 mr-2" />Consultar</TabsTrigger>
               <TabsTrigger value="emitir"><Plus className="h-4 w-4 mr-2" />Nova NF-e</TabsTrigger>
             </TabsList>
