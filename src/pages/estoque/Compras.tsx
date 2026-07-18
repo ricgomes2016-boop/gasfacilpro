@@ -1437,7 +1437,7 @@ export default function Compras() {
                     <Button
                       type="button"
                       variant={pagamento.situacao === "avista" ? "default" : "outline"}
-                      size="sm"
+                      className="h-11"
                       onClick={() => setPagamento({ ...pagamento, situacao: "avista" })}
                     >
                       À vista
@@ -1445,7 +1445,7 @@ export default function Compras() {
                     <Button
                       type="button"
                       variant={pagamento.situacao === "aprazo" ? "default" : "outline"}
-                      size="sm"
+                      className="h-11"
                       onClick={() => setPagamento({ ...pagamento, situacao: "aprazo", forma: "a_prazo" })}
                     >
                       A prazo
