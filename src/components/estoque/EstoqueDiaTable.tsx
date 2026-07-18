@@ -54,8 +54,9 @@ interface LinhaEstoque {
   estoqueAtual: number;
   vendas: number;
   compras: number;
-  entradas: number; // compras + entradas manuais (para exibição)
-  saidas: number;   // saídas manuais (para exibição)
+  entradas: number; // Cheio: compras + manuais; Vazio: apenas manuais
+  saidas: number;   // Cheio: saídas manuais; Vazio: compras (troca) + saídas manuais
+  retornos: number; // Apenas Vazio: vasilhames devolvidos via venda do cheio
   entradasManuais: number;
   saidasManuais: number;
   avarias: number;
@@ -78,14 +79,15 @@ function calcularLinha(
   const { vendas, compras, entradas_manuais, saidas_manuais, avarias } = mov;
 
   if (tipoBotijao === "vazio") {
-    // Vazio: cada venda de gás cheio devolve 1 vasilhame. Compras de gás consomem vasilhame (troca).
-    const entradas = vendas + entradas_manuais;
+    // Vazio: vendas do cheio devolvem vasilhame (retornos). Compras do cheio consomem vasilhame (troca).
+    const entradas = entradas_manuais;
+    const retornos = vendas;
     const saidas = compras + saidas_manuais;
     const inicial = estoqueAtual;
-    const total = inicial + entradas - saidas - avarias;
+    const total = inicial + entradas + retornos - saidas - avarias;
     return {
       produtoId: produto.id, nome: nomeBase, tipoEstoque: "Vazio", estoqueAtual,
-      vendas: 0, compras, entradas, saidas,
+      vendas: 0, compras, entradas, saidas, retornos,
       entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
       avarias, inicial, total,
     };
@@ -101,7 +103,7 @@ function calcularLinha(
     nome: nomeBase,
     tipoEstoque: tipoBotijao === "cheio" ? "Cheio" : "Único",
     estoqueAtual,
-    vendas, compras, entradas, saidas,
+    vendas, compras, entradas, saidas, retornos: 0,
     entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
     avarias, inicial, total,
   };
@@ -335,9 +337,13 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vendas</p>
-                      <p className="text-sm font-semibold text-info">
-                        {isVazio ? "—" : linha.vendas > 0 ? `-${linha.vendas}` : "0"}
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        {isVazio ? "Retornos" : "Vendas"}
+                      </p>
+                      <p className={`text-sm font-semibold ${isVazio ? "text-success" : "text-info"}`}>
+                        {isVazio
+                          ? (linha.retornos > 0 ? `+${linha.retornos}` : "0")
+                          : (linha.vendas > 0 ? `-${linha.vendas}` : "0")}
                       </p>
                     </div>
                     <div>
@@ -418,8 +424,10 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                         <TableCell className="text-center font-semibold text-warning tabular-nums">
                           {linha.saidas > 0 ? `-${linha.saidas}` : "0"}
                         </TableCell>
-                        <TableCell className="text-center font-semibold text-info tabular-nums">
-                          {isVazio ? "—" : (linha.vendas > 0 ? `-${linha.vendas}` : "0")}
+                        <TableCell className={`text-center font-semibold tabular-nums ${isVazio ? "text-success" : "text-info"}`}>
+                          {isVazio
+                            ? (linha.retornos > 0 ? `+${linha.retornos}` : "0")
+                            : (linha.vendas > 0 ? `-${linha.vendas}` : "0")}
                         </TableCell>
                         <TableCell className="text-center font-semibold text-destructive tabular-nums">
                           {linha.avarias > 0 ? `-${linha.avarias}` : "0"}
