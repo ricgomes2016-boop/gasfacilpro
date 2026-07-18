@@ -162,6 +162,17 @@ export default function Compras() {
     bom_para: "",
   });
 
+  type PagExtra = {
+    id: string;
+    forma: FormaPagamentoCompra;
+    conta_bancaria_id: string;
+    valor: string;
+    numero_cheque: string;
+    banco_cheque: string;
+    bom_para: string;
+  };
+  const [pagamentosExtras, setPagamentosExtras] = useState<PagExtra[]>([]);
+
   const [contasBancarias, setContasBancarias] = useState<Array<{ id: string; nome: string; banco: string | null; saldo_atual: number | null }>>([]);
 
   const [itens, setItens] = useState<ItemCompra[]>([]);
