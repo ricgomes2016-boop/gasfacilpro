@@ -3,6 +3,21 @@ self.skipWaiting();
 const PRECACHE = "gasfacil-precache-v1";
 const precacheManifest = self.__WB_MANIFEST || [];
 
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      const cache = await caches.open(PRECACHE);
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    throw new Error("Network unavailable and no cached response found");
+  }
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(PRECACHE).then((cache) =>
@@ -24,9 +39,13 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
-  );
+
+  if (event.request.mode === "navigate" || event.request.destination === "document") {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
+
+  event.respondWith(caches.match(event.request).then((cached) => cached || networkFirst(event.request)));
 });
 
 self.addEventListener("message", (event) => {
