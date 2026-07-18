@@ -29,7 +29,7 @@ const FAIXAS = [
   { label: "1-30 dias", min: 1, max: 30, color: "hsl(var(--warning))" },
   { label: "31-60 dias", min: 31, max: 60, color: "hsl(var(--accent-foreground))" },
   { label: "61-90 dias", min: 61, max: 90, color: "hsl(var(--destructive))" },
-  { label: "90+ dias", min: 91, max: 99999, color: "hsl(0, 80%, 40%)" },
+  { label: "90+ dias", min: 91, max: 99999, color: "hsl(var(--destructive))" },
 ];
 
 function getFaixa(dias: number) {
