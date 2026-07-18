@@ -34,7 +34,7 @@ const fmtBRL = (n: number) =>
 const fmtNum = (n: number, d = 0) =>
   (Number(n) || 0).toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
 
-export function ComprasListaTableEstoque({ compras, unidadesMap, onChanged, onDelete }: Props) {
+export function ComprasListaTableEstoque({ compras, unidadesMap, precoMedioMap, onChanged, onDelete }: Props) {
   const [search, setSearch] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [editingVenc, setEditingVenc] = useState<Record<string, string>>({});
