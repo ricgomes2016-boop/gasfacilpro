@@ -1622,7 +1622,7 @@ export default function Compras() {
                                 value={row.conta_bancaria_id || "nenhum"}
                                 onValueChange={(v) => setPagamentosExtras(pagamentosExtras.map((r, i) => i === idx ? { ...r, conta_bancaria_id: v === "nenhum" ? "" : v } : r))}
                               >
-                                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectTrigger className="h-11"><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 <SelectContent>
                                   {row.forma === "cheque" && <SelectItem value="nenhum">— Sem vínculo bancário —</SelectItem>}
                                   {contasBancarias.map((c) => (
