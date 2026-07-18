@@ -1021,7 +1021,7 @@ export default function Pedidos() {
                     <Clock className="h-5 w-5 text-destructive" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-sm text-destructive">⚠️ {pedidosAntigos.length} pedido(s) pendente(s) há mais de 24h</p>
+                    <p className="font-medium text-sm text-destructive">{pedidosAntigos.length} pedido(s) pendente(s) há mais de 24h</p>
                     <p className="text-xs text-muted-foreground">
                       Verifique se já foram entregues e atualize o status para evitar inconsistências no acerto financeiro.
                     </p>
