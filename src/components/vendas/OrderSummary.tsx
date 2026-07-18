@@ -3,9 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ShoppingCart, Truck, CheckCircle, XCircle, CalendarClock } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { ItemVenda } from "./ProductSearch";
 import type { Pagamento } from "./PaymentSection";
 import { VendaSectionHeader } from "./VendaSectionHeader";
+
 
 interface OrderSummaryProps {
   itens: ItemVenda[];
@@ -70,19 +72,34 @@ export function OrderSummary({
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Subtotal</span>
-            <span>R$ {subtotal.toFixed(2)}</span>
+            <span className="tabular-nums">R$ {subtotal.toFixed(2)}</span>
           </div>
           {desconto > 0 && (
             <div className="flex justify-between text-sm text-success">
               <span>Desconto</span>
-              <span>- R$ {desconto.toFixed(2)}</span>
+              <span className="tabular-nums">- R$ {desconto.toFixed(2)}</span>
             </div>
           )}
-          <div className="flex justify-between text-lg font-bold pt-3 border-t">
-            <span>Total</span>
-              <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-primary shadow-sm">R$ {total.toFixed(2)}</span>
+          <div className="relative mt-2 overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-4 text-primary-foreground shadow-[0_12px_30px_-14px_hsl(var(--primary)/0.55)]">
+            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary-foreground/10 blur-2xl" />
+            <div className="relative flex items-end justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-foreground/80">Total</p>
+                <p className="mt-1 text-3xl font-extrabold tracking-tight tabular-nums truncate">R$ {total.toFixed(2)}</p>
+              </div>
+              {pagamentos.length > 0 && (
+                <div className="text-right shrink-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary-foreground/70">Pago</p>
+                  <p className={cn(
+                    "text-sm font-bold tabular-nums",
+                    pagamentoCompleto ? "text-primary-foreground" : "text-primary-foreground/70"
+                  )}>R$ {totalPago.toFixed(2)}</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
 
         {/* Pagamento */}
         {pagamentos.length > 0 && (
@@ -122,9 +139,9 @@ export function OrderSummary({
         </div>
 
         {/* Ações */}
-        <div className="space-y-2 rounded-lg border bg-background/80 p-3 shadow-sm lg:self-start">
+        <div className="space-y-2 rounded-2xl border border-border/50 bg-card/80 p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] lg:self-start">
           <Button
-            className="w-full h-11 shadow-sm shadow-primary/20"
+            className="w-full h-12 rounded-xl shadow-md shadow-primary/25"
             size="lg"
             onClick={onFinalizar}
             disabled={!pagamentoCompleto || itens.length === 0 || isLoading}
@@ -141,7 +158,7 @@ export function OrderSummary({
           {onAgendar && (
             <Button
               variant="secondary"
-              className="w-full h-10"
+              className="w-full h-10 rounded-xl"
               onClick={onAgendar}
               disabled={itens.length === 0 || isLoading}
             >
@@ -151,7 +168,7 @@ export function OrderSummary({
           )}
           <Button
             variant="outline"
-            className="w-full h-10"
+            className="w-full h-10 rounded-xl"
             onClick={onCancelar}
             disabled={isLoading}
           >
@@ -159,6 +176,7 @@ export function OrderSummary({
             Cancelar
           </Button>
         </div>
+
       </CardContent>
     </Card>
   );
