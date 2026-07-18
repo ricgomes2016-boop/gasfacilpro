@@ -48,6 +48,7 @@ import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsa
 import { ClienteAutocompleteInput } from "@/components/clientes/ClienteAutocompleteInput";
 import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
 import { LiquidarRecebivelModal } from "@/components/financeiro/LiquidarRecebivelModal";
+import { FinancialHeroCard } from "@/components/ui/financial-hero-card";
 
 interface ContaReceber {
   id: string;
