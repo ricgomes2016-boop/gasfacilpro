@@ -1545,6 +1545,136 @@ export default function Compras() {
                           </div>
                         </div>
                       )}
+
+                      {/* Formas de pagamento extras (split) */}
+                      {pagamentosExtras.length > 0 && (() => {
+                        const somaExtras = pagamentosExtras.reduce((a, r) => a + parseCurrency(r.valor), 0);
+                        const valorPrimaria = Math.max(0, +(totalCompra - somaExtras).toFixed(2));
+                        return (
+                          <div className="rounded-md border border-dashed border-border/70 bg-background/60 p-2 text-xs text-muted-foreground">
+                            <div className="flex items-center justify-between">
+                              <span>Valor desta forma (parte 1)</span>
+                              <span className="font-semibold text-foreground">
+                                R$ {valorPrimaria.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {pagamentosExtras.map((row, idx) => (
+                        <div key={row.id} className="rounded-lg border border-border bg-background p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold text-muted-foreground">Forma adicional #{idx + 2}</p>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-destructive"
+                              onClick={() => setPagamentosExtras(pagamentosExtras.filter((_, i) => i !== idx))}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="text-xs">Forma</Label>
+                              <Select
+                                value={row.forma}
+                                onValueChange={(v: FormaPagamentoCompra) =>
+                                  setPagamentosExtras(pagamentosExtras.map((r, i) => i === idx ? { ...r, forma: v, conta_bancaria_id: "" } : r))
+                                }
+                              >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="dinheiro">💵 Dinheiro</SelectItem>
+                                  <SelectItem value="pix">⚡ PIX</SelectItem>
+                                  <SelectItem value="ted">🏦 TED</SelectItem>
+                                  <SelectItem value="debito">💳 Débito</SelectItem>
+                                  <SelectItem value="credito">💳 Crédito</SelectItem>
+                                  <SelectItem value="boleto">📄 Boleto</SelectItem>
+                                  <SelectItem value="cheque">📝 Cheque</SelectItem>
+                                  <SelectItem value="vale_central_gas">🎟️ Vale Central Gás</SelectItem>
+                                  <SelectItem value="vale_ultragaz">🎟️ Vale Ultragaz</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label className="text-xs">Valor</Label>
+                              <Input
+                                value={row.valor}
+                                onChange={(e) => setPagamentosExtras(pagamentosExtras.map((r, i) => i === idx ? { ...r, valor: formatCurrency(e.target.value) } : r))}
+                                placeholder="0,00"
+                                inputMode="decimal"
+                              />
+                            </div>
+                          </div>
+
+                          {["pix", "ted", "debito", "boleto", "credito", "cheque", "vale_central_gas", "vale_ultragaz"].includes(row.forma) && (
+                            <div>
+                              <Label className="text-xs">Conta</Label>
+                              <Select
+                                value={row.conta_bancaria_id || "nenhum"}
+                                onValueChange={(v) => setPagamentosExtras(pagamentosExtras.map((r, i) => i === idx ? { ...r, conta_bancaria_id: v === "nenhum" ? "" : v } : r))}
+                              >
+                                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectContent>
+                                  {row.forma === "cheque" && <SelectItem value="nenhum">— Sem vínculo bancário —</SelectItem>}
+                                  {contasBancarias.map((c) => (
+                                    <SelectItem key={c.id} value={c.id}>{c.banco || c.nome} · {c.nome}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+
+                          {row.forma === "cheque" && (
+                            <div className="grid grid-cols-3 gap-2">
+                              <div>
+                                <Label className="text-xs">Nº cheque</Label>
+                                <Input value={row.numero_cheque} onChange={(e) => setPagamentosExtras(pagamentosExtras.map((r, i) => i === idx ? { ...r, numero_cheque: e.target.value } : r))} />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Banco</Label>
+                                <Input value={row.banco_cheque} onChange={(e) => setPagamentosExtras(pagamentosExtras.map((r, i) => i === idx ? { ...r, banco_cheque: e.target.value } : r))} />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Bom para</Label>
+                                <Input type="date" value={row.bom_para} onChange={(e) => setPagamentosExtras(pagamentosExtras.map((r, i) => i === idx ? { ...r, bom_para: e.target.value } : r))} />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() =>
+                          setPagamentosExtras([
+                            ...pagamentosExtras,
+                            { id: crypto.randomUUID(), forma: "pix", conta_bancaria_id: "", valor: "", numero_cheque: "", banco_cheque: "", bom_para: "" },
+                          ])
+                        }
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar forma de pagamento
+                      </Button>
+
+                      {pagamentosExtras.length > 0 && (() => {
+                        const somaExtras = pagamentosExtras.reduce((a, r) => a + parseCurrency(r.valor), 0);
+                        const valorPrimaria = Math.max(0, +(totalCompra - somaExtras).toFixed(2));
+                        const total = valorPrimaria + somaExtras;
+                        const diff = +(totalCompra - total).toFixed(2);
+                        return (
+                          <div className={`rounded-md p-2 text-xs ${Math.abs(diff) < 0.01 ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
+                            Total pago: R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} de R$ {totalCompra.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            {Math.abs(diff) >= 0.01 && ` · falta R$ ${Math.abs(diff).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                          </div>
+                        );
+                      })()}
                     </>
                   )}
 
