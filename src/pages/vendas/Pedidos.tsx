@@ -1175,8 +1175,8 @@ export default function Pedidos() {
           </Card>
         }
 
-        {/* Status Tabs - segmented control */}
-        {(() => {
+        {/* Status Tabs - só aparecem no modo Lista (Board tem colunas próprias) */}
+        {viewMode === "lista" && (() => {
           const tabs: Array<{ key: string; label: string; count: number }> = [
             { key: "todos", label: "Todos", count: pedidos.length },
             { key: "pendente", label: "Pendentes", count: contadores.pendente },
@@ -1207,8 +1207,145 @@ export default function Pedidos() {
           );
         })()}
 
-        {/* Table - #3 responsive with hidden columns on mobile */}
+        {/* Board por status (visual Base44) */}
+        {viewMode === "board" && (() => {
+          type ColKey = "pendente" | "em_rota" | "entregue" | "cancelado";
+          const cols: Array<{ key: ColKey; label: string; tone: string; toneBorder: string; toneBg: string; toneBadge: string; }> = [
+            { key: "pendente",  label: "Pendente",  tone: "text-warning",     toneBorder: "border-warning/40",     toneBg: "bg-warning/5",     toneBadge: "bg-warning/15 border-warning/30 text-warning" },
+            { key: "em_rota",   label: "Em Rota",   tone: "text-info",        toneBorder: "border-info/40",        toneBg: "bg-info/5",        toneBadge: "bg-info/15 border-info/30 text-info" },
+            { key: "entregue",  label: "Entregue",  tone: "text-success",     toneBorder: "border-success/40",     toneBg: "bg-success/5",     toneBadge: "bg-success/15 border-success/30 text-success" },
+            { key: "cancelado", label: "Cancelado", tone: "text-destructive", toneBorder: "border-destructive/40", toneBg: "bg-destructive/5", toneBadge: "bg-destructive/15 border-destructive/30 text-destructive" },
+          ];
+          const bucketOf = (p: PedidoFormatado): ColKey => {
+            if (p.status === "cancelado") return "cancelado";
+            if (p.status === "em_rota") return "em_rota";
+            if (p.status === "entregue" || p.status === "finalizado") return "entregue";
+            return "pendente";
+          };
+          const grupos: Record<ColKey, PedidoFormatado[]> = { pendente: [], em_rota: [], entregue: [], cancelado: [] };
+          pedidosFiltrados.forEach((p) => { grupos[bucketOf(p)].push(p); });
+
+          if (isLoading) {
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                {cols.map((c) => (
+                  <div key={c.key} className="rounded-xl border border-border bg-card p-2 space-y-2">
+                    <Skeleton className="h-6 w-24" />
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                  </div>
+                ))}
+              </div>
+            );
+          }
+
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+              {cols.map((c) => {
+                const items = grupos[c.key];
+                return (
+                  <section key={c.key} className={`flex flex-col rounded-xl border ${c.toneBorder} overflow-hidden`}>
+                    <header className={`flex items-center justify-between gap-2 px-3 py-2 ${c.toneBg} border-b ${c.toneBorder}`}>
+                      <span className={`text-xs font-semibold ${c.tone}`}>{c.label}</span>
+                      <span className={`inline-flex items-center justify-center min-w-[22px] h-[18px] px-1.5 rounded-full text-[11px] font-bold border ${c.toneBadge}`}>
+                        {items.length}
+                      </span>
+                    </header>
+                    <div className={`flex-1 min-h-[120px] p-2 space-y-2 ${c.toneBg}`}>
+                      {items.length === 0 ? (
+                        <div className="flex items-center justify-center h-20 rounded-lg border border-dashed border-border/60 text-[11px] text-muted-foreground/60">
+                          Sem pedidos
+                        </div>
+                      ) : (
+                        items.slice(0, 40).map((pedido) => {
+                          const bloqueado = isPedidoBloqueado(pedido.status);
+                          const horario = pedido.data?.split(" ")[1] || "";
+                          return (
+                            <div
+                              key={pedido.id}
+                              className="group rounded-lg border border-border bg-card p-2.5 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                              onClick={() => abrirVisualizacao(pedido)}
+                            >
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="text-[10px] font-mono text-muted-foreground">#{getNumExib(pedido)}</span>
+                                  <OrigemBadge origem={pedido.origem_pedido} />
+                                </div>
+                                <span className="text-sm font-bold tabular-nums">R$ {pedido.valor.toFixed(2)}</span>
+                              </div>
+                              <p className="text-[13px] font-semibold text-foreground truncate">{pedido.cliente}</p>
+                              <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
+                                <MapPin className="h-3 w-3 shrink-0" />
+                                {pedido.endereco}
+                              </p>
+                              <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-border/50">
+                                <div className="flex items-center gap-1 min-w-0 text-[11px]">
+                                  {pedido.forma_pagamento && (
+                                    <Badge variant="outline" className="h-5 px-1.5 text-[10px] gap-1 font-normal">
+                                      <CreditCard className="h-2.5 w-2.5" />
+                                      <span className="truncate max-w-[80px]">{formaLabel(pedido.forma_pagamento)}</span>
+                                    </Badge>
+                                  )}
+                                  {horario && <span className="text-muted-foreground shrink-0">{horario}</span>}
+                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 opacity-70 group-hover:opacity-100"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MoreHorizontal className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                    <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
+                                    {!bloqueado && <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>}
+                                    {!bloqueado && <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>}
+                                    {!bloqueado && <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria</DropdownMenuItem>}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
+                                    {!bloqueado && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        {pedido.status !== "em_rota" && <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "em_rota")}><Truck className="h-4 w-4 mr-2" />Marcar Em Rota</DropdownMenuItem>}
+                                        <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "entregue")}><CheckCircle className="h-4 w-4 mr-2" />Marcar Entregue</DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => cancelarPedido(pedido.id)}><XCircle className="h-4 w-4 mr-2" />Cancelar</DropdownMenuItem>
+                                      </>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                              {pedido.entregador && (
+                                <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1 truncate">
+                                  <Truck className="h-2.5 w-2.5 shrink-0" />
+                                  {pedido.entregador}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                      {items.length > 40 && (
+                        <p className="text-center text-[11px] text-muted-foreground pt-1">
+                          + {items.length - 40} — mude para Lista para ver todos
+                        </p>
+                      )}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          );
+        })()}
+
+        {/* Table - só aparece no modo Lista */}
+        {viewMode === "lista" && (
         <Card className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+
           <CardHeader className="border-b border-border bg-muted/40 px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-sm font-semibold text-foreground">Pedidos <span className="text-muted-foreground font-normal">({pedidosFiltrados.length})</span></CardTitle>
