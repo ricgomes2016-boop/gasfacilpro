@@ -72,6 +72,9 @@ function calcularLinha(
     .replace(/\s*\(Vazio\)\s*/i, "")
     .replace(/\s*\(Cheio\)\s*/i, "")
     .replace(/^Gás\s+/i, "")
+    .replace(/^Vasilhame\s+/i, "")
+    .replace(/\s+Vazio$/i, "")
+    .replace(/\s+Cheio$/i, "")
     .trim();
 
   const estoqueAtual = produto.estoque || 0;
