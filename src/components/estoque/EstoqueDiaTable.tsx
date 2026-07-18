@@ -424,8 +424,10 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                         <TableCell className="text-center font-semibold text-warning tabular-nums">
                           {linha.saidas > 0 ? `-${linha.saidas}` : "0"}
                         </TableCell>
-                        <TableCell className="text-center font-semibold text-info tabular-nums">
-                          {isVazio ? "—" : (linha.vendas > 0 ? `-${linha.vendas}` : "0")}
+                        <TableCell className={`text-center font-semibold tabular-nums ${isVazio ? "text-success" : "text-info"}`}>
+                          {isVazio
+                            ? (linha.retornos > 0 ? `+${linha.retornos}` : "0")
+                            : (linha.vendas > 0 ? `-${linha.vendas}` : "0")}
                         </TableCell>
                         <TableCell className="text-center font-semibold text-destructive tabular-nums">
                           {linha.avarias > 0 ? `-${linha.avarias}` : "0"}
