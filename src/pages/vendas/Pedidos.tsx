@@ -127,6 +127,11 @@ function formatarItensComQtd(pedido: PedidoFormatado): string {
 
 const PEDIDOS_FILTROS_STORAGE_KEY = "pedidos:filtros:v1";
 
+const cnStatusTab = (active: boolean) =>
+  `flex shrink-0 items-center gap-1 rounded-xl px-3 py-2 text-xs font-medium transition-all whitespace-nowrap ${
+    active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+  }`;
+
 type PedidosFiltrosPersistidos = {
   dataInicio?: string;
   dataFim?: string;
