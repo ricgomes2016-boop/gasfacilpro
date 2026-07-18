@@ -179,6 +179,10 @@ export default function Compras() {
   const [novoItem, setNovoItem] = useState({ produto_id: "", quantidade: "1", preco_unitario: "" });
   const [nfFiscal, setNfFiscal] = useState<NfFiscal | null>(null);
 
+  // Histórico de preços: média por produto e último preço por (fornecedor, produto)
+  const [precoMedioMap, setPrecoMedioMap] = useState<Record<string, { avg: number; count: number }>>({});
+  const [ultimoPrecoForn, setUltimoPrecoForn] = useState<Record<string, { preco: number; data: string }>>({});
+
   // Confirmação de novos produtos detectados no XML
   const [novosProdDialogOpen, setNovosProdDialogOpen] = useState(false);
   const [novosCandidatos, setNovosCandidatos] = useState<NovoProdutoCandidato[]>([]);
