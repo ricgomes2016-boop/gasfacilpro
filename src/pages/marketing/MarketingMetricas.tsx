@@ -280,7 +280,7 @@ export default function MarketingMetricas() {
                       <YAxis fontSize={11} stroke="hsl(var(--muted-foreground))" />
                       <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
                       <Area type="monotone" dataKey="alcance" stroke="hsl(var(--primary))" fill="url(#grad)" name="Alcance" />
-                      <Area type="monotone" dataKey="engajamento" stroke="#ec4899" fill="#ec489922" name="Engajamento" />
+                      <Area type="monotone" dataKey="engajamento" stroke="hsl(var(--accent))" fill="hsl(var(--accent) / 0.15)" name="Engajamento" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -302,7 +302,7 @@ export default function MarketingMetricas() {
                         <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
                         <Legend wrapperStyle={{ fontSize: 11 }} />
                         <Bar dataKey="alcance" fill="hsl(var(--primary))" name="Alcance" />
-                        <Bar dataKey="engajamento" fill="#ec4899" name="Engajamento" />
+                        <Bar dataKey="engajamento" fill="hsl(var(--accent))" name="Engajamento" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
