@@ -1634,7 +1634,7 @@ export default function Compras() {
                           )}
 
                           {row.forma === "cheque" && (
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                               <div>
                                 <Label className="text-xs">Nº cheque</Label>
                                 <Input value={row.numero_cheque} onChange={(e) => setPagamentosExtras(pagamentosExtras.map((r, i) => i === idx ? { ...r, numero_cheque: e.target.value } : r))} />
