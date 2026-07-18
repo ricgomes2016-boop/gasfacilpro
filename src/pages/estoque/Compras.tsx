@@ -1878,6 +1878,7 @@ export default function Compras() {
           <ComprasListaTableEstoque
             compras={compras}
             unidadesMap={unidadeAtual?.id ? new Map([[unidadeAtual.id, unidadeAtual.nome || ""]]) : undefined}
+            precoMedioMap={precoMedioMap}
             onChanged={fetchCompras}
             onDelete={(id) => setDeleteId(id)}
           />
