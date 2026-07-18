@@ -161,6 +161,15 @@ export function ComprasListaTableEstoque({ compras, unidadesMap, onChanged, onDe
 
   const lojaNome = (id?: string | null) => (id ? unidadesMap?.get(id) || "—" : "—");
 
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const tipoCounts = useMemo(() => {
     const c = { todos: compras.length, cheio: 0, vasilhame: 0, outros: 0 } as Record<FiltroTipo, number>;
     for (const x of compras) {
