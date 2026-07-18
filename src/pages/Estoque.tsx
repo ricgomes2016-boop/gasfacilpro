@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { format, eachDayOfInterval, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, TrendingUp } from "lucide-react";
+import { CalendarIcon, TrendingUp, Filter as FilterIcon, Boxes } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
@@ -14,6 +14,9 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -23,6 +26,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { EstoqueDiaTable } from "@/components/estoque/EstoqueDiaTable";
+import { FinancialHeroCard } from "@/components/ui/financial-hero-card";
+
 
 interface ProdutoEstoque {
   id: string;
