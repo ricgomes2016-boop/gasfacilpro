@@ -1,13 +1,42 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { startOfDay, endOfDay, format } from "date-fns";
-import { DollarSign, TrendingUp, TrendingDown } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, ShoppingCart, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
-import { FinancialHeroCard } from "@/components/ui/financial-hero-card";
+import { cn } from "@/lib/utils";
+import { LucideIcon } from "lucide-react";
 
 const fmtBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
+
+type Tone = "success" | "primary" | "danger" | "info" | "warning";
+
+const toneStyles: Record<Tone, { icon: string; bg: string; ring: string }> = {
+  success:  { icon: "text-success",     bg: "bg-success/10",     ring: "ring-success/20" },
+  primary:  { icon: "text-primary",     bg: "bg-primary/10",     ring: "ring-primary/20" },
+  danger:   { icon: "text-destructive", bg: "bg-destructive/10", ring: "ring-destructive/20" },
+  info:     { icon: "text-info",        bg: "bg-info/10",        ring: "ring-info/20" },
+  warning:  { icon: "text-warning",     bg: "bg-warning/10",     ring: "ring-warning/20" },
+};
+
+function OpCard({
+  label, value, sub, icon: Icon, tone = "primary",
+}: { label: string; value: string; sub?: string; icon: LucideIcon; tone?: Tone }) {
+  const t = toneStyles[tone];
+  return (
+    <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border/60 bg-card p-3.5 shadow-[var(--elev-1)] transition-shadow hover:shadow-[var(--elev-2)] sm:p-4">
+      <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset", t.bg, t.ring)}>
+        <Icon className={cn("h-[18px] w-[18px]", t.icon)} strokeWidth={2.2} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="mt-0.5 truncate text-lg font-semibold tabular-nums text-foreground sm:text-xl">{value}</p>
+        {sub && <p className="truncate text-[11px] text-muted-foreground">{sub}</p>}
+      </div>
+    </div>
+  );
+}
 
 export function DashboardFinancialHero() {
   const { unidadeAtual } = useUnidade();
@@ -25,7 +54,7 @@ export function DashboardFinancialHero() {
       const iniISO = format(ini, "yyyy-MM-dd");
       const fimISO = format(fim, "yyyy-MM-dd");
 
-      const [receberQ, pagarQ, receitaHojeQ] = await Promise.all([
+      const [receberQ, pagarQ, pedidosHojeQ] = await Promise.all([
         sb.from("contas_receber")
           .select("valor, valor_recebido, status, data_vencimento")
           .or(`unidade_id.eq.${unidadeAtual!.id},unidade_id.is.null`)
@@ -51,44 +80,53 @@ export function DashboardFinancialHero() {
         (s: number, r: any) => s + (Number(r.valor || 0) - Number(r.valor_pago || 0)),
         0
       );
-      const receitaHoje = (receitaHojeQ.data || [])
-        .filter((p: any) => ["entregue", "finalizado", "pago_cartao"].includes(p.status))
-        .reduce((s: number, p: any) => s + Number(p.valor_total || 0), 0);
+      const pedidos = (pedidosHojeQ.data || []) as any[];
+      const receitaHoje = pedidos
+        .filter((p) => ["entregue", "finalizado", "pago_cartao"].includes(p.status))
+        .reduce((s, p) => s + Number(p.valor_total || 0), 0);
+      const pendentes = pedidos.filter((p) => p.status === "pendente").length;
+      const emRota = pedidos.filter((p) => p.status === "em_rota").length;
 
-      const totalMov = receber + pagar || 1;
-      const saudePct = Math.round((receber / totalMov) * 100);
-
-      return { receber, pagar, receitaHoje, saudePct };
+      return { receber, pagar, receitaHoje, pendentes, emRota };
     },
   });
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      <FinancialHeroCard
-        title="Receita de hoje"
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <OpCard
+        label="Receita hoje"
         value={fmtBRL(data?.receitaHoje ?? 0)}
-        subtitle="Pedidos concluídos no dia"
+        sub="Pedidos concluídos"
         icon={DollarSign}
-        color="primary"
-        progress={data?.saudePct}
-        details={[
-          { label: "A receber", value: fmtBRL(data?.receber ?? 0) },
-          { label: "A pagar", value: fmtBRL(data?.pagar ?? 0) },
-        ]}
+        tone="success"
       />
-      <FinancialHeroCard
-        title="Contas a receber"
+      <OpCard
+        label="Pedidos pendentes"
+        value={String(data?.pendentes ?? 0)}
+        sub="Aguardando"
+        icon={ShoppingCart}
+        tone="warning"
+      />
+      <OpCard
+        label="Em rota"
+        value={String(data?.emRota ?? 0)}
+        sub="Entregas em andamento"
+        icon={Truck}
+        tone="info"
+      />
+      <OpCard
+        label="A receber"
         value={fmtBRL(data?.receber ?? 0)}
-        subtitle="Pendentes até hoje"
+        sub="Vencendo até hoje"
         icon={TrendingUp}
-        color="success"
+        tone="primary"
       />
-      <FinancialHeroCard
-        title="Contas a pagar"
+      <OpCard
+        label="A pagar"
         value={fmtBRL(data?.pagar ?? 0)}
-        subtitle="Vencendo até hoje"
+        sub="Vencendo até hoje"
         icon={TrendingDown}
-        color="danger"
+        tone="danger"
       />
     </div>
   );

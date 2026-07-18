@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import {
   PlusCircle,
   Monitor,
@@ -17,46 +17,65 @@ interface QuickAction {
   label: string;
   icon: React.ElementType;
   path: string;
-  tone: string;
+  tone: "primary" | "success" | "info" | "warning" | "destructive" | "secondary";
 }
 
+const toneStyles: Record<QuickAction["tone"], { icon: string; bg: string; ring: string }> = {
+  primary:     { icon: "text-primary",     bg: "bg-primary/10",     ring: "ring-primary/15" },
+  success:     { icon: "text-success",     bg: "bg-success/10",     ring: "ring-success/15" },
+  info:        { icon: "text-info",        bg: "bg-info/10",        ring: "ring-info/15" },
+  warning:     { icon: "text-warning",     bg: "bg-warning/10",     ring: "ring-warning/15" },
+  destructive: { icon: "text-destructive", bg: "bg-destructive/10", ring: "ring-destructive/15" },
+  secondary:   { icon: "text-secondary-foreground", bg: "bg-secondary/60", ring: "ring-border/60" },
+};
+
 const actions: QuickAction[] = [
-  { label: "Nova Venda", icon: PlusCircle, path: "/vendas/nova", tone: "bg-success text-success-foreground shadow-success/25 focus-visible:ring-success/45" },
-  { label: "Abrir PDV", icon: Monitor, path: "/vendas/pdv", tone: "bg-info text-info-foreground shadow-info/25 focus-visible:ring-info/45" },
-  { label: "Pedidos", icon: ShoppingCart, path: "/vendas/pedidos", tone: "bg-primary text-primary-foreground shadow-primary/25 focus-visible:ring-primary/45" },
-  { label: "Clientes", icon: Users, path: "/clientes/cadastro", tone: "bg-warning text-warning-foreground shadow-warning/25 focus-visible:ring-warning/45" },
-  { label: "Estoque", icon: Package, path: "/estoque", tone: "bg-secondary text-secondary-foreground shadow-secondary/25 focus-visible:ring-secondary/45" },
-  { label: "Entregas", icon: Truck, path: "/entregas", tone: "bg-destructive text-destructive-foreground shadow-destructive/25 focus-visible:ring-destructive/45" },
-  { label: "Financeiro", icon: DollarSign, path: "/financeiro", tone: "bg-success text-success-foreground shadow-success/25 focus-visible:ring-success/45" },
-  { label: "Despesas", icon: Receipt, path: "/caixa/despesas", tone: "bg-warning text-warning-foreground shadow-warning/25 focus-visible:ring-warning/45" },
-  { label: "Relatórios", icon: BarChart3, path: "/vendas/relatorio", tone: "bg-info text-info-foreground shadow-info/25 focus-visible:ring-info/45" },
-  { label: "Notas Fiscais", icon: FileText, path: "/fiscal", tone: "bg-primary text-primary-foreground shadow-primary/25 focus-visible:ring-primary/45" },
+  { label: "Nova Venda",    icon: PlusCircle, path: "/vendas/nova",      tone: "success" },
+  { label: "PDV",           icon: Monitor,    path: "/vendas/pdv",       tone: "info" },
+  { label: "Pedidos",       icon: ShoppingCart, path: "/vendas/pedidos", tone: "primary" },
+  { label: "Clientes",      icon: Users,      path: "/clientes/cadastro", tone: "warning" },
+  { label: "Estoque",       icon: Package,    path: "/estoque",          tone: "secondary" },
+  { label: "Entregas",      icon: Truck,      path: "/entregas",         tone: "destructive" },
+  { label: "Financeiro",    icon: DollarSign, path: "/financeiro",       tone: "success" },
+  { label: "Despesas",      icon: Receipt,    path: "/caixa/despesas",   tone: "warning" },
+  { label: "Relatórios",    icon: BarChart3,  path: "/vendas/relatorio", tone: "info" },
+  { label: "Notas Fiscais", icon: FileText,   path: "/fiscal",           tone: "primary" },
 ];
 
 export function QuickActions() {
   const navigate = useNavigate();
 
   return (
-    <Card className="w-full min-w-0 max-w-full">
-      <CardHeader className="pb-3">
-        <CardTitle>Acesso Rápido</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="grid w-full min-w-0 grid-cols-2 gap-2.5 min-[420px]:grid-cols-4 sm:grid-cols-5 lg:grid-cols-10">
-          {actions.map((a) => (
+    <div className="rounded-xl border border-border/60 bg-card p-3 shadow-[var(--elev-1)] sm:p-4">
+      <div className="mb-2.5 flex items-center justify-between px-1">
+        <h3 className="text-sm font-semibold text-foreground">Acesso rápido</h3>
+      </div>
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-10">
+        {actions.map((a) => {
+          const t = toneStyles[a.tone];
+          return (
             <button
               key={a.path}
               onClick={() => navigate(a.path)}
-              className={`quick-action-tile group flex min-h-[88px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-[var(--radius)] p-3 shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 ${a.tone}`}
+              className={cn(
+                "group flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-lg border border-border/50 bg-card px-2 py-2.5",
+                "transition-all duration-150 hover:-translate-y-0.5 hover:border-border hover:bg-muted/40",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+              )}
             >
-              <a.icon className="h-5 w-5 drop-shadow-sm" strokeWidth={2.25} />
-              <span className="line-clamp-2 text-center text-[11px] font-semibold leading-[1.15] tracking-tight">
+              <span className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-md ring-1 ring-inset transition-colors",
+                t.bg, t.ring,
+              )}>
+                <a.icon className={cn("h-4 w-4", t.icon)} strokeWidth={2.2} />
+              </span>
+              <span className="line-clamp-1 text-center text-[11px] font-medium text-foreground">
                 {a.label}
               </span>
             </button>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          );
+        })}
+      </div>
+    </div>
   );
 }
