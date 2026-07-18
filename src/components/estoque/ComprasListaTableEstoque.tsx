@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 interface Props {
   compras: any[];
   unidadesMap?: Map<string, string>;
+  precoMedioMap?: Record<string, { avg: number; count: number }>;
   onChanged?: () => void;
   onDelete?: (id: string) => void;
 }
