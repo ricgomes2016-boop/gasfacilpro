@@ -414,6 +414,38 @@ export default function Estoque() {
           ]}
         />
 
+        {/* Breakdown por produto (cheios) */}
+        {(() => {
+          const cheios = produtos
+            .filter((p) => p.tipo_botijao === "cheio" || (p.categoria === "gas" && !p.tipo_botijao) || p.categoria === "agua")
+            .filter((p, i, a) => a.findIndex((x) => x.id === p.id) === i);
+          if (cheios.length === 0) return null;
+          return (
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-[0_4px_16px_rgba(15,23,42,0.06)]">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-foreground">Por produto (cheios)</h3>
+                <span className="text-[11px] text-muted-foreground">Atual · Vendas no período</span>
+              </div>
+              <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
+                {cheios.map((p) => {
+                  const mov = movimentacoesTotal[p.id];
+                  const vendas = mov?.vendas || 0;
+                  return (
+                    <div key={p.id} className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
+                      <p className="text-[11px] font-medium text-muted-foreground truncate">{p.nome}</p>
+                      <div className="flex items-baseline justify-between gap-2 mt-1">
+                        <span className="text-lg font-bold text-foreground tabular-nums">{(p.estoque || 0).toLocaleString("pt-BR")}</span>
+                        <span className="text-xs font-semibold text-info tabular-nums">−{vendas.toLocaleString("pt-BR")}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+
         {/* KPI cards */}
         <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
           {kpis.map((kpi) => {
