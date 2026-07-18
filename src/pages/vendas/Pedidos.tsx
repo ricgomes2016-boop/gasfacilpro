@@ -38,6 +38,7 @@ import {
   ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader,
   ResponsiveDialogTitle, ResponsiveDialogTrigger, ResponsiveDialogFooter } from
 "@/components/ui/responsive-dialog";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { SugestaoEntregador } from "@/components/sugestao/SugestaoEntregador";
