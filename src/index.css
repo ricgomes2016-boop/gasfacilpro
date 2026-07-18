@@ -533,7 +533,7 @@
    * para todos os Cards renderizados em qualquer página do ERP,
    * sem exigir refactor de cada arquivo.
    * ============================================================ */
-  .system-surface main :where([data-slot="card"], .rounded-lg.border.bg-card, .rounded-xl.border.bg-card) {
+  .system-surface main [data-slot="card"] {
     border-radius: 1rem;
     border-color: hsl(var(--border) / 0.55);
     box-shadow: 0 1px 0 hsl(0 0% 100% / 0.6) inset, 0 12px 32px -28px hsl(var(--foreground) / 0.22);
