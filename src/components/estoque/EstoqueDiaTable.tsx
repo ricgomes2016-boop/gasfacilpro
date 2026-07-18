@@ -78,10 +78,11 @@ function calcularLinha(
   const { vendas, compras, entradas_manuais, saidas_manuais, avarias } = mov;
 
   if (tipoBotijao === "vazio") {
-    const entradas = saidas_manuais + vendas;
-    const saidas = compras + entradas_manuais;
-    const inicial = estoqueAtual - entradas + saidas;
-    const total = inicial + entradas - saidas;
+    // Vazio: cada venda de gás cheio devolve 1 vasilhame. Compras de gás consomem vasilhame (troca).
+    const entradas = vendas + entradas_manuais;
+    const saidas = compras + saidas_manuais;
+    const inicial = estoqueAtual;
+    const total = inicial + entradas - saidas - avarias;
     return {
       produtoId: produto.id, nome: nomeBase, tipoEstoque: "Vazio", estoqueAtual,
       vendas: 0, compras, entradas, saidas,
