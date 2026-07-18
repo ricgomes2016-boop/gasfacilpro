@@ -29,9 +29,11 @@ import {
   Search, Eye, Truck, CheckCircle, Clock, XCircle, Sparkles,
   User, RefreshCw, MoreHorizontal, Edit, ArrowRightLeft, Printer,
   Share2, DollarSign, Trash2, Lock, MessageCircle, CreditCard,
-  ChevronLeft, ChevronRight, ChevronDown, CheckSquare, Building2, Pencil, MoveRight, Map as MapIcon,
-  Download, Package, Calendar, SlidersHorizontal } from
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckSquare, Building2, Pencil, MoveRight, Map as MapIcon,
+  Download, Package, Calendar, SlidersHorizontal, MapPin, Phone } from
 "lucide-react";
+import { PedidoStatusPill } from "@/components/pedidos/PedidoStatusPill";
+import { PedidoPaymentPill } from "@/components/pedidos/PedidoPaymentPill";
 import {
   ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader,
   ResponsiveDialogTitle, ResponsiveDialogTrigger, ResponsiveDialogFooter } from
