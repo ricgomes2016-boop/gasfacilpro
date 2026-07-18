@@ -854,12 +854,12 @@ export default function Pedidos() {
             (filtroOrigem !== "todos" ? 1 : 0) +
             (dataInicio !== hoje || dataFim !== hoje ? 1 : 0);
           const actionBase =
-            "w-full min-h-[64px] rounded-2xl px-4 flex items-center justify-center gap-2 text-sm font-semibold shadow-sm transition-all";
+            "w-full h-11 rounded-xl px-3 flex items-center justify-center gap-2 text-sm font-medium transition-colors";
           return (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full min-w-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full min-w-0">
               <Button
                 onClick={() => navigate("/vendas/nova")}
-                className={`${actionBase} bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/25`}
+                className={`${actionBase} bg-primary text-primary-foreground hover:bg-primary/90`}
               >
                 <Sparkles className="h-4 w-4 shrink-0" />
                 <span className="truncate">Novo Pedido</span>
@@ -869,7 +869,7 @@ export default function Pedidos() {
                 onDataExtracted={handleImportData}
                 mode="menu"
                 menuLabel="Mais ações"
-                className={`${actionBase} !bg-card !text-foreground border border-border hover:!bg-muted/60 !h-auto`}
+                className={`${actionBase} !bg-card !text-foreground border border-border hover:!bg-muted/60 !h-11`}
                 extraMenuContent={
                   <>
                     <DropdownMenuSeparator />
@@ -901,9 +901,9 @@ export default function Pedidos() {
                 className={`${actionBase} bg-card hover:bg-muted/60 relative`}
               >
                 <SlidersHorizontal className="h-4 w-4 shrink-0" />
-                <span className="truncate">Mais Filtros</span>
+                <span className="truncate">Filtros</span>
                 {filtrosAtivos > 0 && (
-                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{filtrosAtivos}</Badge>
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] tabular-nums">{filtrosAtivos}</Badge>
                 )}
                 <ChevronDown
                   className={`h-4 w-4 shrink-0 transition-transform duration-200 ${filtrosAbertos ? "rotate-180" : ""}`}
