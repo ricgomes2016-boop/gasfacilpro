@@ -322,54 +322,112 @@ export default function Estoque() {
     ? format(dataInicio, "dd/MM/yyyy")
     : `${format(dataInicio, "dd/MM/yyyy")} até ${format(dataFim, "dd/MM/yyyy")}`;
 
+  const totalCheios = getTotalCheios();
+  const totalVazios = getTotalVazios();
+  const valorEstoque = getValorEstoque();
+  const produtosZerados = produtos.filter(
+    (p) => (p.estoque || 0) <= 0 && p.tipo_botijao !== "vazio"
+  ).length;
+
   const kpis = [
-    { label: "Cheios", value: getTotalCheios().toLocaleString("pt-BR"), icon: Package, tone: "primary" as const },
-    { label: "Vazios", value: getTotalVazios().toLocaleString("pt-BR"), icon: Package, tone: "secondary" as const },
-    { label: "Vendas Período", value: totalVendas.toLocaleString("pt-BR"), icon: TrendingUp, tone: "info" as const },
-    { label: "Valor Estoque", value: `R$ ${getValorEstoque().toLocaleString("pt-BR")}`, icon: AlertTriangle, tone: "destructive" as const },
+    { label: "Cheios", value: totalCheios.toLocaleString("pt-BR"), icon: Package, tone: "primary" as const, hint: "Botijões prontos p/ venda" },
+    { label: "Vazios", value: totalVazios.toLocaleString("pt-BR"), icon: Package, tone: "secondary" as const, hint: "Vasilhames disponíveis" },
+    { label: "Vendas no período", value: totalVendas.toLocaleString("pt-BR"), icon: TrendingUp, tone: "info" as const, hint: periodoLabel },
+    { label: "Produtos zerados", value: produtosZerados.toLocaleString("pt-BR"), icon: AlertTriangle, tone: "destructive" as const, hint: "Requer reposição" },
   ];
   const toneClasses: Record<"primary" | "secondary" | "info" | "destructive", string> = {
-    primary: "bg-primary/10 text-primary",
-    secondary: "bg-secondary/20 text-secondary-foreground",
-    info: "bg-info/10 text-info",
-    destructive: "bg-destructive/10 text-destructive",
+    primary: "bg-success/12 text-success",
+    secondary: "bg-muted text-muted-foreground",
+    info: "bg-info/12 text-info",
+    destructive: "bg-destructive/12 text-destructive",
   };
+
+  const DateFields = (
+    <>
+      <div className="grid gap-1.5">
+        <Label className="text-xs font-medium text-muted-foreground">Data inicial</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full sm:w-[170px] h-10 justify-start text-left font-normal">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {format(dataInicio, "dd/MM/yyyy")}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={dataInicio} onSelect={(d) => d && setDataInicio(d)} initialFocus className="p-3 pointer-events-auto" />
+          </PopoverContent>
+        </Popover>
+      </div>
+      <div className="grid gap-1.5">
+        <Label className="text-xs font-medium text-muted-foreground">Data final</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full sm:w-[170px] h-10 justify-start text-left font-normal">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {format(dataFim, "dd/MM/yyyy")}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={dataFim} onSelect={(d) => d && setDataFim(d)} initialFocus className="p-3 pointer-events-auto" />
+          </PopoverContent>
+        </Popover>
+      </div>
+    </>
+  );
 
   return (
     <MainLayout>
       <Header title="Estoque" subtitle="Controle de estoque do dia" />
-      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-5 max-w-[1400px] mx-auto w-full min-w-0">
         {/* Action bar */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-foreground sm:text-xl">Controle diário de produtos</h2>
-            <p className="text-sm text-muted-foreground">Período: {periodoLabel}</p>
+            <h2 className="text-lg font-semibold text-foreground sm:text-xl truncate">Controle diário de produtos</h2>
+            <p className="text-sm text-muted-foreground truncate">
+              {periodoLabel}{unidadeAtual?.nome ? ` · ${unidadeAtual.nome}` : ""}
+            </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={fetchData} disabled={isLoading}>
+          <div className="flex gap-2 shrink-0">
+            <Button variant="outline" size="sm" className="h-10" onClick={fetchData} disabled={isLoading}>
               <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
               Atualizar
             </Button>
-            <Button size="sm" onClick={() => setMovDialogOpen(true)}>
+            <Button size="sm" className="h-10" onClick={() => setMovDialogOpen(true)}>
               <ArrowUpDown className="mr-2 h-4 w-4" />
               Movimentação
             </Button>
           </div>
         </div>
 
+        {/* Hero card */}
+        <FinancialHeroCard
+          title="Estoque do período"
+          color="success"
+          icon={Boxes}
+          value={`R$ ${valorEstoque.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          subtitle="Valor total estimado em produtos disponíveis"
+          details={[
+            { label: "Cheios", value: `${totalCheios.toLocaleString("pt-BR")} un` },
+            { label: "Vazios", value: `${totalVazios.toLocaleString("pt-BR")} un` },
+            { label: "Vendas", value: `${totalVendas.toLocaleString("pt-BR")} un` },
+            { label: "Período", value: periodoLabel },
+          ]}
+        />
+
         {/* KPI cards */}
         <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
           {kpis.map((kpi) => {
             const Icon = kpi.icon;
             return (
-              <Card key={kpi.label} className="border-border bg-card">
-                <CardContent className="flex items-center gap-3 p-4">
-                  <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", toneClasses[kpi.tone])}>
+              <Card key={kpi.label} className="border-border bg-card rounded-2xl shadow-[0_4px_16px_rgba(15,23,42,0.06)]">
+                <CardContent className="flex items-start gap-3 p-4">
+                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", toneClasses[kpi.tone])}>
                     <Icon className="h-5 w-5" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm text-muted-foreground">{kpi.label}</p>
-                    <p className="truncate text-2xl font-bold text-foreground">{kpi.value}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] uppercase tracking-wide font-medium text-muted-foreground truncate">{kpi.label}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums leading-tight">{kpi.value}</p>
+                    {kpi.hint && <p className="text-[11px] text-muted-foreground truncate mt-0.5">{kpi.hint}</p>}
                   </div>
                 </CardContent>
               </Card>
@@ -377,37 +435,47 @@ export default function Estoque() {
           })}
         </div>
 
-        {/* Date filters */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
-          <div className="grid gap-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Data Inicial</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className={cn("w-full sm:w-[180px] justify-start text-left font-normal")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(dataInicio, "dd/MM/yyyy")}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dataInicio} onSelect={(d) => d && setDataInicio(d)} initialFocus className="p-3 pointer-events-auto" />
-              </PopoverContent>
-            </Popover>
+        {/* Filter bar */}
+        <div className="rounded-2xl border border-border bg-card p-3 shadow-[0_4px_16px_rgba(15,23,42,0.06)]">
+          {/* Desktop */}
+          <div className="hidden md:flex items-end gap-3 flex-wrap">
+            {DateFields}
           </div>
-          <div className="grid gap-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Data Final</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className={cn("w-full sm:w-[180px] justify-start text-left font-normal")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(dataFim, "dd/MM/yyyy")}
+          {/* Mobile */}
+          <div className="flex md:hidden items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Período</p>
+              <p className="text-sm font-semibold text-foreground truncate">{periodoLabel}</p>
+            </div>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="h-10 shrink-0">
+                  <FilterIcon className="h-4 w-4 mr-2" />
+                  Filtros
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={dataFim} onSelect={(d) => d && setDataFim(d)} initialFocus className="p-3 pointer-events-auto" />
-              </PopoverContent>
-            </Popover>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="rounded-t-2xl">
+                <SheetHeader>
+                  <SheetTitle>Filtros</SheetTitle>
+                  <SheetDescription>Selecione o período</SheetDescription>
+                </SheetHeader>
+                <div className="grid gap-3 py-4">
+                  {DateFields}
+                </div>
+                <SheetFooter>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => { const hoje = new Date(); setDataInicio(hoje); setDataFim(hoje); }}
+                  >
+                    Limpar (hoje)
+                  </Button>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
+
 
 
             <Dialog open={movDialogOpen} onOpenChange={setMovDialogOpen}>
