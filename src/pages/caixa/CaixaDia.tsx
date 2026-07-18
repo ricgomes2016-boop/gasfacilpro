@@ -882,7 +882,7 @@ export default function CaixaDia() {
 
         {/* Abas */}
         <Tabs defaultValue="movimentacoes" className="space-y-4">
-          <TabsList className="w-full sm:w-auto">
+          <TabsList className="w-full sm:w-auto h-11">
             <TabsTrigger value="movimentacoes" className="flex-1 sm:flex-none text-xs sm:text-sm">Movimentações</TabsTrigger>
             <TabsTrigger value="produtos" className="flex-1 sm:flex-none text-xs sm:text-sm">Produtos</TabsTrigger>
             <TabsTrigger value="pagamentos" className="flex-1 sm:flex-none text-xs sm:text-sm">Pagamentos</TabsTrigger>
