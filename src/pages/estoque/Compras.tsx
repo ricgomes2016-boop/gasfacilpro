@@ -268,6 +268,7 @@ export default function Compras() {
       situacao: "avista", forma: "dinheiro", conta_bancaria_id: "",
       parcelas: 1, numero_cheque: "", banco_cheque: "", bom_para: "",
     });
+    setPagamentosExtras([]);
     setItens([]);
     setNovoItem({ produto_id: "", quantidade: "1", preco_unitario: "" });
     setNfFiscal(null);
