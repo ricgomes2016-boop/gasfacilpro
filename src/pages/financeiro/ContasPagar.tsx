@@ -151,35 +151,19 @@ export default function ContasPagar() {
         <input ref={cp.boletoPdfInputRef} type="file" accept="application/pdf" className="hidden" onChange={(e) => cp.handleBoletoCapture(e, true)} />
 
         <div className="space-y-4 md:space-y-6">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {summaryCards.map(card => {
-                const Icon = card.icon;
-                return (
-                  <button
-                    key={card.key}
-                    type="button"
-                    onClick={() => setSelectedSummaryKey(card.key)}
-                    className="rounded-xl text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                    aria-label={`Abrir detalhes de ${card.title}`}
-                  >
-                    <Card className={`kpi-card ${card.cardClass} h-full transition hover:-translate-y-0.5 hover:shadow-lg`}>
-                      <CardContent className="flex items-center gap-3 p-3">
-                        <div className={`status-card-icon ${card.iconClass} h-10 w-10`}>
-                          <Icon />
-                        </div>
-                        <div className="min-w-0">
-                          <div className={`text-lg font-bold leading-tight ${card.valueClass}`}>
-                            R$ {card.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </div>
-                          <p className="kpi-label">{card.title}</p>
-                          <p className="truncate text-[11px] text-muted-foreground">{card.contas.length} conta{card.contas.length === 1 ? "" : "s"}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </button>
-                );
-              })}
+            {/* KPI Hero Cards */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {summaryCards.map(card => (
+                <FinancialHeroCard
+                  key={card.key}
+                  title={card.title}
+                  value={`R$ ${card.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                  subtitle={`${card.contas.length} conta${card.contas.length === 1 ? "" : "s"} · ${card.subtitle}`}
+                  icon={card.icon}
+                  color={card.color}
+                  onClick={() => setSelectedSummaryKey(card.key)}
+                />
+              ))}
             </div>
 
             {/* Action Toolbar */}
