@@ -207,9 +207,9 @@ export default function Pedidos() {
   const [batchAction, setBatchAction] = useState<"status" | "entregador">("status");
   // Visual Base44: modo de visualização (board/kanban por status como padrão, lista como alternativa)
   const [viewMode, setViewMode] = useState<"board" | "lista">(() => {
-    try { return (localStorage.getItem("pedidos-view-mode") as any) === "lista" ? "lista" : "board"; } catch { return "board"; }
+    try { return (localStorage.getItem("pedidos-view-mode-base44") as any) === "lista" ? "lista" : "board"; } catch { return "board"; }
   });
-  useEffect(() => { try { localStorage.setItem("pedidos-view-mode", viewMode); } catch { /* ignore */ } }, [viewMode]);
+  useEffect(() => { try { localStorage.setItem("pedidos-view-mode-base44", viewMode); } catch { /* ignore */ } }, [viewMode]);
 
   // Transfer driver dialog
   const [transferDialogAberto, setTransferDialogAberto] = useState(false);
@@ -848,7 +848,7 @@ export default function Pedidos() {
     <MainLayout>
       {/* #2 - removed duplicate title, kept only Header */}
       <Header title="Pedidos" subtitle="Acompanhamento de entregas" />
-      <div className="p-3 md:p-6 space-y-4 w-full min-w-0 max-w-full overflow-x-hidden bg-[#f8fafc] min-h-full">
+      <div className="p-3 md:p-6 space-y-4 w-full min-w-0 max-w-full overflow-x-hidden bg-background min-h-full">
 
         {/* Toolbar Base44: busca + datas + visualização + Nova Venda */}
         {(() => {
@@ -951,7 +951,6 @@ export default function Pedidos() {
                   size="sm"
                   className="h-9 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 ml-auto sm:ml-0"
                 >
-                  <Sparkles className="h-4 w-4 mr-1.5" />
                   Nova Venda
                 </Button>
               </div>
@@ -1048,7 +1047,7 @@ export default function Pedidos() {
 
 
         {/* Alert for old pending orders */}
-        {(() => {
+        {viewMode === "lista" && (() => {
           const now = new Date();
           const pedidosAntigos = pedidos.filter((p) => {
             if (p.status !== "pendente" && p.status !== "em_rota") return false;
@@ -1083,7 +1082,7 @@ export default function Pedidos() {
         })()}
 
         {/* AI suggestion for pending orders */}
-        {pedidosPendentes.length > 0 &&
+        {viewMode === "lista" && pedidosPendentes.length > 0 &&
         <Card className="modern-panel border-info/25 bg-info/5">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3 mb-4">
@@ -1154,7 +1153,7 @@ export default function Pedidos() {
 
 
         {/* #7 - Batch actions bar */}
-        {selecionados.size > 0 &&
+        {viewMode === "lista" && selecionados.size > 0 &&
         <Card className="modern-panel border-primary/25 bg-primary/5">
             <CardContent className="flex items-center gap-3 p-3 flex-wrap">
               <CheckSquare className="h-4 w-4 text-primary" />
@@ -1209,25 +1208,29 @@ export default function Pedidos() {
 
         {/* Board por status (visual Base44) */}
         {viewMode === "board" && (() => {
-          type ColKey = "pendente" | "em_rota" | "entregue" | "cancelado";
-          const cols: Array<{ key: ColKey; label: string; tone: string; toneBorder: string; toneBg: string; toneBadge: string; }> = [
-            { key: "pendente",  label: "Pendente",  tone: "text-warning",     toneBorder: "border-warning/40",     toneBg: "bg-warning/5",     toneBadge: "bg-warning/15 border-warning/30 text-warning" },
-            { key: "em_rota",   label: "Em Rota",   tone: "text-info",        toneBorder: "border-info/40",        toneBg: "bg-info/5",        toneBadge: "bg-info/15 border-info/30 text-info" },
-            { key: "entregue",  label: "Entregue",  tone: "text-success",     toneBorder: "border-success/40",     toneBg: "bg-success/5",     toneBadge: "bg-success/15 border-success/30 text-success" },
-            { key: "cancelado", label: "Cancelado", tone: "text-destructive", toneBorder: "border-destructive/40", toneBg: "bg-destructive/5", toneBadge: "bg-destructive/15 border-destructive/30 text-destructive" },
+          type ColKey = "pendente" | "visualizado" | "em_rota" | "entregue" | "cancelado";
+          const cols: Array<{ key: ColKey; label: string; color: string }> = [
+            { key: "pendente", label: "Pendente", color: "#f59f0a" },
+            { key: "visualizado", label: "Visualizado", color: "#2463eb" },
+            { key: "em_rota", label: "Em Rota", color: "#21c45d" },
+            { key: "entregue", label: "Entregue", color: "#10b981" },
+            { key: "cancelado", label: "Cancelado", color: "#dc2828" },
           ];
           const bucketOf = (p: PedidoFormatado): ColKey => {
-            if (p.status === "cancelado") return "cancelado";
-            if (p.status === "em_rota") return "em_rota";
-            if (p.status === "entregue" || p.status === "finalizado") return "entregue";
+            const status = String(p.status);
+            if (status === "cancelado") return "cancelado";
+            if (status === "em_rota") return "em_rota";
+            if (status === "entregue" || status === "finalizado") return "entregue";
+            if (["visualizado", "novo", "aguardando_pagamento_cartao", "pagamento_em_processamento", "pago_cartao"].includes(status)) return "visualizado";
             return "pendente";
           };
-          const grupos: Record<ColKey, PedidoFormatado[]> = { pendente: [], em_rota: [], entregue: [], cancelado: [] };
+          const grupos: Record<ColKey, PedidoFormatado[]> = { pendente: [], visualizado: [], em_rota: [], entregue: [], cancelado: [] };
           pedidosFiltrados.forEach((p) => { grupos[bucketOf(p)].push(p); });
 
           if (isLoading) {
             return (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+              <div className="overflow-x-auto pb-2">
+                <div className="grid min-w-[1120px] grid-cols-5 gap-3 xl:min-w-0">
                 {cols.map((c) => (
                   <div key={c.key} className="rounded-xl border border-border bg-card p-2 space-y-2">
                     <Skeleton className="h-6 w-24" />
@@ -1235,23 +1238,38 @@ export default function Pedidos() {
                     <Skeleton className="h-16 w-full" />
                   </div>
                 ))}
+                </div>
               </div>
             );
           }
 
           return (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            <div className="overflow-x-auto pb-2">
+              <div className="grid min-w-[1120px] grid-cols-5 gap-3 xl:min-w-0">
               {cols.map((c) => {
                 const items = grupos[c.key];
+                const softBorder = `color-mix(in srgb, ${c.color} 40%, transparent)`;
+                const softBg = `color-mix(in srgb, ${c.color} 5%, transparent)`;
+                const badgeBg = `color-mix(in srgb, ${c.color} 15%, transparent)`;
+                const badgeBorder = `color-mix(in srgb, ${c.color} 30%, transparent)`;
                 return (
-                  <section key={c.key} className={`flex flex-col rounded-xl border ${c.toneBorder} overflow-hidden`}>
-                    <header className={`flex items-center justify-between gap-2 px-3 py-2 ${c.toneBg} border-b ${c.toneBorder}`}>
-                      <span className={`text-xs font-semibold ${c.tone}`}>{c.label}</span>
-                      <span className={`inline-flex items-center justify-center min-w-[22px] h-[18px] px-1.5 rounded-full text-[11px] font-bold border ${c.toneBadge}`}>
+                  <section key={c.key} className="flex min-w-0 flex-col">
+                    <header
+                      className="flex items-center justify-between gap-2 rounded-t-xl border px-3 py-2"
+                      style={{ background: softBg, borderColor: softBorder }}
+                    >
+                      <span className="text-xs font-semibold text-foreground">{c.label}</span>
+                      <span
+                        className="inline-flex h-[18px] min-w-[22px] items-center justify-center rounded-full border px-1.5 text-[11px] font-bold tabular-nums"
+                        style={{ background: badgeBg, borderColor: badgeBorder, color: c.color }}
+                      >
                         {items.length}
                       </span>
                     </header>
-                    <div className={`flex-1 min-h-[120px] p-2 space-y-2 ${c.toneBg}`}>
+                    <div
+                      className="flex-1 min-h-[340px] rounded-b-xl border border-t-0 p-2 space-y-2"
+                      style={{ background: softBg, borderColor: softBorder }}
+                    >
                       {items.length === 0 ? (
                         <div className="flex items-center justify-center h-20 rounded-lg border border-dashed border-border/60 text-[11px] text-muted-foreground/60">
                           Sem pedidos
@@ -1263,7 +1281,7 @@ export default function Pedidos() {
                           return (
                             <div
                               key={pedido.id}
-                              className="group rounded-lg border border-border bg-card p-2.5 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                              className="group rounded-lg border border-border bg-card p-2.5 shadow-none transition-colors hover:bg-muted/20 cursor-pointer"
                               onClick={() => abrirVisualizacao(pedido)}
                             >
                               <div className="flex items-center justify-between gap-2 mb-1">
@@ -1274,18 +1292,16 @@ export default function Pedidos() {
                                 <span className="text-sm font-bold tabular-nums">R$ {pedido.valor.toFixed(2)}</span>
                               </div>
                               <p className="text-[13px] font-semibold text-foreground truncate">{pedido.cliente}</p>
-                              <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
-                                <MapPin className="h-3 w-3 shrink-0" />
-                                {pedido.endereco}
-                              </p>
+                              <p className="text-[11px] text-muted-foreground truncate">{formatarItensComQtd(pedido)}</p>
+                              <p className="text-[11px] text-muted-foreground/80 truncate">{pedido.endereco}</p>
                               <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-border/50">
                                 <div className="flex items-center gap-1 min-w-0 text-[11px]">
-                                  {pedido.forma_pagamento && (
-                                    <Badge variant="outline" className="h-5 px-1.5 text-[10px] gap-1 font-normal">
-                                      <CreditCard className="h-2.5 w-2.5" />
-                                      <span className="truncate max-w-[80px]">{formaLabel(pedido.forma_pagamento)}</span>
-                                    </Badge>
-                                  )}
+                                  <PedidoPaymentPill
+                                    forma={pedido.forma_pagamento}
+                                    label={pedido.forma_pagamento ? formaLabel(pedido.forma_pagamento) : ""}
+                                    className="h-5 max-w-[118px] px-1.5"
+                                    onClick={() => { setPedidoEditarPagamento(pedido); setEditarPagamentoAberto(true); }}
+                                  />
                                   {horario && <span className="text-muted-foreground shrink-0">{horario}</span>}
                                 </div>
                                 <DropdownMenu>
@@ -1338,6 +1354,7 @@ export default function Pedidos() {
                   </section>
                 );
               })}
+              </div>
             </div>
           );
         })()}
@@ -1730,7 +1747,7 @@ export default function Pedidos() {
         )}
 
         {/* Product sold summary: follows current period/status/driver/search filters and ignores cancelled orders */}
-        {resumoProdutos.length > 0 &&
+        {viewMode === "lista" && resumoProdutos.length > 0 &&
         <Card className="modern-panel">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-2">
@@ -1754,7 +1771,7 @@ export default function Pedidos() {
         }
 
         {/* Resumo Financeiro - breakdown por forma de pagamento */}
-        {pagamentoContadores.length > 0 &&
+        {viewMode === "lista" && pagamentoContadores.length > 0 &&
         <Card className="modern-panel">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-2">
