@@ -311,9 +311,14 @@ export function ComprasListaTableEstoque({ compras, unidadesMap, onChanged, onDe
             const subtipos = subtiposFor(c);
             const qtd = qtdTotal(c);
             const dataExibida = c.data_compra ? c.data_compra : String(c.created_at || "").slice(0, 10);
+            const expanded = expandedIds.has(c.id);
+            const itens = c.compra_itens || [];
             return (
               <div key={c.id} className={`p-3 space-y-2 ${isDup ? "bg-warning/5" : ""} ${c.pago ? "opacity-70" : ""}`}>
-                <div className="flex items-start justify-between gap-2">
+                <button
+                  onClick={() => toggleExpanded(c.id)}
+                  className="w-full flex items-start justify-between gap-2 text-left"
+                >
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-sm text-foreground truncate">
                       {c.fornecedores?.razao_social || "—"}
@@ -323,15 +328,20 @@ export function ComprasListaTableEstoque({ compras, unidadesMap, onChanged, onDe
                       {isDup && <AlertTriangle className="inline h-3 w-3 text-warning ml-1" />}
                     </p>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
                     <p className="font-bold text-sm text-foreground whitespace-nowrap">
                       {fmtBRL(Number(c.valor_total || 0))}
                     </p>
                     {qtd > 0 && (
                       <p className="text-[10px] text-muted-foreground">{fmtNum(qtd, 0)} un</p>
                     )}
+                    {expanded ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
                   </div>
-                </div>
+                </button>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {(subtipos.length > 0 ? subtipos.map((s) => (
                     <span key={s} className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${SUBTIPO_CLS[s]}`}>{s}</span>
@@ -348,6 +358,44 @@ export function ComprasListaTableEstoque({ compras, unidadesMap, onChanged, onDe
                     </span>
                   )}
                 </div>
+
+                {expanded && (
+                  <div className="pt-1 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                    {itens.length > 0 && (
+                      <div className="bg-muted/40 rounded-xl p-2.5 space-y-1.5">
+                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Itens</p>
+                        {itens.map((item: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between gap-2 text-xs">
+                            <span className="text-foreground truncate flex-1">
+                              {item.quantidade}x {item.produtos?.nome || item.descricao || "Item"}
+                            </span>
+                            <span className="text-foreground font-medium whitespace-nowrap">
+                              {fmtBRL(Number(item.valor_total || item.quantidade * item.preco_unitario || 0))}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {(c.cfop_predominante || c.observacoes) && (
+                      <div className="bg-muted/40 rounded-xl p-2.5 space-y-1">
+                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Observações</p>
+                        {c.cfop_predominante && (
+                          <p className="text-xs text-foreground"><span className="text-muted-foreground">CFOP:</span> {c.cfop_predominante}</p>
+                        )}
+                        {c.observacoes && (
+                          <p className="text-xs text-foreground break-words">{c.observacoes}</p>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground px-0.5">
+                      <span>Loja: {lojaNome(c.unidade_id)}</span>
+                      {Number(c.valor_desconto || 0) > 0 && (
+                        <span className="text-success">Desconto: {fmtBRL(Number(c.valor_desconto))}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between gap-2 pt-1">
                   <div className="flex gap-2">
                     <button
