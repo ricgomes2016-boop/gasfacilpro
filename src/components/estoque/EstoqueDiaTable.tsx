@@ -337,9 +337,13 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vendas</p>
-                      <p className="text-sm font-semibold text-info">
-                        {isVazio ? "—" : linha.vendas > 0 ? `-${linha.vendas}` : "0"}
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        {isVazio ? "Retornos" : "Vendas"}
+                      </p>
+                      <p className={`text-sm font-semibold ${isVazio ? "text-success" : "text-info"}`}>
+                        {isVazio
+                          ? (linha.retornos > 0 ? `+${linha.retornos}` : "0")
+                          : (linha.vendas > 0 ? `-${linha.vendas}` : "0")}
                       </p>
                     </div>
                     <div>
