@@ -273,20 +273,24 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
               title={onStepClick && !isActive ? `Clique ou use ← → para ir para ${step.label}` : undefined}
               aria-label={`Etapa ${step.label}${step.done ? " (preenchida)" : ""}`}
               className={cn(
-                "flex items-center gap-1 rounded-full font-medium transition-colors disabled:cursor-not-allowed whitespace-nowrap",
+                "flex items-center gap-1.5 rounded-full font-semibold transition-all disabled:cursor-not-allowed whitespace-nowrap",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                "venda-step-tab",
+                "venda-step-tab ring-1 ring-inset",
                 STEP_TONE_CLASS[step.id],
-                compact ? "px-2 py-1.5 text-xs sm:px-2 sm:py-1 sm:text-[11px]" : "px-2.5 py-1.5 text-xs",
-                isActive || step.done ? "" : "bg-muted text-muted-foreground",
-                step.enabled && onStepClick && !isActive && "cursor-pointer hover:bg-muted/80 hover:ring-2 hover:ring-primary/30"
+                compact ? "px-3 py-1.5 text-[11px]" : "px-3 py-1.5 text-xs",
+                isActive
+                  ? "bg-primary text-primary-foreground ring-primary shadow-sm"
+                  : step.done
+                  ? "bg-success/12 text-success ring-success/25"
+                  : "bg-muted text-muted-foreground ring-border",
+                step.enabled && onStepClick && !isActive && "cursor-pointer hover:bg-muted/80"
               )}
             >
-              {step.done ? <Check className={compact ? "h-4 w-4 sm:h-3.5 sm:w-3.5" : "h-3.5 w-3.5"} /> : <Icon className={compact ? "h-4 w-4 sm:h-3.5 sm:w-3.5" : "h-3.5 w-3.5"} />}
-              <span className={compact ? "hidden md:inline" : "hidden sm:inline"}>{step.label}</span>
+              {step.done ? <Check className={compact ? "h-3.5 w-3.5" : "h-3.5 w-3.5"} /> : <Icon className={compact ? "h-3.5 w-3.5" : "h-3.5 w-3.5"} />}
+              <span className={compact ? "hidden sm:inline" : "hidden sm:inline"}>{step.label}</span>
             </button>
             {i < steps.length - 1 && (
-              <div className={cn("h-px rounded", compact ? "w-3 min-w-3 sm:w-2" : "flex-1", step.done ? "bg-primary/40" : "bg-muted")} />
+              <div className={cn("h-0.5 rounded-full", compact ? "w-3 min-w-3" : "flex-1", step.done ? "bg-success/40" : "bg-border")} />
             )}
           </div>
         );
