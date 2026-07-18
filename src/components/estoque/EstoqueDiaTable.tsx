@@ -117,7 +117,14 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
     const grupoMap: Record<string, { cheio?: Produto; vazio?: Produto; unico?: Produto }> = {};
 
     produtos.forEach((p) => {
-      const nomeBase = p.nome.replace(/\s*\(Vazio\)\s*/i, "").replace(/\s*\(Cheio\)\s*/i, "").replace(/^Gás\s+/i, "").trim();
+      const nomeBase = p.nome
+        .replace(/\s*\(Vazio\)\s*/i, "")
+        .replace(/\s*\(Cheio\)\s*/i, "")
+        .replace(/^Gás\s+/i, "")
+        .replace(/^Vasilhame\s+/i, "")
+        .replace(/\s+Vazio$/i, "")
+        .replace(/\s+Cheio$/i, "")
+        .trim();
       if (!grupoMap[nomeBase]) grupoMap[nomeBase] = {};
       if (p.tipo_botijao === "cheio") grupoMap[nomeBase].cheio = p;
       else if (p.tipo_botijao === "vazio") grupoMap[nomeBase].vazio = p;
