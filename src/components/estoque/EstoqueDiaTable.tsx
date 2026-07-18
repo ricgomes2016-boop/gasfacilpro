@@ -54,8 +54,9 @@ interface LinhaEstoque {
   estoqueAtual: number;
   vendas: number;
   compras: number;
-  entradas: number; // compras + entradas manuais (para exibição)
-  saidas: number;   // saídas manuais (para exibição)
+  entradas: number; // Cheio: compras + manuais; Vazio: apenas manuais
+  saidas: number;   // Cheio: saídas manuais; Vazio: compras (troca) + saídas manuais
+  retornos: number; // Apenas Vazio: vasilhames devolvidos via venda do cheio
   entradasManuais: number;
   saidasManuais: number;
   avarias: number;
@@ -78,14 +79,15 @@ function calcularLinha(
   const { vendas, compras, entradas_manuais, saidas_manuais, avarias } = mov;
 
   if (tipoBotijao === "vazio") {
-    // Vazio: cada venda de gás cheio devolve 1 vasilhame. Compras de gás consomem vasilhame (troca).
-    const entradas = vendas + entradas_manuais;
+    // Vazio: vendas do cheio devolvem vasilhame (retornos). Compras do cheio consomem vasilhame (troca).
+    const entradas = entradas_manuais;
+    const retornos = vendas;
     const saidas = compras + saidas_manuais;
     const inicial = estoqueAtual;
-    const total = inicial + entradas - saidas - avarias;
+    const total = inicial + entradas + retornos - saidas - avarias;
     return {
       produtoId: produto.id, nome: nomeBase, tipoEstoque: "Vazio", estoqueAtual,
-      vendas: 0, compras, entradas, saidas,
+      vendas: 0, compras, entradas, saidas, retornos,
       entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
       avarias, inicial, total,
     };
@@ -101,7 +103,7 @@ function calcularLinha(
     nome: nomeBase,
     tipoEstoque: tipoBotijao === "cheio" ? "Cheio" : "Único",
     estoqueAtual,
-    vendas, compras, entradas, saidas,
+    vendas, compras, entradas, saidas, retornos: 0,
     entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
     avarias, inicial, total,
   };
