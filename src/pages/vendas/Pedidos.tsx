@@ -1114,12 +1114,12 @@ export default function Pedidos() {
         })()}
 
         {/* Table - #3 responsive with hidden columns on mobile */}
-        <Card className="modern-panel overflow-hidden">
-          <CardHeader className="section-header-catalog pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="section-header-title">Pedidos ({pedidosFiltrados.length})</CardTitle>
+        <Card className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+          <CardHeader className="border-b border-border bg-muted/40 px-4 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-sm font-semibold text-foreground">Pedidos <span className="text-muted-foreground font-normal">({pedidosFiltrados.length})</span></CardTitle>
               {/* #4 - Pagination info */}
-              <span className="text-xs font-medium text-info-foreground/80">
+              <span className="text-[11px] font-medium text-muted-foreground">
                 Pág. {paginaAtual}/{totalPages}
               </span>
             </div>
