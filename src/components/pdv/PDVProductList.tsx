@@ -107,5 +107,4 @@ export function PDVProductList({ itens, onUpdateQuantity, onRemoveItem, onUpdate
     </ScrollArea>
   );
 }
-// keep Badge import optional
-export {};
+
