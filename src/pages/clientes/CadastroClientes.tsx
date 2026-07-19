@@ -1069,30 +1069,35 @@ export default function CadastroClientesCad() {
 
 
         {/* Client List */}
-        <Card className="modern-panel">
-          <CardHeader>
+        <Card className="modern-panel border-border/60 shadow-sm">
+          <CardHeader className="border-b border-border/50 pb-4">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <CardTitle>Lista de Clientes</CardTitle>
-                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                  <div className="relative w-full sm:w-64">
+                <div className="flex items-center gap-2">
+                  <CardTitle>Lista de Clientes</CardTitle>
+                  <Badge variant="secondary" className="h-5 rounded-full px-2 text-[10px] font-medium">
+                    {filteredClientes.length}
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-64 sm:flex-none">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       placeholder="Buscar por nome, telefone, CPF, endereço, bairro ou número..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9"
+                      className="h-9 pl-9"
                     />
                   </div>
-                  <Button 
-                    variant={showFilters ? "default" : "outline"} 
+                  <Button
+                    variant={showFilters ? "default" : "outline"}
                     size="icon"
                     onClick={() => setShowFilters(!showFilters)}
-                    className="relative"
+                    className="relative h-9 w-9 shrink-0"
                   >
                     <Filter className="h-4 w-4" />
                     {hasActiveFilters && (
-                      <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-destructive" />
+                      <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" />
                     )}
                   </Button>
                 </div>
@@ -1210,14 +1215,14 @@ export default function CadastroClientesCad() {
                             )}
                             <p className="line-clamp-2 min-w-0 break-words text-base font-semibold leading-snug text-foreground">{cliente.nome}</p>
                           </div>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            <Badge variant={cliente.ativo ? "default" : "destructive"} className="text-[10px] h-5">
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            <Badge variant={cliente.ativo ? "default" : "destructive"} className="h-5 rounded-full px-2 text-[10px] font-medium leading-none">
                               {cliente.ativo ? "Ativo" : "Inativo"}
                             </Badge>
-                            {cliente.tipo && <Badge variant="outline" className="text-[10px] h-5">{cliente.tipo}</Badge>}
-                            {cliente.bairro && <Badge variant="secondary" className="text-[10px] h-5">{cliente.bairro}</Badge>}
+                            {cliente.tipo && <Badge variant="outline" className="h-5 rounded-full px-2 text-[10px] font-medium leading-none capitalize">{cliente.tipo}</Badge>}
+                            {cliente.bairro && <Badge variant="secondary" className="h-5 rounded-full px-2 text-[10px] font-medium leading-none">{cliente.bairro}</Badge>}
                             {cliente.cadastro_app && (
-                              <Badge variant="secondary" className="text-[10px] h-5 gap-1">
+                              <Badge variant="secondary" className="h-5 rounded-full px-2 text-[10px] font-medium leading-none gap-1">
                                 <Smartphone className="h-3 w-3" />
                                 App
                               </Badge>
