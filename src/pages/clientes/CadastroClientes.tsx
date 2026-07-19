@@ -1215,14 +1215,14 @@ export default function CadastroClientesCad() {
                             )}
                             <p className="line-clamp-2 min-w-0 break-words text-base font-semibold leading-snug text-foreground">{cliente.nome}</p>
                           </div>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            <Badge variant={cliente.ativo ? "default" : "destructive"} className="text-[10px] h-5">
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            <Badge variant={cliente.ativo ? "default" : "destructive"} className="h-5 rounded-full px-2 text-[10px] font-medium leading-none">
                               {cliente.ativo ? "Ativo" : "Inativo"}
                             </Badge>
-                            {cliente.tipo && <Badge variant="outline" className="text-[10px] h-5">{cliente.tipo}</Badge>}
-                            {cliente.bairro && <Badge variant="secondary" className="text-[10px] h-5">{cliente.bairro}</Badge>}
+                            {cliente.tipo && <Badge variant="outline" className="h-5 rounded-full px-2 text-[10px] font-medium leading-none capitalize">{cliente.tipo}</Badge>}
+                            {cliente.bairro && <Badge variant="secondary" className="h-5 rounded-full px-2 text-[10px] font-medium leading-none">{cliente.bairro}</Badge>}
                             {cliente.cadastro_app && (
-                              <Badge variant="secondary" className="text-[10px] h-5 gap-1">
+                              <Badge variant="secondary" className="h-5 rounded-full px-2 text-[10px] font-medium leading-none gap-1">
                                 <Smartphone className="h-3 w-3" />
                                 App
                               </Badge>
