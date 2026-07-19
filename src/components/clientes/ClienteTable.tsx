@@ -101,32 +101,36 @@ export function ClienteTable({ clientes, loading, onEdit, onDelete, onManageUnid
                     <span className="text-muted-foreground text-sm">-</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-3">
                   <div className="flex items-center gap-1.5 max-w-[200px]">
                     <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <span className="text-sm truncate">{cliente.endereco || "-"}</span>
                     {cliente.latitude && <span className="text-[10px]">📍</span>}
                   </div>
                 </TableCell>
-                <TableCell className="text-sm">{cliente.numero || "-"}</TableCell>
-                <TableCell>
+                <TableCell className="text-sm py-3">{cliente.numero || "-"}</TableCell>
+                <TableCell className="py-3">
                   {cliente.bairro ? (
-                    <Badge variant="secondary">{cliente.bairro}</Badge>
+                    <Badge variant="outline" className="text-[10px] px-2 py-0.5 h-5 border-muted-foreground/25 bg-muted/40 text-muted-foreground font-medium">
+                      {cliente.bairro}
+                    </Badge>
                   ) : (
                     <span className="text-muted-foreground text-sm">-</span>
                   )}
                 </TableCell>
-                <TableCell className="text-sm">{formatUltimaCompra(cliente.ultimo_pedido)}</TableCell>
-                <TableCell className="text-center">
-                  <Badge variant="outline">{cliente.total_pedidos || 0}</Badge>
+                <TableCell className="text-sm py-3">{formatUltimaCompra(cliente.ultimo_pedido)}</TableCell>
+                <TableCell className="text-center py-3">
+                  <Badge variant="outline" className="text-xs px-2 py-0.5 h-5 font-medium border-border/60">
+                    {cliente.total_pedidos || 0}
+                  </Badge>
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center py-3">
                   {cliente.cadastro_app ? (
                     <Tooltip>
                       <TooltipTrigger>
-                        <Badge variant="secondary" className="gap-1 text-xs">
+                        <Badge variant="outline" className="gap-1 text-[10px] px-2 py-0.5 h-5 border-info/30 bg-info/10 text-info font-medium">
                           <Smartphone className="h-3 w-3" />
-                          Sim
+                          App
                         </Badge>
                       </TooltipTrigger>
                       <TooltipContent>Cadastrado pelo aplicativo</TooltipContent>
