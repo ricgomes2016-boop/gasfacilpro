@@ -1512,7 +1512,7 @@ export default function CadastroClientesCad() {
                 </div>
               </div>
               <div className="min-w-0">
-                <Label className="text-xs sm:text-sm">Telefone *</Label>
+                <Label className="text-xs sm:text-sm">Telefone {regras.telefone_obrigatorio ? "*" : "(opcional)"}</Label>
                 <Input
                   value={formData.telefone}
                   onChange={(e) => handleChange("telefone", e.target.value)}

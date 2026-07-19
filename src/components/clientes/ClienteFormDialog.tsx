@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRegrasCadastro } from "@/hooks/useRegrasCadastro";
 import {
   ResponsiveDialog as Dialog, ResponsiveDialogContent as DialogContent, ResponsiveDialogDescription as DialogDescription, ResponsiveDialogFooter as DialogFooter, ResponsiveDialogHeader as DialogHeader, ResponsiveDialogTitle as DialogTitle,
 } from "@/components/ui/responsive-dialog";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onSave }: Props) {
+  const { regras } = useRegrasCadastro();
   const [form, setForm] = useState<ClienteForm>(initialData);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -86,6 +88,9 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
     if (!form.nome.trim()) {
       return;
     }
+    if (regras.telefone_obrigatorio && !form.telefone.trim()) {
+      return;
+    }
     setSaving(true);
     const ok = await onSave(form, editId);
     setSaving(false);
@@ -113,7 +118,7 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
                 <Input value={form.cpf} onChange={(e) => update("cpf", e.target.value)} placeholder="CPF ou CNPJ" className="h-9 w-full min-w-0 text-base md:text-sm" />
               </div>
               <div className="grid gap-1">
-                <Label className="text-xs sm:text-sm">Telefone *</Label>
+                <Label className="text-xs sm:text-sm">Telefone {regras.telefone_obrigatorio ? "*" : "(opcional)"}</Label>
                 <Input value={form.telefone} onChange={(e) => update("telefone", e.target.value)} placeholder="(11) 99999-9999" className="h-9 text-base md:text-sm" />
               </div>
               <div className="grid gap-1">
