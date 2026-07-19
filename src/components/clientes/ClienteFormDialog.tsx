@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRegrasCadastro } from "@/hooks/useRegrasCadastro";
 import {
   ResponsiveDialog as Dialog, ResponsiveDialogContent as DialogContent, ResponsiveDialogDescription as DialogDescription, ResponsiveDialogFooter as DialogFooter, ResponsiveDialogHeader as DialogHeader, ResponsiveDialogTitle as DialogTitle,
 } from "@/components/ui/responsive-dialog";
