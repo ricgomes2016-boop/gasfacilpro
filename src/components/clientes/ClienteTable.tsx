@@ -50,19 +50,19 @@ export function ClienteTable({ clientes, loading, onEdit, onDelete, onManageUnid
   };
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto rounded-xl border border-border/40">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Telefone</TableHead>
-            <TableHead>Endereço</TableHead>
-            <TableHead>Nº</TableHead>
-            <TableHead>Bairro</TableHead>
-            <TableHead>Última Compra</TableHead>
-            <TableHead className="text-center">Pedidos</TableHead>
-            <TableHead className="text-center">App</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
+          <TableRow className="border-b border-border/50 hover:bg-transparent">
+            <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Nome</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Telefone</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Endereço</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Nº</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bairro</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Última Compra</TableHead>
+            <TableHead className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pedidos</TableHead>
+            <TableHead className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">App</TableHead>
+            <TableHead className="text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -74,13 +74,18 @@ export function ClienteTable({ clientes, loading, onEdit, onDelete, onManageUnid
             </TableRow>
           ) : (
             clientes.map((cliente) => (
-              <TableRow key={cliente.id}>
-                <TableCell className="font-medium">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5">
-                      {cliente.nome}
+              <TableRow key={cliente.id} className="border-b border-border/30 last:border-b-0">
+                <TableCell className="font-medium py-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-foreground">{cliente.nome}</span>
+                      <Badge variant="outline" className="text-[10px] px-2 py-0.5 h-5 border-success/30 bg-success/10 text-success-foreground font-medium">
+                        Ativo
+                      </Badge>
                       {cliente.tipo && cliente.tipo !== "residencial" && (
-                        <Badge variant="outline" className="text-[10px]">{cliente.tipo}</Badge>
+                        <Badge variant="outline" className="text-[10px] px-2 py-0.5 h-5 border-primary/30 bg-primary/10 text-primary font-medium">
+                          {cliente.tipo}
+                        </Badge>
                       )}
                     </div>
                     <ClienteTagsBadges clienteId={cliente.id} />
