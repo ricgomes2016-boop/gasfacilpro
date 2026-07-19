@@ -139,7 +139,7 @@ export function ClienteTable({ clientes, loading, onEdit, onDelete, onManageUnid
                     <span className="text-muted-foreground text-sm">-</span>
                   )}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right py-3">
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/clientes/cadastro/${cliente.id}`)}>
                       <Eye className="h-4 w-4" />
