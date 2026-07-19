@@ -88,6 +88,9 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
     if (!form.nome.trim()) {
       return;
     }
+    if (regras.telefone_obrigatorio && !form.telefone.trim()) {
+      return;
+    }
     setSaving(true);
     const ok = await onSave(form, editId);
     setSaving(false);
