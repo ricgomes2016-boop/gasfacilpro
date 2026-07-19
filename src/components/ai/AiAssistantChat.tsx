@@ -441,24 +441,29 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
   }
 
   return (
-    <div className={cn("flex flex-col overflow-hidden", fullPage ? "border rounded-xl bg-card h-[calc(100vh-120px)]" : "h-full min-h-0")}>
+    <div className={cn("flex flex-col overflow-hidden bg-card", fullPage ? "h-[calc(100vh-260px)] sm:h-[calc(100vh-220px)]" : "h-full min-h-0")}>
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 min-h-0 bg-gradient-to-b from-muted/20 to-background">
         {messages.length === 0 && (
-          <div className="space-y-4">
-            <div className="text-center text-muted-foreground text-sm">
-              <Bot className="mx-auto h-10 w-10 mb-2 text-primary" />
-              <p className="font-medium text-foreground">Olá. Como posso ajudar?</p>
-              <p>Consulte dados ou solicite uma ação do sistema.</p>
+          <div className="space-y-5 py-4">
+            <div className="text-center">
+              <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-3 ring-1 ring-primary/20">
+                <Bot className="h-7 w-7 text-primary" />
+              </div>
+              <p className="text-base font-semibold text-foreground">Olá! Como posso ajudar?</p>
+              <p className="text-xs text-muted-foreground mt-1">Escolha uma sugestão ou digite sua pergunta.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {suggestions.map((s) => (
                 <button
                   key={s}
                   onClick={() => { setInput(s); }}
-                  className="text-left text-xs p-2 rounded-lg border border-border hover:bg-accent transition-colors"
+                  className="group text-left text-xs p-3 rounded-xl border border-border/60 bg-card hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm transition-all"
                 >
-                  {s}
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary/60 group-hover:text-primary mt-0.5" />
+                    <span className="leading-relaxed">{s}</span>
+                  </div>
                 </button>
               ))}
             </div>
@@ -469,30 +474,35 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
           const parsedPending = msg.role === "assistant" ? parsePendingActions(msg.content) : { text: msg.content, pendingActions: [] };
           const { text, chart } = msg.role === "assistant" ? parseChartMeta(parsedPending.text) : { text: msg.content, chart: null };
           return (
-            <div key={i} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
+            <div key={i} className={cn("flex gap-2 sm:gap-3", msg.role === "user" ? "justify-end" : "justify-start")}>
+              {msg.role === "assistant" && (
+                <div className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-sm">
+                  <Bot className="h-4 w-4 text-primary-foreground" />
+                </div>
+              )}
               <div
                 className={cn(
-                  "max-w-[85%] rounded-xl px-4 py-2 text-sm",
+                  "max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm",
                   msg.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-foreground"
+                    ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground rounded-br-md"
+                    : "bg-card border border-border/60 text-foreground rounded-bl-md"
                 )}
               >
                 {msg.role === "assistant" ? (
                   <>
-                    <div className="prose prose-sm dark:prose-invert max-w-none [&_table]:text-xs [&_table]:w-full [&_th]:px-2 [&_td]:px-2 [&_th]:py-1 [&_td]:py-1 [&_table]:border-collapse [&_th]:border [&_td]:border [&_th]:border-border [&_td]:border-border">
+                    <div className="prose prose-sm dark:prose-invert max-w-none [&_table]:text-xs [&_table]:w-full [&_th]:px-2 [&_td]:px-2 [&_th]:py-1 [&_td]:py-1 [&_table]:border-collapse [&_th]:border [&_td]:border [&_th]:border-border [&_td]:border-border [&_p]:leading-relaxed [&_p:last-child]:mb-0">
                       <ReactMarkdown>{text}</ReactMarkdown>
                     </div>
                     {chart && <ChartRenderer chartMeta={chart} />}
                     {parsedPending.pendingActions.length > 0 && (
-                      <div className="mt-3 rounded-lg border border-warning bg-warning p-3 text-warning shadow-sm">
+                      <div className="mt-3 rounded-xl border border-warning/30 bg-warning/10 p-3">
                         <div className="flex items-start gap-2">
                           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold">Confirmação necessária</p>
+                            <p className="text-sm font-semibold text-foreground">Confirmação necessária</p>
                             <div className="mt-2 space-y-1">
                               {parsedPending.pendingActions.map((action, idx) => (
-                                <p key={`${action.action}-${idx}`} className="break-words text-xs">
+                                <p key={`${action.action}-${idx}`} className="break-words text-xs text-muted-foreground">
                                   {action.preview || action.action}
                                 </p>
                               ))}
@@ -512,13 +522,13 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
                       </div>
                     )}
                     {enableVoice && text.length > 10 && (
-                      <div className="flex justify-end mt-1">
+                      <div className="flex justify-end mt-1 -mr-1">
                         <TtsButton text={text} />
                       </div>
                     )}
                   </>
                 ) : (
-                  msg.content
+                  <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                 )}
               </div>
             </div>
@@ -526,21 +536,28 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
         })}
 
         {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-          <div className="flex justify-start">
-            <div className="bg-muted rounded-xl px-4 py-2 text-sm text-muted-foreground">
-              <span className="animate-pulse">Processando...</span>
+          <div className="flex justify-start gap-2 sm:gap-3">
+            <div className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-sm">
+              <Bot className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <div className="bg-card border border-border/60 rounded-2xl rounded-bl-md px-4 py-3 text-sm text-muted-foreground shadow-sm">
+              <span className="inline-flex gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:-0.3s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:-0.15s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce" />
+              </span>
             </div>
           </div>
         )}
       </div>
 
       {/* Input */}
-      <div className="border-t p-3 flex gap-2">
+      <div className="border-t border-border/60 bg-card/80 backdrop-blur p-2.5 sm:p-3 flex gap-1.5 sm:gap-2 items-center">
         {fullPage && (
           <Button
             variant="ghost"
             size="icon"
-            className="shrink-0"
+            className="shrink-0 h-10 w-10 rounded-xl"
             onClick={() => setShowHistory(true)}
             title="Histórico de conversas"
           >
@@ -551,7 +568,7 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
           <Button
             variant="ghost"
             size="icon"
-            className="shrink-0"
+            className="shrink-0 h-10 w-10 rounded-xl"
             onClick={newChat}
             title="Nova conversa"
           >
@@ -564,7 +581,7 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && void sendMessage()}
           placeholder="Pergunte algo ou peça uma ação..."
           disabled={isLoading}
-          className="flex-1"
+          className="flex-1 h-10 rounded-xl border-border/60 focus-visible:ring-primary/40"
         />
         {enableVoice && (
           <VoiceInputButton
@@ -572,7 +589,12 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
             disabled={isLoading}
           />
         )}
-        <Button size="icon" onClick={() => void sendMessage()} disabled={isLoading || !input.trim()}>
+        <Button
+          size="icon"
+          onClick={() => void sendMessage()}
+          disabled={isLoading || !input.trim()}
+          className="h-10 w-10 rounded-xl shrink-0 bg-gradient-to-br from-primary to-primary/80 shadow-md shadow-primary/20"
+        >
           <Send className="h-4 w-4" />
         </Button>
       </div>
