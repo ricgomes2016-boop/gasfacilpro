@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { AlertTriangle, Bot, CheckCircle2, Send, Trash2, MessageSquarePlus, History, ChevronLeft, XCircle } from "lucide-react";
+import { AlertTriangle, Bot, CheckCircle2, Send, Trash2, MessageSquarePlus, History, ChevronLeft, XCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
