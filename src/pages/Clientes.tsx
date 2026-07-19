@@ -229,15 +229,15 @@ export default function Clientes() {
     <MainLayout>
       <Header title="Clientes" subtitle="Gerencie seus clientes" />
       <div className="p-3 sm:p-4 md:p-6">
-        <Card className="modern-panel">
-          <CardHeader className="bg-card">
+        <Card className="modern-panel border border-border/60 shadow-md shadow-foreground/[0.04]">
+          <CardHeader className="bg-card/50 border-b border-border/40">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 flex-wrap min-w-0">
-                <Badge variant="outline" className="text-xs shrink-0">
+                <Badge variant="outline" className="h-9 px-2.5 text-xs shrink-0 flex items-center border-border/60 bg-card">
                   {totalCount} cliente{totalCount !== 1 ? "s" : ""}
                 </Badge>
                 <Select value={filtroBairro} onValueChange={setFiltroBairro}>
-                  <SelectTrigger className="w-40 h-9 text-xs shrink-0">
+                  <SelectTrigger className="w-44 h-9 text-xs shrink-0 bg-card border-border/60">
                     <SelectValue placeholder="Filtrar bairro" />
                   </SelectTrigger>
                   <SelectContent>
@@ -248,19 +248,19 @@ export default function Clientes() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+              <div className="flex gap-2 flex-wrap w-full sm:w-auto sm:items-center">
                 <div className="relative w-full sm:w-60 min-w-0">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder="Buscar cliente..."
                     value={busca}
                     onChange={(e) => setBusca(e.target.value)}
-                    className="w-full pl-9 h-9"
+                    className="w-full pl-9 h-9 bg-card border-border/60"
                   />
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="h-9 border-border/60 bg-card">
                       <Download className="mr-1.5 h-4 w-4" />
                       Exportar
                     </Button>
@@ -270,7 +270,7 @@ export default function Clientes() {
                     <DropdownMenuItem onClick={exportPDF}>PDF</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <Button variant="import" size="sm" onClick={() => csvInputRef.current?.click()}>
+                <Button variant="import" size="sm" className="h-9" onClick={() => csvInputRef.current?.click()}>
                   <Upload className="h-4 w-4" />
                   Importar CSV
                 </Button>
@@ -281,7 +281,7 @@ export default function Clientes() {
                   className="hidden"
                   onChange={handleCsvFile}
                 />
-                <Button size="sm" onClick={handleNovo} className="bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90">
+                <Button size="sm" onClick={handleNovo} className="h-9 bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90">
                   <Plus className="mr-1.5 h-4 w-4" />
                   Novo Cliente
                 </Button>
