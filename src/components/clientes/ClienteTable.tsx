@@ -91,7 +91,7 @@ export function ClienteTable({ clientes, loading, onEdit, onDelete, onManageUnid
                     <ClienteTagsBadges clienteId={cliente.id} />
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-3">
                   {cliente.telefone ? (
                     <div className="flex items-center gap-1.5">
                       <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
