@@ -1,4 +1,5 @@
 import { MainLayout } from "@/components/layout/MainLayout";
+import { Header } from "@/components/layout/Header";
 import { AiAssistantChat } from "@/components/ai/AiAssistantChat";
 import { Bot, Sparkles, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
