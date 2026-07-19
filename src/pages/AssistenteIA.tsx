@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 export default function AssistenteIA() {
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-b from-muted/30 via-background to-background">
+      <Header title="Assistente IA" subtitle="Consulte dados do sistema em linguagem natural" />
+      <div className="min-h-[calc(100vh-64px)] bg-gradient-to-b from-muted/30 via-background to-background">
         <div className="mx-auto max-w-5xl px-3 pt-4 pb-6 sm:px-6 sm:pt-6">
           {/* Premium Hero */}
           <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-4 sm:p-6 shadow-sm mb-4">
