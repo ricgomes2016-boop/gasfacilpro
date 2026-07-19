@@ -22,6 +22,7 @@ interface Props {
 }
 
 export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onSave }: Props) {
+  const { regras } = useRegrasCadastro();
   const [form, setForm] = useState<ClienteForm>(initialData);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
