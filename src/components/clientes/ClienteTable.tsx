@@ -50,19 +50,19 @@ export function ClienteTable({ clientes, loading, onEdit, onDelete, onManageUnid
   };
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto rounded-xl border border-border/40">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Telefone</TableHead>
-            <TableHead>Endereço</TableHead>
-            <TableHead>Nº</TableHead>
-            <TableHead>Bairro</TableHead>
-            <TableHead>Última Compra</TableHead>
-            <TableHead className="text-center">Pedidos</TableHead>
-            <TableHead className="text-center">App</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
+          <TableRow className="border-b border-border/50 hover:bg-transparent">
+            <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Nome</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Telefone</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Endereço</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Nº</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bairro</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Última Compra</TableHead>
+            <TableHead className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pedidos</TableHead>
+            <TableHead className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">App</TableHead>
+            <TableHead className="text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -74,19 +74,24 @@ export function ClienteTable({ clientes, loading, onEdit, onDelete, onManageUnid
             </TableRow>
           ) : (
             clientes.map((cliente) => (
-              <TableRow key={cliente.id}>
-                <TableCell className="font-medium">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5">
-                      {cliente.nome}
+              <TableRow key={cliente.id} className="border-b border-border/30 last:border-b-0">
+                <TableCell className="font-medium py-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-foreground">{cliente.nome}</span>
+                      <Badge variant="outline" className="text-[10px] px-2 py-0.5 h-5 border-success/30 bg-success/10 text-success-foreground font-medium">
+                        Ativo
+                      </Badge>
                       {cliente.tipo && cliente.tipo !== "residencial" && (
-                        <Badge variant="outline" className="text-[10px]">{cliente.tipo}</Badge>
+                        <Badge variant="outline" className="text-[10px] px-2 py-0.5 h-5 border-primary/30 bg-primary/10 text-primary font-medium">
+                          {cliente.tipo}
+                        </Badge>
                       )}
                     </div>
                     <ClienteTagsBadges clienteId={cliente.id} />
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-3">
                   {cliente.telefone ? (
                     <div className="flex items-center gap-1.5">
                       <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -96,32 +101,36 @@ export function ClienteTable({ clientes, loading, onEdit, onDelete, onManageUnid
                     <span className="text-muted-foreground text-sm">-</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-3">
                   <div className="flex items-center gap-1.5 max-w-[200px]">
                     <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <span className="text-sm truncate">{cliente.endereco || "-"}</span>
                     {cliente.latitude && <span className="text-[10px]">📍</span>}
                   </div>
                 </TableCell>
-                <TableCell className="text-sm">{cliente.numero || "-"}</TableCell>
-                <TableCell>
+                <TableCell className="text-sm py-3">{cliente.numero || "-"}</TableCell>
+                <TableCell className="py-3">
                   {cliente.bairro ? (
-                    <Badge variant="secondary">{cliente.bairro}</Badge>
+                    <Badge variant="outline" className="text-[10px] px-2 py-0.5 h-5 border-muted-foreground/25 bg-muted/40 text-muted-foreground font-medium">
+                      {cliente.bairro}
+                    </Badge>
                   ) : (
                     <span className="text-muted-foreground text-sm">-</span>
                   )}
                 </TableCell>
-                <TableCell className="text-sm">{formatUltimaCompra(cliente.ultimo_pedido)}</TableCell>
-                <TableCell className="text-center">
-                  <Badge variant="outline">{cliente.total_pedidos || 0}</Badge>
+                <TableCell className="text-sm py-3">{formatUltimaCompra(cliente.ultimo_pedido)}</TableCell>
+                <TableCell className="text-center py-3">
+                  <Badge variant="outline" className="text-xs px-2 py-0.5 h-5 font-medium border-border/60">
+                    {cliente.total_pedidos || 0}
+                  </Badge>
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center py-3">
                   {cliente.cadastro_app ? (
                     <Tooltip>
                       <TooltipTrigger>
-                        <Badge variant="secondary" className="gap-1 text-xs">
+                        <Badge variant="outline" className="gap-1 text-[10px] px-2 py-0.5 h-5 border-info/30 bg-info/10 text-info font-medium">
                           <Smartphone className="h-3 w-3" />
-                          Sim
+                          App
                         </Badge>
                       </TooltipTrigger>
                       <TooltipContent>Cadastrado pelo aplicativo</TooltipContent>
@@ -130,7 +139,7 @@ export function ClienteTable({ clientes, loading, onEdit, onDelete, onManageUnid
                     <span className="text-muted-foreground text-sm">-</span>
                   )}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right py-3">
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/clientes/cadastro/${cliente.id}`)}>
                       <Eye className="h-4 w-4" />
