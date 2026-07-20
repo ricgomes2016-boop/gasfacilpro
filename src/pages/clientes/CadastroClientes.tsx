@@ -183,6 +183,110 @@ export default function CadastroClientesCad() {
   // CPF/CNPJ lookup
   const [isLookingUpCpfCnpj, setIsLookingUpCpfCnpj] = useState(false);
 
+  // Exportar clientes
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportarClientes = async () => {
+    if (!empresa?.id) {
+      toast({ title: "Empresa não identificada", variant: "destructive" });
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const all: any[] = [];
+      let from = 0;
+      const chunk = 1000;
+      let unidadeIds: string[] | null = null;
+
+      if (unidadeAtual?.id) {
+        const ids: string[] = [];
+        let cf = 0;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { data, error } = await supabase
+            .from("cliente_unidades")
+            .select("cliente_id")
+            .eq("unidade_id", unidadeAtual.id)
+            .range(cf, cf + chunk - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          ids.push(...data.map((d: any) => d.cliente_id));
+          if (data.length < chunk) break;
+          cf += chunk;
+        }
+        unidadeIds = ids;
+        if (ids.length === 0) {
+          toast({ title: "Sem clientes para exportar" });
+          setIsExporting(false);
+          return;
+        }
+      }
+
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        let q = supabase
+          .from("clientes")
+          .select("codigo_cliente,nome,cpf,telefone,email,endereco,numero,bairro,cidade,estado,cep,tipo,ativo,created_at")
+          .eq("empresa_id", empresa.id)
+          .order("nome", { ascending: true })
+          .range(from, from + chunk - 1);
+        if (unidadeIds) q = q.in("id", unidadeIds.slice(from, from + chunk));
+        const { data, error } = await q;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < chunk) break;
+        from += chunk;
+        if (unidadeIds && from >= unidadeIds.length) break;
+      }
+
+      if (all.length === 0) {
+        toast({ title: "Nenhum cliente encontrado" });
+        return;
+      }
+
+      const headers = ["Código","Nome","CPF/CNPJ","Telefone","Email","Endereço","Número","Bairro","Cidade","Estado","CEP","Tipo","Ativo","Cadastrado em"];
+      const escape = (v: any) => {
+        if (v === null || v === undefined) return "";
+        const s = String(v).replace(/"/g, '""');
+        return /[",;\n]/.test(s) ? `"${s}"` : s;
+      };
+      const rows = all.map(c => [
+        c.codigo_cliente ?? "",
+        c.nome ?? "",
+        c.cpf ?? "",
+        c.telefone ?? "",
+        c.email ?? "",
+        c.endereco ?? "",
+        c.numero ?? "",
+        c.bairro ?? "",
+        c.cidade ?? "",
+        c.estado ?? "",
+        c.cep ?? "",
+        c.tipo ?? "",
+        c.ativo ? "Sim" : "Não",
+        c.created_at ? new Date(c.created_at).toLocaleDateString("pt-BR") : "",
+      ].map(escape).join(";"));
+      const csv = "\uFEFF" + [headers.join(";"), ...rows].join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `clientes_${(empresa.nome || "empresa").replace(/\s+/g, "_")}_${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: `${all.length} cliente(s) exportado(s)` });
+    } catch (err: any) {
+      console.error("Erro ao exportar clientes:", err);
+      toast({ title: "Erro ao exportar", description: err.message, variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const [stats, setStats] = useState({
     total: 0,
     ativos: 0,
@@ -1050,6 +1154,15 @@ export default function CadastroClientesCad() {
             >
               <Merge className="h-4 w-4" />
               {selectedMergeIds.size >= 2 ? `Mesclar (${selectedMergeIds.size})` : "Mesclar"}
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2 flex-1 sm:flex-none"
+              onClick={handleExportarClientes}
+              disabled={isExporting}
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Exportar
             </Button>
             <Button className="gap-2 flex-1 sm:flex-none" onClick={openCreateModal}>
               <Plus className="h-4 w-4" />
