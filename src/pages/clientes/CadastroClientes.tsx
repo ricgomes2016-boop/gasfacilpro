@@ -196,17 +196,18 @@ export default function CadastroClientesCad() {
     try {
       const columns =
         "id,codigo_cliente,nome,cpf,telefone,email,endereco,numero,bairro,cidade,estado,cep,tipo,ativo,created_at";
-      const pageSize = 1000;
+      const pageSize = 500;
       const all: any[] = [];
       let from = 0;
-      // Exporta todos os clientes da empresa (RLS já limita ao escopo do usuário)
+      // Exporta todos os clientes da empresa (RLS já limita ao escopo do usuário).
+      // Paginação por PK (id) evita ordenação custosa em bases grandes.
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const { data, error } = await supabase
           .from("clientes")
           .select(columns)
           .eq("empresa_id", empresa.id)
-          .order("nome", { ascending: true })
+          .order("id", { ascending: true })
           .range(from, from + pageSize - 1);
         if (error) throw error;
         if (!data || data.length === 0) break;
@@ -214,6 +215,8 @@ export default function CadastroClientesCad() {
         if (data.length < pageSize) break;
         from += pageSize;
       }
+      // Ordenação por nome no cliente (mais rápido que forçar ORDER BY nome no server)
+      all.sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || "")));
 
 
 
