@@ -1051,6 +1051,15 @@ export default function CadastroClientesCad() {
               <Merge className="h-4 w-4" />
               {selectedMergeIds.size >= 2 ? `Mesclar (${selectedMergeIds.size})` : "Mesclar"}
             </Button>
+            <Button
+              variant="outline"
+              className="gap-2 flex-1 sm:flex-none"
+              onClick={handleExportarClientes}
+              disabled={isExporting}
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Exportar
+            </Button>
             <Button className="gap-2 flex-1 sm:flex-none" onClick={openCreateModal}>
               <Plus className="h-4 w-4" />
               Novo Cliente
