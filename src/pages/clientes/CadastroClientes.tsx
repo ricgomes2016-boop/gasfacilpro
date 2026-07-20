@@ -187,63 +187,45 @@ export default function CadastroClientesCad() {
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExportarClientes = async () => {
+    if (isExporting) return;
     if (!empresa?.id) {
       toast({ title: "Empresa não identificada", variant: "destructive" });
       return;
     }
     setIsExporting(true);
     try {
+      const columns =
+        "id,codigo_cliente,nome,cpf,telefone,email,endereco,numero,bairro,cidade,estado,cep,tipo,ativo,created_at";
+      const pageSize = 500;
       const all: any[] = [];
-      let from = 0;
-      const chunk = 1000;
-      let unidadeIds: string[] | null = null;
-
-      if (unidadeAtual?.id) {
-        const ids: string[] = [];
-        let cf = 0;
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          const { data, error } = await supabase
-            .from("cliente_unidades")
-            .select("cliente_id")
-            .eq("unidade_id", unidadeAtual.id)
-            .range(cf, cf + chunk - 1);
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-          ids.push(...data.map((d: any) => d.cliente_id));
-          if (data.length < chunk) break;
-          cf += chunk;
-        }
-        unidadeIds = ids;
-        if (ids.length === 0) {
-          toast({ title: "Sem clientes para exportar" });
-          setIsExporting(false);
-          return;
-        }
-      }
-
+      let lastId: string | null = null;
+      // Keyset pagination por id (evita OFFSET custoso combinado com RLS pesada)
       // eslint-disable-next-line no-constant-condition
       while (true) {
         let q = supabase
           .from("clientes")
-          .select("codigo_cliente,nome,cpf,telefone,email,endereco,numero,bairro,cidade,estado,cep,tipo,ativo,created_at")
+          .select(columns)
           .eq("empresa_id", empresa.id)
-          .order("nome", { ascending: true })
-          .range(from, from + chunk - 1);
-        if (unidadeIds) q = q.in("id", unidadeIds.slice(from, from + chunk));
+          .order("id", { ascending: true })
+          .limit(pageSize);
+        if (lastId) q = q.gt("id", lastId);
         const { data, error } = await q;
         if (error) throw error;
         if (!data || data.length === 0) break;
         all.push(...data);
-        if (data.length < chunk) break;
-        from += chunk;
-        if (unidadeIds && from >= unidadeIds.length) break;
+        lastId = data[data.length - 1].id;
+        if (data.length < pageSize) break;
       }
+      // Ordenação por nome no cliente (mais barato que forçar ORDER BY nome no servidor)
+      all.sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || "")));
+
+
 
       if (all.length === 0) {
         toast({ title: "Nenhum cliente encontrado" });
         return;
       }
+
 
       const headers = ["Código","Nome","CPF/CNPJ","Telefone","Email","Endereço","Número","Bairro","Cidade","Estado","CEP","Tipo","Ativo","Cadastrado em"];
       const escape = (v: any) => {
