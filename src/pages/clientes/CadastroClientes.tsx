@@ -197,64 +197,24 @@ export default function CadastroClientesCad() {
       const columns =
         "id,codigo_cliente,nome,cpf,telefone,email,endereco,numero,bairro,cidade,estado,cep,tipo,ativo,created_at";
       const pageSize = 1000;
-      const idBatch = 300;
       const all: any[] = [];
-
-      // 1) Coletar ids dos clientes da unidade (se houver) em páginas
-      let clienteIds: string[] | null = null;
-      if (unidadeAtual?.id) {
-        clienteIds = [];
-        let cf = 0;
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          const { data, error } = await supabase
-            .from("cliente_unidades")
-            .select("cliente_id")
-            .eq("unidade_id", unidadeAtual.id)
-            .range(cf, cf + pageSize - 1);
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-          clienteIds.push(...data.map((d: any) => d.cliente_id).filter(Boolean));
-          if (data.length < pageSize) break;
-          cf += pageSize;
-        }
-        if (clienteIds.length === 0) {
-          toast({ title: "Sem clientes para exportar" });
-          return;
-        }
+      let from = 0;
+      // Exporta todos os clientes da empresa (RLS já limita ao escopo do usuário)
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data, error } = await supabase
+          .from("clientes")
+          .select(columns)
+          .eq("empresa_id", empresa.id)
+          .order("nome", { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
       }
 
-      // 2) Buscar clientes em lotes pequenos para não estourar URL nem timeout
-      if (clienteIds) {
-        const uniqIds = Array.from(new Set(clienteIds));
-        for (let i = 0; i < uniqIds.length; i += idBatch) {
-          const batch = uniqIds.slice(i, i + idBatch);
-          const { data, error } = await supabase
-            .from("clientes")
-            .select(columns)
-            .eq("empresa_id", empresa.id)
-            .in("id", batch);
-          if (error) throw error;
-          if (data) all.push(...data);
-        }
-        all.sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || "")));
-      } else {
-        let from = 0;
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          const { data, error } = await supabase
-            .from("clientes")
-            .select(columns)
-            .eq("empresa_id", empresa.id)
-            .order("nome", { ascending: true })
-            .range(from, from + pageSize - 1);
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-          all.push(...data);
-          if (data.length < pageSize) break;
-          from += pageSize;
-        }
-      }
 
 
       if (all.length === 0) {
