@@ -187,6 +187,7 @@ export default function CadastroClientesCad() {
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExportarClientes = async () => {
+    if (isExporting) return;
     if (!empresa?.id) {
       toast({ title: "Empresa não identificada", variant: "destructive" });
       return;
@@ -194,56 +195,39 @@ export default function CadastroClientesCad() {
     setIsExporting(true);
     try {
       const all: any[] = [];
-      let from = 0;
       const chunk = 1000;
-      let unidadeIds: string[] | null = null;
-
-      if (unidadeAtual?.id) {
-        const ids: string[] = [];
-        let cf = 0;
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          const { data, error } = await supabase
-            .from("cliente_unidades")
-            .select("cliente_id")
-            .eq("unidade_id", unidadeAtual.id)
-            .range(cf, cf + chunk - 1);
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-          ids.push(...data.map((d: any) => d.cliente_id));
-          if (data.length < chunk) break;
-          cf += chunk;
-        }
-        unidadeIds = ids;
-        if (ids.length === 0) {
-          toast({ title: "Sem clientes para exportar" });
-          setIsExporting(false);
-          return;
-        }
-      }
+      let from = 0;
+      const columns =
+        "codigo_cliente,nome,cpf,telefone,email,endereco,numero,bairro,cidade,estado,cep,tipo,ativo,created_at";
 
       // eslint-disable-next-line no-constant-condition
       while (true) {
         let q = supabase
           .from("clientes")
-          .select("codigo_cliente,nome,cpf,telefone,email,endereco,numero,bairro,cidade,estado,cep,tipo,ativo,created_at")
+          .select(
+            unidadeAtual?.id
+              ? `${columns},cliente_unidades!inner(unidade_id)`
+              : columns
+          )
           .eq("empresa_id", empresa.id)
           .order("nome", { ascending: true })
           .range(from, from + chunk - 1);
-        if (unidadeIds) q = q.in("id", unidadeIds.slice(from, from + chunk));
+        if (unidadeAtual?.id) {
+          q = q.eq("cliente_unidades.unidade_id", unidadeAtual.id);
+        }
         const { data, error } = await q;
         if (error) throw error;
         if (!data || data.length === 0) break;
         all.push(...data);
         if (data.length < chunk) break;
         from += chunk;
-        if (unidadeIds && from >= unidadeIds.length) break;
       }
 
       if (all.length === 0) {
         toast({ title: "Nenhum cliente encontrado" });
         return;
       }
+
 
       const headers = ["Código","Nome","CPF/CNPJ","Telefone","Email","Endereço","Número","Bairro","Cidade","Estado","CEP","Tipo","Ativo","Cadastrado em"];
       const escape = (v: any) => {
