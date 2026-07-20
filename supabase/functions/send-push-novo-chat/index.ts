@@ -41,6 +41,18 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const expected = Deno.env.get("INTERNAL_PUSH_SECRET") ?? "";
+  const provided = req.headers.get("x-internal-secret") ?? "";
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const isServiceRole = authHeader === `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
+  if (!isServiceRole && (!expected || provided !== expected)) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+
   try {
     const body = await req.json().catch(() => ({}));
     const mensagemId = body?.mensagem_id as string | undefined;

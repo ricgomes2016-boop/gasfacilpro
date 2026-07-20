@@ -1,13 +1,38 @@
 // Edge function: gera token WebRTC efêmero para conversar com o agente Bia (ElevenLabs)
+import { requireAuth } from "../_shared/auth.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Simple in-memory rate limit per user (per instance)
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX = 5;
+const rateMap = new Map<string, { count: number; resetAt: number }>();
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  const auth = await requireAuth(req, corsHeaders);
+  if (!auth.ok) return auth.response;
+
+  const key = auth.userId || "service";
+  const now = Date.now();
+  const bucket = rateMap.get(key);
+  if (!bucket || bucket.resetAt < now) {
+    rateMap.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
+  } else {
+    bucket.count++;
+    if (bucket.count > RATE_MAX) {
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded" }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
   }
 
   try {

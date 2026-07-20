@@ -60,6 +60,28 @@ Deno.serve(async (req) => {
 
     if (!unidade_id) return json({ error: "unidade_id obrigatório" }, 400);
 
+    // Ownership check: unidade must belong to caller's empresa (unless super_admin)
+    const { data: isSuperAdmin } = await supabase.rpc("has_role", {
+      _user_id: user.id,
+      _role: "super_admin",
+    });
+    if (!isSuperAdmin) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("empresa_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!profile?.empresa_id) return json({ error: "Perfil sem empresa vinculada" }, 403);
+      const { data: unidade } = await supabase
+        .from("unidades")
+        .select("empresa_id")
+        .eq("id", unidade_id)
+        .maybeSingle();
+      if (!unidade || unidade.empresa_id !== profile.empresa_id) {
+        return json({ error: "Acesso negado a esta unidade" }, 403);
+      }
+    }
+
     const { data: integ } = await supabase
       .from("integracoes_config")
       .select("config, ativo")
