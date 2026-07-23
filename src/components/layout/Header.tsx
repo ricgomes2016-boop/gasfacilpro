@@ -131,11 +131,11 @@ export function Header({ title, subtitle }: HeaderProps) {
           "app-header-premium fixed left-0 right-0 top-0 z-30 flex w-auto max-w-full overflow-visible border-b shadow-sm transition-[left] duration-300",
           isCleanTheme
             ? "clean-header h-14 items-center justify-between px-3 sm:px-5"
-            : "flex-col items-stretch justify-center gap-1.5 px-2.5 py-2 backdrop-blur-xl sm:min-h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-2 md:min-h-[4.75rem] md:px-4 xl:px-6",
+            : "min-h-[4.5rem] items-center justify-between gap-2 px-2.5 py-1.5 backdrop-blur-xl sm:min-h-16 sm:gap-2 md:min-h-[4.75rem] md:px-4 xl:px-6",
           !isCleanTheme && (collapsed ? "xl:left-16" : "xl:left-[260px]"),
         )}
       >
-        <div className={cn("flex min-w-0 flex-1 items-center", isCleanTheme ? "gap-3" : "gap-2.5")}>
+        <div className={cn("flex min-w-0 flex-1 items-center", isCleanTheme ? "gap-3" : "gap-2")}>
           {isCleanTheme ? (
             <>
               <Button
@@ -170,9 +170,9 @@ export function Header({ title, subtitle }: HeaderProps) {
             <>
               <MobileNav />
 
-              <div className="flex h-12 min-w-0 flex-1 flex-col justify-center gap-1 px-1 py-1.5 sm:px-2 md:h-14">
+              <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-1 py-1 sm:h-12 sm:gap-1 sm:px-2 md:h-14">
                 <div className="flex min-w-0 max-w-full items-center gap-2">
-                  <h1 className="min-w-0 truncate text-base font-bold leading-none text-primary md:text-lg xl:text-xl">
+                  <h1 className="min-w-0 truncate text-sm font-bold leading-tight text-primary sm:text-base md:text-lg xl:text-xl">
                     {title}
                   </h1>
                   <BuildVersionBadge className="hidden shrink-0 xl:inline-flex" />
@@ -204,7 +204,7 @@ export function Header({ title, subtitle }: HeaderProps) {
           "header-actions flex min-w-0 shrink-0 items-center",
           isCleanTheme
             ? "h-11 justify-end gap-1"
-            : "h-11 w-full justify-between gap-0.5 px-0 py-1 sm:h-12 sm:w-auto sm:justify-end sm:gap-1 md:h-14 xl:gap-2"
+            : "h-10 justify-end gap-0.5 py-0.5 sm:h-12 sm:gap-1 md:h-14 xl:gap-2"
         )}>
           {!isCleanTheme && <UnidadeSelector />}
 
