@@ -65,7 +65,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   }, []);
 
   return (
-    <div className={cn(themeClass, "system-surface min-h-screen overflow-x-hidden")}>
+    <div className={cn(themeClass, "system-surface min-h-screen")}>
       <Sidebar />
       <main
         className={cn(
