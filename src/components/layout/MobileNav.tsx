@@ -58,6 +58,13 @@ export function MobileNav() {
     }
   }, [open, location.pathname]);
 
+  // Allow other components (e.g., MobileBottomBar) to open the drawer
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    window.addEventListener("mobile-nav:open", handler);
+    return () => window.removeEventListener("mobile-nav:open", handler);
+  }, []);
+
   const toggleMenu = (label: string) => {
     setOpenMenus((prev) =>
       prev.includes(label)
