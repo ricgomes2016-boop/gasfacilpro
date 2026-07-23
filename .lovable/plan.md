@@ -1,98 +1,71 @@
+## Escopo
 
-# Auditoria de UI/UX — Oportunidades para deixar o app "premium"
+Refino visual e de navegação do shell do ERP (rotas do ERP autenticado). Não altera lógica, dados, queries, hooks, rotas ou portais externos (cliente, entregador, contador, parceiro, transportadora — que já usam layouts próprios).
 
-Análise apenas — nada será alterado agora. Baseada nos tokens em `src/index.css`, `tailwind.config.ts`, componentes base (`Card`, `Button`, `Table`, `Input`), layouts principais e páginas de referência (Dashboard, AdminDashboard, Pedidos, módulos operacionais/financeiros).
+## Diagnóstico
 
-Legenda de impacto: 🔴 alto · 🟡 médio · 🟢 baixo
+- Existem dois modos de shell: **legado** (sidebar `hidden xl:flex` + `MobileNav` drawer no header + `MobileBottomBar` flutuante com Chat/IA/Calc) e **operacional-clean** (sidebar off-canvas com overlay + header 56px). A queixa "sidebar aparece antes do conteúdo no mobile" acontece quando o tema `operacional-clean` está ativo: a `.clean-sidebar` é `flex` em todas as larguras e só é escondida por transform, o que em alguns viewports/toggles renderiza atrás do overlay mas empurra layout no primeiro paint.
+- Header legado reserva `min-h-[4.5rem]` no mobile e ainda mostra `UnidadeSelector` desktop competindo com título.
+- Menu desktop tem 14 grupos com pesos visuais equivalentes; itens redundantes (ex: Pedidos + Pedidos Kanban) aparecem lado a lado.
+- Bottom bar mobile atual só tem Chat / IA / Calc — não há navegação primária (Dashboard, PDV, Nova Venda, Pedidos).
 
----
+## Mudanças
 
-## 1. Hierarquia visual, profundidade e sombras
+### 1. Shell mobile (`MainLayout.tsx`, `Sidebar.tsx`)
+- Forçar sidebar off-canvas real em `<768px` em ambos os temas (legado e clean): `translate-x-[-100%]` + `pointer-events-none` quando fechada, sem ocupar fluxo. Overlay clicável para fechar. Sem alterar o comportamento xl+.
+- Padding inferior do `<main>` aumentado para acomodar bottom nav (`pb-28 md:pb-10`).
 
-- 🔴 **Cards muito "planos" e uniformes.** Quase todos os `Card` usam a mesma sombra padrão do shadcn (`shadow-sm`). Você já tem `--shadow-sm/md/lg/glow` definidos no `:root`, mas eles quase não são usados. Falta uma escala de elevação clara: KPI hero > card de conteúdo > card secundário > list item.
-- 🔴 **Falta de "primeira classe" visual em KPIs.** No `Dashboard` e `AdminDashboard` os KPI cards são retangulares planos. Premium normalmente traz: gradiente sutil no fundo, ícone com halo/glow, número em display font, delta com micro-sparkline.
-- 🟡 **Sem hairline borders diferenciadas.** Todos os `border-border` usam a mesma opacidade. Cards importantes deveriam ter `border-border/40` + shadow-md; secundários `border-border/60` sem sombra.
-- 🟡 **Header e sidebar sem separação clara do conteúdo.** O `MainLayout` cola o conteúdo direto no fundo. Falta um "canvas" com leve gradiente radial ou uma casca de card contendo a página.
-- 🟢 **Popovers/Dropdowns/Dialogs sem sombra dramática.** Ficam com a mesma sombra dos cards — em premium eles "flutuam" bem mais (shadow-2xl + backdrop blur).
+### 2. Bottom navigation mobile (`MobileBottomBar.tsx`)
+- Reestruturar para 5 slots primários: **Dashboard, PDV, Nova Venda, Pedidos, Menu** (Menu abre o drawer da sidebar via evento).
+- Mover Chat / IA / Calc para um botão flutuante único (FAB "+") acima da bottom bar, expandindo em cluster — não compete mais com navegação.
+- Safe-area bottom preservado.
 
-## 2. Micro-interações e transições
+### 3. Header (`Header.tsx`)
+- Legado mobile: reduzir para **~56px** (uma linha), título + botão menu + ações essenciais (notificações, avatar). Empresa/unidade movidos para subtítulo colapsável.
+- Desktop: unificar altura em 64px, `bg-card/85 backdrop-blur`, borda inferior mais sutil (`border-border/60`), ações com `h-10 rounded-xl`.
+- Botão de menu (hambúrguer) sempre visível em `<xl`, não apenas no clean.
 
-- 🔴 **Hover states genéricos.** Botões e cards apenas escurecem/clareiam. Faltam: leve `translate-y-[-1px]`, sombra crescente, brilho no ícone. Rows de tabela só mudam bg.
-- 🔴 **Sem transições entre rotas.** Trocar de página é "corte seco". Um fade/slide curto (150–200ms) muda a percepção imediatamente.
-- 🟡 **Loading states inconsistentes.** Mistura de `animate-pulse` cru, spinners e nada. Não há um `<Spinner>`/`<LoadingOverlay>` padronizado com a identidade do produto.
-- 🟡 **Feedback de ação fraco.** Botões primários não têm estado `loading` visível com spinner interno + texto substituído; toasts são padrão shadcn sem ícone colorido por tipo.
-- 🟡 **Chevrons/expansões sem rotação suave.** Alguns expanders (ex.: ResumoFinanceiro em Pedidos) já rotacionam, mas o padrão não está aplicado em accordions, menus e sidebar.
-- 🟢 **Falta de "press effect"** em botões (scale 0.98 no active).
+### 4. Sidebar desktop (`Sidebar.tsx`)
+- Largura 264px, `bg-sidebar` neutro, `border-r border-sidebar-border/60`, sem `shadow-2xl` nem `rounded-r-2xl`.
+- Item ativo: `bg-primary/10 text-primary` + `ring-1 ring-primary/20` (remover `shadow-lg` e gradiente).
+- Ícones 18px consistentes; labels `text-[13px] font-medium`.
+- Headers de grupo (Principal, Vendas, Operação, Clientes, Estoque, Financeiro, Gestão, Configurações) em `text-[10px] uppercase tracking-wider text-sidebar-foreground/50` — apenas visual, sem reordenar `menuItems.ts`.
+- Grupo "Favoritos" pinado no topo: Dashboard, PDV, Nova Venda, Pedidos, Clientes, Estoque, Financeiro (links diretos, não altera rotas).
+- Footer sidebar compactado (`h-14`).
 
-## 3. Empty states e skeletons
+### 5. Tokens globais (`src/index.css`)
+- `--background: 210 20% 98%` (slate-50) para superfície geral.
+- `--card` mantém branco puro; `--border` levemente mais claro; `--radius` mantém.
+- Sombra de card reduzida (`--elev-1`).
+- Não altera paletas de tema (gasmais, contador, brand themes).
 
-- 🔴 **Empty states genéricos.** `EmptyState` compartilhado é reexport do estoque. A maioria dos módulos mostra apenas "Nenhum registro encontrado". Premium tem: ilustração/ícone grande, título com voz do produto, subtítulo explicando o porquê, CTA primária.
-- 🔴 **Skeletons quase inexistentes.** O padrão é `<div className="h-14 bg-muted/40 animate-pulse" />` repetido inline. Faltam skeletons dedicados por componente (KpiSkeleton, TableSkeleton, CardSkeleton) que respeitem a forma real do conteúdo — evita layout shift e transmite qualidade.
-- 🟡 **Sem shimmer.** `animate-pulse` cru é o "cheiro" mais denunciante de app básico. Shimmer diagonal com gradiente muda a percepção instantaneamente.
+## Fora de escopo
 
-## 4. Iconografia
+- `App.tsx`, providers, rotas, `menuItems.ts` (só leitura).
+- Conteúdo interno de Dashboard, Pedidos, Nova Venda, PDV (só herdam padding/container).
+- Portais externos (`ClienteLayout`, entregador, parceiro, contador).
+- Backend, RLS, edge functions, dados.
+- Publicação.
 
-- 🟡 **Tamanhos misturados.** Auditando amostras: `h-3 w-3`, `h-3.5`, `h-4`, `h-5`, `h-6` aparecem sem regra clara. Deveria haver 3 tamanhos canônicos (xs 14, sm 16, md 20) com uso definido (inline em texto, botão, header de card).
-- 🟡 **Peso do stroke inconsistente.** lucide-react com `strokeWidth` default (2) fica robusto demais em ícones pequenos e leve demais em headers. Padronizar 1.75 global e 2.25 em ícones de destaque dá acabamento.
-- 🟢 **Ícones sem "container".** Em SaaS premium ícones de header de card vivem em um quadrado arredondado com bg tokenizado por categoria (financeiro/estoque/marketing). Você já faz isso no `AdminDashboard` — falta espalhar.
+## Arquivos previstos
 
-## 5. Escala tipográfica e ritmo vertical
+- `src/components/layout/MainLayout.tsx`
+- `src/components/layout/Sidebar.tsx`
+- `src/components/layout/Header.tsx`
+- `src/components/layout/MobileBottomBar.tsx`
+- `src/index.css` (tokens globais leves)
 
-- 🔴 **Muitas fontes carregadas.** `index.css` importa IBM Plex, Inter, Manrope, Outfit e Plus Jakarta Sans juntas. Isso pesa no LCP e sinaliza indecisão. Premium = 1 display + 1 texto, tabular-nums para números.
-- 🔴 **Sem escala tipográfica formalizada.** Títulos usam `text-2xl`/`text-3xl` inline, cards misturam `text-sm`/`text-base` sem sistema. Faltam classes utilitárias (`text-display`, `text-h1`, `text-h2`, `text-body`, `text-caption`, `text-metric`).
-- 🟡 **Números financeiros sem `tabular-nums`.** KPIs "pulam" ao atualizar. Fácil de resolver e transmite qualidade imediata.
-- 🟡 **Line-height apertado em corpo.** Textos usam leading padrão do Tailwind; corpo deveria ter `leading-relaxed` (1.6).
-- 🟢 **Letter-spacing** ausente em títulos grandes (deveria ser `-0.02em`).
+## Validação
 
-## 6. Componentes de dados (KPIs, gráficos, badges)
+- `tsgo` typecheck.
+- Playwright em 390px em `/dashboard`, `/vendas/nova`, `/vendas/pedidos`, `/vendas/pdv`: sidebar não aparece no fluxo, bottom nav visível, sem scroll horizontal.
+- Playwright em 1440px: sidebar 264px, header 64px, item ativo destacado.
 
-- 🔴 **KPI cards sem storytelling.** Só valor + label + trend em texto. Falta: comparação vs período anterior com seta colorida, mini sparkline (recharts já está no projeto), meta % preenchida.
-- 🔴 **Gráficos com paleta hardcoded.** `GraficoEvolucaoPrecos` usa `#ef4444`, `#8b5cf6`, etc. Fugindo dos tokens. Também não há tooltip customizado com a mesma tipografia/sombra do sistema, nem `<CartesianGrid>` sutil (opacidade baixa).
-- 🟡 **Badges de status pobres.** Usam `variant` padrão shadcn. Premium: dot colorido + texto + fundo com opacidade da mesma cor (ex.: `bg-success/10 text-success` com `●`).
-- 🟡 **Tabelas sem "hierarquia de coluna".** Todas colunas com mesmo peso. Primeira coluna (identificador) deveria ser semibold; valores numéricos alinhados à direita com `tabular-nums`; ações com ícone-only.
-- 🟢 **Falta de agrupamento visual em listas longas** (sticky group headers por data/categoria).
+## Detalhes técnicos
 
-## 7. Polish
+- Bottom nav usa `NavLink` + `useLocation` para active state.
+- Botão "Menu" da bottom nav dispara `sidebar:open` via evento; `Sidebar` escuta e usa `setCollapsed(false)`.
+- Em `<xl`, sidebar é sempre off-canvas mesmo no tema legado (não só clean), com overlay `bg-black/40` fechável.
+- Preserva `useSidebarContext`, `useDashboardTheme`, `isCleanTheme` — sem mudar API pública.
 
-- 🟡 **Raio de borda inconsistente.** `--radius: 1rem` (16px, generoso), mas botões usam `rounded-md` (calc(radius)-2px = 14px), inputs também, e vários componentes usam `rounded-xl`/`rounded-2xl` livremente. Falta regra: inputs/botões `rounded-lg`, cards `rounded-2xl`, chips `rounded-full`.
-- 🟡 **Gradientes só na sidebar.** `--gradient-primary` existe mas é usado só em 1–2 lugares. Poderia aparecer em: hero do dashboard (já usa), botão primário de CTA principal, header de card destacado, badge de plano.
-- 🟡 **Dark mode desalinhado.** A sidebar mantém o mesmo gradiente teal→índigo no dark, o que cria contraste estranho com `background 220 25% 4%`. Popovers no dark ficam apagados (`--popover 220 22% 7%` quase igual ao bg). Faltam elevações por camada (bg → surface → elevated).
-- 🟡 **Focus rings** usam `--ring` mas em muitos componentes o ring some ou aparece com offset padrão. Premium define ring 2px + offset 2px + cor com opacidade consistente.
-- 🟢 **Scrollbars** default do SO. Um scrollbar fino customizado (webkit) transmite cuidado.
-- 🟢 **Selection color** (`::selection`) não definido.
-
-## 8. Onboarding e primeira impressão
-
-- 🟡 **Dashboard "raso" no primeiro load.** Só saudação + KPIs + QuickActions. Falta: card "próximas ações" (pendências), timeline recente, "insight do dia" da Bia — sinais de app inteligente.
-- 🟡 **AdminDashboard já é mais rico** (hero com gradiente + noise SVG, cards com ícones coloridos). Serve de referência para replicar o padrão nos dashboards operacionais.
-- 🟡 **Sem tour/highlight na primeira visita.** Não precisa ser guided tour completo — apenas 3 tooltips destacando sidebar, seletor de unidade e Bia já elevam.
-- 🟢 **Favicon/OG image** — verificar se estão à altura da marca (não coberto nesta análise, checar antes de publish).
-
----
-
-## Ranking consolidado (top 10 para atacar primeiro)
-
-1. 🔴 Padronizar **elevação de cards** (3 níveis) + reformular KPI cards com gradiente sutil, ícone com halo, tabular-nums e mini-trend.
-2. 🔴 Reduzir para **1 display + 1 body font** e criar classes tipográficas semânticas.
-3. 🔴 Criar biblioteca de **skeletons dedicados** (KPI, Table, Card, List) com shimmer — substituir `animate-pulse` inline.
-4. 🔴 Redesenhar **empty states** genéricos com ícone grande + copy + CTA.
-5. 🔴 Alinhar **paleta dos gráficos** aos tokens + tooltip customizado.
-6. 🟡 Adicionar **transição de rotas** (fade curto) e padronizar hover (translate-y + shadow crescente).
-7. 🟡 Padronizar **iconografia** (3 tamanhos, strokeWidth único, ícone em "chip" nos headers de card).
-8. 🟡 Revisar **dark mode** (elevação por camada, sidebar adaptada, popovers com contraste).
-9. 🟡 Refinar **badges de status** (dot + bg com opacidade da cor).
-10. 🟡 Melhorar **feedback de ação** (botão com estado loading, toasts com ícone colorido).
-
-Baixo impacto (fazer depois, agrupado num "polish pass"): press effect nos botões, scrollbar custom, `::selection`, letter-spacing em títulos, sticky group headers em listas.
-
----
-
-## Próximo passo sugerido
-
-Escolha **um dos três caminhos** para eu montar plano de implementação:
-
-- **A. Fundação primeiro** — tokens (tipografia, elevação, radius), Card/Button/Skeleton/Badge/EmptyState base. Impacto visual médio-alto em todo o app com pouco código.
-- **B. Dashboards primeiro** — reformular KPIs, gráficos, hero do Dashboard/AdminDashboard/dashboards operacionais. Impacto máximo na "primeira impressão".
-- **C. Top 5 do ranking** — atacar os 5 itens 🔴 juntos em um único passe global.
-
-Diga qual (ou combine) e eu abro o plano detalhado de implementação.
+Confirma para eu executar?
