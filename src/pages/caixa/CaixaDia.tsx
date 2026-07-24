@@ -662,11 +662,11 @@ export default function CaixaDia() {
               <Calendar mode="single" selected={dataSelecionada} onSelect={(d) => d && setDataSelecionada(d)} locale={ptBR} initialFocus />
             </PopoverContent>
           </Popover>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
             {/* Abertura / Fechamento */}
             {!sessao && (
               <Dialog open={aberturaOpen} onOpenChange={setAberturaOpen}>
-                <DialogTrigger asChild><Button variant="outline" className="border-success text-success hover:bg-success/10"><DoorOpen className="h-4 w-4 mr-2" />Abrir Caixa</Button></DialogTrigger>
+                <DialogTrigger asChild><Button variant="outline" className="w-full sm:w-auto border-success text-success hover:bg-success/10"><DoorOpen className="h-4 w-4 mr-2" />Abrir Caixa</Button></DialogTrigger>
                 <DialogContent>
                   <DialogHeader><DialogTitle>Abertura de Caixa</DialogTitle></DialogHeader>
                   <div className="space-y-4 pt-4">
@@ -745,12 +745,12 @@ export default function CaixaDia() {
               </Dialog>
             )}
             {sessao?.status === "fechado" && (sessao as any).bloqueado && isGestor && (
-              <Button variant="outline" className="border-warning text-warning hover:bg-warning/10" onClick={handleReabrirCaixa}>
+              <Button variant="outline" className="w-full sm:w-auto border-warning text-warning hover:bg-warning/10" onClick={handleReabrirCaixa}>
                 <Unlock className="h-4 w-4 mr-2" />Reabrir Caixa
               </Button>
             )}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Nova Movimentação</Button></DialogTrigger>
+              <DialogTrigger asChild><Button className="w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" />Nova Movimentação</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>Nova Movimentação</DialogTitle></DialogHeader>
                 <div className="space-y-4 pt-4">
@@ -776,8 +776,8 @@ export default function CaixaDia() {
                 </div>
               </DialogContent>
             </Dialog>
-            <Button variant="outline" onClick={exportPDF}><FileDown className="h-4 w-4 mr-2" />PDF</Button>
-            <Button variant="outline" onClick={exportExcel}><FileSpreadsheet className="h-4 w-4 mr-2" />Excel</Button>
+            <Button variant="outline" className="w-full sm:w-auto" onClick={exportPDF}><FileDown className="h-4 w-4 mr-2" />PDF</Button>
+            <Button variant="outline" className="w-full sm:w-auto" onClick={exportExcel}><FileSpreadsheet className="h-4 w-4 mr-2" />Excel</Button>
           </div>
         </div>
 
@@ -830,11 +830,11 @@ export default function CaixaDia() {
 
         {/* Cards de resumo */}
         <div className="grid gap-3 grid-cols-2 md:grid-cols-5">
-          <Card className="border-2 border-primary/30"><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-3"><div className="status-card-icon status-card-icon-primary"><Banknote /></div><div className="min-w-0"><p className={`text-base sm:text-2xl font-bold truncate ${saldoTotalCaixa >= 0 ? "text-success" : "text-destructive"}`}>R$ {saldoTotalCaixa.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-xs text-muted-foreground">💰 Total em Caixa</p></div></div></CardContent></Card>
-          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-3"><div className="status-card-icon status-card-icon-primary"><ShoppingCart /></div><div className="min-w-0"><p className="text-base sm:text-2xl font-bold truncate">R$ {totalVendas.toFixed(2)}</p><p className="text-xs text-muted-foreground">{qtdPedidos} vendas</p></div></div></CardContent></Card>
-          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-3"><div className="status-card-icon status-card-icon-success"><TrendingUp /></div><div className="min-w-0"><p className="text-base sm:text-2xl font-bold text-success truncate">R$ {totalEntradas.toFixed(2)}</p><p className="text-xs text-muted-foreground">Entradas Hoje</p></div></div></CardContent></Card>
-          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-3"><div className="status-card-icon status-card-icon-destructive"><TrendingDown /></div><div className="min-w-0"><p className="text-base sm:text-2xl font-bold text-destructive truncate">R$ {totalSaidas.toFixed(2)}</p><p className="text-xs text-muted-foreground">Saídas Hoje</p></div></div></CardContent></Card>
-          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-3"><div className="status-card-icon status-card-icon-primary"><DollarSign /></div><div className="min-w-0"><p className="text-base sm:text-2xl font-bold truncate">R$ {saldo.toFixed(2)}</p><p className="text-xs text-muted-foreground">Saldo do Dia</p></div></div></CardContent></Card>
+          <Card className="border-2 border-primary/30"><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-2.5 sm:gap-3"><div className="status-card-icon status-card-icon-primary shrink-0"><Banknote /></div><div className="min-w-0 flex-1"><p className={`text-[15px] leading-tight sm:text-2xl font-bold break-words ${saldoTotalCaixa >= 0 ? "text-success" : "text-destructive"}`}>R$ {saldoTotalCaixa.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-[11px] leading-snug text-muted-foreground">Total em Caixa</p></div></div></CardContent></Card>
+          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-2.5 sm:gap-3"><div className="status-card-icon status-card-icon-primary shrink-0"><ShoppingCart /></div><div className="min-w-0 flex-1"><p className="text-[15px] leading-tight sm:text-2xl font-bold break-words">R$ {totalVendas.toFixed(2)}</p><p className="text-[11px] leading-snug text-muted-foreground">{qtdPedidos} vendas</p></div></div></CardContent></Card>
+          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-2.5 sm:gap-3"><div className="status-card-icon status-card-icon-success shrink-0"><TrendingUp /></div><div className="min-w-0 flex-1"><p className="text-[15px] leading-tight sm:text-2xl font-bold text-success break-words">R$ {totalEntradas.toFixed(2)}</p><p className="text-[11px] leading-snug text-muted-foreground">Entradas Hoje</p></div></div></CardContent></Card>
+          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-2.5 sm:gap-3"><div className="status-card-icon status-card-icon-destructive shrink-0"><TrendingDown /></div><div className="min-w-0 flex-1"><p className="text-[15px] leading-tight sm:text-2xl font-bold text-destructive break-words">R$ {totalSaidas.toFixed(2)}</p><p className="text-[11px] leading-snug text-muted-foreground">Saídas Hoje</p></div></div></CardContent></Card>
+          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-2.5 sm:gap-3"><div className="status-card-icon status-card-icon-primary shrink-0"><DollarSign /></div><div className="min-w-0 flex-1"><p className="text-[15px] leading-tight sm:text-2xl font-bold break-words">R$ {saldo.toFixed(2)}</p><p className="text-[11px] leading-snug text-muted-foreground">Saldo do Dia</p></div></div></CardContent></Card>
         </div>
 
         {/* Dashboard em tempo real */}
