@@ -204,7 +204,7 @@ export function Header({ title, subtitle }: HeaderProps) {
           "header-actions flex min-w-0 shrink-0 items-center",
           isCleanTheme
             ? "h-11 justify-end gap-1"
-            : "h-10 justify-end gap-0.5 py-0.5 sm:h-12 sm:gap-1 md:h-14 xl:gap-2"
+            : "h-10 justify-end gap-0.5 sm:h-12 sm:gap-1 xl:gap-1.5"
         )}>
           {!isCleanTheme && <UnidadeSelector />}
 
