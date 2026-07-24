@@ -128,10 +128,10 @@ export function Header({ title, subtitle }: HeaderProps) {
     <>
       <header
         className={cn(
-          "app-header-premium fixed left-0 right-0 top-0 z-30 flex w-auto max-w-full overflow-visible border-b shadow-sm transition-[left] duration-300",
+          "app-header-premium fixed left-0 right-0 top-0 z-30 flex w-auto max-w-full overflow-visible border-b border-border/60 bg-card/85 backdrop-blur-xl shadow-none transition-[left] duration-300",
           isCleanTheme
             ? "clean-header h-14 items-center justify-between px-3 sm:px-5"
-            : "min-h-[4.5rem] items-center justify-between gap-2 px-2.5 py-1.5 backdrop-blur-xl sm:min-h-16 sm:gap-2 md:min-h-[4.75rem] md:px-4 xl:px-6",
+            : "min-h-[3.5rem] items-center justify-between gap-2 px-2.5 py-1.5 sm:min-h-[4rem] sm:gap-2 md:px-4 xl:px-6",
           !isCleanTheme && (collapsed ? "xl:left-16" : "xl:left-[260px]"),
         )}
       >
@@ -204,7 +204,7 @@ export function Header({ title, subtitle }: HeaderProps) {
           "header-actions flex min-w-0 shrink-0 items-center",
           isCleanTheme
             ? "h-11 justify-end gap-1"
-            : "h-10 justify-end gap-0.5 py-0.5 sm:h-12 sm:gap-1 md:h-14 xl:gap-2"
+            : "h-10 justify-end gap-0.5 sm:h-12 sm:gap-1 xl:gap-1.5"
         )}>
           {!isCleanTheme && <UnidadeSelector />}
 
@@ -283,7 +283,7 @@ export function Header({ title, subtitle }: HeaderProps) {
           </DropdownMenu>
         </div>
       </header>
-      <div aria-hidden="true" className={isCleanTheme ? "h-14" : "h-[4.5rem] sm:h-16 md:h-[4.75rem]"} />
+      <div aria-hidden="true" className={isCleanTheme ? "h-14" : "h-14 sm:h-16"} />
       {isCleanTheme && (
         <div className="clean-page-subbar flex h-12 items-center justify-between gap-3 border-b border-border bg-card px-4 sm:px-6">
           <h1 className="min-w-0 truncate text-base font-semibold text-foreground sm:text-lg">
