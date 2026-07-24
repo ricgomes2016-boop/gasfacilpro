@@ -283,7 +283,7 @@ export function Header({ title, subtitle }: HeaderProps) {
           </DropdownMenu>
         </div>
       </header>
-      <div aria-hidden="true" className={isCleanTheme ? "h-14" : "h-[4.5rem] sm:h-16 md:h-[4.75rem]"} />
+      <div aria-hidden="true" className={isCleanTheme ? "h-14" : "h-14 sm:h-16"} />
       {isCleanTheme && (
         <div className="clean-page-subbar flex h-12 items-center justify-between gap-3 border-b border-border bg-card px-4 sm:px-6">
           <h1 className="min-w-0 truncate text-base font-semibold text-foreground sm:text-lg">
