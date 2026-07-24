@@ -755,6 +755,17 @@ export const PRESET_EXTRA_CSS: Record<string, string> = {
       border-color: hsl(0 0% 100% / 0.28) !important;
     }
 
+    html[data-theme-preset="operacional-clean"] .sidebar-unit-selector .sidebar-unit-badge {
+      background: hsl(0 0% 100% / 0.14) !important;
+      border-color: hsl(0 0% 100% / 0.22) !important;
+      color: hsl(0 0% 100%) !important;
+    }
+
+    html[data-theme-preset="operacional-clean"] .sidebar-unit-selector .sidebar-logo-edit-indicator,
+    html[data-theme-preset="operacional-clean"] .sidebar-unit-selector .sidebar-logo-edit-indicator * {
+      color: hsl(222 47% 11%) !important;
+    }
+
     html[data-theme-preset="operacional-clean"] .app-sidebar-premium::before,
     html[data-theme-preset="operacional-clean"] .app-mobile-sidebar-modern::before {
       display: none !important;
