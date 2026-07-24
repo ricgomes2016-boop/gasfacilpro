@@ -128,10 +128,10 @@ export function Header({ title, subtitle }: HeaderProps) {
     <>
       <header
         className={cn(
-          "app-header-premium fixed left-0 right-0 top-0 z-30 flex w-auto max-w-full overflow-visible border-b shadow-sm transition-[left] duration-300",
+          "app-header-premium fixed left-0 right-0 top-0 z-30 flex w-auto max-w-full overflow-visible border-b border-border/60 bg-card/85 backdrop-blur-xl shadow-none transition-[left] duration-300",
           isCleanTheme
             ? "clean-header h-14 items-center justify-between px-3 sm:px-5"
-            : "min-h-[4.5rem] items-center justify-between gap-2 px-2.5 py-1.5 backdrop-blur-xl sm:min-h-16 sm:gap-2 md:min-h-[4.75rem] md:px-4 xl:px-6",
+            : "min-h-[3.5rem] items-center justify-between gap-2 px-2.5 py-1.5 sm:min-h-[4rem] sm:gap-2 md:px-4 xl:px-6",
           !isCleanTheme && (collapsed ? "xl:left-16" : "xl:left-[260px]"),
         )}
       >
