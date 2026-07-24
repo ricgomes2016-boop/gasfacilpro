@@ -324,7 +324,7 @@ export default function AnaliseResultados() {
           icon={Sparkles}
           title="Analise de Resultados"
           description="Visao executiva de receita, despesas e margem com base em pedidos faturados e despesas efetivamente pagas."
-          className="border border-white/10 bg-[linear-gradient(135deg,hsl(222_40%_10%),hsl(211_58%_24%)_48%,hsl(199_84%_36%))] shadow-[0_24px_70px_hsl(222_45%_8%/0.34)]"
+          className="border border-white/10 bg-[linear-gradient(135deg,hsl(222_40%_10%),hsl(211_58%_24%)_48%,hsl(199_84%_36%))] shadow-[0_24px_70px_hsl(222_45%_8%/0.34)] max-sm:p-4"
           actions={
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
@@ -381,7 +381,59 @@ export default function AnaliseResultados() {
           </Card>
         ) : overview && (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="space-y-3 sm:hidden">
+              <Card className="overflow-hidden border-border/60 bg-[linear-gradient(135deg,hsl(222_38%_12%),hsl(211_55%_22%))] text-primary-foreground shadow-[var(--elev-3)]">
+                <CardContent className="space-y-4 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/65">Resultado do periodo</p>
+                      <p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">
+                        {fmtBRL(overview.resultadoMesAtual)}
+                      </p>
+                      <p className="mt-0.5 text-xs text-primary-foreground/70">
+                        Margem {formatPercent(overview.margemLiquida)} sobre a receita.
+                      </p>
+                    </div>
+                    <div className={`rounded-full px-2.5 py-1 text-xs font-semibold ${overview.resultadoMesAtual >= 0 ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}>
+                      {overview.resultadoMesAtual >= 0 ? "positivo" : "atencao"}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-[calc(var(--radius)-4px)] bg-white/10 p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-primary-foreground/60">Receita</p>
+                      <p className="mt-1 text-base font-semibold tabular-nums">{fmtBRL(overview.receitaMesAtual)}</p>
+                    </div>
+                    <div className="rounded-[calc(var(--radius)-4px)] bg-white/10 p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-primary-foreground/60">Despesas</p>
+                      <p className="mt-1 text-base font-semibold tabular-nums">{fmtBRL(overview.despesasMesAtual)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-3 gap-2">
+                <Card className="border-border/60">
+                  <CardContent className="p-3 text-center">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pedidos</p>
+                    <p className="mt-1 text-lg font-semibold tabular-nums">{overview.totalPedidos}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-border/60">
+                  <CardContent className="p-3 text-center">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ticket</p>
+                    <p className="mt-1 text-lg font-semibold tabular-nums">{fmtBRLcompact(overview.ticketMedio)}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-border/60">
+                  <CardContent className="p-3 text-center">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Caixa</p>
+                    <p className="mt-1 text-lg font-semibold tabular-nums">{overview.despesasAvulsas}</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            <div className="hidden gap-4 sm:grid sm:grid-cols-2 xl:grid-cols-5">
               <PremiumKpiCard
                 label="Receita faturada"
                 value={fmtBRL(overview.receitaMesAtual)}
@@ -433,7 +485,7 @@ export default function AnaliseResultados() {
               />
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="hidden gap-3 sm:grid sm:grid-cols-3">
               <Card className="border-border/60 shadow-[var(--elev-1)]">
                 <CardContent className="flex items-center gap-3 p-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-[calc(var(--radius)-4px)] bg-success/10 text-success">
@@ -469,7 +521,7 @@ export default function AnaliseResultados() {
               </Card>
             </div>
 
-            <div className="grid gap-5 xl:grid-cols-5">
+            <div className="grid gap-4 sm:gap-5 xl:grid-cols-5">
               <Card className="min-w-0 overflow-hidden border-border/60 bg-card/95 shadow-[var(--elev-2)] xl:col-span-3">
                 <CardHeader className="pb-2">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -484,8 +536,8 @@ export default function AnaliseResultados() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={286}>
+                <CardContent className="px-2 pb-4 sm:px-6">
+                  <ResponsiveContainer width="100%" height={220}>
                     <AreaChart data={overview.evolucao} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="analiseReceita" x1="0" y1="0" x2="0" y2="1">
@@ -532,7 +584,7 @@ export default function AnaliseResultados() {
                 </CardContent>
               </Card>
 
-              <Card className="min-w-0 border-border/60 shadow-[var(--elev-2)] xl:col-span-2">
+              <Card className="min-w-0 border-border/60 shadow-[var(--elev-2)] max-sm:hidden xl:col-span-2">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <ReceiptText className="h-4 w-4 text-primary" />

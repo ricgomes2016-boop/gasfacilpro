@@ -337,7 +337,69 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
       </div>
 
       {/* Layout principal: 2 colunas - Custos à esquerda, Canais à direita */}
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 w-full min-w-0">
+      <div className="grid grid-cols-2 gap-2 md:hidden">
+        <Card className="border-border/60">
+          <CardContent className="p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Receita</p>
+            <p className="mt-1 text-lg font-semibold tabular-nums">R$ {fmt(receitaBruta)}</p>
+          </CardContent>
+        </Card>
+        <Card className={lucroLiquido >= 0 ? "border-success/25" : "border-destructive/25"}>
+          <CardContent className="p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Resultado</p>
+            <p className={`mt-1 text-lg font-semibold tabular-nums ${lucroLiquido >= 0 ? "text-success" : "text-destructive"}`}>
+              R$ {lucroLiquido < 0 ? `(${fmt(Math.abs(lucroLiquido))})` : fmt(lucroLiquido)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60">
+          <CardContent className="p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Unidades</p>
+            <p className="mt-1 text-lg font-semibold tabular-nums">{totalQtde.toLocaleString("pt-BR")}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60">
+          <CardContent className="p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PE</p>
+            <p className="mt-1 text-lg font-semibold tabular-nums">{pontoEquilibrio.toLocaleString("pt-BR")}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-2 md:hidden">
+        <details className="overflow-hidden rounded-[var(--radius)] border border-border/60 bg-card shadow-[var(--elev-1)]">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Custos por grupo</summary>
+          <div className="border-t border-border/60">
+            {custosAgrupados.map((grupo) => (
+              <div key={grupo.key} className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-2.5 last:border-0">
+                <span className="text-sm text-muted-foreground">{grupo.label}</span>
+                <span className="font-semibold tabular-nums">R$ {fmt(grupo.total)}</span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between gap-3 bg-destructive/8 px-4 py-3">
+              <span className="text-sm font-semibold">Total</span>
+              <span className="font-bold tabular-nums text-destructive">R$ {fmt(totalCustos)}</span>
+            </div>
+          </div>
+        </details>
+
+        <details className="overflow-hidden rounded-[var(--radius)] border border-border/60 bg-card shadow-[var(--elev-1)]">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Vendas por canal</summary>
+          <div className="border-t border-border/60">
+            {canais.slice(0, 6).map((canal) => (
+              <div key={canal.canal} className="grid grid-cols-[1fr_auto] gap-3 border-b border-border/50 px-4 py-2.5 last:border-0">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{canal.canal}</p>
+                  <p className="text-xs text-muted-foreground">{canal.qtde} un. | MC R$ {fmt(canal.margemRS)}</p>
+                </div>
+                <span className="font-semibold tabular-nums">R$ {fmt(canal.totalRS)}</span>
+              </div>
+            ))}
+          </div>
+        </details>
+      </div>
+
+      <div className="hidden gap-4 grid-cols-1 lg:grid-cols-2 w-full min-w-0 md:grid">
         {/* COLUNA ESQUERDA: Custos / Despesas */}
         <Card className="min-w-0 overflow-hidden border-border/60 bg-card/95 shadow-[var(--elev-2)]">
           <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-3">
@@ -490,7 +552,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
       </div>
 
       {/* Rodapé: Indicadores e Ponto de Equilíbrio */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full min-w-0">
+      <div className="hidden gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full min-w-0 md:grid">
         {/* Dados do Representante / Referência */}
         <Card className="min-w-0 overflow-hidden sm:col-span-2 lg:col-span-1">
           <CardHeader className="py-2 px-3 bg-muted/60 border-b">
