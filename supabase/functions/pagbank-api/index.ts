@@ -124,7 +124,37 @@ Deno.serve(async (req) => {
     // ============ test_connection ============
     if (action === "test_connection") {
       try {
-        await pagFetch("/public-keys/card", token, ambiente);
+        if (ambiente === "sandbox") {
+          await pagFetch("/orders", token, ambiente, {
+            method: "POST",
+            body: JSON.stringify({
+              reference_id: `gfp-sandbox-test-${Date.now()}`,
+              customer: {
+                name: "Cliente Teste Gas Facil Pro",
+                email: "cliente.teste@gasfacilpro.com.br",
+                tax_id: "12345678909",
+                phones: [
+                  { country: "55", area: "11", number: "999999999", type: "MOBILE" },
+                ],
+              },
+              items: [
+                {
+                  name: "Teste homologacao PagBank",
+                  quantity: 1,
+                  unit_amount: 100,
+                },
+              ],
+              qr_codes: [
+                {
+                  amount: { value: 100 },
+                  expiration_date: new Date(Date.now() + 30 * 60000).toISOString(),
+                },
+              ],
+            }),
+          });
+        } else {
+          await pagFetch("/public-keys/card", token, ambiente);
+        }
         return json({ success: true, ambiente });
       } catch (e: any) {
         return json({ success: false, error: e.message }, 200);

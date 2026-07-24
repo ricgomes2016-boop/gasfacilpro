@@ -1,0 +1,90 @@
+Homologacao PagBank - Gas Facil Pro
+
+Empresa/sistema:
+Gas Facil Pro - Forte Gas ERP
+
+URL do sistema:
+https://app.gasfacilpro.com.br
+
+Produtos/servicos:
+Comercializacao e entrega de gas GLP, incluindo botijoes P13, P20, P45 e produtos relacionados. O sistema gerencia pedidos, entregas, recebimentos, caixa e conciliacao financeira da distribuidora.
+
+APIs/recursos solicitados:
+- API de Notificacao
+- Connect Token Challenge / URL de chave publica
+
+1. URL do servico de chave publica do Connect Token Challenge
+
+Endpoint:
+GET https://gcrdftnnbgsogoqcmcxo.supabase.co/functions/v1/pagbank-connect-public-key
+
+Headers:
+Accept: application/json
+
+Resposta esperada:
+HTTP 200
+Content-Type: application/json
+
+Exemplo de resposta:
+{
+  "public_key": "-----BEGIN PUBLIC KEY----- ... -----END PUBLIC KEY-----",
+  "created_at": "2026-07-24T..."
+}
+
+Observacao:
+A chave publica esta cadastrada para permitir a validacao do Connect Token Challenge pelo PagBank.
+
+2. URL de notificacao de transacoes
+
+Endpoint:
+POST https://gcrdftnnbgsogoqcmcxo.supabase.co/functions/v1/pagbank-webhook
+
+Headers:
+Content-Type: application/json
+Authorization: Basic <credenciais configuradas no painel PagBank>
+
+Importante:
+As credenciais de Basic Authentication nao sao enviadas neste anexo por seguranca. Elas foram configuradas diretamente no painel PagBank.
+
+Payload de exemplo recebido:
+{
+  "id": "ORDE_EXEMPLO",
+  "status": "PAID",
+  "charges": [
+    {
+      "id": "CHAR_EXEMPLO",
+      "status": "PAID",
+      "amount": {
+        "value": 1000,
+        "currency": "BRL"
+      }
+    }
+  ]
+}
+
+Resposta esperada:
+HTTP 200
+Content-Type: application/json
+
+Exemplo de resposta:
+{
+  "ok": true
+}
+
+3. Resultado dos testes tecnicos realizados
+
+URL de chave publica:
+GET /pagbank-connect-public-key
+Resultado: HTTP 200
+
+Webhook de notificacao:
+POST /pagbank-webhook com Basic Authentication
+Resultado: HTTP 200
+Resposta: {"ok":true}
+
+4. Observacoes de seguranca
+
+- Nenhum token PagBank e nenhuma senha foram incluidos neste anexo.
+- O webhook exige autenticacao para aceitar notificacoes.
+- O endpoint de chave publica expoe apenas a chave publica, sem dados sensiveis.
+- O sistema utiliza HTTPS em todos os endpoints.
