@@ -5,6 +5,13 @@ import {
   ChevronRight,
   ChevronLeft,
   Sparkles,
+  LayoutDashboard,
+  Monitor,
+  PlusCircle,
+  ClipboardList,
+  UserPlus,
+  PackageOpen,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
