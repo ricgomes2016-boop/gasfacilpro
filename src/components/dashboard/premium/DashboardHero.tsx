@@ -59,7 +59,7 @@ export function DashboardHero({
               </Badge>
             </div>
           )}
-          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl md:text-[1.75rem]">
+          <h1 className="text-xl font-semibold tracking-tight text-primary-foreground sm:text-2xl md:text-[1.75rem]">
             {title}
           </h1>
           {description && (
