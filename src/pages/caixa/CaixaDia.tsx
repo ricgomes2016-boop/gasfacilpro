@@ -882,12 +882,14 @@ export default function CaixaDia() {
 
         {/* Abas */}
         <Tabs defaultValue="movimentacoes" className="space-y-4">
-          <TabsList className="w-full sm:w-auto h-11">
-            <TabsTrigger value="movimentacoes" className="flex-1 sm:flex-none text-xs sm:text-sm">Movimentações</TabsTrigger>
-            <TabsTrigger value="produtos" className="flex-1 sm:flex-none text-xs sm:text-sm">Produtos</TabsTrigger>
-            <TabsTrigger value="pagamentos" className="flex-1 sm:flex-none text-xs sm:text-sm">Pagamentos</TabsTrigger>
-            <TabsTrigger value="tesouraria" className="flex-1 sm:flex-none text-xs sm:text-sm">💰 Tesouraria</TabsTrigger>
+          <div className="-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList className="inline-flex h-11 min-w-max justify-start">
+            <TabsTrigger value="movimentacoes" className="shrink-0 px-3 text-xs sm:text-sm">Movimentações</TabsTrigger>
+            <TabsTrigger value="produtos" className="shrink-0 px-3 text-xs sm:text-sm">Produtos</TabsTrigger>
+            <TabsTrigger value="pagamentos" className="shrink-0 px-3 text-xs sm:text-sm">Pagamentos</TabsTrigger>
+            <TabsTrigger value="tesouraria" className="shrink-0 px-3 text-xs sm:text-sm">💰 Tesouraria</TabsTrigger>
           </TabsList>
+          </div>
 
           <TabsContent value="movimentacoes">
             <Card>
@@ -898,7 +900,77 @@ export default function CaixaDia() {
                 ) : movs.length === 0 ? (
                   <p className="text-center py-8 text-muted-foreground">Nenhuma movimentação</p>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <>
+                  <div className="space-y-3 px-3 pb-3 md:hidden">
+                    {movimentacoesExtrato.map(mov => (
+                      <div key={mov.id} className="rounded-xl border border-border/70 bg-card p-3 shadow-sm">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="break-words text-sm font-semibold leading-snug">{mov.descricao}</p>
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                              <Badge variant={mov.tipo === "entrada" ? "default" : "destructive"} className="text-[10px] whitespace-nowrap">{mov.tipo === "entrada" ? "Entrada" : "Saida"}</Badge>
+                              <Badge variant="outline" className="max-w-full whitespace-normal break-words text-[10px]">{mov.categoria || "-"}</Badge>
+                            </div>
+                          </div>
+                          <div className="text-right text-[11px] leading-tight text-muted-foreground">
+                            <div>{new Date(mov.created_at).toLocaleDateString("pt-BR")}</div>
+                            <div>{new Date(mov.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div>
+                          </div>
+                        </div>
+                        <div className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-muted/35 p-2 text-center tabular-nums">
+                          <div>
+                            <p className="text-[10px] uppercase text-muted-foreground">Entrada</p>
+                            <p className="text-xs font-semibold text-success">{mov.entrada > 0 ? `R$ ${mov.entrada.toFixed(2)}` : "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase text-muted-foreground">Saida</p>
+                            <p className="text-xs font-semibold text-destructive">{mov.saida > 0 ? `R$ ${mov.saida.toFixed(2)}` : "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase text-muted-foreground">Saldo</p>
+                            <p className={cn("text-xs font-semibold", mov.total < 0 && "text-destructive")}>R$ {mov.total.toFixed(2)}</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            disabled={caixaBloqueado}
+                            title={caixaBloqueado ? "Caixa bloqueado - reabra para editar" : "Editar"}
+                            onClick={() => openEditMov(mov)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            disabled={caixaBloqueado}
+                            title={caixaBloqueado ? "Caixa bloqueado - reabra para excluir" : "Excluir"}
+                            onClick={() => setDeleteMovId(mov.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="grid grid-cols-3 gap-2 rounded-xl border border-border/70 bg-muted/50 p-3 text-center tabular-nums">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase text-muted-foreground">Entradas</p>
+                        <p className="text-xs font-bold text-success">R$ {totalEntradas.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase text-muted-foreground">Saidas</p>
+                        <p className="text-xs font-bold text-destructive">R$ {totalSaidas.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase text-muted-foreground">Saldo</p>
+                        <p className={cn("text-xs font-bold", saldo < 0 && "text-destructive")}>R$ {saldo.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="hidden overflow-x-auto md:block">
                     <Table className="min-w-[720px]">
                       <TableHeader>
                         <TableRow>
@@ -971,6 +1043,7 @@ export default function CaixaDia() {
                       </TableFooter>
                     </Table>
                   </div>
+                  </>
                 )}
               </CardContent>
             </Card>
