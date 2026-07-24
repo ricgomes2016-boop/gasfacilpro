@@ -453,7 +453,7 @@ export default function AnaliseResultados() {
                 value={fmtBRL(overview.despesasMesAtual)}
                 icon={ReceiptText}
                 tone="destructive"
-                subtitle="contas pagas + caixa aprovado"
+                subtitle="contas pagas + caixa lancado"
                 trend={{
                   value: variation(overview.despesasMesAtual, overview.despesasMesAnterior),
                   label: "vs mes ant.",
@@ -519,8 +519,8 @@ export default function AnaliseResultados() {
                     <Gauge className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Caixa avulso</p>
-                    <p className="text-lg font-semibold tabular-nums">{overview.despesasAvulsas} aprovadas</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Caixa lancado</p>
+                    <p className="text-lg font-semibold tabular-nums">{overview.despesasAvulsas} lancadas</p>
                   </div>
                 </CardContent>
               </Card>
@@ -602,7 +602,7 @@ export default function AnaliseResultados() {
                       compact
                       icon={FileText}
                       title="Sem despesas no periodo"
-                      description="As contas pagas e despesas aprovadas serao agrupadas aqui."
+                      description="As contas pagas e despesas lancadas no caixa serao agrupadas aqui."
                     />
                   ) : (
                     <div className="grid gap-4 md:grid-cols-[180px_1fr] xl:grid-cols-1 2xl:grid-cols-[180px_1fr]">

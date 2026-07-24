@@ -303,6 +303,15 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
     if (items.length > 0) acc.push({ key, label, items, total: items.reduce((s, c) => s + c.valor, 0) });
     return acc;
   }, [] as { key: string; label: string; items: CustoItem[]; total: number }[]);
+  const custosSemGrupo = custos.filter(c => !Object.prototype.hasOwnProperty.call(grupoLabels, c.grupo));
+  if (custosSemGrupo.length > 0) {
+    custosAgrupados.push({
+      key: "outros_custos",
+      label: "Outros custos",
+      items: custosSemGrupo,
+      total: custosSemGrupo.reduce((s, c) => s + c.valor, 0),
+    });
+  }
 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
