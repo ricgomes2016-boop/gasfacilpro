@@ -367,8 +367,48 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3.5 py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="space-y-2">
+        <nav className="flex-1 overflow-y-auto px-2.5 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {!collapsed && (
+            <div className="mb-4">
+              <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
+                Favoritos
+              </p>
+              <div className="grid grid-cols-2 gap-1">
+                {[
+                  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+                  { icon: Monitor, label: "PDV", path: "/vendas/pdv" },
+                  { icon: PlusCircle, label: "Nova Venda", path: "/vendas/nova" },
+                  { icon: ClipboardList, label: "Pedidos", path: "/vendas/pedidos" },
+                  { icon: UserPlus, label: "Clientes", path: "/clientes/cadastro" },
+                  { icon: PackageOpen, label: "Estoque", path: "/estoque" },
+                  { icon: Wallet, label: "Financeiro", path: "/financeiro/fluxo-caixa" },
+                ].map((fav) => {
+                  const favActive = location.pathname === fav.path;
+                  return (
+                    <Link
+                      key={fav.path}
+                      to={fav.path}
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors",
+                        favActive
+                          ? "bg-primary/10 text-primary ring-1 ring-primary/15"
+                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                      )}
+                    >
+                      <fav.icon className="h-[15px] w-[15px] shrink-0" />
+                      <span className="truncate">{fav.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {!collapsed && (
+            <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
+              Navegação
+            </p>
+          )}
+          <div className="space-y-1">
             {visibleMenuItems.map((item, idx) => {
               const hasSubmenu = !!item.submenu;
               const isOpen = isSubmenuOpen(item.label);
