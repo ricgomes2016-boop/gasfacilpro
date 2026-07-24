@@ -41,8 +41,10 @@ import {
   AreaChart,
   CartesianGrid,
   Cell,
+  Line,
   Pie,
   PieChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -317,14 +319,16 @@ export default function AnaliseResultados() {
       <Header title="Analise de Resultados" subtitle="Resultado financeiro por competencia operacional" />
       <div className="w-full min-w-0 max-w-full space-y-6 overflow-x-hidden p-3 sm:p-4 md:p-6">
         <DashboardHero
+          variant="dark"
           eyebrow="Gestao Operacional"
           icon={Sparkles}
           title="Analise de Resultados"
           description="Visao executiva de receita, despesas e margem com base em pedidos faturados e despesas efetivamente pagas."
+          className="border border-white/10 bg-[linear-gradient(135deg,hsl(222_40%_10%),hsl(211_58%_24%)_48%,hsl(199_84%_36%))] shadow-[0_24px_70px_hsl(222_45%_8%/0.34)]"
           actions={
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
-                <SelectTrigger className="h-9 w-[132px] border-white/20 bg-white/15 text-primary-foreground shadow-none backdrop-blur hover:bg-white/20">
+                <SelectTrigger className="h-9 w-[132px] border-white/20 bg-white/15 text-primary-foreground shadow-none backdrop-blur hover:bg-white/20 [&>span]:text-primary-foreground">
                   <SelectValue placeholder="Mes" />
                 </SelectTrigger>
                 <SelectContent>
@@ -336,7 +340,7 @@ export default function AnaliseResultados() {
                 </SelectContent>
               </Select>
               <Select value={anoSelecionado} onValueChange={setAnoSelecionado}>
-                <SelectTrigger className="h-9 w-[92px] border-white/20 bg-white/15 text-primary-foreground shadow-none backdrop-blur hover:bg-white/20">
+                <SelectTrigger className="h-9 w-[92px] border-white/20 bg-white/15 text-primary-foreground shadow-none backdrop-blur hover:bg-white/20 [&>span]:text-primary-foreground">
                   <SelectValue placeholder="Ano" />
                 </SelectTrigger>
                 <SelectContent>
@@ -466,12 +470,19 @@ export default function AnaliseResultados() {
             </div>
 
             <div className="grid gap-5 xl:grid-cols-5">
-              <Card className="min-w-0 border-border/60 shadow-[var(--elev-2)] xl:col-span-3">
+              <Card className="min-w-0 overflow-hidden border-border/60 bg-card/95 shadow-[var(--elev-2)] xl:col-span-3">
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Activity className="h-4 w-4 text-primary" />
-                    Evolucao dos ultimos 6 meses
-                  </CardTitle>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Activity className="h-4 w-4 text-primary" />
+                      Evolucao dos ultimos 6 meses
+                    </CardTitle>
+                    <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                      <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" />Receita</span>
+                      <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" />Despesa</span>
+                      <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" />Resultado</span>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={286}>
@@ -490,6 +501,7 @@ export default function AnaliseResultados() {
                       <XAxis dataKey="mes" tick={chartAxisTick} tickLine={false} axisLine={false} />
                       <YAxis tick={chartAxisTick} tickLine={false} axisLine={false} tickFormatter={fmtBRLcompact} width={58} />
                       <Tooltip content={<ChartTooltip formatter={(value) => fmtBRL(value)} />} cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1 }} />
+                      <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" strokeOpacity={0.45} />
                       <Area
                         type="monotone"
                         dataKey="receita"
@@ -505,6 +517,15 @@ export default function AnaliseResultados() {
                         stroke={CHART_SEMANTIC.destructive}
                         fill="url(#analiseDespesa)"
                         strokeWidth={2.4}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="resultado"
+                        name="Resultado"
+                        stroke={CHART_SEMANTIC.primary}
+                        strokeWidth={3}
+                        dot={{ r: 3, strokeWidth: 0, fill: CHART_SEMANTIC.primary }}
+                        activeDot={{ r: 5, strokeWidth: 0 }}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -568,17 +589,17 @@ export default function AnaliseResultados() {
         )}
 
         <Tabs defaultValue="resultado" className="w-full min-w-0 max-w-full space-y-4 overflow-hidden">
-          <TabsList className="grid h-auto w-full min-w-0 grid-cols-3 p-1 lg:inline-grid lg:w-auto">
-            <TabsTrigger value="resultado" className="flex min-w-0 items-center justify-center gap-1 px-1.5 py-2.5 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+          <TabsList className="grid h-auto w-full min-w-0 grid-cols-3 rounded-[var(--radius)] border border-border/60 bg-card p-1 shadow-[var(--elev-1)] lg:inline-grid lg:w-auto">
+            <TabsTrigger value="resultado" className="flex min-w-0 items-center justify-center gap-1 rounded-[calc(var(--radius)-4px)] px-1.5 py-2.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm sm:gap-2 sm:px-3 sm:text-sm">
               <BarChart3 className="h-4 w-4 shrink-0" />
               <span className="hidden sm:inline">Resultado Operacional</span>
               <span className="sm:hidden">RO</span>
             </TabsTrigger>
-            <TabsTrigger value="dre" className="flex min-w-0 items-center justify-center gap-1 px-1.5 py-2.5 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+            <TabsTrigger value="dre" className="flex min-w-0 items-center justify-center gap-1 rounded-[calc(var(--radius)-4px)] px-1.5 py-2.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm sm:gap-2 sm:px-3 sm:text-sm">
               <FileText className="h-4 w-4 shrink-0" />
               <span>DRE</span>
             </TabsTrigger>
-            <TabsTrigger value="equilibrio" className="flex min-w-0 items-center justify-center gap-1 px-1.5 py-2.5 text-xs sm:gap-2 sm:px-3 sm:text-sm">
+            <TabsTrigger value="equilibrio" className="flex min-w-0 items-center justify-center gap-1 rounded-[calc(var(--radius)-4px)] px-1.5 py-2.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm sm:gap-2 sm:px-3 sm:text-sm">
               <Calculator className="h-4 w-4 shrink-0" />
               <span className="hidden sm:inline">Ponto de Equilibrio</span>
               <span className="sm:hidden">PE</span>

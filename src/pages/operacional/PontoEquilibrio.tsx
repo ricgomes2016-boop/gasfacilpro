@@ -268,8 +268,8 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
       </div>
 
       {/* Gráfico */}
-      <Card className="min-w-0 overflow-hidden">
-        <CardHeader className="pb-2">
+      <Card className="min-w-0 overflow-hidden border-border/60 bg-card/95 shadow-[var(--elev-2)]">
+        <CardHeader className="border-b border-border/60 bg-muted/25 pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Calculator className="h-4 w-4 text-primary" />
             Gráfico de Ponto de Equilíbrio
@@ -285,9 +285,9 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
                   <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="unidades" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.55} vertical={false} />
+              <XAxis dataKey="unidades" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
+              <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
               <Tooltip
                 formatter={(value: number, name: string) => [
                   `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
@@ -296,9 +296,9 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
                 contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: 12 }}
               />
               <Area type="monotone" dataKey="lucro" fill="url(#gradLucro)" stroke="none" />
-              <Line type="monotone" dataKey="receita" stroke="hsl(152, 69%, 40%)" strokeWidth={2} name="Receita Total" dot={false} />
-              <Line type="monotone" dataKey="custoTotal" stroke="hsl(0, 72%, 51%)" strokeWidth={2} name="Custo Total" dot={false} />
-              <Line type="monotone" dataKey="lucro" stroke="hsl(var(--primary))" strokeWidth={2} strokeDasharray="5 5" name="Lucro / Prejuízo" dot={false} />
+              <Line type="monotone" dataKey="receita" stroke="hsl(var(--success))" strokeWidth={2.5} name="Receita Total" dot={false} />
+              <Line type="monotone" dataKey="custoTotal" stroke="hsl(var(--destructive))" strokeWidth={2.5} name="Custo Total" dot={false} />
+              <Line type="monotone" dataKey="lucro" stroke="hsl(var(--primary))" strokeWidth={2.5} strokeDasharray="5 5" name="Lucro / Prejuízo" dot={false} />
               {peUnidades > 0 && (
                 <ReferenceLine x={peUnidades} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" label={{ value: `PE: ${peUnidades}`, position: "top", fill: "hsl(var(--foreground))", fontSize: 11 }} />
               )}
@@ -313,8 +313,8 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full min-w-0">
         {/* Parâmetros de Venda */}
-        <Card className="min-w-0 overflow-hidden">
-          <CardHeader className="pb-3">
+        <Card className="min-w-0 overflow-hidden border-border/60 bg-card/95 shadow-[var(--elev-2)]">
+          <CardHeader className="border-b border-border/60 bg-muted/25 pb-3">
             <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
               <CardTitle className="text-base">Parâmetros de Venda</CardTitle>
               {vendasMesAtual > 0 && (
@@ -353,8 +353,8 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
         </Card>
 
         {/* Custos Fixos */}
-        <Card className="min-w-0 overflow-hidden">
-          <CardHeader className="pb-3">
+        <Card className="min-w-0 overflow-hidden border-border/60 bg-card/95 shadow-[var(--elev-2)]">
+          <CardHeader className="border-b border-border/60 bg-muted/25 pb-3">
             <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
               <CardTitle className="text-base">Custos Fixos Mensais</CardTitle>
               <Badge variant="outline">R$ {totalCustosFixos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</Badge>
@@ -364,16 +364,16 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
             <div className="w-full min-w-0 max-w-full max-h-[350px] overflow-x-auto overflow-y-auto overscroll-x-contain">
               <Table className="min-w-[420px]">
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead className="text-right">Valor (R$)</TableHead>
+                  <TableRow className="bg-muted/45">
+                    <TableHead className="py-2 text-[11px] font-bold uppercase tracking-wide">Descrição</TableHead>
+                    <TableHead className="py-2 text-right text-[11px] font-bold uppercase tracking-wide">Valor (R$)</TableHead>
                     <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {custosFixos.map((c) => (
-                    <TableRow key={c.id}>
-                      <TableCell className="py-1.5 text-sm">
+                    <TableRow key={c.id} className="border-border/50 hover:bg-muted/30">
+                      <TableCell className="py-2 text-sm">
                         <div className="flex items-center gap-1.5">
                           {c.descricao}
                           {c.auto && (
@@ -383,13 +383,13 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-medium py-1.5 tabular-nums">{c.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                      <TableCell className="py-1.5">
+                      <TableCell className="text-right font-semibold py-2 tabular-nums">{c.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="py-2">
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeCusto(c.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
                       </TableCell>
                     </TableRow>
                   ))}
-                  <TableRow className="bg-muted/50">
+                  <TableRow className="bg-primary/10">
                     <TableCell className="font-bold py-2">Total</TableCell>
                     <TableCell className="text-right font-bold py-2 tabular-nums">R$ {totalCustosFixos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
                     <TableCell></TableCell>

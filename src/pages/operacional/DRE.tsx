@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageSectionLoader } from "@/components/ui/page-loader";
 import { FileDown, Printer, TrendingUp, TrendingDown, Percent, Wallet, FileBarChart } from "lucide-react";
 import { exportDREtoPdf, handlePrint } from "@/services/reportPdfService";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine, Area, AreaChart } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine, Area, AreaChart, Line } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDate } from "@/lib/utils";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -24,6 +24,8 @@ interface DRELine {
   tipo: string;
   indent?: boolean;
 }
+
+const STATUS_RECEITA_DRE = ["entregue", "finalizado", "pago_cartao"];
 
 export default function DRE({ embedded = false }: { embedded?: boolean }) {
   const { unidadeAtual } = useUnidade();
@@ -58,7 +60,12 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
         const fimDate = format(endOfMonth(d), "yyyy-MM-dd");
         mesesCalc.push(`${nomesMeses[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`);
 
-        let pq = supabase.from("pedidos").select("valor_total").gte("created_at", inicio).lte("created_at", fim).neq("status", "cancelado");
+        let pq = supabase
+          .from("pedidos")
+          .select("valor_total")
+          .in("status", STATUS_RECEITA_DRE)
+          .gte("data_entrega", inicio)
+          .lte("data_entrega", fim);
         if (unidadeAtual?.id) pq = pq.eq("unidade_id", unidadeAtual.id);
 
         let dq = supabase.from("movimentacoes_bancarias").select("valor, categoria").eq("tipo", "saida").gte("data", inicioDate).lte("data", fimDate);
@@ -315,13 +322,13 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       </div>
 
       {/* Gráfico de Evolução */}
-      <Card className="min-w-0 overflow-hidden shadow-[var(--elev-2)]">
+      <Card className="min-w-0 overflow-hidden border-border/60 bg-card/95 shadow-[var(--elev-2)]">
         <CardContent className="pt-5">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-base font-semibold">Evolução Mensal</h3>
             <span className="text-xs text-muted-foreground">{periodoLabel}</span>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={250}>
             <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
               <defs>
                 <linearGradient id="dreGradReceita" x1="0" y1="0" x2="0" y2="1">
@@ -335,11 +342,13 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
               </defs>
               <CartesianGrid {...chartGridProps} />
               <XAxis dataKey="mes" tick={chartAxisTick} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={fmtBRLcompact} tick={chartAxisTick} axisLine={false} tickLine={false} />
-              <Tooltip content={<ChartTooltip formatter={(v) => formatCurrency(v)} />} cursor={{ stroke: "hsl(var(--primary))", strokeDasharray: "3 3" }} />
-              <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-              <Area type="monotone" dataKey="receita" name="Receita" stroke={CHART_SEMANTIC.success} fill="url(#dreGradReceita)" strokeWidth={2.5} />
-              <Area type="monotone" dataKey="lucro" name="Resultado" stroke={CHART_SEMANTIC.info} fill="url(#dreGradLucro)" strokeWidth={2.5} />
+              <YAxis yAxisId="valor" tickFormatter={fmtBRLcompact} tick={chartAxisTick} axisLine={false} tickLine={false} />
+              <YAxis yAxisId="margem" orientation="right" tickFormatter={(v) => `${Number(v).toFixed(0)}%`} tick={chartAxisTick} axisLine={false} tickLine={false} width={36} />
+              <Tooltip content={<ChartTooltip formatter={(v, name) => name === "Margem %" ? `${Number(v).toFixed(1)}%` : formatCurrency(v)} />} cursor={{ stroke: "hsl(var(--primary))", strokeDasharray: "3 3" }} />
+              <ReferenceLine yAxisId="valor" y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+              <Area yAxisId="valor" type="monotone" dataKey="receita" name="Receita" stroke={CHART_SEMANTIC.success} fill="url(#dreGradReceita)" strokeWidth={2.5} />
+              <Area yAxisId="valor" type="monotone" dataKey="lucro" name="Resultado" stroke={CHART_SEMANTIC.info} fill="url(#dreGradLucro)" strokeWidth={2.5} />
+              <Line yAxisId="margem" type="monotone" dataKey="margem" name="Margem %" stroke={CHART_SEMANTIC.primary} strokeWidth={2.2} dot={{ r: 2.5, strokeWidth: 0, fill: CHART_SEMANTIC.primary }} />
             </AreaChart>
           </ResponsiveContainer>
         </CardContent>
@@ -348,13 +357,19 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
 
 
       {/* Tabela DRE Principal */}
-      <Card className="min-w-0 max-w-full overflow-hidden border-border/80">
+      <Card className="min-w-0 max-w-full overflow-hidden border-border/60 bg-card/95 shadow-[var(--elev-2)]">
+        <CardHeader className="border-b border-border/60 bg-muted/25 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="text-base">Demonstrativo de Resultados</CardTitle>
+            <Badge variant="secondary" className="text-xs">{mesesExibidos.length} meses</Badge>
+          </div>
+        </CardHeader>
         <CardContent className="p-0 min-w-0 max-w-full overflow-hidden">
           <div className="hidden md:block w-full min-w-0 max-w-full max-h-[620px] overflow-auto overscroll-x-contain">
             <table className="w-full min-w-[760px] border-separate border-spacing-0 text-[13px]">
               <thead className="sticky top-0 z-30">
-                <tr className="bg-muted/70">
-                  <th className="sticky left-0 z-40 w-[280px] min-w-[280px] bg-muted px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground shadow-[1px_0_0_hsl(var(--border))]">
+                <tr className="bg-muted/80">
+                  <th className="sticky left-0 z-40 w-[280px] min-w-[280px] bg-muted px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground shadow-[1px_0_0_hsl(var(--border))]">
                     Descrição
                   </th>
                   {mesesExibidos.map(m => (
@@ -377,14 +392,14 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                   const isSubtotal = item.tipo === "subtotal";
                   const isResultado = item.tipo === "resultado";
                   const isNegative = total < 0;
-                  const rowBg = isResultado ? "bg-primary/10" : isSubtotal ? "bg-muted/45" : "bg-card";
+                  const rowBg = isResultado ? "bg-primary/12" : isSubtotal ? "bg-muted/45" : "bg-card";
 
                   return (
                     <tr
                       key={index}
-                      className={`border-b border-border/50 transition-colors ${rowBg} ${isResultado ? "ring-1 ring-inset ring-primary/20" : ""} ${!isSubtotal && !isResultado ? "hover:bg-muted/20" : ""}`}
+                      className={`border-b border-border/50 transition-colors ${rowBg} ${isResultado ? "ring-1 ring-inset ring-primary/25" : ""} ${!isSubtotal && !isResultado ? "hover:bg-muted/20" : ""}`}
                     >
-                      <td className={`sticky left-0 z-10 w-[280px] min-w-[280px] border-b border-border/50 px-3 py-2.5 shadow-[1px_0_0_hsl(var(--border))] ${rowBg}`}>
+                      <td className={`sticky left-0 z-10 w-[280px] min-w-[280px] border-b border-border/50 px-4 py-3 shadow-[1px_0_0_hsl(var(--border))] ${rowBg}`}>
                         <span className={`block leading-snug ${item.indent && !isSubtotal ? "pl-3 text-muted-foreground" : ""} ${isSubtotal || isResultado ? "text-[12px] font-bold uppercase tracking-wide" : "font-medium"} ${isResultado ? "text-primary" : ""}`}>
                           {item.categoria}
                         </span>
@@ -392,15 +407,15 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                       {item.valores.map((v, i) => (
                         <td
                           key={i}
-                          className={`w-[112px] min-w-[112px] border-b border-border/50 px-3 py-2.5 text-right tabular-nums whitespace-nowrap ${isSubtotal || isResultado ? "font-bold" : "font-medium"} ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-success" : ""}`}
+                          className={`w-[112px] min-w-[112px] border-b border-border/50 px-3 py-3 text-right tabular-nums whitespace-nowrap ${isSubtotal || isResultado ? "font-bold" : "font-medium"} ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-success" : ""}`}
                         >
                           {formatCurrency(v)}
                         </td>
                       ))}
-                      <td className={`w-[132px] min-w-[132px] border-b border-border/50 bg-muted/20 px-3 py-2.5 text-right font-bold tabular-nums whitespace-nowrap ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-success" : ""}`}>
+                      <td className={`w-[132px] min-w-[132px] border-b border-border/50 bg-muted/20 px-3 py-3 text-right font-bold tabular-nums whitespace-nowrap ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-success" : ""}`}>
                         {formatCurrency(total)}
                       </td>
-                      <td className={`border-b border-border/50 px-2.5 py-2.5 text-right text-xs tabular-nums ${isSubtotal || isResultado ? "font-bold" : "text-muted-foreground"}`}>
+                      <td className={`border-b border-border/50 px-2.5 py-3 text-right text-xs tabular-nums ${isSubtotal || isResultado ? "font-bold" : "text-muted-foreground"}`}>
                         {formatPercent(av)}
                       </td>
                     </tr>
@@ -500,6 +515,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
     <MainLayout>
       <div className="p-3 sm:p-4 md:p-6 w-full min-w-0 max-w-full overflow-x-hidden space-y-5">
         <DashboardHero
+          variant="dark"
           eyebrow="Financeiro"
           icon={FileBarChart}
           title="DRE"

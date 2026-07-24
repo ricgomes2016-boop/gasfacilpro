@@ -339,8 +339,8 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
       {/* Layout principal: 2 colunas - Custos à esquerda, Canais à direita */}
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 w-full min-w-0">
         {/* COLUNA ESQUERDA: Custos / Despesas */}
-        <Card className="border-border min-w-0 overflow-hidden">
-          <CardHeader className="py-2 px-3 bg-muted/60 border-b">
+        <Card className="min-w-0 overflow-hidden border-border/60 bg-card/95 shadow-[var(--elev-2)]">
+          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-xs font-bold uppercase tracking-widest">Custos / Despesas</CardTitle>
               <span className="text-xs font-bold">Valores</span>
@@ -359,8 +359,8 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                   {custosAgrupados.map((grupo, gi) => (
                     <> 
                       {grupo.items.map((c, ci) => (
-                        <TableRow key={c.id} className="hover:bg-muted/30">
-                          <TableCell className="py-1.5 pl-2 pr-1.5 sm:px-3 text-xs border-r align-top">
+                        <TableRow key={c.id} className="border-border/50 hover:bg-muted/30">
+                          <TableCell className="py-2 pl-3 pr-2 sm:px-4 text-xs border-r border-border/50 align-top">
                             <div className="flex items-start gap-1.5 min-w-0">
                               <span className="shrink-0 text-muted-foreground w-4 text-right text-[10px]">{gi * 10 + ci + 1}</span>
                               <span data-cost-overflow-check="true" className="min-w-0 break-words leading-snug">{c.nome}</span>
@@ -369,26 +369,26 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                               )}
                             </div>
                           </TableCell>
-                          <TableCell data-cost-overflow-check="true" className={`w-[118px] sm:w-[132px] py-1.5 pl-1.5 pr-2 sm:px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${c.valor > 0 ? "" : "text-muted-foreground"}`}>
+                          <TableCell data-cost-overflow-check="true" className={`w-[118px] sm:w-[132px] py-2 pl-2 pr-3 sm:px-4 text-right text-xs tabular-nums font-semibold whitespace-nowrap ${c.valor > 0 ? "" : "text-muted-foreground"}`}>
                             {c.valor > 0 ? `R$ ${fmt(c.valor)}` : "—"}
                           </TableCell>
                         </TableRow>
                       ))}
                       {/* Subtotal do grupo */}
-                      <TableRow className="bg-muted/40 border-t">
-                        <TableCell className="py-1 pl-2 pr-1.5 sm:px-3 text-xs font-bold border-r text-muted-foreground uppercase tracking-wider leading-snug">
+                      <TableRow className="bg-muted/45 border-t border-border/60">
+                        <TableCell className="py-2 pl-3 pr-2 sm:px-4 text-xs font-bold border-r border-border/50 text-muted-foreground uppercase tracking-wider leading-snug">
                           {grupo.label}
                         </TableCell>
-                        <TableCell className="py-1 pl-1.5 pr-2 sm:px-3 text-right text-xs tabular-nums font-bold whitespace-nowrap">
+                        <TableCell className="py-2 pl-2 pr-3 sm:px-4 text-right text-xs tabular-nums font-bold whitespace-nowrap">
                           R$ {fmt(grupo.total)}
                         </TableCell>
                       </TableRow>
                     </>
                   ))}
                   {/* TOTAL GERAL */}
-                  <TableRow className="bg-destructive/5 border-t-2 border-destructive/20">
-                    <TableCell className="py-2 pl-2 pr-1.5 sm:px-3 font-bold text-sm border-r">Total</TableCell>
-                    <TableCell className="py-2 pl-1.5 pr-2 sm:px-3 text-right font-bold text-sm tabular-nums text-destructive whitespace-nowrap">
+                  <TableRow className="bg-destructive/8 border-t-2 border-destructive/20">
+                    <TableCell className="py-3 pl-3 pr-2 sm:px-4 font-bold text-sm border-r border-border/50">Total</TableCell>
+                    <TableCell className="py-3 pl-2 pr-3 sm:px-4 text-right font-bold text-sm tabular-nums text-destructive whitespace-nowrap">
                       R$ {fmt(totalCustos)}
                     </TableCell>
                   </TableRow>
@@ -399,36 +399,36 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
         </Card>
 
         {/* COLUNA DIREITA: Canais de Venda */}
-        <Card className="border-border min-w-0 overflow-hidden">
-          <CardHeader className="py-2 px-3 bg-muted/60 border-b">
+        <Card className="min-w-0 overflow-hidden border-border/60 bg-card/95 shadow-[var(--elev-2)]">
+          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-3">
             <CardTitle className="text-xs font-bold uppercase tracking-widest">Vendas por Canal</CardTitle>
           </CardHeader>
           <CardContent className="p-0 min-w-0 max-w-full overflow-hidden">
             <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
             <Table className="min-w-[680px]">
               <TableHeader>
-                <TableRow className="bg-muted/30">
-                  <TableHead className="py-1 px-2 text-[10px] font-bold uppercase">Canal</TableHead>
-                  <TableHead className="py-1 px-2 text-[10px] font-bold uppercase text-right">Qtde</TableHead>
-                  <TableHead className="py-1 px-2 text-[10px] font-bold uppercase text-right">P. Venda</TableHead>
-                  <TableHead className="py-1 px-2 text-[10px] font-bold uppercase text-right">Total R$</TableHead>
-                  <TableHead className="py-1 px-2 text-[10px] font-bold uppercase text-right">P. Compra</TableHead>
-                  <TableHead className="py-1 px-2 text-[10px] font-bold uppercase text-right">MC R$</TableHead>
-                  <TableHead className="py-1 px-2 text-[10px] font-bold uppercase text-right">Ton.</TableHead>
+                <TableRow className="bg-muted/45">
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase">Canal</TableHead>
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase text-right">Qtde</TableHead>
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase text-right">P. Venda</TableHead>
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase text-right">Total R$</TableHead>
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase text-right">P. Compra</TableHead>
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase text-right">MC R$</TableHead>
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase text-right">Ton.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {canais.length === 0 ? (
                   <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8 text-xs">Nenhuma venda no período</TableCell></TableRow>
                 ) : canais.map(c => (
-                  <TableRow key={c.canal} className="hover:bg-muted/30">
-                    <TableCell className="py-1 px-2 text-xs font-medium">{c.canal}</TableCell>
-                    <TableCell className="py-1 px-2 text-xs text-right tabular-nums">{c.qtde}</TableCell>
-                    <TableCell className="py-1 px-2 text-xs text-right tabular-nums">{fmt(c.precoVenda)}</TableCell>
-                    <TableCell className="py-1 px-2 text-xs text-right tabular-nums font-medium">{fmt(c.totalRS)}</TableCell>
-                    <TableCell className="py-1 px-2 text-xs text-right tabular-nums">{fmt(c.precoCompra)}</TableCell>
-                    <TableCell className="py-1 px-2 text-xs text-right tabular-nums text-success">{fmt(c.margemRS)}</TableCell>
-                    <TableCell className="py-1 px-2 text-xs text-right tabular-nums">{c.tonelagem.toFixed(2)}</TableCell>
+                  <TableRow key={c.canal} className="border-border/50 hover:bg-muted/30">
+                    <TableCell className="py-2 px-3 text-xs font-medium">{c.canal}</TableCell>
+                    <TableCell className="py-2 px-3 text-xs text-right tabular-nums">{c.qtde}</TableCell>
+                    <TableCell className="py-2 px-3 text-xs text-right tabular-nums">{fmt(c.precoVenda)}</TableCell>
+                    <TableCell className="py-2 px-3 text-xs text-right tabular-nums font-semibold">{fmt(c.totalRS)}</TableCell>
+                    <TableCell className="py-2 px-3 text-xs text-right tabular-nums">{fmt(c.precoCompra)}</TableCell>
+                    <TableCell className="py-2 px-3 text-xs text-right tabular-nums font-semibold text-success">{fmt(c.margemRS)}</TableCell>
+                    <TableCell className="py-2 px-3 text-xs text-right tabular-nums">{c.tonelagem.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
                 {canais.length > 0 && (

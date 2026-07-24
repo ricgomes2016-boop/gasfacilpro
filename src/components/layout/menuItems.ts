@@ -146,6 +146,7 @@ export const menuItems: MenuItem[] = [
       { icon: Route, label: "Rotas de Entrega", path: "/operacional/rotas" },
       { icon: Factory, label: "Fornecedores", path: "/operacional/fornecedores" },
       { icon: FileSpreadsheet, label: "Análise de Resultados", path: "/operacional/analise-resultados" },
+      { icon: FileText, label: "DRE", path: "/operacional/dre" },
       { icon: CalendarRange, label: "Planejamento", path: "/operacional/planejamento" },
       { icon: Target, label: "Metas e Desafios", path: "/operacional/metas" },
       { icon: Users, label: "Vendedores", path: "/operacional/vendedores" },
