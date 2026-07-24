@@ -367,9 +367,14 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
       </div>
 
       <div className="space-y-2 md:hidden">
-        <details className="overflow-hidden rounded-[var(--radius)] border border-border/60 bg-card shadow-[var(--elev-1)]">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Custos por grupo</summary>
-          <div className="border-t border-border/60">
+        <Card className="overflow-hidden border-border/60 bg-card shadow-[var(--elev-1)]">
+          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-sm font-semibold">Custos e despesas</CardTitle>
+              <span className="text-sm font-bold tabular-nums text-destructive">R$ {fmt(totalCustos)}</span>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
             {custosAgrupados.map((grupo) => (
               <div key={grupo.key} className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-2.5 last:border-0">
                 <span className="text-sm text-muted-foreground">{grupo.label}</span>
@@ -380,10 +385,10 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
               <span className="text-sm font-semibold">Total</span>
               <span className="font-bold tabular-nums text-destructive">R$ {fmt(totalCustos)}</span>
             </div>
-          </div>
-        </details>
+          </CardContent>
+        </Card>
 
-        <details className="overflow-hidden rounded-[var(--radius)] border border-border/60 bg-card shadow-[var(--elev-1)]">
+        <details open className="overflow-hidden rounded-[var(--radius)] border border-border/60 bg-card shadow-[var(--elev-1)]">
           <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Vendas por canal</summary>
           <div className="border-t border-border/60">
             {canais.slice(0, 6).map((canal) => (

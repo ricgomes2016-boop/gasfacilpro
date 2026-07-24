@@ -425,62 +425,56 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
             </table>
           </div>
 
-          <div className="md:hidden w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
-            <table className="w-max min-w-full border-separate border-spacing-0 text-[12px]">
-              <thead className="sticky top-0 z-30">
-                <tr>
-                  <th className="sticky left-0 z-40 w-[170px] min-w-[170px] bg-card px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground shadow-[2px_0_0_hsl(var(--border))]">
-                    DRE
-                  </th>
-                  {mesesExibidos.map(m => (
-                    <th key={m} className="w-[104px] min-w-[104px] bg-muted px-2.5 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                      {m}
-                    </th>
-                  ))}
-                  <th className="w-[76px] min-w-[76px] bg-muted px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                    AV
-                  </th>
-                  <th className="w-[136px] min-w-[136px] bg-muted px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-foreground">
-                    Acum.
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {dreExibida.map((item, index) => {
-                  const total = item.valores.reduce((s, v) => s + v, 0);
-                  const av = totalReceita > 0 ? (total / totalReceita) * 100 : 0;
-                  const isSubtotal = item.tipo === "subtotal";
-                  const isResultado = item.tipo === "resultado";
-                  const isNegative = total < 0;
-                  const rowBg = isResultado ? "bg-primary/10" : isSubtotal ? "bg-muted/45" : "bg-card";
-                  const fixedCellBg = isResultado ? "bg-primary" : isSubtotal ? "bg-muted" : "bg-card";
+          <div className="grid gap-2 p-3 md:hidden">
+            {dreExibida.map((item, index) => {
+              const total = item.valores.reduce((s, v) => s + v, 0);
+              const av = totalReceita > 0 ? (total / totalReceita) * 100 : 0;
+              const isSubtotal = item.tipo === "subtotal";
+              const isResultado = item.tipo === "resultado";
+              const isNegative = total < 0;
+              const isDespesa = item.tipo === "despesa" || item.tipo === "custo" || item.tipo === "deducao";
+              const tone = isResultado
+                ? "border-primary/35 bg-primary text-primary-foreground shadow-[0_14px_34px_hsl(var(--primary)/0.22)]"
+                : isSubtotal
+                  ? "border-border/70 bg-muted/55"
+                  : "border-border/60 bg-card";
 
-                  return (
-                    <tr key={index} className={`${rowBg} ${isResultado ? "ring-1 ring-inset ring-primary/20" : ""}`}>
-                      <td className={`sticky left-0 z-20 w-[170px] min-w-[170px] border-b border-border/50 px-3 py-3 align-middle shadow-[2px_0_0_hsl(var(--border))] ${fixedCellBg}`}>
-                        <span className={`block whitespace-normal break-words leading-snug ${item.indent && !isSubtotal ? "pl-2 text-muted-foreground" : ""} ${isSubtotal || isResultado ? "text-[11px] font-bold uppercase" : "text-[12px] font-semibold"} ${isResultado ? "text-primary-foreground" : ""}`}>
-                          {item.categoria}
-                        </span>
-                      </td>
-                      {item.valores.map((v, i) => (
-                        <td
-                          key={`${item.categoria}-${mesesExibidos[i]}`}
-                          className={`w-[104px] min-w-[104px] border-b border-border/50 px-2.5 py-3 text-right align-middle text-[12px] tabular-nums whitespace-nowrap ${isSubtotal || isResultado ? "font-bold" : "font-medium"} ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-success" : ""}`}
-                        >
-                          {formatCurrency(v)}
-                        </td>
-                      ))}
-                      <td className={`w-[76px] min-w-[76px] border-b border-border/50 px-3 py-3 text-right align-middle text-[11px] tabular-nums whitespace-nowrap ${isSubtotal || isResultado ? "font-bold" : "text-muted-foreground"}`}>
-                        {formatPercent(av)}
-                      </td>
-                      <td className={`w-[136px] min-w-[136px] border-b border-border/50 bg-muted/20 px-3 py-3 text-right align-middle text-[12px] font-bold tabular-nums whitespace-nowrap ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-success" : ""}`}>
+              return (
+                <div key={`${item.categoria}-${index}`} className={`rounded-[var(--radius)] border p-3 ${tone}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className={`leading-snug ${isSubtotal || isResultado ? "text-[12px] font-bold uppercase tracking-wide" : "text-sm font-semibold"} ${item.indent && !isSubtotal ? "text-muted-foreground" : ""} ${isResultado ? "text-primary-foreground" : ""}`}>
+                        {item.categoria}
+                      </p>
+                      <p className={`mt-1 text-[10px] font-semibold uppercase tracking-wider ${isResultado ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                        AV {formatPercent(av)}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className={`text-[10px] font-semibold uppercase tracking-wider ${isResultado ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                        Acumulado
+                      </p>
+                      <p className={`mt-1 text-sm font-bold tabular-nums ${isNegative && !isResultado ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-primary-foreground" : ""}`}>
                         {formatCurrency(total)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {item.valores.map((v, i) => (
+                      <div key={`${item.categoria}-${mesesExibidos[i]}`} className={`rounded-md px-2.5 py-2 ${isResultado ? "bg-white/12" : "bg-muted/35"}`}>
+                        <p className={`text-[10px] font-semibold uppercase tracking-wider ${isResultado ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                          {mesesExibidos[i]}
+                        </p>
+                        <p className={`mt-0.5 text-sm font-semibold tabular-nums ${v < 0 && !isResultado ? "text-destructive" : ""} ${isResultado ? "text-primary-foreground" : ""}`}>
+                          {isDespesa && v === 0 ? "R$ 0,00" : formatCurrency(v)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
