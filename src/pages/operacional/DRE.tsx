@@ -27,6 +27,11 @@ interface DRELine {
 
 const STATUS_RECEITA_DRE = ["entregue", "finalizado", "pago_cartao"];
 
+const isTransferenciaInterna = (categoria?: string | null, descricao?: string | null) => {
+  const text = `${categoria || ""} ${descricao || ""}`.toLowerCase();
+  return text.includes("depósito banc") || text.includes("deposito banc") || text.includes("transferência caixa") || text.includes("transferencia caixa");
+};
+
 export default function DRE({ embedded = false }: { embedded?: boolean }) {
   const { unidadeAtual } = useUnidade();
   const [loading, setLoading] = useState(true);
@@ -79,6 +84,17 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
         let compq = supabase.from("compras").select("valor_total, valor_frete, pago, tipo_produto").gte("data_compra", inicioDate).lte("data_compra", fimDate);
         if (unidadeAtual?.id) compq = compq.eq("unidade_id", unidadeAtual.id);
 
+        let caixaQ = supabase
+          .from("movimentacoes_caixa")
+          .select("valor, categoria, descricao, status")
+          .eq("tipo", "saida")
+          .neq("status", "rejeitada")
+          .is("compra_id", null)
+          .is("pedido_id", null)
+          .gte("created_at", inicio)
+          .lte("created_at", fim);
+        if (unidadeAtual?.id) caixaQ = caixaQ.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
+
         // Despesas contábeis registradas
         let dcq = supabase.from("despesas_contabeis").select("valor, categoria").gte("data_vencimento", inicioDate).lte("data_vencimento", fimDate);
         if (unidadeAtual?.id) dcq = dcq.eq("unidade_id", unidadeAtual.id);
@@ -88,8 +104,9 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
           { data: despesasBanco },
           { data: contasPagar },
           { data: compras },
+          { data: despesasCaixa },
           { data: despesasContabeis },
-        ] = await Promise.all([pq, dq, cpq, compq, dcq]);
+        ] = await Promise.all([pq, dq, cpq, compq, caixaQ, dcq]);
 
         receitaBruta.push(pedidos?.reduce((s, p) => s + (p.valor_total || 0), 0) || 0);
 
@@ -108,6 +125,9 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
         // + movimentações bancárias de saída + despesas contábeis
         const todasDespesas = [
           ...(despesasBanco || []).map((d: any) => ({ categoria: d.categoria, valor: Number(d.valor) })),
+          ...(despesasCaixa || [])
+            .filter((d: any) => !isTransferenciaInterna(d.categoria, d.descricao))
+            .map((d: any) => ({ categoria: d.categoria || d.descricao || "Despesas do Caixa", valor: Number(d.valor) })),
           ...(contasPagar || [])
             .filter((d: any) => {
               const c = (d.categoria || "").toLowerCase();

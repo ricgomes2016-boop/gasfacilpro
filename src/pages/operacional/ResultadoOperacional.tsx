@@ -52,6 +52,11 @@ const grupoLabels: Record<string, string> = {
   diversos: "Diversos",
 };
 
+const isTransferenciaInterna = (categoria?: string | null, descricao?: string | null) => {
+  const text = `${categoria || ""} ${descricao || ""}`.toLowerCase();
+  return text.includes("depósito banc") || text.includes("deposito banc") || text.includes("transferência caixa") || text.includes("transferencia caixa");
+};
+
 export default function ResultadoOperacional({ embedded = false }: { embedded?: boolean }) {
   const { unidadeAtual } = useUnidade();
   const isMobile = useIsMobile();
@@ -110,6 +115,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
         { data: categorias },
         pedidosRes,
         contasPagarRes,
+        despesasCaixaRes,
         { data: produtos },
       ] = await Promise.all([
         supabase.from("categorias_despesa").select("*").eq("ativo", true).order("ordem"),
@@ -128,18 +134,36 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
           if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
           return q;
         })(),
+        (() => {
+          let q = supabase.from("movimentacoes_caixa")
+            .select("valor, categoria, descricao, status")
+            .eq("tipo", "saida")
+            .neq("status", "rejeitada")
+            .is("compra_id", null)
+            .is("pedido_id", null)
+            .gte("created_at", inicio)
+            .lte("created_at", fim);
+          if (unidadeAtual?.id) q = q.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
+          return q;
+        })(),
         supabase.from("produtos").select("id, nome, preco, preco_custo"),
       ]);
 
       const pedidos = pedidosRes.data || [];
       const contasPagar = contasPagarRes.data || [];
+      const despesasCaixa = (despesasCaixaRes.data || []).filter((d: any) => !isTransferenciaInterna(d.categoria, d.descricao));
 
       const cpPorCategoria: Record<string, number> = {};
       contasPagar.forEach(cp => {
         const cat = (cp.categoria || cp.descricao || "Diversos").toString().toLowerCase().trim();
         cpPorCategoria[cat] = (cpPorCategoria[cat] || 0) + (Number(cp.valor) || 0);
       });
+      despesasCaixa.forEach((despesa: any) => {
+        const cat = (despesa.categoria || despesa.descricao || "Despesas do Caixa").toString().toLowerCase().trim();
+        cpPorCategoria[cat] = (cpPorCategoria[cat] || 0) + (Number(despesa.valor) || 0);
+      });
 
+      const categoriasCorrespondidas = new Set<string>();
       const custosCalculados: CustoItem[] = ((categorias || []) as any[]).map(cat => {
         let valorReal = 0;
         const nomeLC = cat.nome.toLowerCase().trim();
@@ -148,9 +172,22 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
             (nomeLC.length >= 5 && cpCat.includes(nomeLC.substring(0, 5))) ||
             (cpCat.length >= 5 && nomeLC.includes(cpCat.substring(0, 5)))) {
             valorReal += val;
+            categoriasCorrespondidas.add(cpCat);
           }
         }
         return { id: cat.id, nome: cat.nome, valor: valorReal || cat.valor_padrao || 0, valorReal, grupo: cat.grupo, tipo: cat.tipo };
+      });
+
+      Object.entries(cpPorCategoria).forEach(([categoria, valor]) => {
+        if (categoriasCorrespondidas.has(categoria) || valor <= 0) return;
+        custosCalculados.push({
+          id: `caixa-${categoria}`,
+          nome: `Despesa caixa: ${categoria.replace(/^\w/, c => c.toUpperCase())}`,
+          valor,
+          valorReal: valor,
+          grupo: "diversos",
+          tipo: "variavel",
+        });
       });
 
       setCustos(custosCalculados);

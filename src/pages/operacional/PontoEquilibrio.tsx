@@ -23,6 +23,11 @@ interface CustoFixo {
   auto?: boolean;
 }
 
+const isTransferenciaInterna = (categoria?: string | null, descricao?: string | null) => {
+  const text = `${categoria || ""} ${descricao || ""}`.toLowerCase();
+  return text.includes("depósito banc") || text.includes("deposito banc") || text.includes("transferência caixa") || text.includes("transferencia caixa");
+};
+
 export default function PontoEquilibrio({ embedded = false }: { embedded?: boolean }) {
   const { unidadeAtual } = useUnidade();
   const [loading, setLoading] = useState(true);
@@ -49,6 +54,7 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
         pedidosRes,
         funcRes,
         abastRes,
+        caixaRes,
       ] = await Promise.all([
         supabase.from("categorias_despesa").select("*").eq("ativo", true).eq("tipo", "fixo").order("ordem"),
         supabase.from("produtos").select("id, nome, preco"),
@@ -69,23 +75,54 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
           if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
           return q;
         })(),
+        (() => {
+          let q = supabase.from("movimentacoes_caixa")
+            .select("valor, categoria, descricao, status")
+            .eq("tipo", "saida")
+            .neq("status", "rejeitada")
+            .is("compra_id", null)
+            .is("pedido_id", null)
+            .gte("created_at", inicio)
+            .lte("created_at", fim);
+          if (unidadeAtual?.id) q = q.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
+          return q;
+        })(),
       ]);
 
       const produtos = produtosRes.data || [];
       const pedidos = pedidosRes.data || [];
       const funcionarios = funcRes.data || [];
       const abastecimentos = abastRes.data || [];
+      const despesasCaixa = (caixaRes.data || []).filter((d: any) => !isTransferenciaInterna(d.categoria, d.descricao));
 
       // Auto custos fixos from categorias + real system data
       const totalSalarios = funcionarios.reduce((s, f) => s + (Number(f.salario) || 0), 0);
       const totalCombustivel = abastecimentos.reduce((s, a) => s + (Number(a.valor) || 0), 0);
+      const caixaPorCategoria = new Map<string, number>();
+      despesasCaixa.forEach((d: any) => {
+        const cat = (d.categoria || d.descricao || "Despesas do Caixa").toString().trim();
+        caixaPorCategoria.set(cat, (caixaPorCategoria.get(cat) || 0) + (Number(d.valor) || 0));
+      });
+      const categoriasCaixaUsadas = new Set<string>();
 
       const custosAuto: CustoFixo[] = (categorias || []).map((cat: any) => {
         let valor = cat.valor_padrao || 0;
         const nomeLC = cat.nome.toLowerCase();
         if (nomeLC.includes("salário") || nomeLC.includes("salario")) valor = totalSalarios || valor;
         else if (nomeLC.includes("combustível") || nomeLC.includes("combustivel")) valor = totalCombustivel || valor;
+        for (const [categoria, total] of caixaPorCategoria.entries()) {
+          const caixaLC = categoria.toLowerCase();
+          if (caixaLC === nomeLC || caixaLC.includes(nomeLC) || nomeLC.includes(caixaLC)) {
+            valor = total;
+            categoriasCaixaUsadas.add(categoria);
+          }
+        }
         return { id: cat.id, descricao: cat.nome, valor, auto: true };
+      });
+
+      caixaPorCategoria.forEach((valor, categoria) => {
+        if (categoriasCaixaUsadas.has(categoria) || valor <= 0) return;
+        custosAuto.push({ id: `caixa-${categoria}`, descricao: `Despesa caixa: ${categoria}`, valor, auto: true });
       });
 
       // If no categories configured, use sensible defaults

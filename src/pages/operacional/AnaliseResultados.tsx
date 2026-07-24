@@ -119,6 +119,11 @@ const toPeriod = (date: Date): Period => ({
 const sumBy = <T,>(rows: T[] | null | undefined, pick: (row: T) => number | null | undefined) =>
   (rows || []).reduce((total, row) => total + (Number(pick(row)) || 0), 0);
 
+const isTransferenciaInterna = (categoria?: string | null, descricao?: string | null) => {
+  const text = `${categoria || ""} ${descricao || ""}`.toLowerCase();
+  return text.includes("depósito banc") || text.includes("deposito banc") || text.includes("transferência caixa") || text.includes("transferencia caixa");
+};
+
 const variation = (current: number, previous: number) => {
   if (!previous) return 0;
   return ((current - previous) / Math.abs(previous)) * 100;
@@ -204,7 +209,7 @@ export default function AnaliseResultados() {
         .from("movimentacoes_caixa")
         .select("valor, categoria, descricao")
         .eq("tipo", "saida")
-        .eq("status", "aprovada")
+        .neq("status", "rejeitada")
         .is("compra_id", null)
         .is("pedido_id", null)
         .gte("created_at", period.startIso)
@@ -212,7 +217,7 @@ export default function AnaliseResultados() {
     );
     const { data, error: queryError } = await query;
     if (queryError) throw queryError;
-    return (data || []) as CaixaRow[];
+    return ((data || []) as CaixaRow[]).filter((despesa) => !isTransferenciaInterna(despesa.categoria, despesa.descricao));
   };
 
   const buildPeriodData = async (period: Period) => {
