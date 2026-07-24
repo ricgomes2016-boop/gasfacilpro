@@ -884,10 +884,10 @@ export default function CaixaDia() {
         <Tabs defaultValue="movimentacoes" className="space-y-4">
           <div className="-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsList className="inline-flex h-11 min-w-max justify-start">
-            <TabsTrigger value="movimentacoes" className="shrink-0 px-3 text-xs sm:text-sm">Movimentações</TabsTrigger>
-            <TabsTrigger value="produtos" className="shrink-0 px-3 text-xs sm:text-sm">Produtos</TabsTrigger>
-            <TabsTrigger value="pagamentos" className="shrink-0 px-3 text-xs sm:text-sm">Pagamentos</TabsTrigger>
-            <TabsTrigger value="tesouraria" className="shrink-0 px-3 text-xs sm:text-sm">💰 Tesouraria</TabsTrigger>
+            <TabsTrigger value="movimentacoes" className="shrink-0 px-2 sm:px-3 text-xs sm:text-sm">Movimentações</TabsTrigger>
+            <TabsTrigger value="produtos" className="shrink-0 px-2 sm:px-3 text-xs sm:text-sm">Produtos</TabsTrigger>
+            <TabsTrigger value="pagamentos" className="shrink-0 px-2 sm:px-3 text-xs sm:text-sm">Pagamentos</TabsTrigger>
+            <TabsTrigger value="tesouraria" className="shrink-0 px-2 sm:px-3 text-xs sm:text-sm">Tesouraria</TabsTrigger>
           </TabsList>
           </div>
 
