@@ -5,7 +5,9 @@ const corsHeaders = {
 
 Deno.serve((req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "GET") return new Response("Method not allowed", { status: 405 });
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    return new Response("Method not allowed", { status: 405 });
+  }
 
   const publicKey = Deno.env.get("PAGBANK_CONNECT_PUBLIC_KEY") ||
     (Deno.env.get("PAGBANK_CONNECT_PUBLIC_KEY_B64")
@@ -17,6 +19,16 @@ Deno.serve((req) => {
     return new Response(JSON.stringify({ error: "PagBank public key not configured" }), {
       status: 503,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (req.method === "HEAD") {
+    return new Response(null, {
+      headers: {
+        ...corsHeaders,
+        "Cache-Control": "public, max-age=300",
+        "Content-Type": "application/json",
+      },
     });
   }
 

@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
     // ============ test_connection ============
     if (action === "test_connection") {
       try {
-        await pagFetch("/public/payment-methods", token, ambiente);
+        await pagFetch("/orders?size=1", token, ambiente);
         return json({ success: true, ambiente });
       } catch (e: any) {
         return json({ success: false, error: e.message }, 200);
