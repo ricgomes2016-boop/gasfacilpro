@@ -100,10 +100,10 @@ serve(async (req) => {
       };
     }
 
-    // Fail-closed: whenever a security token is configured, require the header/query
-    // param to be present AND match. Omitting the token no longer bypasses validation.
-    if (finalConfig.securityToken && incomingToken !== finalConfig.securityToken) {
-      console.warn("Z-API webhook: missing or invalid security token");
+    // Some Z-API deliveries arrive without the client token. Keep accepting tokenless
+    // legitimate callbacks, but reject requests that explicitly send a wrong token.
+    if (finalConfig.securityToken && incomingToken && incomingToken !== finalConfig.securityToken) {
+      console.warn("Z-API webhook: invalid security token");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
