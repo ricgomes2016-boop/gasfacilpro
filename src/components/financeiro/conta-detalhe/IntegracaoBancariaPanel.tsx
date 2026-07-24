@@ -304,7 +304,8 @@ function PagBankForm({
             >
               ambiente de testes
             </a>
-            ).
+            ). Sandbox exige o token da aba Tokens no Portal do Desenvolvedor; produção exige token de Venda Online
+            com a conta homologada/liberada para API.
           </p>
         </div>
 

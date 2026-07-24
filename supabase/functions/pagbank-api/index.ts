@@ -25,7 +25,16 @@ function explainPagBankError(status: number, message: string, ambiente: string) 
     return [
       "PagBank recusou o token.",
       `Ambiente selecionado: ${ambiente === "producao" ? "Produção" : "Sandbox"}.`,
-      "Confira se o token é deste mesmo ambiente, se foi copiado sem o prefixo Bearer e se a conta já está homologada/liberada para API.",
+      ambiente === "sandbox"
+        ? "Use o token da aba Tokens no Portal do Desenvolvedor PagBank, não o token de Venda Online da conta de produção."
+        : "Confira se o token é de produção e se a conta já passou pela homologação/liberação das APIs PagBank.",
+    ].join(" ");
+  }
+  if (status === 502 || status === 503 || status === 504) {
+    return [
+      `PagBank respondeu HTTP ${status} no ambiente ${ambiente === "producao" ? "Produção" : "Sandbox"}.`,
+      "Isso normalmente indica instabilidade/bloqueio temporário no gateway do PagBank ou conta de produção ainda não liberada para essa API.",
+      "Tente novamente em alguns minutos e confirme a homologação da API no PagBank.",
     ].join(" ");
   }
   return `PagBank: ${message}`;
