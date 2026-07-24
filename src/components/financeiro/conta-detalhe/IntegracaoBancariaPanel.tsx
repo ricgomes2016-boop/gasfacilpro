@@ -163,6 +163,7 @@ function PagBankForm({
   const [syncing, setSyncing] = useState(false);
 
   const hasToken = Boolean(cfg.token_mascara);
+  const cleanToken = (value: string) => value.trim().replace(/^Bearer\s+/i, "").trim();
 
   const salvar = async () => {
     setSaving(true);
@@ -174,8 +175,9 @@ function PagBankForm({
         conta_bancaria_id: contaId,
       };
       if (token.trim()) {
-        newConfig.token = token.trim();
-        newConfig.token_mascara = `••••${token.trim().slice(-4)}`;
+        const normalizedToken = cleanToken(token);
+        newConfig.token = normalizedToken;
+        newConfig.token_mascara = `••••${normalizedToken.slice(-4)}`;
       }
       const payload = {
         unidade_id: unidadeId,
@@ -205,7 +207,7 @@ function PagBankForm({
       });
       if (error) throw error;
       if (data?.success) toast.success("Conexão OK com PagBank");
-      else toast.error(data?.error || "Falha na conexão");
+      else toast.error(data?.error || "Falha na conexão", { duration: 9000 });
     } catch (e: any) {
       toast.error(e.message || "Erro ao testar");
     } finally {

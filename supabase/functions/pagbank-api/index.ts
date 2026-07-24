@@ -16,11 +16,27 @@ function baseUrl(ambiente: string) {
     : "https://sandbox.api.pagseguro.com";
 }
 
+function normalizeToken(token: string) {
+  return token.trim().replace(/^Bearer\s+/i, "").trim();
+}
+
+function explainPagBankError(status: number, message: string, ambiente: string) {
+  if (status === 401 || status === 403) {
+    return [
+      "PagBank recusou o token.",
+      `Ambiente selecionado: ${ambiente === "producao" ? "Produção" : "Sandbox"}.`,
+      "Confira se o token é deste mesmo ambiente, se foi copiado sem o prefixo Bearer e se a conta já está homologada/liberada para API.",
+    ].join(" ");
+  }
+  return `PagBank: ${message}`;
+}
+
 async function pagFetch(path: string, token: string, ambiente: string, init: RequestInit = {}) {
+  const authToken = normalizeToken(token);
   const res = await fetch(`${baseUrl(ambiente)}${path}`, {
     ...init,
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${authToken}`,
       "Content-Type": "application/json",
       Accept: "application/json",
       ...(init.headers || {}),
@@ -33,7 +49,7 @@ async function pagFetch(path: string, token: string, ambiente: string, init: Req
     const msg = data?.error_messages?.[0]?.description
       || data?.message
       || `HTTP ${res.status}`;
-    throw new Error(`PagBank: ${msg}`);
+    throw new Error(explainPagBankError(res.status, msg, ambiente));
   }
   return data;
 }
@@ -99,7 +115,7 @@ Deno.serve(async (req) => {
     // ============ test_connection ============
     if (action === "test_connection") {
       try {
-        await pagFetch("/orders?size=1", token, ambiente);
+        await pagFetch("/public-keys/card", token, ambiente);
         return json({ success: true, ambiente });
       } catch (e: any) {
         return json({ success: false, error: e.message }, 200);
