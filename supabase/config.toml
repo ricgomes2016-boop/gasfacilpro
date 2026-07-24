@@ -124,3 +124,6 @@ verify_jwt = false
 
 [functions.pagbank-webhook]
 verify_jwt = false
+
+[functions.pagbank-connect-public-key]
+verify_jwt = false

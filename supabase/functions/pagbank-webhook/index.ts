@@ -15,6 +15,23 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+function basicAuthMatches(req: Request): boolean {
+  const expectedUser = Deno.env.get("PAGBANK_WEBHOOK_BASIC_USER") || "";
+  const expectedPass = Deno.env.get("PAGBANK_WEBHOOK_BASIC_PASS") || "";
+  const auth = req.headers.get("authorization") || "";
+  if (!expectedUser || !expectedPass || !auth.toLowerCase().startsWith("basic ")) return false;
+  try {
+    const decoded = atob(auth.slice(6));
+    const separator = decoded.indexOf(":");
+    if (separator < 0) return false;
+    const user = decoded.slice(0, separator);
+    const pass = decoded.slice(separator + 1);
+    return safeEqual(user, expectedUser) && safeEqual(pass, expectedPass);
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -25,7 +42,8 @@ Deno.serve(async (req) => {
     req.headers.get("x-pagbank-token") ||
     req.headers.get("x-authenticity-token") ||
     "";
-  if (!expected || !provided || !safeEqual(expected, provided)) {
+  const tokenMatches = Boolean(expected && provided && safeEqual(expected, provided));
+  if (!tokenMatches && !basicAuthMatches(req)) {
     console.warn("pagbank-webhook: missing/invalid token");
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
