@@ -27,15 +27,15 @@ export function DashboardFinancialHero() {
 
       const [receberQ, pagarQ, receitaHojeQ] = await Promise.all([
         sb.from("contas_receber")
-          .select("valor, valor_recebido, status, data_vencimento")
+          .select("valor, status, vencimento")
           .or(`unidade_id.eq.${unidadeAtual!.id},unidade_id.is.null`)
           .in("status", ["pendente", "parcial", "atrasada", "vencida"])
-          .lte("data_vencimento", fimISO),
+          .lte("vencimento", fimISO),
         sb.from("contas_pagar")
-          .select("valor, valor_pago, status, data_vencimento")
+          .select("valor, status, vencimento")
           .or(`unidade_id.eq.${unidadeAtual!.id},unidade_id.is.null`)
           .in("status", ["pendente", "parcial", "atrasada", "vencida"])
-          .lte("data_vencimento", fimISO),
+          .lte("vencimento", fimISO),
         sb.from("pedidos")
           .select("valor_total, status")
           .or(`unidade_id.eq.${unidadeAtual!.id},unidade_id.is.null`)
@@ -44,11 +44,11 @@ export function DashboardFinancialHero() {
       ]);
 
       const receber = (receberQ.data || []).reduce(
-        (s: number, r: any) => s + (Number(r.valor || 0) - Number(r.valor_recebido || 0)),
+        (s: number, r: any) => s + Number(r.valor || 0),
         0
       );
       const pagar = (pagarQ.data || []).reduce(
-        (s: number, r: any) => s + (Number(r.valor || 0) - Number(r.valor_pago || 0)),
+        (s: number, r: any) => s + Number(r.valor || 0),
         0
       );
       const receitaHoje = (receitaHojeQ.data || [])

@@ -145,7 +145,15 @@ function getDynamicSuggestions(): string[] {
   return base.slice(0, 6);
 }
 
-export function AiAssistantChat({ fullPage = false, enableVoice = false }: { fullPage?: boolean; enableVoice?: boolean }) {
+export function AiAssistantChat({
+  fullPage = false,
+  enableVoice = false,
+  fullPageHeightClass,
+}: {
+  fullPage?: boolean;
+  enableVoice?: boolean;
+  fullPageHeightClass?: string;
+}) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -400,7 +408,7 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
   // History sidebar
   if (showHistory && fullPage) {
     return (
-      <div className={cn("flex flex-col", fullPage ? "h-[calc(100vh-120px)]" : "h-full")}>
+      <div className={cn("flex flex-col", fullPage ? fullPageHeightClass || "h-[calc(100vh-120px)]" : "h-full")}>
         <div className="flex items-center gap-2 p-3 border-b">
           <Button variant="ghost" size="icon" onClick={() => setShowHistory(false)}>
             <ChevronLeft className="h-4 w-4" />
@@ -441,7 +449,7 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
   }
 
   return (
-    <div className={cn("flex flex-col overflow-hidden bg-card", fullPage ? "h-[calc(100vh-260px)] sm:h-[calc(100vh-220px)]" : "h-full min-h-0")}>
+    <div className={cn("flex flex-col overflow-hidden bg-card", fullPage ? fullPageHeightClass || "h-[calc(100vh-260px)] sm:h-[calc(100vh-220px)]" : "h-full min-h-0")}>
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 min-h-0 bg-gradient-to-b from-muted/20 to-background">
         {messages.length === 0 && (

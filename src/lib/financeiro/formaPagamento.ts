@@ -132,6 +132,18 @@ export function formatFormaPagamentoLabel(
   if (!s) return "—";
   const lower = norm(s);
 
+  if (lower.startsWith("multiplo:")) {
+    const partes = s
+      .slice("multiplo:".length)
+      .split(/[,+]/)
+      .map((parte) => parte.trim())
+      .filter(Boolean);
+
+    if (partes.length) {
+      return partes.map((parte) => formatFormaPagamentoLabel(parte, customs, opts)).join(" + ");
+    }
+  }
+
   if (BUILTIN_LABELS[lower]) return BUILTIN_LABELS[lower];
 
   if (!/^custom_(avista|aprazo)_/.test(lower) && /[A-ZÁÉÍÓÚÃÂÊÔÇ ]/.test(s)) {

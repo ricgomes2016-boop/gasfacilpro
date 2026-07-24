@@ -2,11 +2,14 @@ self.skipWaiting();
 
 const PRECACHE = "gasfacil-precache-v1";
 const precacheManifest = self.__WB_MANIFEST || [];
+const precacheUrls = new Set(
+  precacheManifest.map((entry) => new URL(entry.url || entry, self.location.origin).href)
+);
 
 async function networkFirst(request) {
   try {
     const response = await fetch(request);
-    if (response && response.ok) {
+    if (response && response.ok && request.mode === "navigate") {
       const cache = await caches.open(PRECACHE);
       await cache.put(request, response.clone());
     }
@@ -30,6 +33,15 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     Promise.all([
       self.clients.claim(),
+      caches.open(PRECACHE).then((cache) =>
+        cache.keys().then((requests) =>
+          Promise.all(
+            requests
+              .filter((request) => !precacheUrls.has(request.url) && request.mode !== "navigate")
+              .map((request) => cache.delete(request))
+          )
+        )
+      ),
       caches.keys().then((keys) =>
         Promise.all(keys.filter((key) => key !== PRECACHE).map((key) => caches.delete(key)))
       ),
@@ -45,7 +57,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(caches.match(event.request).then((cached) => cached || networkFirst(event.request)));
+  if (precacheUrls.has(new URL(event.request.url).href)) {
+    event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+    return;
+  }
+
+  event.respondWith(fetch(event.request));
 });
 
 self.addEventListener("message", (event) => {

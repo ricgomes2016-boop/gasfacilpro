@@ -66,7 +66,7 @@ export function AgentDrawer() {
             </Button>
           </SheetHeader>
           <div className="flex-1 overflow-hidden">
-            <AiAssistantChat fullPage enableVoice />
+            <AiAssistantChat fullPage enableVoice fullPageHeightClass="h-full min-h-0" />
           </div>
         </SheetContent>
       </Sheet>
