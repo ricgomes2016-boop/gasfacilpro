@@ -8,6 +8,7 @@ const Pedidos = lazy(() => import("@/pages/vendas/Pedidos"));
 const EditarPedido = lazy(() => import("@/pages/vendas/EditarPedido"));
 const PDV = lazy(() => import("@/pages/vendas/PDV"));
 const RelatorioVendas = lazy(() => import("@/pages/vendas/RelatorioDetalhadoVendas"));
+const RelatorioLucratividade = lazy(() => import("@/pages/vendas/RelatorioLucratividade"));
 const Devolucoes = lazy(() => import("@/pages/vendas/Devolucoes"));
 
 export const vendasRoutes: RouteConfig[] = [
