@@ -344,18 +344,19 @@ export default function RelatorioGerencial() {
     };
   }, [despesas, vendas]);
 
-  const vendasPorDia = useMemo(
-    () =>
-      Array.from({ length: 30 }, (_, i) => {
-        const dia = subDays(new Date(), 29 - i);
-        const diaStr = format(dia, "yyyy-MM-dd");
-        const total = vendas
-          .filter((v) => v.created_at?.startsWith(diaStr))
-          .reduce((s, v) => s + asNumber(v.valor_total), 0);
-        return { dia: format(dia, "dd/MM"), total };
-      }),
-    [vendas],
-  );
+  const vendasPorDia = useMemo(() => {
+    const concluidas = vendas.filter(
+      (v) => v.status === "entregue" || v.status === "concluido",
+    );
+    return Array.from({ length: 30 }, (_, i) => {
+      const dia = subDays(new Date(), 29 - i);
+      const diaStr = format(dia, "yyyy-MM-dd");
+      const total = concluidas
+        .filter((v) => v.created_at?.startsWith(diaStr))
+        .reduce((s, v) => s + asNumber(v.valor_total), 0);
+      return { dia: format(dia, "dd/MM"), total };
+    });
+  }, [vendas]);
 
   const despesasChart = useMemo(() => {
     const despesasPorCategoria = despesas.reduce((acc: Record<string, number>, d) => {
@@ -370,16 +371,20 @@ export default function RelatorioGerencial() {
   }, [despesas]);
 
   const pagamentoChart = useMemo(() => {
-    const formaPagamento = vendas.reduce((acc: Record<string, number>, v) => {
-      const fp = v.forma_pagamento || "Não informado";
-      acc[fp] = (acc[fp] || 0) + 1;
+    const concluidas = vendas.filter(
+      (v) => v.status === "entregue" || v.status === "concluido",
+    );
+    const totalPorForma = concluidas.reduce((acc: Record<string, number>, v) => {
+      const label = formaPagamentoLabel(v.forma_pagamento) || "Não informado";
+      acc[label] = (acc[label] || 0) + asNumber(v.valor_total);
       return acc;
     }, {});
 
-    return Object.entries(formaPagamento)
+    return Object.entries(totalPorForma)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [vendas]);
+  }, [vendas, formaPagamentoLabel]);
+
 
   const topProdutos = useMemo(
     () =>
