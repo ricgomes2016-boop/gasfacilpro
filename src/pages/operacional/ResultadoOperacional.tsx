@@ -146,16 +146,16 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
         })(),
         (() => {
           let q = supabase.from("movimentacoes_caixa")
-            .select("valor, categoria, descricao, status")
+            .select("valor, categoria, descricao, status, compra_id")
             .eq("tipo", "saida")
             .neq("status", "rejeitada")
-            .is("compra_id", null)
             .is("pedido_id", null)
             .gte("created_at", inicio)
             .lte("created_at", fim);
           if (unidadeAtual?.id) q = q.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
           return q;
         })(),
+
         supabase.from("produtos").select("id, nome, preco, preco_custo"),
       ]);
 
