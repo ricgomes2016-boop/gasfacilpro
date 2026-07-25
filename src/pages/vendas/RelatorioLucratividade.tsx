@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,8 @@ export default function RelatorioLucratividade() {
   const [incluirCP, setIncluirCP] = useState(true);
   const [incluirMC, setIncluirMC] = useState(true);
   const [incluirDC, setIncluirDC] = useState(true);
+  const [drillProduto, setDrillProduto] = useState<string | null>(null);
+  const [drillPeriodo, setDrillPeriodo] = useState<string | null>(null);
 
   const unidadeId = unidadeAtual?.id ?? null;
 
@@ -252,6 +255,123 @@ export default function RelatorioLucratividade() {
       return k;
     }
   };
+
+  // ---- Drill-down por produto ----
+  const drillProdutoItens = useMemo(() => {
+    if (!drillProduto) return [];
+    const rows: { pedidoId: string; data: string; qtd: number; preco: number; custo: number; subtotal: number; lucro: number }[] = [];
+    (pedidosQ.data ?? []).forEach((p) => {
+      (p.pedido_itens ?? []).forEach((it) => {
+        const nome = it.produtos?.nome ?? "Produto removido";
+        if (nome !== drillProduto) return;
+        const qtd = Number(it.quantidade) || 0;
+        const preco = Number(it.preco_unitario) || 0;
+        const custo = Number(it.produtos?.preco_custo) || 0;
+        rows.push({
+          pedidoId: p.id,
+          data: dataPedido(p),
+          qtd,
+          preco,
+          custo,
+          subtotal: qtd * preco,
+          lucro: qtd * (preco - custo),
+        });
+      });
+    });
+    return rows.sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+  }, [drillProduto, pedidosQ.data]);
+
+  // ---- Drill-down por período: vendas ----
+  const drillPeriodoVendas = useMemo(() => {
+    if (!drillPeriodo) return [];
+    const inRange = (d: string) =>
+      granularidade === "diario" ? d === drillPeriodo : d.slice(0, 7) === drillPeriodo;
+    return (pedidosQ.data ?? [])
+      .filter((p) => inRange(dataPedido(p)))
+      .map((p) => {
+        let receita = 0;
+        let custo = 0;
+        (p.pedido_itens ?? []).forEach((it) => {
+          const qtd = Number(it.quantidade) || 0;
+          const preco = Number(it.preco_unitario) || 0;
+          const cu = Number(it.produtos?.preco_custo) || 0;
+          receita += qtd * preco;
+          custo += qtd * cu;
+        });
+        return { id: p.id, data: dataPedido(p), receita, custo, lucro: receita - custo };
+      })
+      .sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+  }, [drillPeriodo, pedidosQ.data, granularidade]);
+
+  // ---- Drill-down por período: despesas (detalhado, lazy) ----
+  const drillDespesasQ = useQuery({
+    queryKey: ["rel-lucro-drill-despesas", unidadeId, drillPeriodo, granularidade, incluirCP, incluirMC, incluirDC],
+    enabled: !!unidadeId && !!drillPeriodo,
+    queryFn: async () => {
+      let ini = drillPeriodo!;
+      let fim2 = drillPeriodo!;
+      if (granularidade === "mensal") {
+        const [y, m] = drillPeriodo!.split("-").map(Number);
+        ini = format(new Date(y, m - 1, 1), "yyyy-MM-dd");
+        fim2 = format(new Date(y, m, 0), "yyyy-MM-dd");
+      }
+      const items: { fonte: string; data: string; descricao: string; valor: number }[] = [];
+      if (incluirCP) {
+        const { data } = await supabase
+          .from("contas_pagar")
+          .select("valor, data_pagamento, descricao, fornecedor")
+          .eq("unidade_id", unidadeId!)
+          .eq("status", "paga")
+          .gte("data_pagamento", ini)
+          .lte("data_pagamento", fim2);
+        (data ?? []).forEach((r: any) =>
+          items.push({
+            fonte: "Contas a pagar",
+            data: (r.data_pagamento || "").slice(0, 10),
+            descricao: r.descricao || r.fornecedor || "—",
+            valor: Number(r.valor) || 0,
+          })
+        );
+      }
+      if (incluirMC) {
+        const { data } = await supabase
+          .from("movimentacoes_caixa")
+          .select("valor, created_at, categoria, descricao, compra_id")
+          .eq("unidade_id", unidadeId!)
+          .eq("tipo", "saida")
+          .gte("created_at", `${ini}T00:00:00`)
+          .lte("created_at", `${fim2}T23:59:59`);
+        (data ?? []).forEach((r: any) => {
+          if (r.compra_id) return;
+          items.push({
+            fonte: "Sangria/Caixa",
+            data: (r.created_at || "").slice(0, 10),
+            descricao: r.descricao || r.categoria || "—",
+            valor: Number(r.valor) || 0,
+          });
+        });
+      }
+      if (incluirDC) {
+        const { data } = await supabase
+          .from("despesas_contabeis")
+          .select("valor, data_despesa, descricao, categoria")
+          .eq("unidade_id", unidadeId!)
+          .gte("data_despesa", ini)
+          .lte("data_despesa", fim2);
+        (data ?? []).forEach((r: any) =>
+          items.push({
+            fonte: "Contábil",
+            data: (r.data_despesa || "").slice(0, 10),
+            descricao: r.descricao || r.categoria || "—",
+            valor: Number(r.valor) || 0,
+          })
+        );
+      }
+      return items.sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+    },
+  });
+
+
 
   const exportar = () => {
     const wb = XLSX.utils.book_new();
@@ -451,7 +571,7 @@ export default function RelatorioLucratividade() {
               ) : porProduto.length === 0 ? (
                 <EmptyState message="Sem vendas no período." />
               ) : (
-                porProduto.map((r) => <ProdutoCard key={r.produto} r={r} />)
+                porProduto.map((r) => <ProdutoCard key={r.produto} r={r} onClick={() => setDrillProduto(r.produto)} />)
               )}
             </div>
 
@@ -481,7 +601,11 @@ export default function RelatorioLucratividade() {
                         <TableRow><TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">Sem vendas no período.</TableCell></TableRow>
                       ) : (
                         porProduto.map((r) => (
-                          <TableRow key={r.produto}>
+                          <TableRow
+                            key={r.produto}
+                            onClick={() => setDrillProduto(r.produto)}
+                            className="cursor-pointer hover:bg-muted/50"
+                          >
                             <TableCell className="font-medium">
                               {r.produto}
                               {r.qtdComCusto < r.qtd && (
@@ -544,7 +668,7 @@ export default function RelatorioLucratividade() {
               ) : porPeriodo.length === 0 ? (
                 <EmptyState message="Sem dados no período." />
               ) : (
-                porPeriodo.map((r) => <PeriodoCard key={r.chave} r={r} label={formatarChave(r.chave)} />)
+                porPeriodo.map((r) => <PeriodoCard key={r.chave} r={r} label={formatarChave(r.chave)} onClick={() => setDrillPeriodo(r.chave)} />)
               )}
             </div>
 
@@ -573,7 +697,11 @@ export default function RelatorioLucratividade() {
                         <TableRow><TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">Sem dados no período.</TableCell></TableRow>
                       ) : (
                         porPeriodo.map((r) => (
-                          <TableRow key={r.chave}>
+                          <TableRow
+                            key={r.chave}
+                            onClick={() => setDrillPeriodo(r.chave)}
+                            className="cursor-pointer hover:bg-muted/50"
+                          >
                             <TableCell className="font-medium">{formatarChave(r.chave)}</TableCell>
                             <TableCell className="text-right">{money(r.receita)}</TableCell>
                             <TableCell className="text-right">{money(r.custo)}</TableCell>
@@ -598,7 +726,151 @@ export default function RelatorioLucratividade() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Drill-down Produto */}
+      <Dialog open={!!drillProduto} onOpenChange={(v) => !v && setDrillProduto(null)}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden p-0">
+          <DialogHeader className="border-b border-border bg-emerald-50/60 p-4 dark:bg-emerald-950/20">
+            <DialogTitle className="text-base">{drillProduto}</DialogTitle>
+            <DialogDescription className="text-xs">
+              Vendas que compõem o lucro no período {format(parseISO(inicio), "dd/MM")} — {format(parseISO(fim), "dd/MM/yyyy")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[65vh] overflow-y-auto p-4">
+            {drillProdutoItens.length === 0 ? (
+              <EmptyState message="Sem itens." />
+            ) : (
+              <>
+                <div className="mb-3 grid grid-cols-3 gap-2 rounded-xl bg-muted/40 p-3 text-center text-xs">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase text-muted-foreground">Receita</p>
+                    <p className="font-bold">{money(drillProdutoItens.reduce((s, x) => s + x.subtotal, 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase text-muted-foreground">Custo</p>
+                    <p className="font-bold text-rose-600">{money(drillProdutoItens.reduce((s, x) => s + x.qtd * x.custo, 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase text-muted-foreground">Lucro</p>
+                    <p className="font-bold text-emerald-600">{money(drillProdutoItens.reduce((s, x) => s + x.lucro, 0))}</p>
+                  </div>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Pedido</TableHead>
+                      <TableHead className="text-right">Qtd</TableHead>
+                      <TableHead className="text-right">Preço</TableHead>
+                      <TableHead className="text-right">Custo un</TableHead>
+                      <TableHead className="text-right">Lucro</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {drillProdutoItens.map((row, i) => (
+                      <TableRow key={`${row.pedidoId}-${i}`}>
+                        <TableCell className="text-xs">{row.data ? format(parseISO(row.data), "dd/MM") : "—"}</TableCell>
+                        <TableCell className="font-mono text-[11px] text-muted-foreground">#{row.pedidoId.slice(0, 8)}</TableCell>
+                        <TableCell className="text-right">{row.qtd}</TableCell>
+                        <TableCell className="text-right">{money(row.preco)}</TableCell>
+                        <TableCell className="text-right text-rose-600">{money(row.custo)}</TableCell>
+                        <TableCell className={cn("text-right font-semibold", row.lucro >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                          {money(row.lucro)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Drill-down Período */}
+      <Dialog open={!!drillPeriodo} onOpenChange={(v) => !v && setDrillPeriodo(null)}>
+        <DialogContent className="max-h-[85vh] max-w-3xl overflow-hidden p-0">
+          <DialogHeader className="border-b border-border bg-emerald-50/60 p-4 dark:bg-emerald-950/20">
+            <DialogTitle className="text-base">
+              {drillPeriodo ? formatarChave(drillPeriodo) : ""}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Vendas e despesas que compõem o lucro do período
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[70vh] space-y-4 overflow-y-auto p-4">
+            <section>
+              <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-700">
+                Vendas ({drillPeriodoVendas.length})
+              </h4>
+              {drillPeriodoVendas.length === 0 ? (
+                <EmptyState message="Sem vendas." />
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Pedido</TableHead>
+                      <TableHead className="text-right">Receita</TableHead>
+                      <TableHead className="text-right">Custo</TableHead>
+                      <TableHead className="text-right">Lucro</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {drillPeriodoVendas.map((v) => (
+                      <TableRow key={v.id}>
+                        <TableCell className="text-xs">{v.data ? format(parseISO(v.data), "dd/MM") : "—"}</TableCell>
+                        <TableCell className="font-mono text-[11px] text-muted-foreground">#{v.id.slice(0, 8)}</TableCell>
+                        <TableCell className="text-right">{money(v.receita)}</TableCell>
+                        <TableCell className="text-right text-rose-600">{money(v.custo)}</TableCell>
+                        <TableCell className={cn("text-right font-semibold", v.lucro >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                          {money(v.lucro)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </section>
+
+            <section>
+              <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-rose-700">
+                Despesas ({drillDespesasQ.data?.length ?? 0})
+              </h4>
+              {drillDespesasQ.isLoading ? (
+                <Skeleton className="h-24 w-full rounded-xl" />
+              ) : !drillDespesasQ.data || drillDespesasQ.data.length === 0 ? (
+                <EmptyState message="Sem despesas no período." />
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Fonte</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {drillDespesasQ.data.map((d, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="text-xs">{d.data ? format(parseISO(d.data), "dd/MM") : "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px]">{d.fonte}</Badge>
+                        </TableCell>
+                        <TableCell className="max-w-[240px] truncate text-xs">{d.descricao}</TableCell>
+                        <TableCell className="text-right font-semibold text-rose-600">{money(d.valor)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </section>
+          </div>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
+
   );
 }
 
@@ -680,11 +952,16 @@ function MargemPill({ margem }: { margem: number }) {
   );
 }
 
-function ProdutoCard({ r }: {
+function ProdutoCard({ r, onClick }: {
   r: { produto: string; qtd: number; qtdComCusto: number; custoMedio: number; precoMedio: number; receita: number; custoTotal: number; lucroBruto: number; margem: number };
+  onClick?: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition hover:border-emerald-200 hover:shadow-md active:scale-[0.99]"
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-foreground">{r.produto}</p>
@@ -713,16 +990,21 @@ function ProdutoCard({ r }: {
           </p>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
-function PeriodoCard({ r, label }: {
+function PeriodoCard({ r, label, onClick }: {
   r: { chave: string; receita: number; custo: number; despesas: number; lucroBruto: number; lucroLiquido: number; margem: number };
   label: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition hover:border-emerald-200 hover:shadow-md active:scale-[0.99]"
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-bold text-foreground">{label}</p>
         <MargemPill margem={r.margem} />
@@ -741,7 +1023,7 @@ function PeriodoCard({ r, label }: {
           {money(r.lucroLiquido)}
         </span>
       </div>
-    </div>
+    </button>
   );
 }
 
