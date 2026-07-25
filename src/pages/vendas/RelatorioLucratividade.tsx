@@ -571,7 +571,7 @@ export default function RelatorioLucratividade() {
               ) : porProduto.length === 0 ? (
                 <EmptyState message="Sem vendas no período." />
               ) : (
-                porProduto.map((r) => <ProdutoCard key={r.produto} r={r} />)
+                porProduto.map((r) => <ProdutoCard key={r.produto} r={r} onClick={() => setDrillProduto(r.produto)} />)
               )}
             </div>
 
