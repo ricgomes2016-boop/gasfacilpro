@@ -838,51 +838,83 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableBody>
-                <TableRow className="bg-[#064e3b]/6">
-                  <TableCell colSpan={2} className="py-1.5 px-4 text-[10px] font-bold uppercase tracking-wider text-[#064e3b]">
-                    P13 por canal de venda
-                  </TableCell>
-                </TableRow>
-                {referenciasP13.map((row, i) => (
-                  <TableRow key={`p13-${i}`}>
-                    <TableCell className="py-1.5 px-4 text-xs leading-snug">{row.label}</TableCell>
-                    <TableCell className={`py-1.5 px-4 text-right text-xs tabular-nums font-semibold whitespace-nowrap ${row.highlight ? "text-[#0d7a5f]" : ""}`}>
-                      {row.value}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {referenciasProdutos.length > 0 && (
+            {/* MOBILE: seções em cards com pares label/valor */}
+            <div className="md:hidden divide-y divide-border/40">
+              {[
+                { title: "P13 por canal de venda", rows: referenciasP13 },
+                ...(referenciasProdutos.length > 0
+                  ? [{ title: "Demais produtos (P20, P45, água, regulador, galão vazio)", rows: referenciasProdutos }]
+                  : []),
+                { title: "Indicadores gerais", rows: referenciasGerais },
+              ].map((sec) => (
+                <div key={sec.title} className="px-4 py-3">
+                  <p className="font-['Sora'] text-[10px] font-bold uppercase tracking-wider text-[#064e3b] mb-2">
+                    {sec.title}
+                  </p>
+                  <dl className="grid grid-cols-2 gap-2">
+                    {sec.rows.map((row: any, i: number) => (
+                      <div key={i} className="rounded-lg border border-border/50 bg-muted/30 px-2.5 py-2">
+                        <dt className="text-[10px] leading-tight text-muted-foreground line-clamp-2 min-h-[24px]">
+                          {row.label}
+                        </dt>
+                        <dd className={`mt-1 font-['Sora'] text-sm font-bold tabular-nums whitespace-nowrap ${row.highlight ? "text-[#0d7a5f]" : "text-foreground"}`}>
+                          {row.value}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              ))}
+            </div>
+
+            {/* DESKTOP: tabela clássica */}
+            <div className="hidden md:block">
+              <Table>
+                <TableBody>
                   <TableRow className="bg-[#064e3b]/6">
                     <TableCell colSpan={2} className="py-1.5 px-4 text-[10px] font-bold uppercase tracking-wider text-[#064e3b]">
-                      Demais produtos: P20, P45, água, regulador e galão vazio
+                      P13 por canal de venda
                     </TableCell>
                   </TableRow>
-                )}
-                {referenciasProdutos.map((row, i) => (
-                  <TableRow key={`produto-${i}`}>
-                    <TableCell className="py-1.5 px-4 text-xs leading-snug">{row.label}</TableCell>
-                    <TableCell className={`py-1.5 px-4 text-right text-xs tabular-nums font-semibold whitespace-nowrap ${row.highlight ? "text-[#0d7a5f]" : ""}`}>
-                      {row.value}
+                  {referenciasP13.map((row, i) => (
+                    <TableRow key={`p13-${i}`}>
+                      <TableCell className="py-1.5 px-4 text-xs leading-snug">{row.label}</TableCell>
+                      <TableCell className={`py-1.5 px-4 text-right text-xs tabular-nums font-semibold whitespace-nowrap ${row.highlight ? "text-[#0d7a5f]" : ""}`}>
+                        {row.value}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {referenciasProdutos.length > 0 && (
+                    <TableRow className="bg-[#064e3b]/6">
+                      <TableCell colSpan={2} className="py-1.5 px-4 text-[10px] font-bold uppercase tracking-wider text-[#064e3b]">
+                        Demais produtos: P20, P45, água, regulador e galão vazio
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {referenciasProdutos.map((row, i) => (
+                    <TableRow key={`produto-${i}`}>
+                      <TableCell className="py-1.5 px-4 text-xs leading-snug">{row.label}</TableCell>
+                      <TableCell className={`py-1.5 px-4 text-right text-xs tabular-nums font-semibold whitespace-nowrap ${row.highlight ? "text-[#0d7a5f]" : ""}`}>
+                        {row.value}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="bg-[#064e3b]/6">
+                    <TableCell colSpan={2} className="py-1.5 px-4 text-[10px] font-bold uppercase tracking-wider text-[#064e3b]">
+                      Indicadores gerais
                     </TableCell>
                   </TableRow>
-                ))}
-                <TableRow className="bg-[#064e3b]/6">
-                  <TableCell colSpan={2} className="py-1.5 px-4 text-[10px] font-bold uppercase tracking-wider text-[#064e3b]">
-                    Indicadores gerais
-                  </TableCell>
-                </TableRow>
-                {referenciasGerais.map((row, i) => (
-                  <TableRow key={`geral-${i}`}>
-                    <TableCell className="py-1.5 px-4 text-xs leading-snug">{row.label}</TableCell>
-                    <TableCell className={`py-1.5 px-4 text-right text-xs tabular-nums font-semibold whitespace-nowrap ${row.highlight ? "text-[#0d7a5f]" : ""}`}>
-                      {row.value}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                  {referenciasGerais.map((row, i) => (
+                    <TableRow key={`geral-${i}`}>
+                      <TableCell className="py-1.5 px-4 text-xs leading-snug">{row.label}</TableCell>
+                      <TableCell className={`py-1.5 px-4 text-right text-xs tabular-nums font-semibold whitespace-nowrap ${row.highlight ? "text-[#0d7a5f]" : ""}`}>
+                        {row.value}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 
