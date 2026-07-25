@@ -425,9 +425,9 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
 
       <div className="space-y-2 md:hidden">
         <Card className="overflow-hidden border-border/60 bg-card shadow-[var(--elev-1)]">
-          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-3">
+          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-3 cursor-pointer hover:bg-muted/40 transition" onClick={() => setDetalheOpen(true)}>
             <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-sm font-semibold">Custos e despesas</CardTitle>
+              <CardTitle className="text-sm font-semibold">Custos e despesas <span className="text-[10px] font-normal text-muted-foreground ml-1">(toque p/ detalhar)</span></CardTitle>
               <span className="text-sm font-bold tabular-nums text-destructive">R$ {fmt(totalCustos)}</span>
             </div>
           </CardHeader>
