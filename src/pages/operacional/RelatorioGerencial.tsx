@@ -45,6 +45,8 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import jsPDF from "jspdf";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
+
 
 type PedidoRow = {
   id: string;
@@ -177,6 +179,7 @@ function EmptyChart({ label }: { label: string }) {
 
 export default function RelatorioGerencial() {
   const { unidadeAtual } = useUnidade();
+  const formaPagamentoLabel = useFormaPagamentoLabel();
   const [vendas, setVendas] = useState<PedidoRow[]>([]);
   const [despesas, setDespesas] = useState<DespesaRow[]>([]);
   const [produtos, setProdutos] = useState<ProdutoRow[]>([]);
@@ -191,35 +194,82 @@ export default function RelatorioGerencial() {
       setLoading(true);
       const inicio = format(startOfMonth(getBrasiliaDate()), "yyyy-MM-dd");
       const fim = format(endOfMonth(getBrasiliaDate()), "yyyy-MM-dd");
+      const inicioISO = `${inicio}T00:00:00`;
+      const fimISO = `${fim}T23:59:59`;
 
       let pedQ = supabase
         .from("pedidos")
         .select("id, valor_total, status, created_at, forma_pagamento")
         .gte("created_at", inicio)
-        .lte("created_at", `${fim}T23:59:59`);
+        .lte("created_at", fimISO);
       if (unidadeAtual?.id) pedQ = pedQ.eq("unidade_id", unidadeAtual.id);
 
-      let despQ = supabase
+      // Consolidar 3 fontes de despesa para refletir o total real do período.
+      let cpQ = supabase
         .from("contas_pagar")
-        .select("id, valor, categoria, status, vencimento")
-        .gte("vencimento", inicio)
-        .lte("vencimento", fim);
-      if (unidadeAtual?.id) despQ = despQ.eq("unidade_id", unidadeAtual.id);
+        .select("id, valor, categoria, status, vencimento, data_pagamento")
+        .eq("status", "paga")
+        .gte("data_pagamento", inicio)
+        .lte("data_pagamento", fim);
+      if (unidadeAtual?.id) cpQ = cpQ.eq("unidade_id", unidadeAtual.id);
+
+      let mcQ = supabase
+        .from("movimentacoes_caixa")
+        .select("id, valor, categoria, tipo, compra_id, created_at")
+        .eq("tipo", "saida")
+        .gte("created_at", inicioISO)
+        .lte("created_at", fimISO);
+      if (unidadeAtual?.id) mcQ = mcQ.eq("unidade_id", unidadeAtual.id);
+
+      let dcQ = supabase
+        .from("despesas_contabeis")
+        .select("id, valor, categoria, data_despesa")
+        .gte("data_despesa", inicio)
+        .lte("data_despesa", fim);
+      if (unidadeAtual?.id) dcQ = dcQ.eq("unidade_id", unidadeAtual.id);
 
       let prodQ = supabase.from("produtos").select("id, nome, preco, preco_custo, estoque_atual");
       if (unidadeAtual?.id) prodQ = prodQ.eq("unidade_id", unidadeAtual.id);
 
       const cliQ = supabase.from("clientes").select("id, nome, created_at");
 
-      const [vendasRes, despesasRes, produtosRes, clientesRes] = await Promise.all([
+      const [vendasRes, cpRes, mcRes, dcRes, produtosRes, clientesRes] = await Promise.all([
         pedQ,
-        despQ,
+        cpQ,
+        mcQ,
+        dcQ,
         prodQ,
         cliQ,
       ]);
 
+      const despesasMerged: DespesaRow[] = [
+        ...((cpRes.data || []) as any[]).map((r) => ({
+          id: `cp-${r.id}`,
+          valor: r.valor,
+          categoria: r.categoria || "Sem categoria",
+          status: "paga",
+          vencimento: r.data_pagamento || r.vencimento,
+        })),
+        ...((mcRes.data || []) as any[])
+          .filter((r) => !r.compra_id) // evita dupla contagem com contas_pagar
+          .map((r) => ({
+            id: `mc-${r.id}`,
+            valor: r.valor,
+            categoria: r.categoria || "Caixa/Sangria",
+            status: "paga",
+            vencimento: (r.created_at || "").slice(0, 10),
+          })),
+        ...((dcRes.data || []) as any[]).map((r) => ({
+          id: `dc-${r.id}`,
+          valor: r.valor,
+          categoria: r.categoria || "Contábil",
+          status: "paga",
+          vencimento: r.data_despesa,
+        })),
+      ];
+
       setVendas((vendasRes.data || []) as PedidoRow[]);
-      setDespesas((despesasRes.data || []) as DespesaRow[]);
+      setDespesas(despesasMerged);
       setProdutos((produtosRes.data || []) as unknown as ProdutoRow[]);
       setClientes((clientesRes.data || []) as ClienteRow[]);
       setLoading(false);
@@ -227,6 +277,7 @@ export default function RelatorioGerencial() {
 
     fetchAll();
   }, [unidadeAtual?.id]);
+
 
   const gerarRelatorioIA = async () => {
     setGerandoIA(true);
@@ -293,18 +344,19 @@ export default function RelatorioGerencial() {
     };
   }, [despesas, vendas]);
 
-  const vendasPorDia = useMemo(
-    () =>
-      Array.from({ length: 30 }, (_, i) => {
-        const dia = subDays(new Date(), 29 - i);
-        const diaStr = format(dia, "yyyy-MM-dd");
-        const total = vendas
-          .filter((v) => v.created_at?.startsWith(diaStr))
-          .reduce((s, v) => s + asNumber(v.valor_total), 0);
-        return { dia: format(dia, "dd/MM"), total };
-      }),
-    [vendas],
-  );
+  const vendasPorDia = useMemo(() => {
+    const concluidas = vendas.filter(
+      (v) => v.status === "entregue" || v.status === "concluido",
+    );
+    return Array.from({ length: 30 }, (_, i) => {
+      const dia = subDays(new Date(), 29 - i);
+      const diaStr = format(dia, "yyyy-MM-dd");
+      const total = concluidas
+        .filter((v) => v.created_at?.startsWith(diaStr))
+        .reduce((s, v) => s + asNumber(v.valor_total), 0);
+      return { dia: format(dia, "dd/MM"), total };
+    });
+  }, [vendas]);
 
   const despesasChart = useMemo(() => {
     const despesasPorCategoria = despesas.reduce((acc: Record<string, number>, d) => {
@@ -319,16 +371,20 @@ export default function RelatorioGerencial() {
   }, [despesas]);
 
   const pagamentoChart = useMemo(() => {
-    const formaPagamento = vendas.reduce((acc: Record<string, number>, v) => {
-      const fp = v.forma_pagamento || "Não informado";
-      acc[fp] = (acc[fp] || 0) + 1;
+    const concluidas = vendas.filter(
+      (v) => v.status === "entregue" || v.status === "concluido",
+    );
+    const totalPorForma = concluidas.reduce((acc: Record<string, number>, v) => {
+      const label = formaPagamentoLabel(v.forma_pagamento) || "Não informado";
+      acc[label] = (acc[label] || 0) + asNumber(v.valor_total);
       return acc;
     }, {});
 
-    return Object.entries(formaPagamento)
+    return Object.entries(totalPorForma)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [vendas]);
+  }, [vendas, formaPagamentoLabel]);
+
 
   const topProdutos = useMemo(
     () =>
@@ -849,7 +905,7 @@ export default function RelatorioGerencial() {
                             <Cell key={i} fill={chartPalette[i % chartPalette.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={chartValueFormatter} />
+                        <Tooltip formatter={formatTooltipMoney} />
                         <Legend iconType="circle" layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: 11 }} />
                       </PieChart>
                     </ResponsiveContainer>
