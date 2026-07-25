@@ -267,11 +267,11 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
                 ) : filtradas.map(l => (
                   <TableRow
                     key={l.id}
-                    onClick={() => abrirDetalhe(l)}
+                    onClick={() => abrirNaOrigem(l)}
                     className={`cursor-pointer transition hover:bg-[#064e3b]/8 focus-visible:bg-[#064e3b]/10 focus-visible:outline-none ${l.incluido ? "" : "bg-muted/30 opacity-70"}`}
                     tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirDetalhe(l); } }}
-                    aria-label={`Ver detalhes de ${l.descricao} - R$ ${fmt(l.valor)}`}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirNaOrigem(l); } }}
+                    aria-label={`Abrir ${l.descricao} na origem - R$ ${fmt(l.valor)}`}
                   >
                     <TableCell>
                       <Tooltip>
@@ -305,51 +305,7 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
           </TooltipProvider>
         </ScrollArea>
       </DialogContent>
-
-      {/* ===== Sub-dialog: detalhes do lançamento ===== */}
-      <Dialog open={!!detalhe} onOpenChange={(v) => { if (!v) { setDetalhe(null); setDetalheData(null); } }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {detalhe?.origem === "contas_pagar" ? "Conta a Pagar" : "Movimentação de Caixa"}
-              <Badge variant="outline" className="text-[10px] font-mono">#{detalhe?.rawId.slice(0, 8)}</Badge>
-            </DialogTitle>
-            <DialogDescription>Detalhes completos do lançamento.</DialogDescription>
-          </DialogHeader>
-          {detalheLoading ? (
-            <div className="flex items-center justify-center py-10 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando...
-            </div>
-          ) : !detalheData ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Registro não encontrado (pode ter sido excluído).</p>
-          ) : (
-            <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
-              {Object.entries(detalheData)
-                .filter(([, v]) => v !== null && v !== "" && !["unidade_id", "empresa_id", "user_id", "created_by"].includes(String(v)))
-                .map(([k, v]) => (
-                  <div key={k} className="grid grid-cols-[130px_1fr] gap-3 text-xs border-b border-border/40 py-1.5">
-                    <span className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px] break-words">{k}</span>
-                    <span className="tabular-nums break-words">
-                      {typeof v === "number" && (k.includes("valor") || k.includes("preco"))
-                        ? `R$ ${fmt(v as number)}`
-                        : typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v as string)
-                          ? format(new Date(v as string), "dd/MM/yyyy HH:mm", { locale: ptBR })
-                          : typeof v === "object"
-                            ? JSON.stringify(v)
-                            : String(v)}
-                    </span>
-                  </div>
-                ))}
-            </div>
-          )}
-          <div className="flex justify-end gap-2 pt-2 border-t">
-            <Button variant="ghost" onClick={() => setDetalhe(null)}>Fechar</Button>
-            <Button onClick={abrirNaOrigem} className="gap-1.5">
-              <ExternalLink className="h-4 w-4" /> Abrir na origem
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </Dialog>
   );
+
 }
