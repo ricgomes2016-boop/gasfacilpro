@@ -464,9 +464,9 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
       <div className="hidden gap-4 grid-cols-1 lg:grid-cols-2 w-full min-w-0 md:grid">
         {/* COLUNA ESQUERDA: Custos / Despesas */}
         <Card className="min-w-0 overflow-hidden border-border/60 bg-card/95 shadow-[var(--elev-2)]">
-          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-3">
+          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-3 cursor-pointer hover:bg-muted/40 transition" onClick={() => setDetalheOpen(true)}>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xs font-bold uppercase tracking-widest">Custos / Despesas</CardTitle>
+              <CardTitle className="text-xs font-bold uppercase tracking-widest">Custos / Despesas <span className="text-[10px] font-normal normal-case tracking-normal text-muted-foreground ml-1">(clique para detalhar)</span></CardTitle>
               <span className="text-xs font-bold">Valores</span>
             </div>
             {custosWidthInsufficient && (
