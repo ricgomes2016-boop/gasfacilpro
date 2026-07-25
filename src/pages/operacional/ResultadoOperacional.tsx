@@ -146,6 +146,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
             .eq("tipo", "saida")
             .neq("status", "rejeitada")
             .is("pedido_id", null)
+            .is("compra_id", null)
             .gte("created_at", inicio)
             .lte("created_at", fim);
           if (unidadeAtual?.id) q = q.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
@@ -165,12 +166,10 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
         cpPorCategoria[cat] = (cpPorCategoria[cat] || 0) + (Number(cp.valor) || 0);
       });
       despesasCaixa.forEach((despesa: any) => {
-        const isCompra = !!despesa.compra_id;
-        const cat = isCompra
-          ? "custo das mercadorias (compras pagas no caixa)"
-          : (despesa.categoria || despesa.descricao || "Despesas do Caixa").toString().toLowerCase().trim();
+        const cat = (despesa.categoria || despesa.descricao || "Despesas do Caixa").toString().toLowerCase().trim();
         cpPorCategoria[cat] = (cpPorCategoria[cat] || 0) + (Number(despesa.valor) || 0);
       });
+
 
 
       const categoriasCorrespondidas = new Set<string>();
