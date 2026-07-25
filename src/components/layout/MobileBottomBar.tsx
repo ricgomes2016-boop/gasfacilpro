@@ -180,7 +180,7 @@ function NavButton({ to, icon: Icon, label, active, primary }: NavButtonProps) {
         className={cn(
           "flex items-center justify-center rounded-xl transition-all",
           primary
-            ? "h-10 w-10 -mt-3 bg-primary text-primary-foreground shadow-md shadow-primary/25 ring-4 ring-background"
+            ? "h-10 w-10 bg-primary text-primary-foreground shadow-md shadow-primary/25"
             : "h-8 w-8",
           active && !primary && "bg-primary/10"
         )}
