@@ -808,11 +808,16 @@ function MargemPill({ margem }: { margem: number }) {
   );
 }
 
-function ProdutoCard({ r }: {
+function ProdutoCard({ r, onClick }: {
   r: { produto: string; qtd: number; qtdComCusto: number; custoMedio: number; precoMedio: number; receita: number; custoTotal: number; lucroBruto: number; margem: number };
+  onClick?: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition hover:border-emerald-200 hover:shadow-md active:scale-[0.99]"
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-foreground">{r.produto}</p>
