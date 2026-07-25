@@ -359,7 +359,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
     { label: "Margem Líquida", value: receitaBruta > 0 ? `${((lucroLiquido / receitaBruta) * 100).toFixed(1)}%` : "0,0%", highlight: lucroLiquido >= 0 },
   ];
 
-  const resultadoFinal = lucroLiquido + (ajustes.nota_credito?.valor || 0);
+  const resultadoFinal = lucroLiquido;
   const margemLiquidaPct = receitaBruta > 0 ? (lucroLiquido / receitaBruta) * 100 : 0;
   const margemBrutaPct = receitaBruta > 0 ? (lucroBruto / receitaBruta) * 100 : 0;
   const totalMcCanais = canaisP13.reduce((s, c) => s + c.margemRS, 0);
