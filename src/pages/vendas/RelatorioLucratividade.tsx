@@ -879,7 +879,7 @@ function PeriodoCard({ r, label, onClick }: {
           {money(r.lucroLiquido)}
         </span>
       </div>
-    </div>
+    </button>
   );
 }
 
