@@ -846,16 +846,21 @@ function ProdutoCard({ r, onClick }: {
           </p>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
-function PeriodoCard({ r, label }: {
+function PeriodoCard({ r, label, onClick }: {
   r: { chave: string; receita: number; custo: number; despesas: number; lucroBruto: number; lucroLiquido: number; margem: number };
   label: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition hover:border-emerald-200 hover:shadow-md active:scale-[0.99]"
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-bold text-foreground">{label}</p>
         <MargemPill margem={r.margem} />
