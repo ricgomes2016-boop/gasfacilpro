@@ -731,6 +731,14 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
           <p className="text-xs text-muted-foreground">unidades no período</p>
         </Card>
       </div>
+      <CustosDetalhamentoDialog
+        open={detalheOpen}
+        onClose={() => setDetalheOpen(false)}
+        unidadeId={unidadeAtual?.id}
+        mes={Number(mesSelecionado)}
+        ano={Number(anoSelecionado)}
+        mesLabel={mesLabel}
+      />
     </div>
   );
 
