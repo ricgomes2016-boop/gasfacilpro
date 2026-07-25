@@ -76,11 +76,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
   const [precoCompraP13, setPrecoCompraP13] = useState(0);
   const [precoVendaP13, setPrecoVendaP13] = useState(0);
   const [detalheOpen, setDetalheOpen] = useState(false);
-  const { fluxo, ajustes, salvarAjuste, loading: loadingRO } = useROComplemento(
-    unidadeAtual?.id,
-    Number(anoSelecionado),
-    Number(mesSelecionado),
-  );
+
 
   useEffect(() => { fetchData(); }, [unidadeAtual, mesSelecionado, anoSelecionado]);
 
