@@ -80,10 +80,23 @@ serve(async (req) => {
         COALESCE(AVG(valor_total), 0) as ticket_medio,
         COUNT(CASE WHEN status = 'cancelado' THEN 1 END) as cancelados
        FROM pedidos WHERE created_at >= NOW() - interval '${intervalo}' ${unidadeFilter}`,
-      // Despesas
-      `SELECT COALESCE(SUM(valor), 0) as total_despesas, categoria,
-        COUNT(*) as qtd
-       FROM contas_pagar WHERE vencimento >= (NOW() - interval '${intervalo}')::date ${unidadeFilter}
+      // Despesas consolidadas: contas_pagar (pagas), movimentacoes_caixa (saidas sem compra) e despesas_contabeis
+      `SELECT categoria, SUM(valor) AS total_despesas, COUNT(*) AS qtd
+       FROM (
+         SELECT COALESCE(categoria,'Sem categoria') AS categoria, valor
+         FROM contas_pagar
+         WHERE status = 'paga'
+           AND data_pagamento >= (NOW() - interval '${intervalo}')::date ${unidadeFilter}
+         UNION ALL
+         SELECT COALESCE(categoria,'Caixa/Sangria') AS categoria, valor
+         FROM movimentacoes_caixa
+         WHERE tipo = 'saida' AND compra_id IS NULL
+           AND created_at >= NOW() - interval '${intervalo}' ${unidadeFilter}
+         UNION ALL
+         SELECT COALESCE(categoria,'Contábil') AS categoria, valor
+         FROM despesas_contabeis
+         WHERE data_despesa >= (NOW() - interval '${intervalo}')::date ${unidadeFilter}
+       ) t
        GROUP BY categoria ORDER BY total_despesas DESC`,
       // Top produtos
       `SELECT pi.produto_nome, SUM(pi.quantidade) as qtd, SUM(pi.subtotal) as receita
@@ -91,11 +104,12 @@ serve(async (req) => {
        WHERE p.status != 'cancelado' ${pedidoAliasFilter}
         AND p.created_at >= NOW() - interval '${intervalo}'
        GROUP BY pi.produto_nome ORDER BY receita DESC LIMIT 10`,
-      // Formas de pagamento
+      // Formas de pagamento - por valor total, apenas concluídas
       `SELECT forma_pagamento, COUNT(*) as qtd, COALESCE(SUM(valor_total), 0) as total
-       FROM pedidos WHERE status != 'cancelado' ${unidadeFilter}
+       FROM pedidos WHERE status IN ('entregue','concluido') ${unidadeFilter}
         AND created_at >= NOW() - interval '${intervalo}'
        GROUP BY forma_pagamento ORDER BY total DESC`,
+
       // Produtividade entregadores
       `SELECT e.nome, COUNT(p.id) as entregas, COALESCE(SUM(p.valor_total), 0) as faturamento
        FROM entregadores e LEFT JOIN pedidos p ON p.entregador_id = e.id
