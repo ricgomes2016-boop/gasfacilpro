@@ -96,7 +96,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
         if (unidadeAtual?.id) caixaQ = caixaQ.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
 
         // Despesas contábeis registradas
-        let dcq = supabase.from("despesas_contabeis").select("valor, categoria").gte("data_vencimento", inicioDate).lte("data_vencimento", fimDate);
+        let dcq = supabase.from("despesas_contabeis").select("valor, categoria").gte("data_despesa", inicioDate).lte("data_despesa", fimDate);
         if (unidadeAtual?.id) dcq = dcq.eq("unidade_id", unidadeAtual.id);
 
         const [
