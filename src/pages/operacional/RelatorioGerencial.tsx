@@ -653,9 +653,12 @@ export default function RelatorioGerencial() {
           {/* KPIs Grid — 2 cols mobile, expande no desktop */}
           <div className="grid grid-cols-2 gap-2.5 px-3 sm:gap-3 sm:px-4 md:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-8">
             {kpis.map((kpi) => (
-              <div
+              <button
+                type="button"
                 key={kpi.label}
-                className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-shadow hover:shadow-md sm:p-4"
+                onClick={() => setDrillKey(kpi.key)}
+                className="group text-left rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[hsl(158,84%,17%)]/30 sm:p-4"
+                aria-label={`Ver detalhes de ${kpi.label}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className={toneStyles[kpi.tone].icon}>
@@ -674,7 +677,10 @@ export default function RelatorioGerencial() {
                 <p className="mt-0.5 text-[10px] leading-tight text-slate-400 line-clamp-2 sm:text-[11px]">
                   {kpi.detail}
                 </p>
-              </div>
+                <p className="mt-1.5 text-[9px] font-semibold uppercase tracking-tight text-[hsl(158,84%,17%)]/70 opacity-0 transition-opacity group-hover:opacity-100 sm:text-[10px]">
+                  Toque para detalhes →
+                </p>
+              </button>
             ))}
           </div>
 
