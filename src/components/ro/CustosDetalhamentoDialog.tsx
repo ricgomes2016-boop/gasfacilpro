@@ -106,28 +106,25 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
         let incluido = true;
         if (r.status === "rejeitada") { incluido = false; motivos.push("status=rejeitada"); }
         if (r.pedido_id) { incluido = false; motivos.push("vinculada a pedido (pedido_id ≠ null)"); }
+        if (r.compra_id) { incluido = false; motivos.push("vinculada a compra (custo já contabilizado no CMV)"); }
         if (isTransferenciaInterna(r.categoria, r.descricao)) {
           incluido = false;
           motivos.push("transferência interna (depósito/transferência caixa)");
         }
-        const isCompra = !!r.compra_id;
         return {
           id: `mc-${r.id}`,
           origem: "movimentacoes_caixa",
           data: r.created_at,
-          categoria: isCompra
-            ? "Custo das mercadorias (compra paga no caixa)"
-            : (r.categoria || "Sem categoria"),
-          descricao: r.descricao || (isCompra ? "Pagamento de compra pelo caixa" : "—"),
+          categoria: r.categoria || "Sem categoria",
+          descricao: r.descricao || "—",
           valor: Number(r.valor) || 0,
           incluido,
           motivo: incluido
-            ? (isCompra
-              ? "Caixa · tipo=saida · pagamento de compra (custo de mercadoria)"
-              : "Caixa · tipo=saida · sem vínculo compra/pedido · dentro do mês")
+            ? "Caixa · tipo=saida · sem vínculo compra/pedido · dentro do mês"
             : `Excluído: ${motivos.join(" · ")}`,
         };
       });
+
 
 
       setLinhas([...cp, ...mc]);
