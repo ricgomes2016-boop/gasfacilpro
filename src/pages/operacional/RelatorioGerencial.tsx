@@ -905,7 +905,7 @@ export default function RelatorioGerencial() {
                             <Cell key={i} fill={chartPalette[i % chartPalette.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={chartValueFormatter} />
+                        <Tooltip formatter={formatTooltipMoney} />
                         <Legend iconType="circle" layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: 11 }} />
                       </PieChart>
                     </ResponsiveContainer>
