@@ -726,7 +726,151 @@ export default function RelatorioLucratividade() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Drill-down Produto */}
+      <Dialog open={!!drillProduto} onOpenChange={(v) => !v && setDrillProduto(null)}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden p-0">
+          <DialogHeader className="border-b border-border bg-emerald-50/60 p-4 dark:bg-emerald-950/20">
+            <DialogTitle className="text-base">{drillProduto}</DialogTitle>
+            <DialogDescription className="text-xs">
+              Vendas que compõem o lucro no período {format(parseISO(inicio), "dd/MM")} — {format(parseISO(fim), "dd/MM/yyyy")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[65vh] overflow-y-auto p-4">
+            {drillProdutoItens.length === 0 ? (
+              <EmptyState message="Sem itens." />
+            ) : (
+              <>
+                <div className="mb-3 grid grid-cols-3 gap-2 rounded-xl bg-muted/40 p-3 text-center text-xs">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase text-muted-foreground">Receita</p>
+                    <p className="font-bold">{money(drillProdutoItens.reduce((s, x) => s + x.subtotal, 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase text-muted-foreground">Custo</p>
+                    <p className="font-bold text-rose-600">{money(drillProdutoItens.reduce((s, x) => s + x.qtd * x.custo, 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase text-muted-foreground">Lucro</p>
+                    <p className="font-bold text-emerald-600">{money(drillProdutoItens.reduce((s, x) => s + x.lucro, 0))}</p>
+                  </div>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Pedido</TableHead>
+                      <TableHead className="text-right">Qtd</TableHead>
+                      <TableHead className="text-right">Preço</TableHead>
+                      <TableHead className="text-right">Custo un</TableHead>
+                      <TableHead className="text-right">Lucro</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {drillProdutoItens.map((row, i) => (
+                      <TableRow key={`${row.pedidoId}-${i}`}>
+                        <TableCell className="text-xs">{row.data ? format(parseISO(row.data), "dd/MM") : "—"}</TableCell>
+                        <TableCell className="font-mono text-[11px] text-muted-foreground">#{row.pedidoId.slice(0, 8)}</TableCell>
+                        <TableCell className="text-right">{row.qtd}</TableCell>
+                        <TableCell className="text-right">{money(row.preco)}</TableCell>
+                        <TableCell className="text-right text-rose-600">{money(row.custo)}</TableCell>
+                        <TableCell className={cn("text-right font-semibold", row.lucro >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                          {money(row.lucro)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Drill-down Período */}
+      <Dialog open={!!drillPeriodo} onOpenChange={(v) => !v && setDrillPeriodo(null)}>
+        <DialogContent className="max-h-[85vh] max-w-3xl overflow-hidden p-0">
+          <DialogHeader className="border-b border-border bg-emerald-50/60 p-4 dark:bg-emerald-950/20">
+            <DialogTitle className="text-base">
+              {drillPeriodo ? formatarChave(drillPeriodo) : ""}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Vendas e despesas que compõem o lucro do período
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[70vh] space-y-4 overflow-y-auto p-4">
+            <section>
+              <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-700">
+                Vendas ({drillPeriodoVendas.length})
+              </h4>
+              {drillPeriodoVendas.length === 0 ? (
+                <EmptyState message="Sem vendas." />
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Pedido</TableHead>
+                      <TableHead className="text-right">Receita</TableHead>
+                      <TableHead className="text-right">Custo</TableHead>
+                      <TableHead className="text-right">Lucro</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {drillPeriodoVendas.map((v) => (
+                      <TableRow key={v.id}>
+                        <TableCell className="text-xs">{v.data ? format(parseISO(v.data), "dd/MM") : "—"}</TableCell>
+                        <TableCell className="font-mono text-[11px] text-muted-foreground">#{v.id.slice(0, 8)}</TableCell>
+                        <TableCell className="text-right">{money(v.receita)}</TableCell>
+                        <TableCell className="text-right text-rose-600">{money(v.custo)}</TableCell>
+                        <TableCell className={cn("text-right font-semibold", v.lucro >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                          {money(v.lucro)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </section>
+
+            <section>
+              <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-rose-700">
+                Despesas ({drillDespesasQ.data?.length ?? 0})
+              </h4>
+              {drillDespesasQ.isLoading ? (
+                <Skeleton className="h-24 w-full rounded-xl" />
+              ) : !drillDespesasQ.data || drillDespesasQ.data.length === 0 ? (
+                <EmptyState message="Sem despesas no período." />
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Fonte</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {drillDespesasQ.data.map((d, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="text-xs">{d.data ? format(parseISO(d.data), "dd/MM") : "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px]">{d.fonte}</Badge>
+                        </TableCell>
+                        <TableCell className="max-w-[240px] truncate text-xs">{d.descricao}</TableCell>
+                        <TableCell className="text-right font-semibold text-rose-600">{money(d.valor)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </section>
+          </div>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
+
   );
 }
 
