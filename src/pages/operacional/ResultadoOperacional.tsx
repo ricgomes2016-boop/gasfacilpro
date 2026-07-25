@@ -10,6 +10,7 @@ import { PageSectionLoader } from "@/components/ui/page-loader";
 import { AlertTriangle, Settings2, FileDown, Printer } from "lucide-react";
 import { FluxoLateralPanel } from "@/components/ro/FluxoLateralPanel";
 import { RoExcelButton } from "@/components/ro/RoExcelButton";
+import { CustosDetalhamentoDialog } from "@/components/ro/CustosDetalhamentoDialog";
 import { exportROtoPdf, handlePrint } from "@/services/reportPdfService";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -74,6 +75,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
   const [canais, setCanais] = useState<CanalVenda[]>([]);
   const [precoCompraP13, setPrecoCompraP13] = useState(0);
   const [precoVendaP13, setPrecoVendaP13] = useState(0);
+  const [detalheOpen, setDetalheOpen] = useState(false);
   const { fluxo, ajustes, salvarAjuste, loading: loadingRO } = useROComplemento(
     unidadeAtual?.id,
     Number(anoSelecionado),
@@ -423,9 +425,9 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
 
       <div className="space-y-2 md:hidden">
         <Card className="overflow-hidden border-border/60 bg-card shadow-[var(--elev-1)]">
-          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-3">
+          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-3 cursor-pointer hover:bg-muted/40 transition" onClick={() => setDetalheOpen(true)}>
             <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-sm font-semibold">Custos e despesas</CardTitle>
+              <CardTitle className="text-sm font-semibold">Custos e despesas <span className="text-[10px] font-normal text-muted-foreground ml-1">(toque p/ detalhar)</span></CardTitle>
               <span className="text-sm font-bold tabular-nums text-destructive">R$ {fmt(totalCustos)}</span>
             </div>
           </CardHeader>
@@ -462,9 +464,9 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
       <div className="hidden gap-4 grid-cols-1 lg:grid-cols-2 w-full min-w-0 md:grid">
         {/* COLUNA ESQUERDA: Custos / Despesas */}
         <Card className="min-w-0 overflow-hidden border-border/60 bg-card/95 shadow-[var(--elev-2)]">
-          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-3">
+          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-3 cursor-pointer hover:bg-muted/40 transition" onClick={() => setDetalheOpen(true)}>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xs font-bold uppercase tracking-widest">Custos / Despesas</CardTitle>
+              <CardTitle className="text-xs font-bold uppercase tracking-widest">Custos / Despesas <span className="text-[10px] font-normal normal-case tracking-normal text-muted-foreground ml-1">(clique para detalhar)</span></CardTitle>
               <span className="text-xs font-bold">Valores</span>
             </div>
             {custosWidthInsufficient && (
@@ -729,6 +731,14 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
           <p className="text-xs text-muted-foreground">unidades no período</p>
         </Card>
       </div>
+      <CustosDetalhamentoDialog
+        open={detalheOpen}
+        onClose={() => setDetalheOpen(false)}
+        unidadeId={unidadeAtual?.id}
+        mes={Number(mesSelecionado)}
+        ano={Number(anoSelecionado)}
+        mesLabel={mesLabel}
+      />
     </div>
   );
 
