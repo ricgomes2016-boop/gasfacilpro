@@ -45,6 +45,8 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import jsPDF from "jspdf";
+import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
+
 
 type PedidoRow = {
   id: string;
