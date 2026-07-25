@@ -126,6 +126,7 @@ export const menuItems: MenuItem[] = [
       { icon: KanbanSquare, label: "Pedidos Kanban", path: "/vendas/pedidos/kanban" },
       { icon: RotateCcw, label: "Devoluções / Trocas", path: "/vendas/devolucoes" },
       { icon: BarChart3, label: "Relatório de Vendas", path: "/vendas/relatorio" },
+      { icon: TrendingUp, label: "Relatório Detalhado (Lucro)", path: "/vendas/lucratividade" },
     ],
   },
   {
