@@ -668,7 +668,7 @@ export default function RelatorioLucratividade() {
               ) : porPeriodo.length === 0 ? (
                 <EmptyState message="Sem dados no período." />
               ) : (
-                porPeriodo.map((r) => <PeriodoCard key={r.chave} r={r} label={formatarChave(r.chave)} />)
+                porPeriodo.map((r) => <PeriodoCard key={r.chave} r={r} label={formatarChave(r.chave)} onClick={() => setDrillPeriodo(r.chave)} />)
               )}
             </div>
 
