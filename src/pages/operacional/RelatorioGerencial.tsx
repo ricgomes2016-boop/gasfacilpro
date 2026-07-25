@@ -347,6 +347,7 @@ export default function RelatorioGerencial() {
 
   const kpis = [
     {
+      key: "faturamento",
       icon: DollarSign,
       label: "Faturamento",
       value: formatMoneyCompact(metricas.faturamento),
@@ -355,6 +356,7 @@ export default function RelatorioGerencial() {
       status: metricas.faturamento > 0 ? "Ativo" : "Sem receita",
     },
     {
+      key: "lucro",
       icon: TrendingUp,
       label: "Lucro Op.",
       value: formatMoneyCompact(metricas.lucroOperacional),
@@ -363,6 +365,7 @@ export default function RelatorioGerencial() {
       status: metricas.lucroOperacional >= 0 ? "Positivo" : "Atenção",
     },
     {
+      key: "margem",
       icon: Percent,
       label: "Margem",
       value: `${metricas.margemOperacional.toFixed(1)}%`,
@@ -371,6 +374,7 @@ export default function RelatorioGerencial() {
       status: metricas.margemOperacional >= 20 ? "Saudável" : "Monitorar",
     },
     {
+      key: "pedidos",
       icon: ShoppingCart,
       label: "Pedidos",
       value: numberFormatter.format(metricas.totalPedidos),
@@ -379,6 +383,7 @@ export default function RelatorioGerencial() {
       status: "Operação",
     },
     {
+      key: "ticket",
       icon: DollarSign,
       label: "Ticket Médio",
       value: formatMoney(metricas.ticketMedio),
@@ -387,6 +392,7 @@ export default function RelatorioGerencial() {
       status: "Venda",
     },
     {
+      key: "despesas",
       icon: AlertTriangle,
       label: "Despesas",
       value: formatMoneyCompact(metricas.totalDespesas),
@@ -395,6 +401,7 @@ export default function RelatorioGerencial() {
       status: "Custo",
     },
     {
+      key: "custo_entrega",
       icon: Truck,
       label: "Custo/Entrega",
       value: formatMoney(metricas.custoMedioEntrega),
@@ -403,6 +410,7 @@ export default function RelatorioGerencial() {
       status: "Logística",
     },
     {
+      key: "clientes",
       icon: Users,
       label: "Clientes",
       value: numberFormatter.format(clientes.length),
@@ -410,7 +418,164 @@ export default function RelatorioGerencial() {
       tone: "secondary" as Tone,
       status: "Carteira",
     },
-  ];
+  ] as const;
+
+  type KpiKey = typeof kpis[number]["key"];
+  const [drillKey, setDrillKey] = useState<KpiKey | null>(null);
+  const activeKpi = kpis.find((k) => k.key === drillKey) || null;
+
+  const drillContent = useMemo(() => {
+    if (!drillKey) return null;
+    const vendasConcluidas = metricas.vendasConcluidas;
+    const vendasOrd = [...vendasConcluidas].sort(
+      (a, b) => asNumber(b.valor_total) - asNumber(a.valor_total),
+    );
+    const pedidosOrd = [...vendas].sort(
+      (a, b) => (b.created_at || "").localeCompare(a.created_at || ""),
+    );
+    const despesasOrd = [...despesas].sort((a, b) => asNumber(b.valor) - asNumber(a.valor));
+
+    switch (drillKey) {
+      case "faturamento":
+      case "ticket":
+        return {
+          summary: [
+            { label: "Vendas concluídas", value: numberFormatter.format(vendasConcluidas.length) },
+            { label: "Faturamento", value: formatMoney(metricas.faturamento) },
+            { label: "Ticket médio", value: formatMoney(metricas.ticketMedio) },
+          ],
+          list: vendasOrd.slice(0, 50).map((v) => ({
+            id: v.id,
+            title: `Pedido · ${v.forma_pagamento || "sem forma"}`,
+            subtitle: v.created_at ? format(new Date(v.created_at), "dd/MM HH:mm") : "—",
+            value: formatMoney(asNumber(v.valor_total)),
+            tone: "success" as const,
+          })),
+          empty: "Nenhuma venda concluída no período.",
+        };
+      case "lucro":
+      case "margem":
+        return {
+          summary: [
+            { label: "Faturamento", value: formatMoney(metricas.faturamento) },
+            { label: "Despesas", value: `- ${formatMoney(metricas.totalDespesas)}` },
+            {
+              label: "Lucro operacional",
+              value: formatMoney(metricas.lucroOperacional),
+              highlight: true,
+            },
+            { label: "Margem", value: `${metricas.margemOperacional.toFixed(1)}%` },
+          ],
+          list: [
+            ...vendasOrd.slice(0, 20).map((v) => ({
+              id: `v-${v.id}`,
+              title: `Venda · ${v.forma_pagamento || "sem forma"}`,
+              subtitle: v.created_at ? format(new Date(v.created_at), "dd/MM") : "—",
+              value: `+ ${formatMoney(asNumber(v.valor_total))}`,
+              tone: "success" as const,
+            })),
+            ...despesasOrd.slice(0, 20).map((d) => ({
+              id: `d-${d.id}`,
+              title: d.categoria || "Despesa",
+              subtitle: d.vencimento ? format(new Date(d.vencimento), "dd/MM") : "—",
+              value: `- ${formatMoney(asNumber(d.valor))}`,
+              tone: "destructive" as const,
+            })),
+          ],
+          empty: "Sem movimentações no período.",
+        };
+      case "pedidos":
+        return {
+          summary: [
+            { label: "Total de pedidos", value: numberFormatter.format(metricas.totalPedidos) },
+            { label: "Concluídos", value: numberFormatter.format(vendasConcluidas.length) },
+            {
+              label: "Cancelados",
+              value: numberFormatter.format(
+                vendas.filter((v) => v.status === "cancelado").length,
+              ),
+            },
+          ],
+          list: pedidosOrd.slice(0, 60).map((v) => ({
+            id: v.id,
+            title: `Pedido · ${v.status || "—"}`,
+            subtitle: v.created_at ? format(new Date(v.created_at), "dd/MM HH:mm") : "—",
+            value: formatMoney(asNumber(v.valor_total)),
+            tone:
+              v.status === "cancelado"
+                ? ("destructive" as const)
+                : ("success" as const),
+          })),
+          empty: "Nenhum pedido no período.",
+        };
+      case "despesas": {
+        const byCat = despesas.reduce((acc: Record<string, number>, d) => {
+          const c = d.categoria || "Outros";
+          acc[c] = (acc[c] || 0) + asNumber(d.valor);
+          return acc;
+        }, {});
+        return {
+          summary: [
+            { label: "Total despesas", value: formatMoney(metricas.totalDespesas) },
+            { label: "Lançamentos", value: numberFormatter.format(despesas.length) },
+            { label: "Categorias", value: numberFormatter.format(Object.keys(byCat).length) },
+          ],
+          list: [
+            ...Object.entries(byCat)
+              .sort((a, b) => b[1] - a[1])
+              .map(([cat, total]) => ({
+                id: `cat-${cat}`,
+                title: cat,
+                subtitle: "Categoria",
+                value: formatMoney(total),
+                tone: "destructive" as const,
+              })),
+            ...despesasOrd.slice(0, 30).map((d) => ({
+              id: `d-${d.id}`,
+              title: d.categoria || "Despesa",
+              subtitle: d.vencimento ? format(new Date(d.vencimento), "dd/MM") : "—",
+              value: formatMoney(asNumber(d.valor)),
+              tone: "muted" as const,
+            })),
+          ],
+          empty: "Nenhuma despesa no período.",
+        };
+      }
+      case "custo_entrega":
+        return {
+          summary: [
+            { label: "Custo médio/entrega", value: formatMoney(metricas.custoMedioEntrega) },
+            { label: "Vendas concluídas", value: numberFormatter.format(vendasConcluidas.length) },
+            { label: "Base (30% das despesas)", value: formatMoney(metricas.totalDespesas * 0.3) },
+          ],
+          list: [],
+          empty:
+            "Estimativa calculada como 30% das despesas do período dividido pelo número de vendas concluídas.",
+        };
+      case "clientes": {
+        const cliOrd = [...clientes].sort((a, b) =>
+          (b.created_at || "").localeCompare(a.created_at || ""),
+        );
+        return {
+          summary: [
+            { label: "Base cadastrada", value: numberFormatter.format(clientes.length) },
+          ],
+          list: cliOrd.slice(0, 60).map((c) => ({
+            id: c.id,
+            title: c.nome || "Cliente",
+            subtitle: c.created_at
+              ? `Cadastrado em ${format(new Date(c.created_at), "dd/MM/yyyy")}`
+              : "—",
+            value: "",
+            tone: "muted" as const,
+          })),
+          empty: "Nenhum cliente cadastrado.",
+        };
+      }
+      default:
+        return null;
+    }
+  }, [drillKey, metricas, vendas, despesas, clientes]);
 
   const executiveNotes = [
     {
