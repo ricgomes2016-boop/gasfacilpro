@@ -376,7 +376,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
     <div className="font-['Manrope'] space-y-5 w-full min-w-0 max-w-full overflow-hidden">
       {/* ============ FILTROS ============ */}
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center w-full min-w-0">
-        <div className="flex flex-wrap items-center gap-2 min-w-0">
+        <div className="hidden sm:flex flex-wrap items-center gap-2 min-w-0">
           <h2 className="font-['Sora'] text-lg sm:text-xl font-bold tracking-tight text-foreground leading-tight">
             Resultado Operacional
           </h2>
