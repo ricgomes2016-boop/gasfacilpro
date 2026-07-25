@@ -9194,6 +9194,51 @@ export type Database = {
           },
         ]
       }
+      ro_ajustes_mensais: {
+        Row: {
+          ano: number
+          chave: string
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          id: string
+          mes: number
+          observacao: string | null
+          representante: string | null
+          unidade_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ano: number
+          chave: string
+          created_at?: string
+          created_by?: string | null
+          empresa_id: string
+          id?: string
+          mes: number
+          observacao?: string | null
+          representante?: string | null
+          unidade_id: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          ano?: number
+          chave?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          id?: string
+          mes?: number
+          observacao?: string | null
+          representante?: string | null
+          unidade_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       rota_historico: {
         Row: {
           id: string
