@@ -106,14 +106,14 @@ serve(async (req) => {
        GROUP BY pi.produto_nome ORDER BY receita DESC LIMIT 10`,
       // Formas de pagamento - por valor total, apenas concluídas
       `SELECT forma_pagamento, COUNT(*) as qtd, COALESCE(SUM(valor_total), 0) as total
-       FROM pedidos WHERE status IN ('entregue','concluido') ${unidadeFilter}
+       FROM pedidos WHERE status IN ('entregue','concluido','finalizado') ${unidadeFilter}
         AND created_at >= NOW() - interval '${intervalo}'
        GROUP BY forma_pagamento ORDER BY total DESC`,
 
       // Produtividade entregadores
       `SELECT e.nome, COUNT(p.id) as entregas, COALESCE(SUM(p.valor_total), 0) as faturamento
        FROM entregadores e LEFT JOIN pedidos p ON p.entregador_id = e.id
-        AND p.status = 'entregue' AND p.created_at >= NOW() - interval '${intervalo}'
+        AND p.status IN ('entregue','concluido','finalizado') AND p.created_at >= NOW() - interval '${intervalo}'
        WHERE e.ativo = true ${entregadorAliasFilter} GROUP BY e.id, e.nome ORDER BY entregas DESC LIMIT 10`,
       // Novos clientes
       `SELECT COUNT(*) as novos_clientes FROM clientes

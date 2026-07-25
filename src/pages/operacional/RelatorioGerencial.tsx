@@ -323,7 +323,7 @@ export default function RelatorioGerencial() {
   };
 
   const metricas = useMemo(() => {
-    const vendasConcluidas = vendas.filter((v) => v.status === "entregue" || v.status === "concluido");
+    const vendasConcluidas = vendas.filter((v) => v.status === "entregue" || v.status === "concluido" || v.status === "finalizado");
     const faturamento = vendasConcluidas.reduce((s, v) => s + asNumber(v.valor_total), 0);
     const totalDespesas = despesas.reduce((s, d) => s + asNumber(d.valor), 0);
     const lucroOperacional = faturamento - totalDespesas;
@@ -346,7 +346,7 @@ export default function RelatorioGerencial() {
 
   const vendasPorDia = useMemo(() => {
     const concluidas = vendas.filter(
-      (v) => v.status === "entregue" || v.status === "concluido",
+      (v) => v.status === "entregue" || v.status === "concluido" || v.status === "finalizado",
     );
     return Array.from({ length: 30 }, (_, i) => {
       const dia = subDays(new Date(), 29 - i);
@@ -372,7 +372,7 @@ export default function RelatorioGerencial() {
 
   const pagamentoChart = useMemo(() => {
     const concluidas = vendas.filter(
-      (v) => v.status === "entregue" || v.status === "concluido",
+      (v) => v.status === "entregue" || v.status === "concluido" || v.status === "finalizado",
     );
     const totalPorForma = concluidas.reduce((acc: Record<string, number>, v) => {
       const label = formaPagamentoLabel(v.forma_pagamento) || "Não informado";
