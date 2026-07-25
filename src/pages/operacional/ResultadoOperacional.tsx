@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageSectionLoader } from "@/components/ui/page-loader";
 import { AlertTriangle, Settings2, FileDown, Printer } from "lucide-react";
+import { FluxoLateralPanel } from "@/components/ro/FluxoLateralPanel";
+import { RoExcelButton } from "@/components/ro/RoExcelButton";
 import { exportROtoPdf, handlePrint } from "@/services/reportPdfService";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
