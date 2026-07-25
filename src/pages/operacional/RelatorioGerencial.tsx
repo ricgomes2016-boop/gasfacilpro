@@ -437,271 +437,345 @@ export default function RelatorioGerencial() {
     },
   ];
 
+  const margemBarWidth = Math.min(100, Math.max(0, metricas.margemOperacional));
+  const isLucroPositivo = metricas.lucroOperacional >= 0;
+
   return (
     <MainLayout>
       <Header
         title="Relatório Gerencial"
-        subtitle={`Central Gás - Consolidado de ${format(new Date(), "MMMM yyyy", { locale: ptBR })}`}
+        subtitle={`Consolidado de ${format(new Date(), "MMMM yyyy", { locale: ptBR })}`}
       />
-      <div className="space-y-5 bg-gradient-to-br from-secondary/10 via-background to-primary/10 p-3 sm:p-4 md:p-6">
-        <Tabs defaultValue="graficos" className="space-y-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <TabsList className="h-auto rounded-xl border bg-background/85 p-1 shadow-sm backdrop-blur">
-              <TabsTrigger value="graficos" className="gap-2 rounded-lg px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+      <div className="min-h-screen bg-[#F5F6F8] pb-8">
+        <Tabs defaultValue="graficos" className="space-y-4">
+          {/* Hero — Lucro Operacional (âncora) */}
+          <div className="px-3 pt-3 sm:px-4 sm:pt-4">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[hsl(158,84%,17%)] to-[hsl(160,71%,26%)] p-5 text-white shadow-xl shadow-emerald-900/10 sm:p-6">
+              <div className="pointer-events-none absolute -right-16 -top-16 h-32 w-32 rounded-full bg-[#c9a84c]/10 blur-3xl" />
+              <div className="relative flex items-start justify-between gap-3">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-emerald-100/80">
+                  Lucro Operacional
+                </span>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                    isLucroPositivo
+                      ? "border-emerald-400/30 bg-emerald-400/20 text-emerald-100"
+                      : "border-red-300/40 bg-red-400/20 text-red-100"
+                  }`}
+                >
+                  {isLucroPositivo ? "Positivo" : "Atenção"}
+                </span>
+              </div>
+              <h1 className="relative mt-1 font-bold tracking-tight text-3xl sm:text-4xl">
+                {formatMoneyCompact(metricas.lucroOperacional)}
+              </h1>
+              <div className="relative mt-3 flex items-center gap-3">
+                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white/20">
+                  <div
+                    className="h-full rounded-full bg-[#c9a84c] transition-all duration-500"
+                    style={{ width: `${margemBarWidth}%` }}
+                  />
+                </div>
+                <span className="text-xs font-medium text-emerald-50 sm:text-sm">
+                  Margem: <span className="text-[#c9a84c]">{metricas.margemOperacional.toFixed(1)}%</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* KPIs Grid — 2 cols mobile, expande no desktop */}
+          <div className="grid grid-cols-2 gap-2.5 px-3 sm:gap-3 sm:px-4 md:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-8">
+            {kpis.map((kpi) => (
+              <div
+                key={kpi.label}
+                className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-shadow hover:shadow-md sm:p-4"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className={toneStyles[kpi.tone].icon}>
+                    <kpi.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </div>
+                  <span className="rounded-full bg-slate-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-tight text-slate-500 sm:text-[10px]">
+                    {kpi.status}
+                  </span>
+                </div>
+                <p className="mt-2 text-[10px] font-semibold uppercase tracking-tight text-slate-500 sm:text-[11px]">
+                  {kpi.label}
+                </p>
+                <p className="mt-0.5 text-base font-bold leading-tight text-[hsl(158,84%,17%)] sm:text-lg">
+                  {kpi.value}
+                </p>
+                <p className="mt-0.5 text-[10px] leading-tight text-slate-400 line-clamp-2 sm:text-[11px]">
+                  {kpi.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Sticky Tabs */}
+          <div className="sticky top-0 z-20 border-b border-slate-200 bg-[#F5F6F8]/90 px-3 backdrop-blur-md sm:px-4">
+            <TabsList className="h-auto rounded-none border-0 bg-transparent p-0">
+              <TabsTrigger
+                value="graficos"
+                className="gap-2 rounded-none border-b-2 border-transparent bg-transparent px-3 py-3 text-sm font-bold text-slate-400 shadow-none data-[state=active]:border-[hsl(158,84%,17%)] data-[state=active]:bg-transparent data-[state=active]:text-[hsl(158,84%,17%)] data-[state=active]:shadow-none"
+              >
                 <TrendingUp className="h-4 w-4" />
                 Gráficos
               </TabsTrigger>
-              <TabsTrigger value="relatorio-ia" className="gap-2 rounded-lg px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger
+                value="relatorio-ia"
+                className="gap-2 rounded-none border-b-2 border-transparent bg-transparent px-3 py-3 text-sm font-medium text-slate-400 shadow-none data-[state=active]:border-[hsl(158,84%,17%)] data-[state=active]:bg-transparent data-[state=active]:text-[hsl(158,84%,17%)] data-[state=active]:shadow-none"
+              >
                 <Brain className="h-4 w-4" />
                 Relatório IA
+                <span className="ml-1 rounded-md bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
+                  BETA
+                </span>
               </TabsTrigger>
             </TabsList>
-            <Badge variant="outline" className="w-fit border-primary/20 bg-background/70 px-3 py-1 text-primary">
-              Build executivo - dados do mês atual
-            </Badge>
           </div>
 
-          <TabsContent value="graficos" className="space-y-5">
-            <div className="grid gap-3 lg:grid-cols-3">
-              {executiveNotes.map((note) => (
-                <div key={note.label} className={`rounded-xl border p-4 shadow-sm ${note.tone}`}>
-                  <p className="text-xs font-semibold uppercase tracking-wide opacity-75">{note.label}</p>
-                  <p className="mt-1 text-lg font-bold">{note.value}</p>
-                  <p className="mt-1 text-sm opacity-80">{note.description}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
-              {kpis.map((kpi) => (
-                <Card key={kpi.label} className="overflow-hidden border-border/70 bg-background/90 shadow-sm">
-                  <CardContent className="p-0">
-                    <div className={`h-1 ${toneStyles[kpi.tone].bar}`} />
-                    <div className="space-y-3 p-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className={toneStyles[kpi.tone].icon}>
-                          <kpi.icon className="h-4 w-4" />
-                        </div>
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                          {kpi.status}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-xl font-bold leading-tight text-foreground">{kpi.value}</p>
-                        <p className="mt-1 text-xs font-medium text-muted-foreground">{kpi.label}</p>
-                        <p className="mt-1 text-[11px] text-muted-foreground/80">{kpi.detail}</p>
-                      </div>
+          <TabsContent value="graficos" className="space-y-4 px-3 sm:px-4">
+            {/* Notas Executivas */}
+            <div>
+              <h3 className="mb-2 ml-1 text-sm font-bold text-slate-800">Notas Executivas</h3>
+              <div className="grid gap-2.5 md:grid-cols-3">
+                {executiveNotes.map((note) => (
+                  <div
+                    key={note.label}
+                    className={`rounded-2xl border p-3.5 shadow-sm ${note.tone}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                      <p className="text-[11px] font-bold uppercase tracking-wide opacity-80">
+                        {note.label}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <p className="mt-1.5 text-sm font-bold">{note.value}</p>
+                    <p className="mt-0.5 text-xs leading-relaxed opacity-80">{note.description}</p>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {loading ? (
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2">
                 {[1, 2, 3, 4].map((item) => (
-                  <Card key={item} className="border-border/70 bg-background/90 shadow-sm">
-                    <CardContent className="h-[340px] animate-pulse bg-muted/30" />
-                  </Card>
+                  <div
+                    key={item}
+                    className="h-[300px] animate-pulse rounded-3xl border border-slate-100 bg-white"
+                  />
                 ))}
               </div>
             ) : (
-              <>
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <Card className="border-border/70 bg-background/95 shadow-sm">
-                    <CardHeader className="border-b bg-gradient-to-r from-success/10 to-info/10">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <DollarSign className="h-4 w-4 text-success" />
-                        Faturamento Diário
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                      {vendasPorDia.some((item) => item.total > 0) ? (
-                        <ResponsiveContainer width="100%" height={270}>
-                          <AreaChart data={vendasPorDia}>
-                            <defs>
-                              <linearGradient id="faturamentoGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.35} />
-                                <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0.02} />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="4 4" vertical={false} />
-                            <XAxis dataKey="dia" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                            <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => `${Number(v) / 1000}k`} />
-                            <Tooltip formatter={formatTooltipMoney} labelClassName="font-medium" />
-                            <Area type="monotone" dataKey="total" name="Faturamento" stroke="hsl(var(--success))" strokeWidth={3} fill="url(#faturamentoGradient)" />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <EmptyChart label="As vendas concluídas do mês aparecerão aqui assim que houver movimentação." />
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-border/70 bg-background/95 shadow-sm">
-                    <CardHeader className="border-b bg-gradient-to-r from-destructive/10 to-warning/15">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <AlertTriangle className="h-4 w-4 text-destructive" />
-                        Despesas por Categoria
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                      {despesasChart.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={270}>
-                          <PieChart>
-                            <Pie data={despesasChart} dataKey="value" nameKey="name" cx="50%" cy="48%" outerRadius={88} innerRadius={48} paddingAngle={2}>
-                              {despesasChart.map((_, i) => (
-                                <Cell key={i} fill={chartPalette[(i + 3) % chartPalette.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip formatter={formatTooltipMoney} />
-                            <Legend iconType="circle" layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: 12 }} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <EmptyChart label="As categorias de contas a pagar do período aparecerão neste gráfico." />
-                      )}
-                    </CardContent>
-                  </Card>
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Faturamento Diário */}
+                <div className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800 sm:text-base">
+                      <DollarSign className="h-4 w-4 text-[hsl(160,71%,26%)]" />
+                      Faturamento Diário
+                    </h3>
+                    <span className="text-[10px] font-bold uppercase tracking-tight text-slate-400">
+                      30 dias
+                    </span>
+                  </div>
+                  {vendasPorDia.some((item) => item.total > 0) ? (
+                    <ResponsiveContainer width="100%" height={240}>
+                      <AreaChart data={vendasPorDia}>
+                        <defs>
+                          <linearGradient id="faturamentoGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="hsl(160,71%,26%)" stopOpacity={0.25} />
+                            <stop offset="100%" stopColor="hsl(160,71%,26%)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="4 4" vertical={false} />
+                        <XAxis dataKey="dia" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                        <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(v) => `${Number(v) / 1000}k`} width={40} />
+                        <Tooltip formatter={formatTooltipMoney} labelClassName="font-medium" />
+                        <Area
+                          type="monotone"
+                          dataKey="total"
+                          name="Faturamento"
+                          stroke="hsl(160,71%,26%)"
+                          strokeWidth={2.5}
+                          fill="url(#faturamentoGradient)"
+                          activeDot={{ r: 6, fill: "hsl(160,71%,26%)", stroke: "white", strokeWidth: 2, className: "pulse" }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <EmptyChart label="As vendas concluídas do mês aparecerão aqui assim que houver movimentação." />
+                  )}
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <Card className="border-border/70 bg-background/95 shadow-sm">
-                    <CardHeader className="border-b bg-gradient-to-r from-secondary/10 to-info/10">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <Package className="h-4 w-4 text-secondary" />
-                        Margem por Produto
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                      {topProdutos.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={270}>
-                          <BarChart data={topProdutos} layout="vertical" margin={{ left: 18, right: 20 }}>
-                            <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="4 4" horizontal={false} />
-                            <XAxis type="number" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} unit="%" />
-                            <YAxis dataKey="nome" type="category" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={118} />
-                            <Tooltip formatter={(value) => `${Number(value || 0).toFixed(1)}%`} />
-                            <Bar dataKey="margem" name="Margem" radius={[0, 8, 8, 0]}>
-                              {topProdutos.map((item, i) => (
-                                <Cell key={item.nome} fill={item.margem >= 25 ? "hsl(var(--success))" : chartPalette[i % chartPalette.length]} />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <EmptyChart label="Produtos com preço de venda e custo cadastrados serão comparados aqui." />
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-border/70 bg-background/95 shadow-sm">
-                    <CardHeader className="border-b bg-gradient-to-r from-info/10 to-secondary/10">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <ShoppingCart className="h-4 w-4 text-info" />
-                        Formas de Pagamento
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                      {pagamentoChart.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={270}>
-                          <PieChart>
-                            <Pie data={pagamentoChart} dataKey="value" nameKey="name" cx="50%" cy="48%" outerRadius={88} innerRadius={44} paddingAngle={2}>
-                              {pagamentoChart.map((_, i) => (
-                                <Cell key={i} fill={chartPalette[i % chartPalette.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip formatter={chartValueFormatter} />
-                            <Legend iconType="circle" layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: 12 }} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <EmptyChart label="As formas de pagamento dos pedidos aparecerão quando houver vendas no mês." />
-                      )}
-                    </CardContent>
-                  </Card>
+                {/* Despesas por Categoria */}
+                <div className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800 sm:text-base">
+                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                      Despesas por Categoria
+                    </h3>
+                  </div>
+                  {despesasChart.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={240}>
+                      <PieChart>
+                        <Pie data={despesasChart} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={78} innerRadius={44} paddingAngle={2}>
+                          {despesasChart.map((_, i) => (
+                            <Cell key={i} fill={chartPalette[(i + 3) % chartPalette.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={formatTooltipMoney} />
+                        <Legend iconType="circle" layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: 11 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <EmptyChart label="As categorias de contas a pagar do período aparecerão neste gráfico." />
+                  )}
                 </div>
-              </>
+
+                {/* Margem por Produto */}
+                <div className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800 sm:text-base">
+                      <Package className="h-4 w-4 text-[hsl(158,84%,17%)]" />
+                      Margem por Produto
+                    </h3>
+                  </div>
+                  {topProdutos.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={topProdutos} layout="vertical" margin={{ left: 8, right: 16 }}>
+                        <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="4 4" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} unit="%" />
+                        <YAxis dataKey="nome" type="category" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={100} />
+                        <Tooltip formatter={(value) => `${Number(value || 0).toFixed(1)}%`} />
+                        <Bar dataKey="margem" name="Margem" radius={[0, 8, 8, 0]}>
+                          {topProdutos.map((item, i) => (
+                            <Cell key={item.nome} fill={item.margem >= 25 ? "hsl(160,71%,26%)" : chartPalette[i % chartPalette.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <EmptyChart label="Produtos com preço de venda e custo cadastrados serão comparados aqui." />
+                  )}
+                </div>
+
+                {/* Formas de Pagamento */}
+                <div className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800 sm:text-base">
+                      <ShoppingCart className="h-4 w-4 text-info" />
+                      Formas de Pagamento
+                    </h3>
+                  </div>
+                  {pagamentoChart.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={240}>
+                      <PieChart>
+                        <Pie data={pagamentoChart} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={78} innerRadius={40} paddingAngle={2}>
+                          {pagamentoChart.map((_, i) => (
+                            <Cell key={i} fill={chartPalette[i % chartPalette.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={chartValueFormatter} />
+                        <Legend iconType="circle" layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: 11 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <EmptyChart label="As formas de pagamento dos pedidos aparecerão quando houver vendas no mês." />
+                  )}
+                </div>
+              </div>
             )}
           </TabsContent>
 
-          <TabsContent value="relatorio-ia" className="space-y-5">
-            <Card className="overflow-hidden border-primary/15 bg-background/95 shadow-sm">
-              <CardHeader className="border-b bg-gradient-to-r from-primary/10 via-secondary/10 to-info/10">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <TabsContent value="relatorio-ia" className="space-y-4 px-3 sm:px-4">
+            <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
+              <div className="border-b border-slate-100 bg-gradient-to-br from-[hsl(158,84%,17%)]/5 to-[hsl(160,71%,26%)]/5 p-4 sm:p-5">
+                <div className="flex flex-col gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="rounded-xl bg-primary/10 p-3 text-primary">
-                      <Brain className="h-6 w-6" />
+                    <div className="rounded-2xl bg-[hsl(158,84%,17%)]/10 p-2.5 text-[hsl(158,84%,17%)]">
+                      <Brain className="h-5 w-5" />
                     </div>
-                    <div>
-                      <CardTitle className="text-xl">Relatório Gerencial por IA</CardTitle>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Análise executiva com alertas, oportunidades e recomendações para a operação.
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-base font-bold text-slate-800 sm:text-lg">Relatório por IA</h2>
+                      <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
+                        Análise executiva com alertas e recomendações.
                       </p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Tabs value={periodoIA} onValueChange={(v) => setPeriodoIA(v as PeriodoIA)}>
-                      <TabsList className="h-9 rounded-lg bg-background/80">
-                        <TabsTrigger value="semanal" className="h-8 text-xs">Semanal</TabsTrigger>
-                        <TabsTrigger value="mensal" className="h-8 text-xs">Mensal</TabsTrigger>
+                      <TabsList className="h-9 rounded-xl bg-slate-100 p-1">
+                        <TabsTrigger value="semanal" className="h-7 rounded-lg text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                          Semanal
+                        </TabsTrigger>
+                        <TabsTrigger value="mensal" className="h-7 rounded-lg text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                          Mensal
+                        </TabsTrigger>
                       </TabsList>
                     </Tabs>
-                    <Button onClick={gerarRelatorioIA} disabled={gerandoIA} size="sm">
-                      {gerandoIA ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Brain className="mr-2 h-4 w-4" />}
-                      {gerandoIA ? "Gerando..." : "Gerar Relatório"}
+                    <Button
+                      onClick={gerarRelatorioIA}
+                      disabled={gerandoIA}
+                      size="sm"
+                      className="h-9 rounded-xl bg-[hsl(158,84%,17%)] text-white hover:bg-[hsl(160,71%,26%)]"
+                    >
+                      {gerandoIA ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Brain className="mr-1.5 h-4 w-4" />}
+                      {gerandoIA ? "Gerando..." : "Gerar"}
                     </Button>
                     {relatorioIA && (
-                      <Button onClick={exportarPDF} variant="outline" size="sm">
-                        <Download className="mr-2 h-4 w-4" />
+                      <Button onClick={exportarPDF} variant="outline" size="sm" className="h-9 rounded-xl">
+                        <Download className="mr-1.5 h-4 w-4" />
                         PDF
                       </Button>
                     )}
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-5 p-5">
-                <div className="grid gap-3 md:grid-cols-3">
+              </div>
+
+              <div className="space-y-4 p-4 sm:p-5">
+                <div className="grid gap-2.5 md:grid-cols-3">
                   {[
                     { icon: TrendingUp, title: "Resultado", text: "Faturamento, lucro, margem e ticket médio.", tone: toneStyles.success.icon },
-                    { icon: AlertTriangle, title: "Alertas", text: "Despesas altas, margem baixa e pontos fora da curva.", tone: toneStyles.warning.icon },
-                    { icon: Package, title: "Ações", text: "Sugestões práticas para preço, estoque e operação.", tone: toneStyles.secondary.icon },
+                    { icon: AlertTriangle, title: "Alertas", text: "Despesas altas, margem baixa e outliers.", tone: toneStyles.warning.icon },
+                    { icon: Package, title: "Ações", text: "Sugestões para preço, estoque e operação.", tone: toneStyles.secondary.icon },
                   ].map((item) => (
-                    <div key={item.title} className="rounded-xl border bg-background p-4">
-                      <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-lg ${item.tone}`}>
+                    <div key={item.title} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-3.5">
+                      <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-xl ${item.tone}`}>
                         <item.icon className="h-4 w-4" />
                       </div>
-                      <p className="font-semibold">{item.title}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{item.text}</p>
+                      <p className="text-sm font-bold text-slate-800">{item.title}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{item.text}</p>
                     </div>
                   ))}
                 </div>
 
                 {gerandoIA ? (
-                  <div className="rounded-xl border bg-muted/20 p-6">
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-5">
                     <div className="flex items-center gap-3">
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                      <div>
-                        <p className="font-semibold">Analisando os dados gerenciais</p>
-                        <p className="text-sm text-muted-foreground">A IA está cruzando vendas, despesas, margem e comportamento operacional.</p>
+                      <Loader2 className="h-5 w-5 animate-spin text-[hsl(158,84%,17%)]" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-800">Analisando os dados gerenciais</p>
+                        <p className="text-xs text-slate-500">Cruzando vendas, despesas, margem e operação.</p>
                       </div>
                     </div>
-                    <div className="mt-5 space-y-3">
-                      <div className="h-3 w-full animate-pulse rounded bg-muted" />
-                      <div className="h-3 w-4/5 animate-pulse rounded bg-muted" />
-                      <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+                    <div className="mt-4 space-y-2.5">
+                      <div className="h-3 w-full animate-pulse rounded bg-slate-200" />
+                      <div className="h-3 w-4/5 animate-pulse rounded bg-slate-200" />
+                      <div className="h-3 w-2/3 animate-pulse rounded bg-slate-200" />
                     </div>
                   </div>
                 ) : relatorioIA ? (
-                  <div className="rounded-xl border bg-background p-5 shadow-sm">
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b pb-3">
-                      <div>
-                        <p className="text-sm font-semibold text-primary">Análise pronta</p>
-                        <p className="text-xs text-muted-foreground">
-                          Período {periodoIA === "semanal" ? "semanal" : "mensal"} - gerado em {format(new Date(), "dd/MM/yyyy HH:mm")}
+                  <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-[hsl(158,84%,17%)]">Análise pronta</p>
+                        <p className="text-[11px] text-slate-500 sm:text-xs">
+                          Período {periodoIA === "semanal" ? "semanal" : "mensal"} · {format(new Date(), "dd/MM/yyyy HH:mm")}
                         </p>
                       </div>
-                      <Badge variant="outline" className="border-success/30 bg-success/10 text-success">
-                        Recomendações executivas
+                      <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-[hsl(158,84%,17%)]">
+                        Executivo
                       </Badge>
                     </div>
                     <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-strong:text-foreground">
@@ -720,8 +794,8 @@ export default function RelatorioGerencial() {
                     }}
                   />
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
