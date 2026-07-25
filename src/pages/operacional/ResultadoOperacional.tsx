@@ -14,7 +14,7 @@ import { CustosDetalhamentoDialog } from "@/components/ro/CustosDetalhamentoDial
 import { exportROtoPdf, handlePrint } from "@/services/reportPdfService";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
-import { useROComplemento } from "@/hooks/useROComplemento";
+
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
