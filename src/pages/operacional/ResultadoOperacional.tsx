@@ -74,6 +74,11 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
   const [canais, setCanais] = useState<CanalVenda[]>([]);
   const [precoCompraP13, setPrecoCompraP13] = useState(0);
   const [precoVendaP13, setPrecoVendaP13] = useState(0);
+  const { fluxo, ajustes, salvarAjuste, loading: loadingRO } = useROComplemento(
+    unidadeAtual?.id,
+    Number(anoSelecionado),
+    Number(mesSelecionado),
+  );
 
   useEffect(() => { fetchData(); }, [unidadeAtual, mesSelecionado, anoSelecionado]);
 
