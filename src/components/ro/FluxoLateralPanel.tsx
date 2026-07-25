@@ -62,13 +62,12 @@ function LinhaEditavel({
   );
 }
 
-export function FluxoLateralPanel({ unidadeId, ano, mes }: Props) {
+export function FluxoLateralPanel({ fluxo, ajustes, onSave, loading }: Props) {
   const { empresa } = useEmpresa();
-  const { fluxo, ajustes, salvarAjuste, loading } = useROComplemento(unidadeId, ano, mes);
 
   const save = (chave: string, v: number) => {
     if (!empresa?.id) return;
-    salvarAjuste(chave, v, empresa.id);
+    onSave(chave, v, empresa.id);
   };
 
   const totalEntradas =
