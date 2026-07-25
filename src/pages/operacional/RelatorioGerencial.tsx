@@ -972,6 +972,94 @@ export default function RelatorioGerencial() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Drill-down KPI Dialog */}
+      <Dialog open={!!drillKey} onOpenChange={(o) => !o && setDrillKey(null)}>
+        <DialogContent className="max-w-lg gap-0 overflow-hidden rounded-2xl p-0">
+          {activeKpi && drillContent && (
+            <>
+              <DialogHeader className="border-b border-slate-100 bg-gradient-to-br from-[hsl(158,84%,17%)] to-[hsl(160,71%,26%)] p-5 text-white">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-white/15 p-2.5 text-white">
+                    <activeKpi.icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <DialogTitle className="text-base font-bold text-white sm:text-lg">
+                      {activeKpi.label}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-emerald-100/80">
+                      {activeKpi.detail}
+                    </DialogDescription>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xl font-bold sm:text-2xl">{activeKpi.value}</p>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="grid grid-cols-3 gap-2 border-b border-slate-100 bg-slate-50/60 p-4">
+                {drillContent.summary.map((s) => (
+                  <div key={s.label} className="min-w-0">
+                    <p className="truncate text-[10px] font-semibold uppercase tracking-tight text-slate-500">
+                      {s.label}
+                    </p>
+                    <p
+                      className={`mt-0.5 truncate text-sm font-bold ${
+                        (s as { highlight?: boolean }).highlight
+                          ? "text-[hsl(158,84%,17%)]"
+                          : "text-slate-800"
+                      }`}
+                    >
+                      {s.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <ScrollArea className="max-h-[55vh]">
+                <div className="p-4">
+                  {drillContent.list.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-slate-500">
+                      {drillContent.empty}
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-slate-100">
+                      {drillContent.list.map((item) => (
+                        <li
+                          key={item.id}
+                          className="flex items-center justify-between gap-3 py-2.5"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-slate-800">
+                              {item.title}
+                            </p>
+                            <p className="truncate text-[11px] text-slate-500">
+                              {item.subtitle}
+                            </p>
+                          </div>
+                          {item.value && (
+                            <span
+                              className={`shrink-0 text-sm font-bold ${
+                                item.tone === "success"
+                                  ? "text-[hsl(158,84%,17%)]"
+                                  : item.tone === "destructive"
+                                    ? "text-destructive"
+                                    : "text-slate-700"
+                              }`}
+                            >
+                              {item.value}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </ScrollArea>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }
