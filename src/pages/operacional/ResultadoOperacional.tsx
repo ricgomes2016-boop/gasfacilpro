@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageSectionLoader } from "@/components/ui/page-loader";
 import { AlertTriangle, Settings2, FileDown, Printer } from "lucide-react";
-import { FluxoLateralPanel } from "@/components/ro/FluxoLateralPanel";
+
 import { RoExcelButton } from "@/components/ro/RoExcelButton";
 import { CustosDetalhamentoDialog } from "@/components/ro/CustosDetalhamentoDialog";
 import { exportROtoPdf, handlePrint } from "@/services/reportPdfService";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
-import { useROComplemento } from "@/hooks/useROComplemento";
+
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -76,11 +76,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
   const [precoCompraP13, setPrecoCompraP13] = useState(0);
   const [precoVendaP13, setPrecoVendaP13] = useState(0);
   const [detalheOpen, setDetalheOpen] = useState(false);
-  const { fluxo, ajustes, salvarAjuste, loading: loadingRO } = useROComplemento(
-    unidadeAtual?.id,
-    Number(anoSelecionado),
-    Number(mesSelecionado),
-  );
+
 
   useEffect(() => { fetchData(); }, [unidadeAtual, mesSelecionado, anoSelecionado]);
 
@@ -146,16 +142,16 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
         })(),
         (() => {
           let q = supabase.from("movimentacoes_caixa")
-            .select("valor, categoria, descricao, status")
+            .select("valor, categoria, descricao, status, compra_id")
             .eq("tipo", "saida")
             .neq("status", "rejeitada")
-            .is("compra_id", null)
             .is("pedido_id", null)
             .gte("created_at", inicio)
             .lte("created_at", fim);
           if (unidadeAtual?.id) q = q.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
           return q;
         })(),
+
         supabase.from("produtos").select("id, nome, preco, preco_custo"),
       ]);
 
@@ -169,9 +165,13 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
         cpPorCategoria[cat] = (cpPorCategoria[cat] || 0) + (Number(cp.valor) || 0);
       });
       despesasCaixa.forEach((despesa: any) => {
-        const cat = (despesa.categoria || despesa.descricao || "Despesas do Caixa").toString().toLowerCase().trim();
+        const isCompra = !!despesa.compra_id;
+        const cat = isCompra
+          ? "custo das mercadorias (compras pagas no caixa)"
+          : (despesa.categoria || despesa.descricao || "Despesas do Caixa").toString().toLowerCase().trim();
         cpPorCategoria[cat] = (cpPorCategoria[cat] || 0) + (Number(despesa.valor) || 0);
       });
+
 
       const categoriasCorrespondidas = new Set<string>();
       const custosCalculados: CustoItem[] = ((categorias || []) as any[]).map(cat => {
@@ -359,7 +359,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
     { label: "Margem Líquida", value: receitaBruta > 0 ? `${((lucroLiquido / receitaBruta) * 100).toFixed(1)}%` : "0,0%", highlight: lucroLiquido >= 0 },
   ];
 
-  const resultadoFinal = lucroLiquido + (ajustes.nota_credito?.valor || 0);
+  const resultadoFinal = lucroLiquido;
   const margemLiquidaPct = receitaBruta > 0 ? (lucroLiquido / receitaBruta) * 100 : 0;
   const margemBrutaPct = receitaBruta > 0 ? (lucroBruto / receitaBruta) * 100 : 0;
   const totalMcCanais = canaisP13.reduce((s, c) => s + c.margemRS, 0);
@@ -819,15 +819,8 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
         </Card>
       )}
 
-      {/* ============ FLUXO LATERAL (Entradas/Saídas/Estoque valorizado) ============ */}
-      {unidadeAtual?.id && (
-        <FluxoLateralPanel
-          fluxo={fluxo}
-          ajustes={ajustes}
-          onSave={salvarAjuste}
-          loading={loadingRO}
-        />
-      )}
+
+
 
       {/* ============ DADOS DE REFERÊNCIA + INDICADORES ============ */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 w-full min-w-0">

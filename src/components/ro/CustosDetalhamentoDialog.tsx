@@ -50,32 +50,16 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<"data_desc" | "data_asc" | "valor_desc">("data_desc");
   const [mostrarExcluidos, setMostrarExcluidos] = useState(false);
-  const [detalhe, setDetalhe] = useState<{ origem: Linha["origem"]; rawId: string } | null>(null);
-  const [detalheData, setDetalheData] = useState<any | null>(null);
-  const [detalheLoading, setDetalheLoading] = useState(false);
 
-  const abrirDetalhe = async (linha: Linha) => {
+  const abrirNaOrigem = (linha: Linha) => {
     const rawId = linha.id.replace(/^cp-|^mc-/, "");
-    setDetalhe({ origem: linha.origem, rawId });
-    setDetalheData(null);
-    setDetalheLoading(true);
-    try {
-      const table = linha.origem;
-      const { data } = await supabase.from(table).select("*").eq("id", rawId).maybeSingle();
-      setDetalheData(data);
-    } finally {
-      setDetalheLoading(false);
-    }
-  };
-
-  const abrirNaOrigem = () => {
-    if (!detalhe) return;
-    const path = detalhe.origem === "contas_pagar"
-      ? `/financeiro/pagar?highlight=${detalhe.rawId}`
-      : `/caixa/despesas?highlight=${detalhe.rawId}`;
+    const path = linha.origem === "contas_pagar"
+      ? `/financeiro/pagar?highlight=${rawId}`
+      : `/caixa/despesas?highlight=${rawId}`;
     onClose();
     navigate(path);
   };
+
 
   useEffect(() => {
     if (!open) return;
@@ -121,25 +105,30 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
         const motivos: string[] = [];
         let incluido = true;
         if (r.status === "rejeitada") { incluido = false; motivos.push("status=rejeitada"); }
-        if (r.compra_id) { incluido = false; motivos.push("vinculada a compra (compra_id ≠ null)"); }
         if (r.pedido_id) { incluido = false; motivos.push("vinculada a pedido (pedido_id ≠ null)"); }
         if (isTransferenciaInterna(r.categoria, r.descricao)) {
           incluido = false;
           motivos.push("transferência interna (depósito/transferência caixa)");
         }
+        const isCompra = !!r.compra_id;
         return {
           id: `mc-${r.id}`,
           origem: "movimentacoes_caixa",
           data: r.created_at,
-          categoria: r.categoria || "Sem categoria",
-          descricao: r.descricao || "—",
+          categoria: isCompra
+            ? "Custo das mercadorias (compra paga no caixa)"
+            : (r.categoria || "Sem categoria"),
+          descricao: r.descricao || (isCompra ? "Pagamento de compra pelo caixa" : "—"),
           valor: Number(r.valor) || 0,
           incluido,
           motivo: incluido
-            ? "Caixa · tipo=saida · sem vínculo compra/pedido · dentro do mês"
+            ? (isCompra
+              ? "Caixa · tipo=saida · pagamento de compra (custo de mercadoria)"
+              : "Caixa · tipo=saida · sem vínculo compra/pedido · dentro do mês")
             : `Excluído: ${motivos.join(" · ")}`,
         };
       });
+
 
       setLinhas([...cp, ...mc]);
       setLoading(false);
@@ -219,9 +208,11 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
           </div>
           <ul className="space-y-0.5 text-muted-foreground">
             <li><strong>Contas a Pagar:</strong> inclui apenas <code>status = "pago"</code> com <code>vencimento</code> dentro do mês selecionado.</li>
-            <li><strong>Caixa:</strong> inclui <code>tipo = "saida"</code>, <code>status ≠ "rejeitada"</code>, sem vínculo com compra (<code>compra_id IS NULL</code>) nem pedido (<code>pedido_id IS NULL</code>), criada no mês.</li>
-            <li><strong>Excluído sempre:</strong> transferências internas (descrição contendo "depósito bancário" ou "transferência caixa") para evitar duplicidade.</li>
+            <li><strong>Caixa:</strong> inclui <code>tipo = "saida"</code>, <code>status ≠ "rejeitada"</code>, sem vínculo com pedido (<code>pedido_id IS NULL</code>), criada no mês. Saídas com <code>compra_id</code> entram como <em>custo das mercadorias</em>.</li>
+            <li><strong>Excluído sempre:</strong> transferências internas (descrição contendo "depósito bancário" ou "transferência caixa") e saídas vinculadas a pedidos, para evitar duplicidade.</li>
+            <li>Clique em uma linha para abrir o lançamento na tela de origem.</li>
           </ul>
+
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -283,11 +274,11 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
                 ) : filtradas.map(l => (
                   <TableRow
                     key={l.id}
-                    onClick={() => abrirDetalhe(l)}
+                    onClick={() => abrirNaOrigem(l)}
                     className={`cursor-pointer transition hover:bg-[#064e3b]/8 focus-visible:bg-[#064e3b]/10 focus-visible:outline-none ${l.incluido ? "" : "bg-muted/30 opacity-70"}`}
                     tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirDetalhe(l); } }}
-                    aria-label={`Ver detalhes de ${l.descricao} - R$ ${fmt(l.valor)}`}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirNaOrigem(l); } }}
+                    aria-label={`Abrir ${l.descricao} na origem - R$ ${fmt(l.valor)}`}
                   >
                     <TableCell>
                       <Tooltip>
@@ -321,51 +312,7 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
           </TooltipProvider>
         </ScrollArea>
       </DialogContent>
-
-      {/* ===== Sub-dialog: detalhes do lançamento ===== */}
-      <Dialog open={!!detalhe} onOpenChange={(v) => { if (!v) { setDetalhe(null); setDetalheData(null); } }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {detalhe?.origem === "contas_pagar" ? "Conta a Pagar" : "Movimentação de Caixa"}
-              <Badge variant="outline" className="text-[10px] font-mono">#{detalhe?.rawId.slice(0, 8)}</Badge>
-            </DialogTitle>
-            <DialogDescription>Detalhes completos do lançamento.</DialogDescription>
-          </DialogHeader>
-          {detalheLoading ? (
-            <div className="flex items-center justify-center py-10 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando...
-            </div>
-          ) : !detalheData ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Registro não encontrado (pode ter sido excluído).</p>
-          ) : (
-            <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
-              {Object.entries(detalheData)
-                .filter(([, v]) => v !== null && v !== "" && !["unidade_id", "empresa_id", "user_id", "created_by"].includes(String(v)))
-                .map(([k, v]) => (
-                  <div key={k} className="grid grid-cols-[130px_1fr] gap-3 text-xs border-b border-border/40 py-1.5">
-                    <span className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px] break-words">{k}</span>
-                    <span className="tabular-nums break-words">
-                      {typeof v === "number" && (k.includes("valor") || k.includes("preco"))
-                        ? `R$ ${fmt(v as number)}`
-                        : typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v as string)
-                          ? format(new Date(v as string), "dd/MM/yyyy HH:mm", { locale: ptBR })
-                          : typeof v === "object"
-                            ? JSON.stringify(v)
-                            : String(v)}
-                    </span>
-                  </div>
-                ))}
-            </div>
-          )}
-          <div className="flex justify-end gap-2 pt-2 border-t">
-            <Button variant="ghost" onClick={() => setDetalhe(null)}>Fechar</Button>
-            <Button onClick={abrirNaOrigem} className="gap-1.5">
-              <ExternalLink className="h-4 w-4" /> Abrir na origem
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </Dialog>
   );
+
 }
