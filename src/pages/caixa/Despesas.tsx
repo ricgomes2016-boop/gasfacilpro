@@ -99,8 +99,31 @@ export default function Despesas() {
   const [dataSelecionada, setDataSelecionada] = useState<Date>(getBrasiliaDate());
   const { unidadeAtual } = useUnidade();
   const [form, setForm] = useState({ descricao: "", categoria: "", valor: "", responsavel: "", observacoes: "" });
+  const [categoriasCadastradas, setCategoriasCadastradas] = useState<{ nome: string; tipo: string | null }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    (async () => {
+      let q = supabase.from("categorias_despesa").select("nome, tipo").eq("ativo", true);
+      if (unidadeAtual?.id) q = q.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
+      const { data } = await q;
+      // dedupe by nome
+      const seen = new Set<string>();
+      const unique = (data || []).filter((c: any) => {
+        const k = (c.nome || "").trim();
+        if (!k || seen.has(k.toLowerCase())) return false;
+        seen.add(k.toLowerCase());
+        return true;
+      }) as { nome: string; tipo: string | null }[];
+      unique.sort((a, b) => {
+        const ta = (a.tipo || "zzz"), tb = (b.tipo || "zzz");
+        if (ta !== tb) return ta.localeCompare(tb);
+        return a.nome.localeCompare(b.nome, "pt-BR");
+      });
+      setCategoriasCadastradas(unique);
+    })();
+  }, [unidadeAtual]);
 
   const fetchDespesas = async () => {
     setLoading(true);
@@ -258,9 +281,23 @@ export default function Despesas() {
                   <div><Label>Categoria</Label>
                     <Select value={form.categoria} onValueChange={v => setForm({ ...form, categoria: v })}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Combustível">Combustível</SelectItem><SelectItem value="Alimentação">Alimentação</SelectItem>
-                        <SelectItem value="Manutenção">Manutenção</SelectItem><SelectItem value="Outros">Outros</SelectItem>
+                      <SelectContent className="max-h-72">
+                        {form.categoria && !categoriasCadastradas.some(c => c.nome === form.categoria) && (
+                          <SelectItem value={form.categoria}>{form.categoria}</SelectItem>
+                        )}
+                        {categoriasCadastradas.map(c => (
+                          <SelectItem key={c.nome} value={c.nome}>
+                            {c.nome}{c.tipo ? ` · ${c.tipo}` : ""}
+                          </SelectItem>
+                        ))}
+                        {categoriasCadastradas.length === 0 && (
+                          <>
+                            <SelectItem value="Combustível">Combustível</SelectItem>
+                            <SelectItem value="Alimentação">Alimentação</SelectItem>
+                            <SelectItem value="Manutenção">Manutenção</SelectItem>
+                            <SelectItem value="Outros">Outros</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
