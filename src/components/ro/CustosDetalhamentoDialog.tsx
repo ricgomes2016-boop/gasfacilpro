@@ -6,7 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Search, FileDown } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArrowUpDown, Search, FileDown, Info, CheckCircle2, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -27,6 +29,8 @@ interface Linha {
   categoria: string;
   descricao: string;
   valor: number;
+  incluido: boolean;
+  motivo: string;
 }
 
 const isTransferenciaInterna = (categoria?: string | null, descricao?: string | null) => {
@@ -43,6 +47,7 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
   const [filtroOrigem, setFiltroOrigem] = useState<string>("todas");
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<"data_desc" | "data_asc" | "valor_desc">("data_desc");
+  const [mostrarExcluidos, setMostrarExcluidos] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -53,41 +58,60 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
       const inicioDate = format(new Date(ano, mes, 1), "yyyy-MM-dd");
       const fimDate = format(endOfMonth(new Date(ano, mes, 1)), "yyyy-MM-dd");
 
+      // Contas a pagar: busca TODAS do mês (por vencimento) para explicar exclusões
       let cpQ = supabase.from("contas_pagar")
         .select("id, valor, categoria, descricao, vencimento, data_pagamento, status")
-        .eq("status", "pago")
         .gte("vencimento", inicioDate).lte("vencimento", fimDate);
       if (unidadeId) cpQ = cpQ.eq("unidade_id", unidadeId);
 
+      // Movimentações de caixa: busca TODAS as saídas do mês para explicar exclusões
       let mcQ = supabase.from("movimentacoes_caixa")
         .select("id, valor, categoria, descricao, created_at, status, compra_id, pedido_id, tipo")
         .eq("tipo", "saida")
-        .neq("status", "rejeitada")
-        .is("compra_id", null)
-        .is("pedido_id", null)
         .gte("created_at", inicio).lte("created_at", fim);
       if (unidadeId) mcQ = mcQ.or(`unidade_id.eq.${unidadeId},unidade_id.is.null`);
 
       const [cpRes, mcRes] = await Promise.all([cpQ, mcQ]);
 
-      const cp: Linha[] = (cpRes.data || []).map((r: any) => ({
-        id: `cp-${r.id}`,
-        origem: "contas_pagar",
-        data: r.data_pagamento || r.vencimento,
-        categoria: r.categoria || "Sem categoria",
-        descricao: r.descricao || "—",
-        valor: Number(r.valor) || 0,
-      }));
-      const mc: Linha[] = (mcRes.data || [])
-        .filter((r: any) => !isTransferenciaInterna(r.categoria, r.descricao))
-        .map((r: any) => ({
+      const cp: Linha[] = (cpRes.data || []).map((r: any) => {
+        const incluido = r.status === "pago";
+        return {
+          id: `cp-${r.id}`,
+          origem: "contas_pagar",
+          data: r.data_pagamento || r.vencimento,
+          categoria: r.categoria || "Sem categoria",
+          descricao: r.descricao || "—",
+          valor: Number(r.valor) || 0,
+          incluido,
+          motivo: incluido
+            ? "Contas a Pagar · status=pago · vencimento dentro do mês"
+            : `Excluído: status="${r.status}" (não é 'pago')`,
+        };
+      });
+
+      const mc: Linha[] = (mcRes.data || []).map((r: any) => {
+        const motivos: string[] = [];
+        let incluido = true;
+        if (r.status === "rejeitada") { incluido = false; motivos.push("status=rejeitada"); }
+        if (r.compra_id) { incluido = false; motivos.push("vinculada a compra (compra_id ≠ null)"); }
+        if (r.pedido_id) { incluido = false; motivos.push("vinculada a pedido (pedido_id ≠ null)"); }
+        if (isTransferenciaInterna(r.categoria, r.descricao)) {
+          incluido = false;
+          motivos.push("transferência interna (depósito/transferência caixa)");
+        }
+        return {
           id: `mc-${r.id}`,
           origem: "movimentacoes_caixa",
           data: r.created_at,
           categoria: r.categoria || "Sem categoria",
           descricao: r.descricao || "—",
           valor: Number(r.valor) || 0,
-        }));
+          incluido,
+          motivo: incluido
+            ? "Caixa · tipo=saida · sem vínculo compra/pedido · dentro do mês"
+            : `Excluído: ${motivos.join(" · ")}`,
+        };
+      });
 
       setLinhas([...cp, ...mc]);
       setLoading(false);
@@ -101,6 +125,7 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
 
   const filtradas = useMemo(() => {
     let arr = linhas;
+    if (!mostrarExcluidos) arr = arr.filter(l => l.incluido);
     if (filtroCategoria !== "todas") arr = arr.filter(l => l.categoria === filtroCategoria);
     if (filtroOrigem !== "todas") arr = arr.filter(l => l.origem === filtroOrigem);
     if (busca.trim()) {
@@ -112,19 +137,26 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
     if (ordem === "data_asc") sorted.sort((a, b) => (a.data || "").localeCompare(b.data || ""));
     if (ordem === "valor_desc") sorted.sort((a, b) => b.valor - a.valor);
     return sorted;
-  }, [linhas, filtroCategoria, filtroOrigem, busca, ordem]);
+  }, [linhas, filtroCategoria, filtroOrigem, busca, ordem, mostrarExcluidos]);
 
-  const total = filtradas.reduce((s, l) => s + l.valor, 0);
+  const totalIncluido = useMemo(
+    () => linhas.filter(l => l.incluido).reduce((s, l) => s + l.valor, 0),
+    [linhas],
+  );
+  const qtdIncluidos = linhas.filter(l => l.incluido).length;
+  const qtdExcluidos = linhas.length - qtdIncluidos;
 
   const exportCsv = () => {
     const rows = [
-      ["Data", "Origem", "Categoria", "Descrição", "Valor"],
+      ["Data", "Origem", "Status", "Categoria", "Descrição", "Valor", "Motivo"],
       ...filtradas.map(l => [
-        format(new Date(l.data), "dd/MM/yyyy"),
+        l.data ? format(new Date(l.data), "dd/MM/yyyy") : "",
         l.origem === "contas_pagar" ? "Contas a Pagar" : "Caixa",
+        l.incluido ? "Incluído" : "Excluído",
         l.categoria,
         l.descricao.replace(/[\r\n;]/g, " "),
         l.valor.toFixed(2).replace(".", ","),
+        l.motivo.replace(/[\r\n;]/g, " "),
       ]),
     ];
     const csv = rows.map(r => r.map(c => `"${c}"`).join(";")).join("\n");
@@ -139,13 +171,30 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[92vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Detalhamento de Custos e Despesas</DialogTitle>
-          <DialogDescription>
-            {mesLabel} / {ano} — {filtradas.length} lançamento(s) · Total <span className="font-semibold text-destructive">R$ {fmt(total)}</span>
+          <DialogDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>{mesLabel} / {ano}</span>
+            <span>·</span>
+            <span className="text-success font-medium">{qtdIncluidos} incluído(s)</span>
+            {qtdExcluidos > 0 && <><span>·</span><span className="text-muted-foreground">{qtdExcluidos} excluído(s)</span></>}
+            <span>·</span>
+            <span>Total incluído: <span className="font-semibold text-destructive">R$ {fmt(totalIncluido)}</span></span>
           </DialogDescription>
         </DialogHeader>
+
+        {/* Regras de composição */}
+        <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-[11px] leading-relaxed">
+          <div className="flex items-center gap-1.5 font-semibold text-xs mb-1.5">
+            <Info className="h-3.5 w-3.5 text-primary" /> Regras de composição
+          </div>
+          <ul className="space-y-0.5 text-muted-foreground">
+            <li><strong>Contas a Pagar:</strong> inclui apenas <code>status = "pago"</code> com <code>vencimento</code> dentro do mês selecionado.</li>
+            <li><strong>Caixa:</strong> inclui <code>tipo = "saida"</code>, <code>status ≠ "rejeitada"</code>, sem vínculo com compra (<code>compra_id IS NULL</code>) nem pedido (<code>pedido_id IS NULL</code>), criada no mês.</li>
+            <li><strong>Excluído sempre:</strong> transferências internas (descrição contendo "depósito bancário" ou "transferência caixa") para evitar duplicidade.</li>
+          </ul>
+        </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[180px]">
@@ -175,42 +224,61 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
               <SelectItem value="valor_desc">Maior valor</SelectItem>
             </SelectContent>
           </Select>
+          <label className="flex items-center gap-2 text-xs">
+            <Switch checked={mostrarExcluidos} onCheckedChange={setMostrarExcluidos} />
+            Mostrar excluídos
+          </label>
           <Button variant="outline" size="sm" className="h-9" onClick={exportCsv}>
             <FileDown className="h-4 w-4 mr-1" /> CSV
           </Button>
         </div>
 
         <ScrollArea className="flex-1 border rounded-md">
-          <Table>
-            <TableHeader className="sticky top-0 bg-background z-10">
-              <TableRow>
-                <TableHead className="w-[100px]">Data</TableHead>
-                <TableHead className="w-[130px]">Origem</TableHead>
-                <TableHead className="w-[160px]">Categoria</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead className="text-right w-[120px]">Valor</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-              ) : filtradas.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum lançamento encontrado</TableCell></TableRow>
-              ) : filtradas.map(l => (
-                <TableRow key={l.id}>
-                  <TableCell className="text-xs tabular-nums">{l.data ? format(new Date(l.data), "dd/MM/yyyy", { locale: ptBR }) : "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant={l.origem === "contas_pagar" ? "default" : "secondary"} className="text-[10px]">
-                      {l.origem === "contas_pagar" ? "Contas a Pagar" : "Caixa"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-xs">{l.categoria}</TableCell>
-                  <TableCell className="text-xs">{l.descricao}</TableCell>
-                  <TableCell className="text-right text-xs tabular-nums font-semibold">R$ {fmt(l.valor)}</TableCell>
+          <TooltipProvider delayDuration={100}>
+            <Table>
+              <TableHeader className="sticky top-0 bg-background z-10">
+                <TableRow>
+                  <TableHead className="w-[40px]"></TableHead>
+                  <TableHead className="w-[100px]">Data</TableHead>
+                  <TableHead className="w-[130px]">Origem</TableHead>
+                  <TableHead className="w-[160px]">Categoria</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead className="w-[220px]">Motivo</TableHead>
+                  <TableHead className="text-right w-[120px]">Valor</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                ) : filtradas.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum lançamento encontrado</TableCell></TableRow>
+                ) : filtradas.map(l => (
+                  <TableRow key={l.id} className={l.incluido ? "" : "bg-muted/30 opacity-70"}>
+                    <TableCell>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {l.incluido
+                            ? <CheckCircle2 className="h-4 w-4 text-success" />
+                            : <XCircle className="h-4 w-4 text-muted-foreground" />}
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs text-xs">{l.motivo}</TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell className="text-xs tabular-nums">{l.data ? format(new Date(l.data), "dd/MM/yyyy", { locale: ptBR }) : "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={l.origem === "contas_pagar" ? "default" : "secondary"} className="text-[10px]">
+                        {l.origem === "contas_pagar" ? "Contas a Pagar" : "Caixa"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs">{l.categoria}</TableCell>
+                    <TableCell className="text-xs">{l.descricao}</TableCell>
+                    <TableCell className="text-[10px] text-muted-foreground leading-tight">{l.motivo}</TableCell>
+                    <TableCell className={`text-right text-xs tabular-nums font-semibold ${l.incluido ? "" : "line-through text-muted-foreground"}`}>R$ {fmt(l.valor)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TooltipProvider>
         </ScrollArea>
       </DialogContent>
     </Dialog>
