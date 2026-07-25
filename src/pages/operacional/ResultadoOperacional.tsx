@@ -613,7 +613,48 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                   })()}
                 </TableBody>
               </Table>
+      </div>
+
+      {/* Share por canal (participação % da MC) */}
+      {canaisP13.length > 0 && (
+        <Card className="border-border/60 shadow-[var(--elev-1)]">
+          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-2.5">
+            <CardTitle className="text-xs font-bold uppercase tracking-widest">Participação por canal (Share)</CardTitle>
+          </CardHeader>
+          <CardContent className="p-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+              {(() => {
+                const totalMC = canaisP13.reduce((s, c) => s + c.margemRS, 0);
+                return canaisP13
+                  .filter((c) => c.qtde > 0)
+                  .sort((a, b) => b.margemRS - a.margemRS)
+                  .map((c) => {
+                    const pct = totalMC > 0 ? (c.margemRS / totalMC) * 100 : 0;
+                    return (
+                      <div key={c.canal} className="rounded-md border border-border/60 bg-muted/20 px-3 py-2">
+                        <p className="text-[10px] font-semibold uppercase text-muted-foreground truncate">{c.canal}</p>
+                        <p className="text-base font-bold tabular-nums">{pct.toFixed(1)}%</p>
+                        <p className="text-[10px] text-muted-foreground tabular-nums">{c.qtde} un · R$ {fmt(c.margemRS)}</p>
+                      </div>
+                    );
+                  });
+              })()}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bloco 4 — Entradas/Saídas/Saldos/Estoque valorizado */}
+      {unidadeAtual?.id && (
+        <FluxoLateralPanel
+          fluxo={fluxo}
+          ajustes={ajustes}
+          onSave={salvarAjuste}
+          loading={loadingRO}
+        />
+      )}
+
+
           </CardContent>
         </Card>
       </div>
