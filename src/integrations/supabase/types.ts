@@ -12489,6 +12489,10 @@ export type Database = {
         Args: { _unidade_id: string }
         Returns: number
       }
+      recalcular_preco_custo_produto: {
+        Args: { p_produto_id: string }
+        Returns: undefined
+      }
       registrar_pagamento_conta_pagar: {
         Args: { p_conta_id: string; p_pagamentos: Json; p_quitar?: boolean }
         Returns: Json
