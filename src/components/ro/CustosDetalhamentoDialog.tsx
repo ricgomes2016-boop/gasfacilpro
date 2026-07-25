@@ -106,28 +106,25 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
         let incluido = true;
         if (r.status === "rejeitada") { incluido = false; motivos.push("status=rejeitada"); }
         if (r.pedido_id) { incluido = false; motivos.push("vinculada a pedido (pedido_id ≠ null)"); }
+        if (r.compra_id) { incluido = false; motivos.push("vinculada a compra (custo já contabilizado no CMV)"); }
         if (isTransferenciaInterna(r.categoria, r.descricao)) {
           incluido = false;
           motivos.push("transferência interna (depósito/transferência caixa)");
         }
-        const isCompra = !!r.compra_id;
         return {
           id: `mc-${r.id}`,
           origem: "movimentacoes_caixa",
           data: r.created_at,
-          categoria: isCompra
-            ? "Custo das mercadorias (compra paga no caixa)"
-            : (r.categoria || "Sem categoria"),
-          descricao: r.descricao || (isCompra ? "Pagamento de compra pelo caixa" : "—"),
+          categoria: r.categoria || "Sem categoria",
+          descricao: r.descricao || "—",
           valor: Number(r.valor) || 0,
           incluido,
           motivo: incluido
-            ? (isCompra
-              ? "Caixa · tipo=saida · pagamento de compra (custo de mercadoria)"
-              : "Caixa · tipo=saida · sem vínculo compra/pedido · dentro do mês")
+            ? "Caixa · tipo=saida · sem vínculo compra/pedido · dentro do mês"
             : `Excluído: ${motivos.join(" · ")}`,
         };
       });
+
 
 
       setLinhas([...cp, ...mc]);
@@ -208,8 +205,9 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
           </div>
           <ul className="space-y-0.5 text-muted-foreground">
             <li><strong>Contas a Pagar:</strong> inclui apenas <code>status = "pago"</code> com <code>vencimento</code> dentro do mês selecionado.</li>
-            <li><strong>Caixa:</strong> inclui <code>tipo = "saida"</code>, <code>status ≠ "rejeitada"</code>, sem vínculo com pedido (<code>pedido_id IS NULL</code>), criada no mês. Saídas com <code>compra_id</code> entram como <em>custo das mercadorias</em>.</li>
-            <li><strong>Excluído sempre:</strong> transferências internas (descrição contendo "depósito bancário" ou "transferência caixa") e saídas vinculadas a pedidos, para evitar duplicidade.</li>
+            <li><strong>Caixa:</strong> inclui <code>tipo = "saida"</code>, <code>status ≠ "rejeitada"</code>, sem vínculo com pedido nem com compra, criada no mês.</li>
+            <li><strong>Excluído sempre:</strong> transferências internas, saídas vinculadas a pedidos e saídas vinculadas a compras (o custo das mercadorias já é descontado via CMV), para evitar duplicidade.</li>
+
             <li>Clique em uma linha para abrir o lançamento na tela de origem.</li>
           </ul>
 
