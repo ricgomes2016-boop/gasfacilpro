@@ -19,5 +19,6 @@ export const vendasRoutes: RouteConfig[] = [
   { path: "/vendas/pedidos/:id/editar", component: EditarPedido, roles: ["admin", "gestor", "operacional"] },
   { path: "/vendas/pdv", component: PDV, roles: ["admin", "gestor", "operacional"] },
   { path: "/vendas/relatorio", component: RelatorioVendas, roles: ["admin", "gestor", "financeiro"] },
+  { path: "/vendas/lucratividade", component: RelatorioLucratividade, roles: ["admin", "gestor", "financeiro"] },
   { path: "/vendas/devolucoes", component: Devolucoes, roles: ["admin", "gestor", "operacional"] },
 ];
