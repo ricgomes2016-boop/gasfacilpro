@@ -50,32 +50,16 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<"data_desc" | "data_asc" | "valor_desc">("data_desc");
   const [mostrarExcluidos, setMostrarExcluidos] = useState(false);
-  const [detalhe, setDetalhe] = useState<{ origem: Linha["origem"]; rawId: string } | null>(null);
-  const [detalheData, setDetalheData] = useState<any | null>(null);
-  const [detalheLoading, setDetalheLoading] = useState(false);
 
-  const abrirDetalhe = async (linha: Linha) => {
+  const abrirNaOrigem = (linha: Linha) => {
     const rawId = linha.id.replace(/^cp-|^mc-/, "");
-    setDetalhe({ origem: linha.origem, rawId });
-    setDetalheData(null);
-    setDetalheLoading(true);
-    try {
-      const table = linha.origem;
-      const { data } = await supabase.from(table).select("*").eq("id", rawId).maybeSingle();
-      setDetalheData(data);
-    } finally {
-      setDetalheLoading(false);
-    }
-  };
-
-  const abrirNaOrigem = () => {
-    if (!detalhe) return;
-    const path = detalhe.origem === "contas_pagar"
-      ? `/financeiro/pagar?highlight=${detalhe.rawId}`
-      : `/caixa/despesas?highlight=${detalhe.rawId}`;
+    const path = linha.origem === "contas_pagar"
+      ? `/financeiro/pagar?highlight=${rawId}`
+      : `/caixa/despesas?highlight=${rawId}`;
     onClose();
     navigate(path);
   };
+
 
   useEffect(() => {
     if (!open) return;
