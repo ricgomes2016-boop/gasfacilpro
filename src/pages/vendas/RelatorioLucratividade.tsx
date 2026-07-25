@@ -310,99 +310,163 @@ export default function RelatorioLucratividade() {
   return (
     <MainLayout>
       <Header title="Relatório Detalhado — Lucratividade" />
-      <div className="space-y-4 p-4 pb-24 md:pb-4">
-        {/* Filtros */}
-        <Card>
-          <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:flex-wrap md:items-end">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="ini" className="text-xs text-muted-foreground">Início</Label>
-              <Input id="ini" type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} className="h-11" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="fim" className="text-xs text-muted-foreground">Fim</Label>
-              <Input id="fim" type="date" value={fim} onChange={(e) => setFim(e.target.value)} className="h-11" />
-            </div>
-            <div className="flex flex-1 flex-wrap items-center gap-4 md:justify-end">
-              <div className="flex items-center gap-2">
-                <Checkbox id="cp" checked={incluirCP} onCheckedChange={(v) => setIncluirCP(!!v)} />
-                <Label htmlFor="cp" className="text-sm">Contas a pagar</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox id="mc" checked={incluirMC} onCheckedChange={(v) => setIncluirMC(!!v)} />
-                <Label htmlFor="mc" className="text-sm">Sangria/Caixa</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox id="dc" checked={incluirDC} onCheckedChange={(v) => setIncluirDC(!!v)} />
-                <Label htmlFor="dc" className="text-sm">Despesas contábeis</Label>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => { pedidosQ.refetch(); despesasQ.refetch(); }} className="h-11">
-                <RefreshCw className="mr-2 h-4 w-4" />Atualizar
-              </Button>
-              <Button size="sm" onClick={exportar} disabled={loading} className="h-11">
-                <Download className="mr-2 h-4 w-4" />Exportar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="space-y-5 p-4 pb-24 md:pb-6">
+        {/* Cabeçalho editorial */}
+        <div className="px-1">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Relatório Detalhado</h1>
+          <p className="mt-0.5 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+            Lucratividade Operacional
+          </p>
+        </div>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <KpiBox loading={loading} label="Receita" value={money(totais.receita)} icon={<DollarSign className="h-4 w-4" />} tone="neutral" />
-          <KpiBox loading={loading} label="CMV (custo produtos)" value={money(totais.custo)} icon={<Package className="h-4 w-4" />} tone="neutral" />
-          <KpiBox
+        {/* Hero: Lucro Líquido */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900 to-emerald-700 p-5 text-white shadow-lg shadow-emerald-900/20">
+          <div className="relative z-10">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-100/80">
+              Lucro líquido total
+            </p>
+            {loading ? (
+              <Skeleton className="mt-1 h-9 w-48 bg-white/20" />
+            ) : (
+              <h2 className={cn("mt-1 text-3xl font-bold sm:text-4xl", totais.lucroLiquido < 0 && "text-rose-100")}>
+                {money(totais.lucroLiquido)}
+              </h2>
+            )}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="rounded-lg bg-white/20 px-2 py-1 text-[11px] font-bold">
+                Margem líquida {pct(totais.margemLiquida)}
+              </span>
+              <span className="rounded-lg bg-white/10 px-2 py-1 text-[11px] font-medium text-emerald-50">
+                Despesas: {money(despesasTotal)}
+              </span>
+            </div>
+          </div>
+          <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
+          <div className="absolute -left-4 -bottom-4 h-32 w-32 rounded-full bg-emerald-400/10 blur-3xl" />
+        </div>
+
+        {/* Bento KPI grid 2x2 */}
+        <div className="grid grid-cols-2 gap-3">
+          <BentoKpi
+            label="Receita bruta"
+            value={money(totais.receita)}
+            tone="neutral"
             loading={loading}
-            label={`Lucro bruto (${pct(totais.margemBruta)})`}
-            value={money(totais.lucroBruto)}
-            icon={<TrendingUp className="h-4 w-4" />}
-            tone={totais.lucroBruto >= 0 ? "positive" : "negative"}
+            icon={<DollarSign className="h-3.5 w-3.5" />}
           />
-          <KpiBox
+          <BentoKpi
+            label="CMV"
+            value={money(totais.custo)}
+            tone="negative"
             loading={loading}
-            label={`Lucro líquido (${pct(totais.margemLiquida)})`}
-            value={money(totais.lucroLiquido)}
-            icon={totais.lucroLiquido >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-            tone={totais.lucroLiquido >= 0 ? "positive" : "negative"}
+            icon={<Package className="h-3.5 w-3.5" />}
+          />
+          <BentoKpi
+            label={`Lucro bruto · ${pct(totais.margemBruta)}`}
+            value={money(totais.lucroBruto)}
+            tone="positive"
+            loading={loading}
+            icon={<TrendingUp className="h-3.5 w-3.5" />}
+          />
+          <BentoKpi
+            label="Despesas totais"
+            value={money(despesasTotal)}
+            tone="dark"
+            loading={loading}
+            icon={<TrendingDown className="h-3.5 w-3.5" />}
           />
         </div>
 
-        {/* Breakdown despesas */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Despesas consideradas — {money(despesasTotal)}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
-            <FonteBadge on={incluirCP} label="Contas a pagar (pagas)" valor={despesasQ.data?.contas_pagar ?? 0} />
-            <FonteBadge on={incluirMC} label="Sangria/Caixa (saídas)" valor={despesasQ.data?.movimentacoes_caixa ?? 0} />
-            <FonteBadge on={incluirDC} label="Despesas contábeis" valor={despesasQ.data?.despesas_contabeis ?? 0} />
+        {/* Filtros & Controles */}
+        <Card className="border-slate-100">
+          <CardContent className="flex flex-col gap-3 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex flex-1 gap-2">
+                <div className="flex flex-1 flex-col gap-1">
+                  <Label htmlFor="ini" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Início
+                  </Label>
+                  <Input id="ini" type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} className="h-11 rounded-xl" />
+                </div>
+                <div className="flex flex-1 flex-col gap-1">
+                  <Label htmlFor="fim" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Fim
+                  </Label>
+                  <Input id="fim" type="date" value={fim} onChange={(e) => setFim(e.target.value)} className="h-11 rounded-xl" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => { pedidosQ.refetch(); despesasQ.refetch(); }}
+                  className="h-11 flex-1 rounded-xl sm:flex-none"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />Atualizar
+                </Button>
+                <Button
+                  onClick={exportar}
+                  disabled={loading}
+                  className="h-11 flex-1 rounded-xl bg-emerald-700 hover:bg-emerald-800 sm:flex-none"
+                >
+                  <Download className="mr-2 h-4 w-4" />Exportar
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 border-t border-border/60 pt-3">
+              <FonteToggle checked={incluirCP} onChange={setIncluirCP} label="Contas a pagar" valor={despesasQ.data?.contas_pagar ?? 0} />
+              <FonteToggle checked={incluirMC} onChange={setIncluirMC} label="Sangria/Caixa" valor={despesasQ.data?.movimentacoes_caixa ?? 0} />
+              <FonteToggle checked={incluirDC} onChange={setIncluirDC} label="Despesas contábeis" valor={despesasQ.data?.despesas_contabeis ?? 0} />
+            </div>
           </CardContent>
         </Card>
 
-        <Alert>
+        <Alert className="rounded-xl border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-xs">
-            Saídas de caixa vinculadas a compras são ignoradas para evitar dupla contagem com o contas a pagar. Ative/desative as fontes acima conforme sua contabilidade.
+            Saídas de caixa vinculadas a compras são ignoradas para evitar dupla contagem com o contas a pagar.
           </AlertDescription>
         </Alert>
 
-        {/* Tabelas */}
+        {/* Tabs de análise */}
         <Tabs defaultValue="produto" className="space-y-3">
-          <TabsList>
-            <TabsTrigger value="produto">Por produto</TabsTrigger>
-            <TabsTrigger value="periodo">Diário / Mensal</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 rounded-xl bg-muted p-1 sm:w-auto">
+            <TabsTrigger value="produto" className="rounded-lg text-xs font-bold">Por produto</TabsTrigger>
+            <TabsTrigger value="periodo" className="rounded-lg text-xs font-bold">Diário / Mensal</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="produto">
-            <Card>
+          {/* Por Produto — cards no mobile, tabela no desktop */}
+          <TabsContent value="produto" className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-sm font-bold text-foreground">Performance por Produto</h3>
+              <span className="text-[11px] font-medium text-muted-foreground">
+                {porProduto.length} {porProduto.length === 1 ? "item" : "itens"}
+              </span>
+            </div>
+
+            {/* Mobile: cards */}
+            <div className="space-y-2 md:hidden">
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)
+              ) : porProduto.length === 0 ? (
+                <EmptyState message="Sem vendas no período." />
+              ) : (
+                porProduto.map((r) => <ProdutoCard key={r.produto} r={r} />)
+              )}
+            </div>
+
+            {/* Desktop: tabela */}
+            <Card className="hidden md:block">
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Produto</TableHead>
-                        <TableHead className="text-right">Qtd vendida</TableHead>
-                        <TableHead className="text-right">Custo médio (un)</TableHead>
-                        <TableHead className="text-right">Preço médio (un)</TableHead>
-                        <TableHead className="text-right">Receita total</TableHead>
+                        <TableHead className="text-right">Qtd</TableHead>
+                        <TableHead className="text-right">Custo médio</TableHead>
+                        <TableHead className="text-right">Preço médio</TableHead>
+                        <TableHead className="text-right">Receita</TableHead>
                         <TableHead className="text-right">Custo total</TableHead>
                         <TableHead className="text-right">Lucro bruto</TableHead>
                         <TableHead className="text-right">Margem</TableHead>
@@ -414,7 +478,7 @@ export default function RelatorioLucratividade() {
                           <TableRow key={i}><TableCell colSpan={8}><Skeleton className="h-6 w-full" /></TableCell></TableRow>
                         ))
                       ) : porProduto.length === 0 ? (
-                        <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">Sem vendas no período.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">Sem vendas no período.</TableCell></TableRow>
                       ) : (
                         porProduto.map((r) => (
                           <TableRow key={r.produto}>
@@ -432,7 +496,9 @@ export default function RelatorioLucratividade() {
                             <TableCell className={cn("text-right font-semibold", r.lucroBruto >= 0 ? "text-emerald-600" : "text-rose-600")}>
                               {money(r.lucroBruto)}
                             </TableCell>
-                            <TableCell className="text-right">{pct(r.margem)}</TableCell>
+                            <TableCell className="text-right">
+                              <MargemPill margem={r.margem} />
+                            </TableCell>
                           </TableRow>
                         ))
                       )}
@@ -443,17 +509,47 @@ export default function RelatorioLucratividade() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="periodo">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-base">Lucratividade {granularidade === "diario" ? "diária" : "mensal"}</CardTitle>
-                <Tabs value={granularidade} onValueChange={(v) => setGranularidade(v as Granularidade)}>
-                  <TabsList>
-                    <TabsTrigger value="diario">Diário</TabsTrigger>
-                    <TabsTrigger value="mensal">Mensal</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </CardHeader>
+          {/* Diário / Mensal */}
+          <TabsContent value="periodo" className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-sm font-bold text-foreground">
+                Lucratividade {granularidade === "diario" ? "diária" : "mensal"}
+              </h3>
+              <div className="flex rounded-lg bg-muted p-1">
+                <button
+                  onClick={() => setGranularidade("diario")}
+                  className={cn(
+                    "rounded-md px-3 py-1 text-[11px] font-bold transition",
+                    granularidade === "diario" ? "bg-background text-emerald-700 shadow-sm" : "text-muted-foreground"
+                  )}
+                >
+                  Diário
+                </button>
+                <button
+                  onClick={() => setGranularidade("mensal")}
+                  className={cn(
+                    "rounded-md px-3 py-1 text-[11px] font-bold transition",
+                    granularidade === "mensal" ? "bg-background text-emerald-700 shadow-sm" : "text-muted-foreground"
+                  )}
+                >
+                  Mensal
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile: cards */}
+            <div className="space-y-2 md:hidden">
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-2xl" />)
+              ) : porPeriodo.length === 0 ? (
+                <EmptyState message="Sem dados no período." />
+              ) : (
+                porPeriodo.map((r) => <PeriodoCard key={r.chave} r={r} label={formatarChave(r.chave)} />)
+              )}
+            </div>
+
+            {/* Desktop: tabela */}
+            <Card className="hidden md:block">
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <Table>
@@ -474,7 +570,7 @@ export default function RelatorioLucratividade() {
                           <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-6 w-full" /></TableCell></TableRow>
                         ))
                       ) : porPeriodo.length === 0 ? (
-                        <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">Sem dados no período.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">Sem dados no período.</TableCell></TableRow>
                       ) : (
                         porPeriodo.map((r) => (
                           <TableRow key={r.chave}>
@@ -488,7 +584,9 @@ export default function RelatorioLucratividade() {
                             <TableCell className={cn("text-right font-semibold", r.lucroLiquido >= 0 ? "text-emerald-600" : "text-rose-600")}>
                               {money(r.lucroLiquido)}
                             </TableCell>
-                            <TableCell className="text-right">{pct(r.margem)}</TableCell>
+                            <TableCell className="text-right">
+                              <MargemPill margem={r.margem} />
+                            </TableCell>
                           </TableRow>
                         ))
                       )}
@@ -504,34 +602,168 @@ export default function RelatorioLucratividade() {
   );
 }
 
-function KpiBox({ loading, label, value, icon, tone }: {
-  loading: boolean; label: string; value: string; icon: React.ReactNode;
-  tone: "positive" | "negative" | "neutral";
-}) {
-  const toneCls =
-    tone === "positive" ? "text-emerald-600" : tone === "negative" ? "text-rose-600" : "text-foreground";
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{label}</span>
-          {icon}
-        </div>
-        {loading ? (
-          <Skeleton className="mt-2 h-7 w-32" />
-        ) : (
-          <div className={cn("mt-1 text-xl font-bold sm:text-2xl", toneCls)}>{value}</div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+/* ---------------- Componentes visuais ---------------- */
 
-function FonteBadge({ on, label, valor }: { on: boolean; label: string; valor: number }) {
+function BentoKpi({
+  label, value, tone, icon, loading,
+}: {
+  label: string; value: string; tone: "neutral" | "positive" | "negative" | "dark";
+  icon: React.ReactNode; loading: boolean;
+}) {
+  const wrapCls =
+    tone === "dark"
+      ? "bg-slate-900 text-white border-slate-800"
+      : tone === "positive"
+      ? "bg-emerald-50 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40"
+      : "bg-muted/30 border-border";
+  const labelCls =
+    tone === "dark"
+      ? "text-slate-400"
+      : tone === "positive"
+      ? "text-emerald-700 dark:text-emerald-300"
+      : "text-muted-foreground";
+  const valueCls =
+    tone === "dark"
+      ? "text-white"
+      : tone === "positive"
+      ? "text-emerald-900 dark:text-emerald-100"
+      : tone === "negative"
+      ? "text-rose-600 dark:text-rose-400"
+      : "text-foreground";
   return (
-    <div className={cn("flex items-center justify-between rounded-md border px-3 py-2", on ? "bg-card" : "bg-muted/40 opacity-60")}>
-      <span className="text-xs">{label}</span>
-      <span className="font-medium">{money(valor)}</span>
+    <div className={cn("rounded-2xl border p-4 shadow-sm transition hover:shadow-md", wrapCls)}>
+      <div className="flex items-start justify-between gap-2">
+        <p className={cn("text-[10px] font-bold uppercase tracking-wide", labelCls)}>{label}</p>
+        <span className={cn("opacity-60", labelCls)}>{icon}</span>
+      </div>
+      {loading ? (
+        <Skeleton className="mt-2 h-6 w-24" />
+      ) : (
+        <p className={cn("mt-1 text-lg font-bold sm:text-xl", valueCls)}>{value}</p>
+      )}
     </div>
   );
 }
+
+function FonteToggle({
+  checked, onChange, label, valor,
+}: { checked: boolean; onChange: (v: boolean) => void; label: string; valor: number }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition",
+        checked
+          ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-200"
+          : "border-border bg-muted/40 text-muted-foreground"
+      )}
+    >
+      <span className={cn("h-2 w-2 rounded-full", checked ? "bg-emerald-600" : "bg-muted-foreground/40")} />
+      <span>{label}</span>
+      <span className="font-bold">{money(valor)}</span>
+    </button>
+  );
+}
+
+function MargemPill({ margem }: { margem: number }) {
+  const tone =
+    margem >= 20
+      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+      : margem >= 5
+      ? "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+      : "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300";
+  return (
+    <span className={cn("inline-block rounded-lg px-2 py-1 text-[11px] font-bold", tone)}>
+      {pct(margem)}
+    </span>
+  );
+}
+
+function ProdutoCard({ r }: {
+  r: { produto: string; qtd: number; qtdComCusto: number; custoMedio: number; precoMedio: number; receita: number; custoTotal: number; lucroBruto: number; margem: number };
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold text-foreground">{r.produto}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {r.qtd.toLocaleString("pt-BR")} un · custo {money(r.custoMedio)} · venda {money(r.precoMedio)}
+          </p>
+          {r.qtdComCusto < r.qtd && (
+            <Badge variant="outline" className="mt-1 text-[10px]">custo parcial</Badge>
+          )}
+        </div>
+        <MargemPill margem={r.margem} />
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/60 pt-3 text-center">
+        <div>
+          <p className="text-[10px] font-semibold uppercase text-muted-foreground">Receita</p>
+          <p className="text-xs font-bold text-foreground">{money(r.receita)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold uppercase text-muted-foreground">Custo</p>
+          <p className="text-xs font-bold text-rose-600">{money(r.custoTotal)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold uppercase text-muted-foreground">Lucro</p>
+          <p className={cn("text-xs font-bold", r.lucroBruto >= 0 ? "text-emerald-600" : "text-rose-600")}>
+            {money(r.lucroBruto)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PeriodoCard({ r, label }: {
+  r: { chave: string; receita: number; custo: number; despesas: number; lucroBruto: number; lucroLiquido: number; margem: number };
+  label: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-bold text-foreground">{label}</p>
+        <MargemPill margem={r.margem} />
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-3 border-t border-border/60 pt-3 text-xs">
+        <Kv label="Receita" value={money(r.receita)} />
+        <Kv label="Custo" value={money(r.custo)} tone="negative" />
+        <Kv label="Despesas" value={money(r.despesas)} tone="negative" />
+        <Kv label="Lucro bruto" value={money(r.lucroBruto)} tone={r.lucroBruto >= 0 ? "positive" : "negative"} />
+      </div>
+      <div className="mt-3 flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 dark:bg-emerald-950/30">
+        <span className="text-[11px] font-semibold uppercase text-emerald-700 dark:text-emerald-300">
+          Lucro líquido
+        </span>
+        <span className={cn("text-sm font-bold", r.lucroLiquido >= 0 ? "text-emerald-700 dark:text-emerald-200" : "text-rose-600")}>
+          {money(r.lucroLiquido)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Kv({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "neutral" | "positive" | "negative" }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase text-muted-foreground">{label}</p>
+      <p className={cn(
+        "text-xs font-bold",
+        tone === "positive" ? "text-emerald-600" : tone === "negative" ? "text-rose-600" : "text-foreground",
+      )}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-border bg-muted/20 py-10 text-center text-sm text-muted-foreground">
+      {message}
+    </div>
+  );
+}
+
