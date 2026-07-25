@@ -596,14 +596,21 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                   </TableRow>
                   <TableRow>
                     <TableCell className="py-1 px-3 text-xs">Nota Crédito</TableCell>
-                    <TableCell className="py-1 px-3 text-right text-xs tabular-nums text-muted-foreground">—</TableCell>
-                  </TableRow>
-                  <TableRow className={lucroLiquido >= 0 ? "bg-success/5 border-t-2" : "bg-destructive/5 border-t-2"}>
-                    <TableCell className="py-2 px-3 text-sm font-bold">Resultado</TableCell>
-                    <TableCell className={`py-2 px-3 text-right text-sm font-bold tabular-nums ${lucroLiquido >= 0 ? "text-success" : "text-destructive"}`}>
-                      R$ {lucroLiquido < 0 ? `(${fmt(Math.abs(lucroLiquido))})` : fmt(lucroLiquido)}
+                    <TableCell className={`py-1 px-3 text-right text-xs tabular-nums ${(ajustes.nota_credito?.valor || 0) > 0 ? "font-medium" : "text-muted-foreground"}`}>
+                      {(ajustes.nota_credito?.valor || 0) > 0 ? `R$ ${fmt(ajustes.nota_credito!.valor)}` : "—"}
                     </TableCell>
                   </TableRow>
+                  {(() => {
+                    const resultado = lucroLiquido + (ajustes.nota_credito?.valor || 0);
+                    return (
+                      <TableRow className={resultado >= 0 ? "bg-success/5 border-t-2" : "bg-destructive/5 border-t-2"}>
+                        <TableCell className="py-2 px-3 text-sm font-bold">Resultado</TableCell>
+                        <TableCell className={`py-2 px-3 text-right text-sm font-bold tabular-nums ${resultado >= 0 ? "text-success" : "text-destructive"}`}>
+                          R$ {resultado < 0 ? `(${fmt(Math.abs(resultado))})` : fmt(resultado)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })()}
                 </TableBody>
               </Table>
             </div>
