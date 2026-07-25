@@ -133,7 +133,7 @@ export function MobileBottomBar({
       {/* Primary bottom navigation */}
       <nav
         aria-label="Navegação principal"
-        className="pointer-events-auto border-t border-border/60 bg-card/95 px-2 pt-1 pb-[max(env(safe-area-inset-bottom),8px)] shadow-[0_-4px_20px_-8px_rgba(15,23,42,0.15)] backdrop-blur-xl backdrop-saturate-150"
+        className="pointer-events-auto border-t border-border/60 bg-card/95 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),8px)] shadow-[0_-4px_20px_-8px_rgba(15,23,42,0.15)] backdrop-blur-xl backdrop-saturate-150"
       >
         <div className="mx-auto flex max-w-xl items-stretch justify-between gap-0.5">
           {navItems.map((item) => (
