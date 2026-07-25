@@ -533,13 +533,67 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
           <CardContent className="p-0">
             {custosAgrupados.map((grupo) => (
               <div key={grupo.key} className="flex items-center justify-between gap-3 border-b border-border/40 px-4 py-2.5 last:border-0">
-                <span className="text-sm text-muted-foreground">{grupo.label}</span>
-                <span className="font-semibold tabular-nums text-foreground">R$ {fmt(grupo.total)}</span>
+                <span className="text-sm text-muted-foreground truncate">{grupo.label}</span>
+                <span className="font-semibold tabular-nums text-foreground whitespace-nowrap">R$ {fmt(grupo.total)}</span>
               </div>
             ))}
           </CardContent>
         </Card>
+
+        {/* MOBILE: Vendas por Canal em cards */}
+        <Card className="overflow-hidden border-[#064e3b]/20 bg-card">
+          <CardHeader className="border-b border-[#064e3b]/15 bg-[#064e3b]/5 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="font-['Sora'] text-sm font-semibold text-[#064e3b]">
+                Vendas por Canal
+              </CardTitle>
+              <span className="font-['Sora'] text-base font-bold tabular-nums text-[#064e3b]">
+                R$ {fmt(receitaBruta)}
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {canais.length === 0 ? (
+              <p className="text-center text-xs text-muted-foreground py-8">Nenhuma venda no período</p>
+            ) : (
+              <ul className="divide-y divide-border/40">
+                {canais.map((c) => {
+                  const pctReceita = receitaBruta > 0 ? (c.totalRS / receitaBruta) * 100 : 0;
+                  return (
+                    <li key={c.canal} className="px-4 py-3">
+                      <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                        <span className="font-['Sora'] font-semibold text-sm text-foreground truncate">{c.canal}</span>
+                        <span className="font-['Sora'] font-bold text-sm tabular-nums text-[#064e3b] whitespace-nowrap">
+                          R$ {fmt(c.totalRS)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground tabular-nums">
+                        <span>{c.qtde} un · P.V. {fmt(c.precoVenda)}</span>
+                        <span className={c.margemRS >= 0 ? "text-[#0d7a5f] font-semibold" : "text-destructive font-semibold"}>
+                          MC R$ {fmt(c.margemRS)}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 h-1 rounded-full bg-muted overflow-hidden" aria-hidden="true">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[#0d7a5f] to-[#c9a84c]"
+                          style={{ width: `${Math.max(2, Math.min(100, pctReceita))}%` }}
+                        />
+                      </div>
+                    </li>
+                  );
+                })}
+                <li className="flex items-center justify-between gap-2 px-4 py-3 bg-[#064e3b]/6 border-t border-[#064e3b]/15">
+                  <span className="font-['Sora'] text-xs font-bold uppercase tracking-wider text-[#064e3b]">Total</span>
+                  <span className="font-['Sora'] font-bold text-sm tabular-nums text-[#064e3b]">
+                    {totalQtde} un · R$ {fmt(receitaBruta)}
+                  </span>
+                </li>
+              </ul>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
 
       {/* ============ DESKTOP: 2 colunas Custos | Vendas ============ */}
       <div className="hidden md:grid gap-5 grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] w-full min-w-0">
