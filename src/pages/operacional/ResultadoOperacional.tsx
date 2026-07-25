@@ -169,9 +169,13 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
         cpPorCategoria[cat] = (cpPorCategoria[cat] || 0) + (Number(cp.valor) || 0);
       });
       despesasCaixa.forEach((despesa: any) => {
-        const cat = (despesa.categoria || despesa.descricao || "Despesas do Caixa").toString().toLowerCase().trim();
+        const isCompra = !!despesa.compra_id;
+        const cat = isCompra
+          ? "custo das mercadorias (compras pagas no caixa)"
+          : (despesa.categoria || despesa.descricao || "Despesas do Caixa").toString().toLowerCase().trim();
         cpPorCategoria[cat] = (cpPorCategoria[cat] || 0) + (Number(despesa.valor) || 0);
       });
+
 
       const categoriasCorrespondidas = new Set<string>();
       const custosCalculados: CustoItem[] = ((categorias || []) as any[]).map(cat => {
