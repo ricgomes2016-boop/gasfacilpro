@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { useROComplemento } from "@/hooks/useROComplemento";
+import type { FluxoLateral, ROAjuste } from "@/hooks/useROComplemento";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 
 interface Props {
-  unidadeId: string | undefined;
-  ano: number;
-  mes: number;
+  fluxo: FluxoLateral;
+  ajustes: Record<string, ROAjuste>;
+  onSave: (chave: string, valor: number, empresaId: string) => void;
+  loading?: boolean;
 }
 
 const fmt = (v: number) =>
