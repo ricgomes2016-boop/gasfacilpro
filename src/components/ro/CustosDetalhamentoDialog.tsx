@@ -205,8 +205,9 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
           </div>
           <ul className="space-y-0.5 text-muted-foreground">
             <li><strong>Contas a Pagar:</strong> inclui apenas <code>status = "pago"</code> com <code>vencimento</code> dentro do mês selecionado.</li>
-            <li><strong>Caixa:</strong> inclui <code>tipo = "saida"</code>, <code>status ≠ "rejeitada"</code>, sem vínculo com pedido (<code>pedido_id IS NULL</code>), criada no mês. Saídas com <code>compra_id</code> entram como <em>custo das mercadorias</em>.</li>
-            <li><strong>Excluído sempre:</strong> transferências internas (descrição contendo "depósito bancário" ou "transferência caixa") e saídas vinculadas a pedidos, para evitar duplicidade.</li>
+            <li><strong>Caixa:</strong> inclui <code>tipo = "saida"</code>, <code>status ≠ "rejeitada"</code>, sem vínculo com pedido nem com compra, criada no mês.</li>
+            <li><strong>Excluído sempre:</strong> transferências internas, saídas vinculadas a pedidos e saídas vinculadas a compras (o custo das mercadorias já é descontado via CMV), para evitar duplicidade.</li>
+
             <li>Clique em uma linha para abrir o lançamento na tela de origem.</li>
           </ul>
 
