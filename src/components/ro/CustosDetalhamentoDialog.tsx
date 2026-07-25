@@ -8,10 +8,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowUpDown, Search, FileDown, Info, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowUpDown, Search, FileDown, Info, CheckCircle2, XCircle, ExternalLink, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   open: boolean;
@@ -41,6 +42,7 @@ const isTransferenciaInterna = (categoria?: string | null, descricao?: string | 
 const fmt = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, mesLabel }: Props) {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
@@ -48,6 +50,32 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<"data_desc" | "data_asc" | "valor_desc">("data_desc");
   const [mostrarExcluidos, setMostrarExcluidos] = useState(false);
+  const [detalhe, setDetalhe] = useState<{ origem: Linha["origem"]; rawId: string } | null>(null);
+  const [detalheData, setDetalheData] = useState<any | null>(null);
+  const [detalheLoading, setDetalheLoading] = useState(false);
+
+  const abrirDetalhe = async (linha: Linha) => {
+    const rawId = linha.id.replace(/^cp-|^mc-/, "");
+    setDetalhe({ origem: linha.origem, rawId });
+    setDetalheData(null);
+    setDetalheLoading(true);
+    try {
+      const table = linha.origem;
+      const { data } = await supabase.from(table).select("*").eq("id", rawId).maybeSingle();
+      setDetalheData(data);
+    } finally {
+      setDetalheLoading(false);
+    }
+  };
+
+  const abrirNaOrigem = () => {
+    if (!detalhe) return;
+    const path = detalhe.origem === "contas_pagar"
+      ? `/financeiro/pagar?highlight=${detalhe.rawId}`
+      : `/caixa/despesas?highlight=${detalhe.rawId}`;
+    onClose();
+    navigate(path);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -253,7 +281,14 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
                 ) : filtradas.length === 0 ? (
                   <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum lançamento encontrado</TableCell></TableRow>
                 ) : filtradas.map(l => (
-                  <TableRow key={l.id} className={l.incluido ? "" : "bg-muted/30 opacity-70"}>
+                  <TableRow
+                    key={l.id}
+                    onClick={() => abrirDetalhe(l)}
+                    className={`cursor-pointer transition hover:bg-[#064e3b]/8 focus-visible:bg-[#064e3b]/10 focus-visible:outline-none ${l.incluido ? "" : "bg-muted/30 opacity-70"}`}
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrirDetalhe(l); } }}
+                    aria-label={`Ver detalhes de ${l.descricao} - R$ ${fmt(l.valor)}`}
+                  >
                     <TableCell>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -271,7 +306,12 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">{l.categoria}</TableCell>
-                    <TableCell className="text-xs">{l.descricao}</TableCell>
+                    <TableCell className="text-xs">
+                      <span className="inline-flex items-center gap-1.5">
+                        {l.descricao}
+                        <ExternalLink className="h-3 w-3 text-muted-foreground/60" aria-hidden="true" />
+                      </span>
+                    </TableCell>
                     <TableCell className="text-[10px] text-muted-foreground leading-tight">{l.motivo}</TableCell>
                     <TableCell className={`text-right text-xs tabular-nums font-semibold ${l.incluido ? "" : "line-through text-muted-foreground"}`}>R$ {fmt(l.valor)}</TableCell>
                   </TableRow>
@@ -281,6 +321,51 @@ export function CustosDetalhamentoDialog({ open, onClose, unidadeId, mes, ano, m
           </TooltipProvider>
         </ScrollArea>
       </DialogContent>
+
+      {/* ===== Sub-dialog: detalhes do lançamento ===== */}
+      <Dialog open={!!detalhe} onOpenChange={(v) => { if (!v) { setDetalhe(null); setDetalheData(null); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {detalhe?.origem === "contas_pagar" ? "Conta a Pagar" : "Movimentação de Caixa"}
+              <Badge variant="outline" className="text-[10px] font-mono">#{detalhe?.rawId.slice(0, 8)}</Badge>
+            </DialogTitle>
+            <DialogDescription>Detalhes completos do lançamento.</DialogDescription>
+          </DialogHeader>
+          {detalheLoading ? (
+            <div className="flex items-center justify-center py-10 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando...
+            </div>
+          ) : !detalheData ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Registro não encontrado (pode ter sido excluído).</p>
+          ) : (
+            <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+              {Object.entries(detalheData)
+                .filter(([, v]) => v !== null && v !== "" && !["unidade_id", "empresa_id", "user_id", "created_by"].includes(String(v)))
+                .map(([k, v]) => (
+                  <div key={k} className="grid grid-cols-[130px_1fr] gap-3 text-xs border-b border-border/40 py-1.5">
+                    <span className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px] break-words">{k}</span>
+                    <span className="tabular-nums break-words">
+                      {typeof v === "number" && (k.includes("valor") || k.includes("preco"))
+                        ? `R$ ${fmt(v as number)}`
+                        : typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v as string)
+                          ? format(new Date(v as string), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                          : typeof v === "object"
+                            ? JSON.stringify(v)
+                            : String(v)}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-2 border-t">
+            <Button variant="ghost" onClick={() => setDetalhe(null)}>Fechar</Button>
+            <Button onClick={abrirNaOrigem} className="gap-1.5">
+              <ExternalLink className="h-4 w-4" /> Abrir na origem
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
