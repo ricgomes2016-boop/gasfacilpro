@@ -697,7 +697,11 @@ export default function RelatorioLucratividade() {
                         <TableRow><TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">Sem dados no período.</TableCell></TableRow>
                       ) : (
                         porPeriodo.map((r) => (
-                          <TableRow key={r.chave}>
+                          <TableRow
+                            key={r.chave}
+                            onClick={() => setDrillPeriodo(r.chave)}
+                            className="cursor-pointer hover:bg-muted/50"
+                          >
                             <TableCell className="font-medium">{formatarChave(r.chave)}</TableCell>
                             <TableCell className="text-right">{money(r.receita)}</TableCell>
                             <TableCell className="text-right">{money(r.custo)}</TableCell>
