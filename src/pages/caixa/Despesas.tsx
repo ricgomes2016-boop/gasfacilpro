@@ -281,9 +281,23 @@ export default function Despesas() {
                   <div><Label>Categoria</Label>
                     <Select value={form.categoria} onValueChange={v => setForm({ ...form, categoria: v })}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Combustível">Combustível</SelectItem><SelectItem value="Alimentação">Alimentação</SelectItem>
-                        <SelectItem value="Manutenção">Manutenção</SelectItem><SelectItem value="Outros">Outros</SelectItem>
+                      <SelectContent className="max-h-72">
+                        {form.categoria && !categoriasCadastradas.some(c => c.nome === form.categoria) && (
+                          <SelectItem value={form.categoria}>{form.categoria}</SelectItem>
+                        )}
+                        {categoriasCadastradas.map(c => (
+                          <SelectItem key={c.nome} value={c.nome}>
+                            {c.nome}{c.tipo ? ` · ${c.tipo}` : ""}
+                          </SelectItem>
+                        ))}
+                        {categoriasCadastradas.length === 0 && (
+                          <>
+                            <SelectItem value="Combustível">Combustível</SelectItem>
+                            <SelectItem value="Alimentação">Alimentação</SelectItem>
+                            <SelectItem value="Manutenção">Manutenção</SelectItem>
+                            <SelectItem value="Outros">Outros</SelectItem>
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
