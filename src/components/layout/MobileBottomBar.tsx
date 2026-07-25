@@ -25,7 +25,7 @@ interface MobileBottomBarProps {
 const navItems = [
   { to: "/dashboard", label: "Início", icon: LayoutDashboard },
   { to: "/vendas/pdv", label: "PDV", icon: ScanLine },
-  { to: "/vendas/nova-venda", label: "Nova", icon: ShoppingCart, primary: true },
+  { to: "/vendas/nova", label: "Nova", icon: ShoppingCart, primary: true },
   { to: "/vendas/pedidos", label: "Pedidos", icon: ClipboardList },
 ] as const;
 
