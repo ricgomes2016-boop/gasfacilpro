@@ -601,7 +601,11 @@ export default function RelatorioLucratividade() {
                         <TableRow><TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">Sem vendas no período.</TableCell></TableRow>
                       ) : (
                         porProduto.map((r) => (
-                          <TableRow key={r.produto}>
+                          <TableRow
+                            key={r.produto}
+                            onClick={() => setDrillProduto(r.produto)}
+                            className="cursor-pointer hover:bg-muted/50"
+                          >
                             <TableCell className="font-medium">
                               {r.produto}
                               {r.qtdComCusto < r.qtd && (
