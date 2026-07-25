@@ -967,7 +967,7 @@ export default function RelatorioGerencial() {
                                 <span className="truncate font-medium text-slate-700">{e.name}</span>
                               </span>
                               <span className="flex shrink-0 items-baseline gap-2 tabular-nums">
-                                <span className="text-slate-900 font-semibold">{fmtMoney(e.value)}</span>
+                                <span className="text-slate-900 font-semibold">{formatMoney(e.value)}</span>
                                 <span className="text-[11px] text-slate-500">{((e.value / total) * 100).toFixed(1)}%</span>
                               </span>
                             </li>
