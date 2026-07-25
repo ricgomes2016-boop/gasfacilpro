@@ -378,6 +378,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
           <Button variant="outline" size="sm" className="h-10 sm:h-8 text-xs min-w-0" onClick={() => exportROtoPdf(receitaBruta, custoMatPrima, lucroBruto, lucroLiquido, totalCustos, custosAgrupados, canais, mesLabel)}>
             <FileDown className="h-3.5 w-3.5 mr-1" /> PDF
           </Button>
+          <RoExcelButton unidadeId={unidadeAtual?.id} unidadeNome={unidadeAtual?.nome} ano={Number(anoSelecionado)} mes={Number(mesSelecionado)} />
           <Button variant="outline" size="sm" className="h-10 sm:h-8 text-xs min-w-0 col-span-2 sm:col-span-1" onClick={handlePrint}>
             <Printer className="h-3.5 w-3.5 mr-1" /> Imprimir
           </Button>
