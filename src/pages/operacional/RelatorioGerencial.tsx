@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDate } from "@/lib/utils";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -345,6 +347,7 @@ export default function RelatorioGerencial() {
 
   const kpis = [
     {
+      key: "faturamento",
       icon: DollarSign,
       label: "Faturamento",
       value: formatMoneyCompact(metricas.faturamento),
@@ -353,6 +356,7 @@ export default function RelatorioGerencial() {
       status: metricas.faturamento > 0 ? "Ativo" : "Sem receita",
     },
     {
+      key: "lucro",
       icon: TrendingUp,
       label: "Lucro Op.",
       value: formatMoneyCompact(metricas.lucroOperacional),
@@ -361,6 +365,7 @@ export default function RelatorioGerencial() {
       status: metricas.lucroOperacional >= 0 ? "Positivo" : "Atenção",
     },
     {
+      key: "margem",
       icon: Percent,
       label: "Margem",
       value: `${metricas.margemOperacional.toFixed(1)}%`,
@@ -369,6 +374,7 @@ export default function RelatorioGerencial() {
       status: metricas.margemOperacional >= 20 ? "Saudável" : "Monitorar",
     },
     {
+      key: "pedidos",
       icon: ShoppingCart,
       label: "Pedidos",
       value: numberFormatter.format(metricas.totalPedidos),
@@ -377,6 +383,7 @@ export default function RelatorioGerencial() {
       status: "Operação",
     },
     {
+      key: "ticket",
       icon: DollarSign,
       label: "Ticket Médio",
       value: formatMoney(metricas.ticketMedio),
@@ -385,6 +392,7 @@ export default function RelatorioGerencial() {
       status: "Venda",
     },
     {
+      key: "despesas",
       icon: AlertTriangle,
       label: "Despesas",
       value: formatMoneyCompact(metricas.totalDespesas),
@@ -393,6 +401,7 @@ export default function RelatorioGerencial() {
       status: "Custo",
     },
     {
+      key: "custo_entrega",
       icon: Truck,
       label: "Custo/Entrega",
       value: formatMoney(metricas.custoMedioEntrega),
@@ -401,6 +410,7 @@ export default function RelatorioGerencial() {
       status: "Logística",
     },
     {
+      key: "clientes",
       icon: Users,
       label: "Clientes",
       value: numberFormatter.format(clientes.length),
@@ -408,7 +418,164 @@ export default function RelatorioGerencial() {
       tone: "secondary" as Tone,
       status: "Carteira",
     },
-  ];
+  ] as const;
+
+  type KpiKey = typeof kpis[number]["key"];
+  const [drillKey, setDrillKey] = useState<KpiKey | null>(null);
+  const activeKpi = kpis.find((k) => k.key === drillKey) || null;
+
+  const drillContent = useMemo(() => {
+    if (!drillKey) return null;
+    const vendasConcluidas = metricas.vendasConcluidas;
+    const vendasOrd = [...vendasConcluidas].sort(
+      (a, b) => asNumber(b.valor_total) - asNumber(a.valor_total),
+    );
+    const pedidosOrd = [...vendas].sort(
+      (a, b) => (b.created_at || "").localeCompare(a.created_at || ""),
+    );
+    const despesasOrd = [...despesas].sort((a, b) => asNumber(b.valor) - asNumber(a.valor));
+
+    switch (drillKey) {
+      case "faturamento":
+      case "ticket":
+        return {
+          summary: [
+            { label: "Vendas concluídas", value: numberFormatter.format(vendasConcluidas.length) },
+            { label: "Faturamento", value: formatMoney(metricas.faturamento) },
+            { label: "Ticket médio", value: formatMoney(metricas.ticketMedio) },
+          ],
+          list: vendasOrd.slice(0, 50).map((v) => ({
+            id: v.id,
+            title: `Pedido · ${v.forma_pagamento || "sem forma"}`,
+            subtitle: v.created_at ? format(new Date(v.created_at), "dd/MM HH:mm") : "—",
+            value: formatMoney(asNumber(v.valor_total)),
+            tone: "success" as const,
+          })),
+          empty: "Nenhuma venda concluída no período.",
+        };
+      case "lucro":
+      case "margem":
+        return {
+          summary: [
+            { label: "Faturamento", value: formatMoney(metricas.faturamento) },
+            { label: "Despesas", value: `- ${formatMoney(metricas.totalDespesas)}` },
+            {
+              label: "Lucro operacional",
+              value: formatMoney(metricas.lucroOperacional),
+              highlight: true,
+            },
+            { label: "Margem", value: `${metricas.margemOperacional.toFixed(1)}%` },
+          ],
+          list: [
+            ...vendasOrd.slice(0, 20).map((v) => ({
+              id: `v-${v.id}`,
+              title: `Venda · ${v.forma_pagamento || "sem forma"}`,
+              subtitle: v.created_at ? format(new Date(v.created_at), "dd/MM") : "—",
+              value: `+ ${formatMoney(asNumber(v.valor_total))}`,
+              tone: "success" as const,
+            })),
+            ...despesasOrd.slice(0, 20).map((d) => ({
+              id: `d-${d.id}`,
+              title: d.categoria || "Despesa",
+              subtitle: d.vencimento ? format(new Date(d.vencimento), "dd/MM") : "—",
+              value: `- ${formatMoney(asNumber(d.valor))}`,
+              tone: "destructive" as const,
+            })),
+          ],
+          empty: "Sem movimentações no período.",
+        };
+      case "pedidos":
+        return {
+          summary: [
+            { label: "Total de pedidos", value: numberFormatter.format(metricas.totalPedidos) },
+            { label: "Concluídos", value: numberFormatter.format(vendasConcluidas.length) },
+            {
+              label: "Cancelados",
+              value: numberFormatter.format(
+                vendas.filter((v) => v.status === "cancelado").length,
+              ),
+            },
+          ],
+          list: pedidosOrd.slice(0, 60).map((v) => ({
+            id: v.id,
+            title: `Pedido · ${v.status || "—"}`,
+            subtitle: v.created_at ? format(new Date(v.created_at), "dd/MM HH:mm") : "—",
+            value: formatMoney(asNumber(v.valor_total)),
+            tone:
+              v.status === "cancelado"
+                ? ("destructive" as const)
+                : ("success" as const),
+          })),
+          empty: "Nenhum pedido no período.",
+        };
+      case "despesas": {
+        const byCat = despesas.reduce((acc: Record<string, number>, d) => {
+          const c = d.categoria || "Outros";
+          acc[c] = (acc[c] || 0) + asNumber(d.valor);
+          return acc;
+        }, {});
+        return {
+          summary: [
+            { label: "Total despesas", value: formatMoney(metricas.totalDespesas) },
+            { label: "Lançamentos", value: numberFormatter.format(despesas.length) },
+            { label: "Categorias", value: numberFormatter.format(Object.keys(byCat).length) },
+          ],
+          list: [
+            ...Object.entries(byCat)
+              .sort((a, b) => b[1] - a[1])
+              .map(([cat, total]) => ({
+                id: `cat-${cat}`,
+                title: cat,
+                subtitle: "Categoria",
+                value: formatMoney(total),
+                tone: "destructive" as const,
+              })),
+            ...despesasOrd.slice(0, 30).map((d) => ({
+              id: `d-${d.id}`,
+              title: d.categoria || "Despesa",
+              subtitle: d.vencimento ? format(new Date(d.vencimento), "dd/MM") : "—",
+              value: formatMoney(asNumber(d.valor)),
+              tone: "muted" as const,
+            })),
+          ],
+          empty: "Nenhuma despesa no período.",
+        };
+      }
+      case "custo_entrega":
+        return {
+          summary: [
+            { label: "Custo médio/entrega", value: formatMoney(metricas.custoMedioEntrega) },
+            { label: "Vendas concluídas", value: numberFormatter.format(vendasConcluidas.length) },
+            { label: "Base (30% das despesas)", value: formatMoney(metricas.totalDespesas * 0.3) },
+          ],
+          list: [],
+          empty:
+            "Estimativa calculada como 30% das despesas do período dividido pelo número de vendas concluídas.",
+        };
+      case "clientes": {
+        const cliOrd = [...clientes].sort((a, b) =>
+          (b.created_at || "").localeCompare(a.created_at || ""),
+        );
+        return {
+          summary: [
+            { label: "Base cadastrada", value: numberFormatter.format(clientes.length) },
+          ],
+          list: cliOrd.slice(0, 60).map((c) => ({
+            id: c.id,
+            title: c.nome || "Cliente",
+            subtitle: c.created_at
+              ? `Cadastrado em ${format(new Date(c.created_at), "dd/MM/yyyy")}`
+              : "—",
+            value: "",
+            tone: "muted" as const,
+          })),
+          empty: "Nenhum cliente cadastrado.",
+        };
+      }
+      default:
+        return null;
+    }
+  }, [drillKey, metricas, vendas, despesas, clientes]);
 
   const executiveNotes = [
     {
@@ -486,9 +653,12 @@ export default function RelatorioGerencial() {
           {/* KPIs Grid — 2 cols mobile, expande no desktop */}
           <div className="grid grid-cols-2 gap-2.5 px-3 sm:gap-3 sm:px-4 md:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-8">
             {kpis.map((kpi) => (
-              <div
+              <button
+                type="button"
                 key={kpi.label}
-                className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-shadow hover:shadow-md sm:p-4"
+                onClick={() => setDrillKey(kpi.key)}
+                className="group text-left rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[hsl(158,84%,17%)]/30 sm:p-4"
+                aria-label={`Ver detalhes de ${kpi.label}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className={toneStyles[kpi.tone].icon}>
@@ -507,7 +677,10 @@ export default function RelatorioGerencial() {
                 <p className="mt-0.5 text-[10px] leading-tight text-slate-400 line-clamp-2 sm:text-[11px]">
                   {kpi.detail}
                 </p>
-              </div>
+                <p className="mt-1.5 text-[9px] font-semibold uppercase tracking-tight text-[hsl(158,84%,17%)]/70 opacity-0 transition-opacity group-hover:opacity-100 sm:text-[10px]">
+                  Toque para detalhes →
+                </p>
+              </button>
             ))}
           </div>
 
@@ -799,6 +972,94 @@ export default function RelatorioGerencial() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Drill-down KPI Dialog */}
+      <Dialog open={!!drillKey} onOpenChange={(o) => !o && setDrillKey(null)}>
+        <DialogContent className="max-w-lg gap-0 overflow-hidden rounded-2xl p-0">
+          {activeKpi && drillContent && (
+            <>
+              <DialogHeader className="border-b border-slate-100 bg-gradient-to-br from-[hsl(158,84%,17%)] to-[hsl(160,71%,26%)] p-5 text-white">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-white/15 p-2.5 text-white">
+                    <activeKpi.icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <DialogTitle className="text-base font-bold text-white sm:text-lg">
+                      {activeKpi.label}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-emerald-100/80">
+                      {activeKpi.detail}
+                    </DialogDescription>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xl font-bold sm:text-2xl">{activeKpi.value}</p>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="grid grid-cols-3 gap-2 border-b border-slate-100 bg-slate-50/60 p-4">
+                {drillContent.summary.map((s) => (
+                  <div key={s.label} className="min-w-0">
+                    <p className="truncate text-[10px] font-semibold uppercase tracking-tight text-slate-500">
+                      {s.label}
+                    </p>
+                    <p
+                      className={`mt-0.5 truncate text-sm font-bold ${
+                        (s as { highlight?: boolean }).highlight
+                          ? "text-[hsl(158,84%,17%)]"
+                          : "text-slate-800"
+                      }`}
+                    >
+                      {s.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <ScrollArea className="max-h-[55vh]">
+                <div className="p-4">
+                  {drillContent.list.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-slate-500">
+                      {drillContent.empty}
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-slate-100">
+                      {drillContent.list.map((item) => (
+                        <li
+                          key={item.id}
+                          className="flex items-center justify-between gap-3 py-2.5"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-slate-800">
+                              {item.title}
+                            </p>
+                            <p className="truncate text-[11px] text-slate-500">
+                              {item.subtitle}
+                            </p>
+                          </div>
+                          {item.value && (
+                            <span
+                              className={`shrink-0 text-sm font-bold ${
+                                item.tone === "success"
+                                  ? "text-[hsl(158,84%,17%)]"
+                                  : item.tone === "destructive"
+                                    ? "text-destructive"
+                                    : "text-slate-700"
+                              }`}
+                            >
+                              {item.value}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </ScrollArea>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }
