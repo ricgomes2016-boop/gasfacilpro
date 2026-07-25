@@ -384,27 +384,87 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
             {mesLabel}
           </Badge>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:ml-auto sm:items-center w-full sm:w-auto min-w-0">
+
+        {/* MOBILE: barra de período compacta + ações em ícones */}
+        <div className="flex flex-col gap-2 sm:hidden w-full min-w-0">
+          <div className="flex items-center gap-2 rounded-xl border border-[#064e3b]/20 bg-card p-1 shadow-sm">
+            <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
+              <SelectTrigger aria-label="Mês" className="h-10 flex-1 border-0 bg-transparent text-sm font-semibold text-[#064e3b] shadow-none focus:ring-0">
+                <SelectValue placeholder="Mês" />
+              </SelectTrigger>
+              <SelectContent>
+                {mesesOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="h-6 w-px bg-[#064e3b]/15" aria-hidden="true" />
+            <Select value={anoSelecionado} onValueChange={setAnoSelecionado}>
+              <SelectTrigger aria-label="Ano" className="h-10 w-[92px] border-0 bg-transparent text-sm font-semibold text-[#064e3b] shadow-none focus:ring-0">
+                <SelectValue placeholder="Ano" />
+              </SelectTrigger>
+              <SelectContent>
+                {[2024, 2025, 2026].map(a => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Configurar categorias"
+              className="h-11 flex-col gap-0.5 px-1 text-[10px] font-medium"
+              onClick={() => navigate("/config/categorias-despesa")}
+            >
+              <Settings2 className="h-4 w-4" aria-hidden="true" />
+              Categorias
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Exportar em PDF"
+              className="h-11 flex-col gap-0.5 px-1 text-[10px] font-medium"
+              onClick={() => exportROtoPdf(receitaBruta, custoMatPrima, lucroBruto, lucroLiquido, totalCustos, custosAgrupados, canais, mesLabel)}
+            >
+              <FileDown className="h-4 w-4" aria-hidden="true" />
+              PDF
+            </Button>
+            <div className="[&_button]:h-11 [&_button]:w-full [&_button]:flex-col [&_button]:gap-0.5 [&_button]:px-1 [&_button]:text-[10px] [&_button]:font-medium">
+              <RoExcelButton unidadeId={unidadeAtual?.id} unidadeNome={unidadeAtual?.nome} ano={Number(anoSelecionado)} mes={Number(mesSelecionado)} />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Imprimir relatório"
+              className="h-11 flex-col gap-0.5 px-1 text-[10px] font-medium"
+              onClick={handlePrint}
+            >
+              <Printer className="h-4 w-4" aria-hidden="true" />
+              Imprimir
+            </Button>
+          </div>
+        </div>
+
+        {/* DESKTOP: linha única */}
+        <div className="hidden sm:flex sm:flex-wrap sm:ml-auto sm:items-center gap-2 min-w-0">
           <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
-            <SelectTrigger aria-label="Selecionar mês" className="w-full sm:w-36 min-h-11 sm:min-h-9 text-sm min-w-0"><SelectValue placeholder="Mês" /></SelectTrigger>
+            <SelectTrigger aria-label="Selecionar mês" className="w-36 min-h-9 text-sm min-w-0"><SelectValue placeholder="Mês" /></SelectTrigger>
             <SelectContent>
               {mesesOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={anoSelecionado} onValueChange={setAnoSelecionado}>
-            <SelectTrigger aria-label="Selecionar ano" className="w-full sm:w-24 min-h-11 sm:min-h-9 text-sm min-w-0"><SelectValue placeholder="Ano" /></SelectTrigger>
+            <SelectTrigger aria-label="Selecionar ano" className="w-24 min-h-9 text-sm min-w-0"><SelectValue placeholder="Ano" /></SelectTrigger>
             <SelectContent>
               {[2024, 2025, 2026].map(a => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="sm" aria-label="Configurar categorias de despesa" className="min-h-11 sm:min-h-9 text-xs min-w-0" onClick={() => navigate("/config/categorias-despesa")}>
+          <Button variant="ghost" size="sm" aria-label="Configurar categorias de despesa" className="min-h-9 text-xs" onClick={() => navigate("/config/categorias-despesa")}>
             <Settings2 className="h-4 w-4 mr-1" aria-hidden="true" /> Categorias
           </Button>
-          <Button variant="outline" size="sm" aria-label="Exportar em PDF" className="min-h-11 sm:min-h-9 text-xs min-w-0" onClick={() => exportROtoPdf(receitaBruta, custoMatPrima, lucroBruto, lucroLiquido, totalCustos, custosAgrupados, canais, mesLabel)}>
+          <Button variant="outline" size="sm" aria-label="Exportar em PDF" className="min-h-9 text-xs" onClick={() => exportROtoPdf(receitaBruta, custoMatPrima, lucroBruto, lucroLiquido, totalCustos, custosAgrupados, canais, mesLabel)}>
             <FileDown className="h-4 w-4 mr-1" aria-hidden="true" /> PDF
           </Button>
           <RoExcelButton unidadeId={unidadeAtual?.id} unidadeNome={unidadeAtual?.nome} ano={Number(anoSelecionado)} mes={Number(mesSelecionado)} />
-          <Button variant="outline" size="sm" aria-label="Imprimir relatório" className="min-h-11 sm:min-h-9 text-xs min-w-0 col-span-2 sm:col-span-1" onClick={handlePrint}>
+          <Button variant="outline" size="sm" aria-label="Imprimir relatório" className="min-h-9 text-xs" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-1" aria-hidden="true" /> Imprimir
           </Button>
         </div>
