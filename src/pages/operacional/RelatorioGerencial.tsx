@@ -371,18 +371,53 @@ export default function RelatorioGerencial() {
   }, [despesas]);
 
   const pagamentoChart = useMemo(() => {
+    const canonical = (raw: string): string => {
+      const s = raw.trim().toLowerCase().replace(/\s+/g, "_");
+      if (!s) return "Não informado";
+      if (s.includes("gas_do_povo") || s.includes("gás_do_povo")) return "Gás do Povo";
+      if (s.includes("vale_ultragaz")) return "Vale Ultragaz";
+      if (s.includes("vale_central")) return "Vale Central Gás";
+      if (s.startsWith("vale")) return "Vale Gás";
+      if (s.includes("pix_maquininha")) return "PIX Maquininha";
+      if (s === "pix" || s.includes("pix")) return "PIX";
+      if (s.includes("cartao_credito") || s.includes("credito") || s.includes("crédito")) return "Cartão Crédito";
+      if (s.includes("cartao_debito") || s === "debito" || s.includes("débito")) return "Cartão Débito";
+      if (s.includes("dinheiro")) return "Dinheiro";
+      if (s.includes("fiado")) return "Fiado";
+      if (s.includes("cheque")) return "Cheque";
+      return formaPagamentoLabel(raw) || raw;
+    };
+
+    const splitTokens = (raw: string | null): string[] => {
+      if (!raw) return ["Não informado"];
+      const cleaned = raw.replace(/^multiplo:/i, "").replace(/r\$\s*[\d.,]+/gi, "");
+      const parts = cleaned.split(/[,+/;]| e /i).map((p) => p.trim()).filter(Boolean);
+      const mapped = (parts.length ? parts : [cleaned]).map(canonical);
+      return Array.from(new Set(mapped));
+    };
+
     const concluidas = vendas.filter(
       (v) => v.status === "entregue" || v.status === "concluido" || v.status === "finalizado",
     );
-    const totalPorForma = concluidas.reduce((acc: Record<string, number>, v) => {
-      const label = formaPagamentoLabel(v.forma_pagamento) || "Não informado";
-      acc[label] = (acc[label] || 0) + asNumber(v.valor_total);
-      return acc;
-    }, {});
+    const totalPorForma: Record<string, number> = {};
+    concluidas.forEach((v) => {
+      const tokens = splitTokens(v.forma_pagamento);
+      const share = asNumber(v.valor_total) / tokens.length;
+      tokens.forEach((t) => {
+        totalPorForma[t] = (totalPorForma[t] || 0) + share;
+      });
+    });
 
-    return Object.entries(totalPorForma)
+    const entries = Object.entries(totalPorForma)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
+
+    const TOP = 6;
+    if (entries.length <= TOP) return entries;
+    const top = entries.slice(0, TOP);
+    const outros = entries.slice(TOP).reduce((s, e) => s + e.value, 0);
+    if (outros > 0) top.push({ name: "Outros", value: outros });
+    return top;
   }, [vendas, formaPagamentoLabel]);
 
 
@@ -898,17 +933,48 @@ export default function RelatorioGerencial() {
                     </h3>
                   </div>
                   {pagamentoChart.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={240}>
-                      <PieChart>
-                        <Pie data={pagamentoChart} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={78} innerRadius={40} paddingAngle={2}>
-                          {pagamentoChart.map((_, i) => (
-                            <Cell key={i} fill={chartPalette[i % chartPalette.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={formatTooltipMoney} />
-                        <Legend iconType="circle" layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: 11 }} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <div className="flex flex-col gap-4">
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie
+                            data={pagamentoChart}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            innerRadius={48}
+                            paddingAngle={2}
+                            stroke="none"
+                          >
+                            {pagamentoChart.map((_, i) => (
+                              <Cell key={i} fill={chartPalette[i % chartPalette.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={formatTooltipMoney} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <ul className="space-y-1.5">
+                        {(() => {
+                          const total = pagamentoChart.reduce((s, e) => s + e.value, 0) || 1;
+                          return pagamentoChart.map((e, i) => (
+                            <li key={e.name} className="flex items-center justify-between gap-2 text-xs sm:text-sm">
+                              <span className="flex min-w-0 items-center gap-2">
+                                <span
+                                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                                  style={{ background: chartPalette[i % chartPalette.length] }}
+                                />
+                                <span className="truncate font-medium text-slate-700">{e.name}</span>
+                              </span>
+                              <span className="flex shrink-0 items-baseline gap-2 tabular-nums">
+                                <span className="text-slate-900 font-semibold">{formatMoney(e.value)}</span>
+                                <span className="text-[11px] text-slate-500">{((e.value / total) * 100).toFixed(1)}%</span>
+                              </span>
+                            </li>
+                          ));
+                        })()}
+                      </ul>
+                    </div>
                   ) : (
                     <EmptyChart label="As formas de pagamento dos pedidos aparecerão quando houver vendas no mês." />
                   )}
