@@ -58,6 +58,8 @@ export default function RelatorioLucratividade() {
   const [incluirCP, setIncluirCP] = useState(true);
   const [incluirMC, setIncluirMC] = useState(true);
   const [incluirDC, setIncluirDC] = useState(true);
+  const [drillProduto, setDrillProduto] = useState<string | null>(null);
+  const [drillPeriodo, setDrillPeriodo] = useState<string | null>(null);
 
   const unidadeId = unidadeAtual?.id ?? null;
 
