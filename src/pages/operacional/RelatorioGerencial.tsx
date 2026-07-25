@@ -933,17 +933,48 @@ export default function RelatorioGerencial() {
                     </h3>
                   </div>
                   {pagamentoChart.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={240}>
-                      <PieChart>
-                        <Pie data={pagamentoChart} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={78} innerRadius={40} paddingAngle={2}>
-                          {pagamentoChart.map((_, i) => (
-                            <Cell key={i} fill={chartPalette[i % chartPalette.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={formatTooltipMoney} />
-                        <Legend iconType="circle" layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: 11 }} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <div className="flex flex-col gap-4">
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie
+                            data={pagamentoChart}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            innerRadius={48}
+                            paddingAngle={2}
+                            stroke="none"
+                          >
+                            {pagamentoChart.map((_, i) => (
+                              <Cell key={i} fill={chartPalette[i % chartPalette.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={formatTooltipMoney} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <ul className="space-y-1.5">
+                        {(() => {
+                          const total = pagamentoChart.reduce((s, e) => s + e.value, 0) || 1;
+                          return pagamentoChart.map((e, i) => (
+                            <li key={e.name} className="flex items-center justify-between gap-2 text-xs sm:text-sm">
+                              <span className="flex min-w-0 items-center gap-2">
+                                <span
+                                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                                  style={{ background: chartPalette[i % chartPalette.length] }}
+                                />
+                                <span className="truncate font-medium text-slate-700">{e.name}</span>
+                              </span>
+                              <span className="flex shrink-0 items-baseline gap-2 tabular-nums">
+                                <span className="text-slate-900 font-semibold">{fmtMoney(e.value)}</span>
+                                <span className="text-[11px] text-slate-500">{((e.value / total) * 100).toFixed(1)}%</span>
+                              </span>
+                            </li>
+                          ));
+                        })()}
+                      </ul>
+                    </div>
                   ) : (
                     <EmptyChart label="As formas de pagamento dos pedidos aparecerão quando houver vendas no mês." />
                   )}
