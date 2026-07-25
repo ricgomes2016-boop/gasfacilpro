@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageSectionLoader } from "@/components/ui/page-loader";
 import { AlertTriangle, Settings2, FileDown, Printer } from "lucide-react";
+import { FluxoLateralPanel } from "@/components/ro/FluxoLateralPanel";
+import { RoExcelButton } from "@/components/ro/RoExcelButton";
 import { exportROtoPdf, handlePrint } from "@/services/reportPdfService";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useROComplemento } from "@/hooks/useROComplemento";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -71,6 +74,11 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
   const [canais, setCanais] = useState<CanalVenda[]>([]);
   const [precoCompraP13, setPrecoCompraP13] = useState(0);
   const [precoVendaP13, setPrecoVendaP13] = useState(0);
+  const { fluxo, ajustes, salvarAjuste, loading: loadingRO } = useROComplemento(
+    unidadeAtual?.id,
+    Number(anoSelecionado),
+    Number(mesSelecionado),
+  );
 
   useEffect(() => { fetchData(); }, [unidadeAtual, mesSelecionado, anoSelecionado]);
 
@@ -376,6 +384,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
           <Button variant="outline" size="sm" className="h-10 sm:h-8 text-xs min-w-0" onClick={() => exportROtoPdf(receitaBruta, custoMatPrima, lucroBruto, lucroLiquido, totalCustos, custosAgrupados, canais, mesLabel)}>
             <FileDown className="h-3.5 w-3.5 mr-1" /> PDF
           </Button>
+          <RoExcelButton unidadeId={unidadeAtual?.id} unidadeNome={unidadeAtual?.nome} ano={Number(anoSelecionado)} mes={Number(mesSelecionado)} />
           <Button variant="outline" size="sm" className="h-10 sm:h-8 text-xs min-w-0 col-span-2 sm:col-span-1" onClick={handlePrint}>
             <Printer className="h-3.5 w-3.5 mr-1" /> Imprimir
           </Button>
@@ -587,17 +596,65 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                   </TableRow>
                   <TableRow>
                     <TableCell className="py-1 px-3 text-xs">Nota Crédito</TableCell>
-                    <TableCell className="py-1 px-3 text-right text-xs tabular-nums text-muted-foreground">—</TableCell>
-                  </TableRow>
-                  <TableRow className={lucroLiquido >= 0 ? "bg-success/5 border-t-2" : "bg-destructive/5 border-t-2"}>
-                    <TableCell className="py-2 px-3 text-sm font-bold">Resultado</TableCell>
-                    <TableCell className={`py-2 px-3 text-right text-sm font-bold tabular-nums ${lucroLiquido >= 0 ? "text-success" : "text-destructive"}`}>
-                      R$ {lucroLiquido < 0 ? `(${fmt(Math.abs(lucroLiquido))})` : fmt(lucroLiquido)}
+                    <TableCell className={`py-1 px-3 text-right text-xs tabular-nums ${(ajustes.nota_credito?.valor || 0) > 0 ? "font-medium" : "text-muted-foreground"}`}>
+                      {(ajustes.nota_credito?.valor || 0) > 0 ? `R$ ${fmt(ajustes.nota_credito!.valor)}` : "—"}
                     </TableCell>
                   </TableRow>
+                  {(() => {
+                    const resultado = lucroLiquido + (ajustes.nota_credito?.valor || 0);
+                    return (
+                      <TableRow className={resultado >= 0 ? "bg-success/5 border-t-2" : "bg-destructive/5 border-t-2"}>
+                        <TableCell className="py-2 px-3 text-sm font-bold">Resultado</TableCell>
+                        <TableCell className={`py-2 px-3 text-right text-sm font-bold tabular-nums ${resultado >= 0 ? "text-success" : "text-destructive"}`}>
+                          R$ {resultado < 0 ? `(${fmt(Math.abs(resultado))})` : fmt(resultado)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })()}
                 </TableBody>
               </Table>
+      </div>
+
+      {/* Share por canal (participação % da MC) */}
+      {canaisP13.length > 0 && (
+        <Card className="border-border/60 shadow-[var(--elev-1)]">
+          <CardHeader className="border-b border-border/60 bg-muted/25 px-4 py-2.5">
+            <CardTitle className="text-xs font-bold uppercase tracking-widest">Participação por canal (Share)</CardTitle>
+          </CardHeader>
+          <CardContent className="p-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+              {(() => {
+                const totalMC = canaisP13.reduce((s, c) => s + c.margemRS, 0);
+                return canaisP13
+                  .filter((c) => c.qtde > 0)
+                  .sort((a, b) => b.margemRS - a.margemRS)
+                  .map((c) => {
+                    const pct = totalMC > 0 ? (c.margemRS / totalMC) * 100 : 0;
+                    return (
+                      <div key={c.canal} className="rounded-md border border-border/60 bg-muted/20 px-3 py-2">
+                        <p className="text-[10px] font-semibold uppercase text-muted-foreground truncate">{c.canal}</p>
+                        <p className="text-base font-bold tabular-nums">{pct.toFixed(1)}%</p>
+                        <p className="text-[10px] text-muted-foreground tabular-nums">{c.qtde} un · R$ {fmt(c.margemRS)}</p>
+                      </div>
+                    );
+                  });
+              })()}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bloco 4 — Entradas/Saídas/Saldos/Estoque valorizado */}
+      {unidadeAtual?.id && (
+        <FluxoLateralPanel
+          fluxo={fluxo}
+          ajustes={ajustes}
+          onSave={salvarAjuste}
+          loading={loadingRO}
+        />
+      )}
+
+
           </CardContent>
         </Card>
       </div>

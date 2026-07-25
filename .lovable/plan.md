@@ -1,71 +1,128 @@
-## Escopo
+# R.O. — Resultado Operacional (mensal, por unidade)
 
-Refino visual e de navegação do shell do ERP (rotas do ERP autenticado). Não altera lógica, dados, queries, hooks, rotas ou portais externos (cliente, entregador, contador, parceiro, transportadora — que já usam layouts próprios).
+Nova página que replica a planilha "R.O. Central Gás" com o mesmo layout de blocos, exportação Excel fiel e drill-down por linha.
 
-## Diagnóstico
+## 1. Rota e menu
 
-- Existem dois modos de shell: **legado** (sidebar `hidden xl:flex` + `MobileNav` drawer no header + `MobileBottomBar` flutuante com Chat/IA/Calc) e **operacional-clean** (sidebar off-canvas com overlay + header 56px). A queixa "sidebar aparece antes do conteúdo no mobile" acontece quando o tema `operacional-clean` está ativo: a `.clean-sidebar` é `flex` em todas as larguras e só é escondida por transform, o que em alguns viewports/toggles renderiza atrás do overlay mas empurra layout no primeiro paint.
-- Header legado reserva `min-h-[4.5rem]` no mobile e ainda mostra `UnidadeSelector` desktop competindo com título.
-- Menu desktop tem 14 grupos com pesos visuais equivalentes; itens redundantes (ex: Pedidos + Pedidos Kanban) aparecem lado a lado.
-- Bottom bar mobile atual só tem Chat / IA / Calc — não há navegação primária (Dashboard, PDV, Nova Venda, Pedidos).
+- Rota nova: `/operacional/ro` → `src/pages/operacional/ResultadoOperacional.tsx`
+- Item novo no menu **Operacional › R.O. (Resultado Operacional)**
+- Cabeçalho premium (mesmo padrão do Relatório Gerencial): título, seletor de **mês/ano**, seletor de **unidade**, seletor de **representante** (opcional), botão **Exportar .xlsx**.
 
-## Mudanças
+## 2. Layout — 4 blocos como na planilha
 
-### 1. Shell mobile (`MainLayout.tsx`, `Sidebar.tsx`)
-- Forçar sidebar off-canvas real em `<768px` em ambos os temas (legado e clean): `translate-x-[-100%]` + `pointer-events-none` quando fechada, sem ocupar fluxo. Overlay clicável para fechar. Sem alterar o comportamento xl+.
-- Padding inferior do `<main>` aumentado para acomodar bottom nav (`pb-28 md:pb-10`).
+```text
+┌──────────────────────────┬─────────────────────────────────────┬────────────────────────┐
+│ 1) CUSTOS / DESPESAS     │ 2) VENDAS POR CANAL / PRODUTO       │ 4) ENTRADAS / SAÍDAS   │
+│  Aluguel                 │ Canal | Qtd P13 | P.Venda | Total  │ Dinheiro               │
+│  Água/Luz/Telefone       │ P.Compra | MC R$ | Tonelagem       │ Cheque (Pré + Vista)   │
+│  Pró-Labore              │ ── P13 Venda Direta                 │ Cheque Devolvido       │
+│  Contador                │ ── Portaria                         │ Cartão                 │
+│  Diárias/Limpeza         │ ── P05                              │ Boletos                │
+│  Refeição                │ ── VAZIO                            │ Vale Ultragaz P13/P45  │
+│  Impostos (Lucro Real,   │ ── P13 Disk                         │ Fernando ABM Gas       │
+│    Salário, Social)      │ ── P13 Comércio                     │                        │
+│  Salários                │ ── Whats/App                        │ SAÍDAS                 │
+│  Manut./Veículos/Pneus   │ ── P13 PV                           │ INVESTIMENTOS          │
+│  Combustível             │ ── P20 Ind.                         │                        │
+│  Depreciação Veicular    │ ── P45 Ind.                         │ SALDOS                 │
+│  Monitoramento           │ ── Água                             │  Estoque P05/P13/P20/  │
+│  Pedágio/Detran          │ ── VZ Água + Registro               │    P45/Água (valorizado)│
+│  Aluguel Maquininhas     │ TOTAL                               │  Uniprime / B.Brasil / │
+│  Divulgação              │                                     │    Azul Gás / Santander│
+│  Cartão de Crédito       │ 3) CONSOLIDADO                      │  Cartão / Pendências   │
+│  Sistema                 │  Receita Bruta                      │                        │
+│  Transporte              │  Custo Mat. Prima                   │                        │
+│  Diversos                │  Lucro Bruto                        │                        │
+│  ─────────────────       │  Custo / Despesa (do bloco 1)       │                        │
+│  TOTAL DESPESAS          │  Lucro Líquido                      │                        │
+│                          │  Nota Crédito                       │                        │
+│                          │  RESULTADO                          │                        │
+│                          │                                     │                        │
+│                          │  Share por canal (VD/Disk/Com/PV/Ind)│                        │
+│                          │  Ponto de Equilíbrio                │                        │
+└──────────────────────────┴─────────────────────────────────────┴────────────────────────┘
+```
 
-### 2. Bottom navigation mobile (`MobileBottomBar.tsx`)
-- Reestruturar para 5 slots primários: **Dashboard, PDV, Nova Venda, Pedidos, Menu** (Menu abre o drawer da sidebar via evento).
-- Mover Chat / IA / Calc para um botão flutuante único (FAB "+") acima da bottom bar, expandindo em cluster — não compete mais com navegação.
-- Safe-area bottom preservado.
+No mobile os 3 blocos empilham (accordion), com o Consolidado sempre visível no topo como `FinancialHeroCard`.
 
-### 3. Header (`Header.tsx`)
-- Legado mobile: reduzir para **~56px** (uma linha), título + botão menu + ações essenciais (notificações, avatar). Empresa/unidade movidos para subtítulo colapsável.
-- Desktop: unificar altura em 64px, `bg-card/85 backdrop-blur`, borda inferior mais sutil (`border-border/60`), ações com `h-10 rounded-xl`.
-- Botão de menu (hambúrguer) sempre visível em `<xl`, não apenas no clean.
+## 3. Origem dos dados
 
-### 4. Sidebar desktop (`Sidebar.tsx`)
-- Largura 264px, `bg-sidebar` neutro, `border-r border-sidebar-border/60`, sem `shadow-2xl` nem `rounded-r-2xl`.
-- Item ativo: `bg-primary/10 text-primary` + `ring-1 ring-primary/20` (remover `shadow-lg` e gradiente).
-- Ícones 18px consistentes; labels `text-[13px] font-medium`.
-- Headers de grupo (Principal, Vendas, Operação, Clientes, Estoque, Financeiro, Gestão, Configurações) em `text-[10px] uppercase tracking-wider text-sidebar-foreground/50` — apenas visual, sem reordenar `menuItems.ts`.
-- Grupo "Favoritos" pinado no topo: Dashboard, PDV, Nova Venda, Pedidos, Clientes, Estoque, Financeiro (links diretos, não altera rotas).
-- Footer sidebar compactado (`h-14`).
+### Bloco 2 — Vendas por canal/produto
+- Fonte: `pedidos` + `pedido_itens` do mês/unidade, com `status IN ('finalizado','entregue','concluido','pago')`.
+- Agrupa por `pedidos.canal_venda` (usando o campo já existente) cruzado com `produtos.nome` normalizado (P13, P20, P45, P05, Água, Vazio).
+- Normalizações necessárias para casar com a planilha:
+  - `Disk/Telefone` → **P13 Disk**
+  - `Entregador` / `Ponto de Venda` → **P13 PV**
+  - `WhatsApp` / `site` → **Whats/App**
+  - `Portaria` / `portaria` → **Portaria**
+  - `Comercio` → **P13 Comércio**
+  - `Prefeitura` / clientes industriais (P20/P45) → **P20 Ind.** / **P45 Ind.**
+  - Demais canais nomeados (Alfa Gás, Amigão, Zavagli, Foguinho, Molinis, Vale Ultragaz…) → agrupados em **P13 Venda Direta** (revenda), com detalhamento no drill-down.
+- Colunas calculadas: `Preço Venda médio = Total / Qtd`, `Preço Compra` do `produtos.preco_custo` (média corrente já mantida pela trigger `recalcular_preco_custo_produto`), `MC R$ = Total − (Qtd × PreçoCompra)`, `Tonelagem = Qtd × peso_kg`.
 
-### 5. Tokens globais (`src/index.css`)
-- `--background: 210 20% 98%` (slate-50) para superfície geral.
-- `--card` mantém branco puro; `--border` levemente mais claro; `--radius` mantém.
-- Sombra de card reduzida (`--elev-1`).
-- Não altera paletas de tema (gasmais, contador, brand themes).
+### Bloco 1 — Custos/Despesas
+- União das 3 fontes já usadas no Relatório Gerencial:
+  - `contas_pagar` pagas no mês
+  - `movimentacoes_caixa` de saída no mês
+  - `despesas_contabeis` do mês
+- Mapeamento categoria → linha do R.O. via `categorias_despesa` (nome + código). Novas categorias caem em **Diversos**.
+- Uma linha "Salários" soma folhas + encargos vindos de `folhas_pagamento`/`folha_pagamento_itens` quando existirem no mês.
 
-## Fora de escopo
+### Bloco 3 — Consolidado
+- `Receita Bruta` = soma do bloco 2
+- `Custo MP` = soma (Qtd × PreçoCompra) do bloco 2
+- `Lucro Bruto` = Receita − Custo MP
+- `Custo/Despesa` = total do bloco 1
+- `Lucro Líquido` = Lucro Bruto − Custo/Despesa
+- `Nota Crédito` = campo manual editável (persistido em nova tabela `ro_ajustes_mensais`, ver §4)
+- Share por canal = participação % da MC R$ de cada agrupamento
+- Ponto de Equilíbrio (R$) = `Custo/Despesa ÷ (MC média % da Receita)`
 
-- `App.tsx`, providers, rotas, `menuItems.ts` (só leitura).
-- Conteúdo interno de Dashboard, Pedidos, Nova Venda, PDV (só herdam padding/container).
-- Portais externos (`ClienteLayout`, entregador, parceiro, contador).
-- Backend, RLS, edge functions, dados.
-- Publicação.
+### Bloco 4 — Entradas / Saídas / Saldos
+- **Dinheiro**: entradas de `movimentacoes_caixa` no mês (tipo entrada, forma dinheiro).
+- **Cheque Pré + Vista** e **Cheque Devolvido**: `cheques` do mês por status.
+- **Cartão**: soma de `contas_receber` liquidadas via operadora de cartão no mês.
+- **Boletos**: `boletos_emitidos` liquidados no mês.
+- **Vale Ultragaz P13/P45**: `vale_gas` do mês por produto.
+- **Saldos bancários** (fim do mês): último snapshot de `contas_bancarias.saldo_atual` filtrado por unidade (Uniprime, B. Brasil, Azul Gás/Inter, Santander).
+- **Estoque valorizado** (fim do mês): `SUM(quantidade × preco_custo)` por produto P05/P13/P20/P45/Água a partir da última posição de `estoque_dia`/`movimentacoes_estoque`.
+- **Saídas / Investimentos / Pendências / Fernando ABM Gas**: linhas manuais editáveis (persistidas em `ro_ajustes_mensais`).
 
-## Arquivos previstos
+## 4. Persistência de ajustes manuais
 
-- `src/components/layout/MainLayout.tsx`
-- `src/components/layout/Sidebar.tsx`
-- `src/components/layout/Header.tsx`
-- `src/components/layout/MobileBottomBar.tsx`
-- `src/index.css` (tokens globais leves)
+Nova tabela `ro_ajustes_mensais` (via migração):
 
-## Validação
+- Colunas de domínio: `empresa_id`, `unidade_id`, `ano`, `mes`, `representante`, `chave` (ex.: `nota_credito`, `saidas`, `investimentos`, `pendencias`, `fernando_abm`, `preco_compra_ref_p13` etc.), `valor`, `observacao`.
+- Índice único em (`unidade_id`, `ano`, `mes`, `chave`).
+- GRANTs para `authenticated` e `service_role`; RLS por `unidade_id` do usuário e `has_role('gestor')`.
 
-- `tsgo` typecheck.
-- Playwright em 390px em `/dashboard`, `/vendas/nova`, `/vendas/pedidos`, `/vendas/pdv`: sidebar não aparece no fluxo, bottom nav visível, sem scroll horizontal.
-- Playwright em 1440px: sidebar 264px, header 64px, item ativo destacado.
+## 5. Drill-down
+
+Clique em qualquer linha do bloco 1 ou 2 abre um `Dialog` listando os documentos que somam aquele valor (pedidos, contas a pagar, movimentações de caixa), reusando o padrão já implementado no Relatório Gerencial.
+
+## 6. Exportação Excel fiel
+
+Nova Edge Function `gerar-ro-excel`:
+
+- Recebe `{ unidade_id, ano, mes }`, valida com Zod, checa auth via JWT em código.
+- Monta um `.xlsx` com **12 abas nomeadas Janeiro…Dezembro** (mesmo padrão do arquivo), preenchendo só o mês solicitado (ou todos os meses do ano se pedido).
+- Layout fiel: mesmos títulos, colunas, fórmulas de Receita/Custo/MC/Ponto de Equilíbrio, formatação de moeda BRL, larguras de coluna.
+- Retorna base64 → download no cliente como `RO_<Unidade>_<Ano>.xlsx`.
+- Lib: `xlsx-populate` via `npm:xlsx-populate` no Deno (ou `xlsx`/`sheetjs` já usado em outras funções — reaproveitar a que existir).
+
+## 7. Ordem de implementação
+
+1. Migração `ro_ajustes_mensais` (tabela + GRANTs + RLS + trigger `updated_at`).
+2. Hook `useRoData(unidadeId, ano, mes)` consolidando vendas + despesas + fluxo lateral (uma query por bloco, em paralelo).
+3. Página `ResultadoOperacional.tsx` com os 4 blocos, edição inline dos campos manuais e drill-down.
+4. Rota + item de menu.
+5. Edge Function `gerar-ro-excel` + botão Exportar.
+6. Testes rápidos: mês corrente Forte Gás bate com o dashboard financeiro; abrir XLSX no Excel para conferir layout.
 
 ## Detalhes técnicos
 
-- Bottom nav usa `NavLink` + `useLocation` para active state.
-- Botão "Menu" da bottom nav dispara `sidebar:open` via evento; `Sidebar` escuta e usa `setCollapsed(false)`.
-- Em `<xl`, sidebar é sempre off-canvas mesmo no tema legado (não só clean), com overlay `bg-black/40` fechável.
-- Preserva `useSidebarContext`, `useDashboardTheme`, `isCleanTheme` — sem mudar API pública.
-
-Confirma para eu executar?
+- Reutiliza `PremiumKpiCard`, `SectionCard`, `FinancialHeroCard`, `ChartTooltip` e `formatMoney` já padronizados.
+- Todas as queries filtram por `unidade_id` do contexto (`useEmpresa`) — sem cross-tenant.
+- Cálculo de MC e Share fica no cliente com `useMemo` para evitar re-render.
+- Peso por produto vem de `produtos.peso_kg`; se ausente, assume tabela padrão (P13=13, P20=20, P45=45, P05=5, Água=0).
+- A Edge Function usa `SUPABASE_SERVICE_ROLE_KEY` só para leitura consolidada, com validação prévia de que o `user_id` do JWT tem acesso à `unidade_id` pedida.
