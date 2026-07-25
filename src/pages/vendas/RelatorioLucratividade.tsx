@@ -256,6 +256,123 @@ export default function RelatorioLucratividade() {
     }
   };
 
+  // ---- Drill-down por produto ----
+  const drillProdutoItens = useMemo(() => {
+    if (!drillProduto) return [];
+    const rows: { pedidoId: string; data: string; qtd: number; preco: number; custo: number; subtotal: number; lucro: number }[] = [];
+    (pedidosQ.data ?? []).forEach((p) => {
+      (p.pedido_itens ?? []).forEach((it) => {
+        const nome = it.produtos?.nome ?? "Produto removido";
+        if (nome !== drillProduto) return;
+        const qtd = Number(it.quantidade) || 0;
+        const preco = Number(it.preco_unitario) || 0;
+        const custo = Number(it.produtos?.preco_custo) || 0;
+        rows.push({
+          pedidoId: p.id,
+          data: dataPedido(p),
+          qtd,
+          preco,
+          custo,
+          subtotal: qtd * preco,
+          lucro: qtd * (preco - custo),
+        });
+      });
+    });
+    return rows.sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+  }, [drillProduto, pedidosQ.data]);
+
+  // ---- Drill-down por período: vendas ----
+  const drillPeriodoVendas = useMemo(() => {
+    if (!drillPeriodo) return [];
+    const inRange = (d: string) =>
+      granularidade === "diario" ? d === drillPeriodo : d.slice(0, 7) === drillPeriodo;
+    return (pedidosQ.data ?? [])
+      .filter((p) => inRange(dataPedido(p)))
+      .map((p) => {
+        let receita = 0;
+        let custo = 0;
+        (p.pedido_itens ?? []).forEach((it) => {
+          const qtd = Number(it.quantidade) || 0;
+          const preco = Number(it.preco_unitario) || 0;
+          const cu = Number(it.produtos?.preco_custo) || 0;
+          receita += qtd * preco;
+          custo += qtd * cu;
+        });
+        return { id: p.id, data: dataPedido(p), receita, custo, lucro: receita - custo };
+      })
+      .sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+  }, [drillPeriodo, pedidosQ.data, granularidade]);
+
+  // ---- Drill-down por período: despesas (detalhado, lazy) ----
+  const drillDespesasQ = useQuery({
+    queryKey: ["rel-lucro-drill-despesas", unidadeId, drillPeriodo, granularidade, incluirCP, incluirMC, incluirDC],
+    enabled: !!unidadeId && !!drillPeriodo,
+    queryFn: async () => {
+      let ini = drillPeriodo!;
+      let fim2 = drillPeriodo!;
+      if (granularidade === "mensal") {
+        const [y, m] = drillPeriodo!.split("-").map(Number);
+        ini = format(new Date(y, m - 1, 1), "yyyy-MM-dd");
+        fim2 = format(new Date(y, m, 0), "yyyy-MM-dd");
+      }
+      const items: { fonte: string; data: string; descricao: string; valor: number }[] = [];
+      if (incluirCP) {
+        const { data } = await supabase
+          .from("contas_pagar")
+          .select("valor, data_pagamento, descricao, fornecedor")
+          .eq("unidade_id", unidadeId!)
+          .eq("status", "paga")
+          .gte("data_pagamento", ini)
+          .lte("data_pagamento", fim2);
+        (data ?? []).forEach((r: any) =>
+          items.push({
+            fonte: "Contas a pagar",
+            data: (r.data_pagamento || "").slice(0, 10),
+            descricao: r.descricao || r.fornecedor || "—",
+            valor: Number(r.valor) || 0,
+          })
+        );
+      }
+      if (incluirMC) {
+        const { data } = await supabase
+          .from("movimentacoes_caixa")
+          .select("valor, created_at, categoria, descricao, compra_id")
+          .eq("unidade_id", unidadeId!)
+          .eq("tipo", "saida")
+          .gte("created_at", `${ini}T00:00:00`)
+          .lte("created_at", `${fim2}T23:59:59`);
+        (data ?? []).forEach((r: any) => {
+          if (r.compra_id) return;
+          items.push({
+            fonte: "Sangria/Caixa",
+            data: (r.created_at || "").slice(0, 10),
+            descricao: r.descricao || r.categoria || "—",
+            valor: Number(r.valor) || 0,
+          });
+        });
+      }
+      if (incluirDC) {
+        const { data } = await supabase
+          .from("despesas_contabeis")
+          .select("valor, data_despesa, descricao, categoria")
+          .eq("unidade_id", unidadeId!)
+          .gte("data_despesa", ini)
+          .lte("data_despesa", fim2);
+        (data ?? []).forEach((r: any) =>
+          items.push({
+            fonte: "Contábil",
+            data: (r.data_despesa || "").slice(0, 10),
+            descricao: r.descricao || r.categoria || "—",
+            valor: Number(r.valor) || 0,
+          })
+        );
+      }
+      return items.sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+    },
+  });
+
+
+
   const exportar = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(
