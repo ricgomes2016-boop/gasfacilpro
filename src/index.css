@@ -771,23 +771,22 @@
   }
 
   .app-card {
-    @apply relative bg-gradient-to-br from-card via-card to-muted/25;
-    box-shadow: var(--shadow-md);
+    @apply relative bg-card;
+    box-shadow: 0 1px 2px hsl(163 40% 12% / 0.04);
   }
 
   .app-card::before,
   .modern-panel::before,
   .modern-status-card::before {
+    content: none;
+  }
+
+  .app-card.kpi::before {
     content: "";
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 3px;
-    pointer-events: none;
-    background: linear-gradient(90deg, hsl(var(--primary) / 0.45), hsl(var(--secondary) / 0.28), transparent);
   }
 
   .app-card-header {
-    @apply bg-gradient-to-r from-muted/45 via-card to-card;
+    @apply bg-card;
   }
 
   .app-card-title {
@@ -805,13 +804,9 @@
 
   .app-card :where(.app-card, .modern-panel),
   .modern-panel :where(.app-card, .modern-panel) {
-    @apply bg-gradient-to-br from-card via-card to-muted/15 shadow-sm shadow-foreground/5;
+    @apply border-border/50 bg-card shadow-none;
   }
 
-  .app-card :where(.app-card, .modern-panel)::before,
-  .modern-panel :where(.app-card, .modern-panel)::before {
-    opacity: 0.35;
-  }
 
   .table-card-shell {
     @apply overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm shadow-foreground/5;
