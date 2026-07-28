@@ -13,6 +13,17 @@ export const COLOR_OPTIONS = [
 
 export const THEME_PRESETS = [
   {
+    id: "prestige-emerald",
+    label: "Prestige Emerald",
+    description: "Prestige Slate & Emerald · esmeralda profundo, dourado champanhe e fundo creme",
+    cor: "163 80% 26%",
+    hex: "#0b7757",
+    dark: false,
+    gradient: "linear-gradient(135deg, #05392b 0%, #0b7757 60%, #c8a24a 100%)",
+    recommended: true,
+  },
+  {
+
     id: "premium-light",
     label: "Premium · Padrão",
     description: "Midnight Indigo · menu escuro, cards limpos, KPI com filete indigo",
