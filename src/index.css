@@ -852,47 +852,47 @@
   }
 
   .saas-table {
-    @apply w-full border-separate border-spacing-y-0;
+    @apply w-full border-collapse;
   }
 
   .saas-table thead tr,
   .saas-table-header {
-    @apply bg-muted/75 text-foreground shadow-sm;
+    @apply bg-muted/40 text-foreground shadow-none;
   }
 
   .saas-table th {
-    @apply border-0 px-4 py-3 text-[11px] font-extrabold uppercase tracking-[0.02em] text-foreground;
+    @apply border-0 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-secondary/60 md:px-6;
     border-radius: 0 !important;
   }
 
   .system-surface :where(table thead tr) {
-    background-color: hsl(var(--muted) / 0.65) !important;
-    color: hsl(var(--foreground)) !important;
+    background-color: hsl(var(--muted) / 0.45) !important;
   }
 
   .system-surface :where(table thead th) {
-    color: hsl(var(--foreground)) !important;
-    font-weight: 800;
+    color: hsl(var(--secondary) / 0.65) !important;
+    font-weight: 700;
     opacity: 1;
   }
 
   .system-surface :where(table thead th .lucide, table thead th svg) {
-    color: hsl(var(--foreground)) !important;
-    stroke: hsl(var(--foreground)) !important;
+    color: hsl(var(--secondary) / 0.65) !important;
+    stroke: hsl(var(--secondary) / 0.65) !important;
   }
 
   .saas-table tbody tr {
-    @apply transition-colors duration-150;
+    @apply border-b border-border/50 transition-colors duration-150 last:border-0;
   }
 
   .saas-table tbody td {
-    @apply border-y border-border/45 bg-card px-3 py-3 shadow-sm first:border-l last:border-r md:px-4 md:py-3.5;
+    @apply border-0 bg-transparent px-4 py-3.5 shadow-none md:px-6;
     border-radius: 0 !important;
   }
 
   .saas-table tbody tr:hover td {
-    @apply bg-muted/35;
+    @apply bg-primary/[0.035];
   }
+
 
   .status-pill,
   [class*="badge-status"] {
