@@ -4,16 +4,16 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const cardVariants = cva(
-  "app-card min-w-0 overflow-hidden rounded-[var(--radius)] text-card-foreground transition-colors duration-150",
+  "app-card min-w-0 overflow-hidden rounded-xl text-card-foreground transition-shadow duration-200",
   {
     variants: {
       variant: {
-        default: "border border-border/60 bg-card shadow-[0_1px_2px_hsl(220_25%_10%/0.04),0_2px_8px_-4px_hsl(220_25%_10%/0.06)]",
-        flat: "border border-border/60 bg-card",
+        default: "border border-primary/[0.07] bg-card shadow-[0_1px_2px_hsl(163_40%_12%/0.04)] hover:shadow-[0_4px_14px_-6px_hsl(163_40%_12%/0.12)]",
+        flat: "border border-primary/[0.07] bg-card",
         sunken: "border border-transparent bg-muted/50",
         interactive:
-          "border border-border/60 bg-card shadow-[0_1px_2px_hsl(220_25%_10%/0.04),0_2px_8px_-4px_hsl(220_25%_10%/0.06)] cursor-pointer hover:border-primary/35 hover:shadow-[0_2px_4px_hsl(220_25%_10%/0.06),0_8px_20px_-8px_hsl(220_25%_10%/0.12)]",
-        kpi: "kpi border border-border/60 bg-gradient-to-br from-card to-muted/40 shadow-[0_1px_2px_hsl(220_25%_10%/0.04),0_4px_12px_-6px_hsl(220_25%_10%/0.08)]",
+          "border border-primary/[0.07] bg-card shadow-[0_1px_2px_hsl(163_40%_12%/0.04)] cursor-pointer hover:border-primary/25 hover:shadow-[0_6px_20px_-8px_hsl(163_40%_12%/0.18)]",
+        kpi: "kpi group relative border border-primary/[0.07] bg-card pl-1 shadow-[0_1px_2px_hsl(163_40%_12%/0.04)] hover:shadow-[0_4px_14px_-6px_hsl(163_40%_12%/0.12)] before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-primary before:content-['']",
       },
     },
     defaultVariants: { variant: "default" },
