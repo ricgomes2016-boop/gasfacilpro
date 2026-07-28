@@ -44,14 +44,15 @@ export function ThemeSync() {
              window.dispatchEvent(new Event("dashboard-theme-change"));
           }
         } else {
-           // Fallback to premium default
-           applyTheme(false, "238 75% 58%", "premium-light");
+           // Fallback: tema oficial Prestige Slate & Emerald
+           applyTheme(false, "163 80% 26%", "prestige-emerald");
            const current = localStorage.getItem(BRAND_THEME_STORAGE_KEY);
-           if (current !== "premium") {
-             localStorage.setItem(BRAND_THEME_STORAGE_KEY, "premium");
+           if (current !== "classic") {
+             localStorage.setItem(BRAND_THEME_STORAGE_KEY, "classic");
              window.dispatchEvent(new Event("dashboard-theme-change"));
            }
         }
+
       });
   }, [unidadeAtual?.id]);
 
