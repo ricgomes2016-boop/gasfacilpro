@@ -809,17 +809,18 @@
 
 
   .table-card-shell {
-    @apply overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm shadow-foreground/5;
+    @apply overflow-hidden rounded-xl border border-primary/10 bg-card;
+    box-shadow: 0 1px 2px hsl(163 40% 12% / 0.04);
   }
 
   .modern-panel {
-    @apply relative overflow-hidden rounded-2xl border border-border/45 bg-gradient-to-br from-card via-card to-muted/25 shadow-md shadow-foreground/5;
-    box-shadow: var(--shadow-md);
+    @apply relative overflow-hidden rounded-xl border border-primary/10 bg-card;
+    box-shadow: 0 1px 2px hsl(163 40% 12% / 0.04);
   }
 
   .modern-soft-panel {
-    @apply rounded-2xl border border-border/40 bg-gradient-to-br from-card via-card to-muted/20 shadow-sm shadow-foreground/5;
-    box-shadow: var(--shadow-sm);
+    @apply rounded-xl border border-primary/10 bg-card;
+    box-shadow: 0 1px 2px hsl(163 40% 12% / 0.04);
   }
 
   .modern-status-card {
