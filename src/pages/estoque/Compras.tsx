@@ -727,10 +727,54 @@ export default function Compras() {
       return;
     }
 
+    const text = await file.text();
+    await processarXmlNfe(text);
+  };
+
+  const buscarPorChave = async () => {
+    const chave = (form.chave_nfe || "").replace(/\D/g, "");
+    if (chave.length !== 44) {
+      toast.error("Informe a chave completa da NF-e (44 dígitos)");
+      return;
+    }
+    if (!unidadeAtual?.id) {
+      toast.error("Selecione uma unidade");
+      return;
+    }
+
+    setIsBuscandoChave(true);
     try {
-      const text = await file.text();
+      const { data: dup } = await (supabase as any).from("compras")
+        .select("id, numero_nota_fiscal").eq("chave_nfe", chave).maybeSingle();
+      if (dup) {
+        toast.error(`Esta NF-e já foi importada (NF ${dup.numero_nota_fiscal || "S/N"})`);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("baixar-nfe-chave", {
+        body: { chave, unidadeId: unidadeAtual.id },
+      });
+      if (error) {
+        toast.error("Falha ao consultar a SEFAZ: " + error.message);
+        return;
+      }
+      if (!data?.ok || !data?.xml) {
+        toast.error(data?.mensagem || "Não foi possível baixar o XML desta chave.");
+        return;
+      }
+      await processarXmlNfe(data.xml);
+    } catch (err: any) {
+      toast.error("Erro na busca: " + (err?.message || "tente novamente"));
+    } finally {
+      setIsBuscandoChave(false);
+    }
+  };
+
+  const processarXmlNfe = async (text: string) => {
+    try {
       const parser = new DOMParser();
       const xml = parser.parseFromString(text, "text/xml");
+
 
       const nfe = xml.querySelector("infNFe, NFe infNFe");
       if (!nfe) { toast.error("XML inválido ou não é uma NFe"); return; }
