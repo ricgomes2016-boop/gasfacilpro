@@ -179,33 +179,71 @@ Deno.serve(async (req) => {
 </soap12:Body>
 </soap12:Envelope>`;
 
+    // A SEFAZ exige HTTP/1.1 (o Deno negocia HTTP/2 por padrão e a conexão cai).
+    // Tentamos algumas vezes: falhas de rede/TLS costumam ser intermitentes.
+    const criarClient = () => {
+      const opts: Record<string, unknown> = { cert: cert.certPem, key: cert.keyPem, http1: true, http2: false };
+      try {
+        return (Deno as any).createHttpClient(opts);
+      } catch (_e) {
+        // Runtime sem suporte às flags http1/http2
+        return (Deno as any).createHttpClient({ cert: cert.certPem, key: cert.keyPem });
+      }
+    };
+
+    const MAX_TENTATIVAS = 3;
     let respText = "";
-    let client: any;
-    try {
-      // mTLS com o certificado A1 da unidade
-      client = (Deno as any).createHttpClient({
-        cert: cert.certPem,
-        key: cert.keyPem,
-      });
-      const resp = await fetch(
-        "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx",
-        {
-          method: "POST",
-          // @ts-expect-error client é específico do Deno
-          client,
-          headers: { "Content-Type": "application/soap+xml; charset=utf-8" },
-          body: soap,
-        },
-      );
-      respText = await resp.text();
-    } catch (e: any) {
+    let ultimoErro = "";
+    let sucessoRede = false;
+
+    for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+      let client: any;
+      try {
+        client = criarClient();
+        const ac = new AbortController();
+        const timer = setTimeout(() => ac.abort(), 20000);
+        const resp = await fetch(
+          "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx",
+          {
+            method: "POST",
+            // @ts-expect-error client é específico do Deno
+            client,
+            headers: {
+              "Content-Type": "application/soap+xml; charset=utf-8",
+              "Connection": "close",
+              "Accept": "application/soap+xml, text/xml",
+            },
+            body: soap,
+            signal: ac.signal,
+          },
+        );
+        clearTimeout(timer);
+        respText = await resp.text();
+        if (!resp.ok && !respText) {
+          ultimoErro = `HTTP ${resp.status}`;
+          throw new Error(ultimoErro);
+        }
+        sucessoRede = true;
+        break;
+      } catch (e: any) {
+        ultimoErro = String(e?.name === "AbortError" ? "Tempo esgotado (20s) aguardando a SEFAZ" : (e?.message || e));
+        console.warn(`[baixar-nfe-chave] tentativa ${tentativa}/${MAX_TENTATIVAS} falhou:`, ultimoErro);
+        if (tentativa < MAX_TENTATIVAS) await new Promise((r) => setTimeout(r, tentativa * 1200));
+      } finally {
+        try { client?.close?.(); } catch (_e) { /* noop */ }
+      }
+    }
+
+    if (!sucessoRede) {
       return json({
         ok: false,
         motivo: "sefaz_indisponivel",
-        mensagem: "Não foi possível conectar à SEFAZ com o certificado: " + String(e?.message || e),
+        podeRepetir: true,
+        tentativas: MAX_TENTATIVAS,
+        detalhe: ultimoErro,
+        mensagem:
+          "Não foi possível falar com a SEFAZ agora (tentamos 3 vezes). O serviço nacional costuma ficar instável em horários de pico — aguarde alguns instantes e tente de novo, ou importe o XML manualmente.",
       });
-    } finally {
-      try { client?.close?.(); } catch (_e) { /* noop */ }
     }
 
     const cStat = pick(respText, "cStat");
@@ -213,15 +251,19 @@ Deno.serve(async (req) => {
     const docZip = respText.match(/<docZip[^>]*>([\s\S]*?)<\/docZip>/i)?.[1];
 
     if (!docZip) {
+      const rejeicaoTemporaria = ["108", "109", "656"].includes(String(cStat || ""));
       return json({
         ok: false,
         motivo: "nfe_nao_disponivel",
         cStat,
+        podeRepetir: rejeicaoTemporaria,
+        detalhe: xMotivo || undefined,
         mensagem: cStat === "137" || /nenhum documento/i.test(xMotivo)
           ? "A SEFAZ não retornou o XML desta chave. Normalmente é preciso fazer a Manifestação do Destinatário (Ciência da Operação) ou a nota não é destinada a este CNPJ."
           : `SEFAZ ${cStat || ""}: ${xMotivo || "documento indisponível"}`,
       });
     }
+
 
     let xml = "";
     try {
