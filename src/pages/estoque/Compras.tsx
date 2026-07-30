@@ -23,7 +23,9 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ShoppingCart, Plus, DollarSign, Truck, FileText, Upload, Trash2,
   Camera, Loader2, TrendingUp, TrendingDown, BarChart3, CalendarDays, Mail, Search,
+  AlertTriangle, RefreshCw, CheckCircle2,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDate, getBrasiliaDateString } from "@/lib/utils";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -129,6 +131,16 @@ export default function Compras() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   const [isBuscandoChave, setIsBuscandoChave] = useState(false);
+  const [buscaEtapa, setBuscaEtapa] = useState<string>("");
+  const [buscaErro, setBuscaErro] = useState<{
+    titulo: string;
+    mensagem: string;
+    detalhe?: string;
+    comoResolver?: string;
+    podeRepetir: boolean;
+  } | null>(null);
+  const [buscaSucesso, setBuscaSucesso] = useState<string | null>(null);
+
 
   const [quickFornOpen, setQuickFornOpen] = useState(false);
   const [quickFornForm, setQuickFornForm] = useState({ razao_social: "", nome_fantasia: "", cnpj: "", tipo: "gas", telefone: "", email: "", cidade: "" });
