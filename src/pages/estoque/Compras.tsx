@@ -1388,13 +1388,31 @@ export default function Compras() {
                 {/* Chave NFe */}
                 <div>
                   <Label>Chave da NFe (44 dígitos)</Label>
-                  <Input
-                    value={form.chave_nfe}
-                    onChange={e => setForm({ ...form, chave_nfe: e.target.value.replace(/\D/g, "").slice(0, 44) })}
-                    placeholder="0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"
-                    maxLength={44}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      className="flex-1"
+                      value={form.chave_nfe}
+                      onChange={e => setForm({ ...form, chave_nfe: e.target.value.replace(/\D/g, "").slice(0, 44) })}
+                      placeholder="0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"
+                      maxLength={44}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-11 shrink-0 gap-2"
+                      onClick={buscarPorChave}
+                      disabled={isBuscandoChave || (form.chave_nfe || "").length !== 44}
+                      title="Buscar dados da NF-e na SEFAZ com o certificado digital"
+                    >
+                      {isBuscandoChave ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      <span className="hidden sm:inline">{isBuscandoChave ? "Buscando..." : "Buscar NF-e"}</span>
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Usa o certificado A1 da unidade para baixar a nota na SEFAZ e preencher fornecedor, itens e valores.
+                  </p>
                 </div>
+
 
                 {/* Data da compra */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
