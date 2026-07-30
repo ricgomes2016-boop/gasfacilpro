@@ -22,7 +22,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   ShoppingCart, Plus, DollarSign, Truck, FileText, Upload, Trash2,
-  Camera, Loader2, TrendingUp, TrendingDown, BarChart3, CalendarDays, Mail,
+  Camera, Loader2, TrendingUp, TrendingDown, BarChart3, CalendarDays, Mail, Search,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDate, getBrasiliaDateString } from "@/lib/utils";
