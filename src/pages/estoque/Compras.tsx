@@ -23,7 +23,9 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ShoppingCart, Plus, DollarSign, Truck, FileText, Upload, Trash2,
   Camera, Loader2, TrendingUp, TrendingDown, BarChart3, CalendarDays, Mail, Search,
+  AlertTriangle, RefreshCw, CheckCircle2,
 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDate, getBrasiliaDateString } from "@/lib/utils";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -129,6 +131,16 @@ export default function Compras() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   const [isBuscandoChave, setIsBuscandoChave] = useState(false);
+  const [buscaEtapa, setBuscaEtapa] = useState<string>("");
+  const [buscaErro, setBuscaErro] = useState<{
+    titulo: string;
+    mensagem: string;
+    detalhe?: string;
+    comoResolver?: string;
+    podeRepetir: boolean;
+  } | null>(null);
+  const [buscaSucesso, setBuscaSucesso] = useState<string | null>(null);
+
 
   const [quickFornOpen, setQuickFornOpen] = useState(false);
   const [quickFornForm, setQuickFornForm] = useState({ razao_social: "", nome_fantasia: "", cnpj: "", tipo: "gas", telefone: "", email: "", cidade: "" });
@@ -733,44 +745,137 @@ export default function Compras() {
     await processarXmlNfe(text);
   };
 
+  const EXPLICACAO_MOTIVO: Record<string, { titulo: string; comoResolver: string; podeRepetir: boolean }> = {
+    sefaz_indisponivel: {
+      titulo: "SEFAZ fora do ar ou instável",
+      comoResolver: "Tente novamente em alguns instantes. Se persistir, importe o XML manualmente pelo botão “Importar XML”.",
+      podeRepetir: true,
+    },
+    nfe_nao_disponivel: {
+      titulo: "Nota não liberada para este CNPJ",
+      comoResolver: "Faça a Manifestação do Destinatário (Ciência da Operação) no portal da NF-e, ou confirme se a nota é destinada a esta unidade.",
+      podeRepetir: false,
+    },
+    apenas_resumo: {
+      titulo: "Somente o resumo foi liberado",
+      comoResolver: "A SEFAZ só libera o XML completo após a Manifestação do Destinatário.",
+      podeRepetir: false,
+    },
+    cert_nao_cadastrado: {
+      titulo: "Certificado A1 não cadastrado",
+      comoResolver: "Cadastre o certificado digital em Configurações › Unidades.",
+      podeRepetir: false,
+    },
+    cert_vencido: {
+      titulo: "Certificado A1 vencido",
+      comoResolver: "Envie um certificado válido em Configurações › Unidades.",
+      podeRepetir: false,
+    },
+    senha_invalida: {
+      titulo: "Senha do certificado incorreta",
+      comoResolver: "Atualize a senha do certificado em Configurações › Unidades.",
+      podeRepetir: false,
+    },
+    pfx_invalido: {
+      titulo: "Certificado inválido",
+      comoResolver: "Reenvie o arquivo .pfx do certificado A1 em Configurações › Unidades.",
+      podeRepetir: false,
+    },
+    pfx_nao_encontrado: {
+      titulo: "Arquivo do certificado não encontrado",
+      comoResolver: "Reenvie o certificado A1 em Configurações › Unidades.",
+      podeRepetir: false,
+    },
+    cnpj_ausente: {
+      titulo: "CNPJ da unidade não cadastrado",
+      comoResolver: "Preencha o CNPJ da unidade — ele é obrigatório para consultar a SEFAZ.",
+      podeRepetir: false,
+    },
+    forbidden: {
+      titulo: "Sem acesso a esta unidade",
+      comoResolver: "Selecione uma unidade à qual você tem acesso.",
+      podeRepetir: false,
+    },
+    descompactacao_falhou: {
+      titulo: "Falha ao ler o XML recebido",
+      comoResolver: "Tente novamente; se repetir, importe o XML manualmente.",
+      podeRepetir: true,
+    },
+  };
+
   const buscarPorChave = async () => {
     const chave = (form.chave_nfe || "").replace(/\D/g, "");
+    setBuscaSucesso(null);
     if (chave.length !== 44) {
-      toast.error("Informe a chave completa da NF-e (44 dígitos)");
+      setBuscaErro({ titulo: "Chave incompleta", mensagem: "Informe os 44 dígitos da chave de acesso da NF-e.", podeRepetir: false });
       return;
     }
     if (!unidadeAtual?.id) {
-      toast.error("Selecione uma unidade");
+      setBuscaErro({ titulo: "Unidade não selecionada", mensagem: "Selecione a unidade que possui o certificado digital.", podeRepetir: false });
       return;
     }
 
     setIsBuscandoChave(true);
+    setBuscaErro(null);
+    setBuscaEtapa("Verificando se a nota já foi importada...");
     try {
       const { data: dup } = await (supabase as any).from("compras")
         .select("id, numero_nota_fiscal").eq("chave_nfe", chave).maybeSingle();
       if (dup) {
-        toast.error(`Esta NF-e já foi importada (NF ${dup.numero_nota_fiscal || "S/N"})`);
+        setBuscaErro({
+          titulo: "NF-e já importada",
+          mensagem: `Esta chave já está registrada na compra NF ${dup.numero_nota_fiscal || "S/N"}.`,
+          comoResolver: "Abra o histórico de compras para conferir o lançamento existente.",
+          podeRepetir: false,
+        });
         return;
       }
 
+      setBuscaEtapa("Consultando a SEFAZ com o certificado digital (pode levar até 30s)...");
       const { data, error } = await supabase.functions.invoke("baixar-nfe-chave", {
         body: { chave, unidadeId: unidadeAtual.id },
       });
+
       if (error) {
-        toast.error("Falha ao consultar a SEFAZ: " + error.message);
+        setBuscaErro({
+          titulo: "Não foi possível iniciar a consulta",
+          mensagem: "A comunicação com o serviço de consulta falhou.",
+          detalhe: error.message,
+          comoResolver: "Verifique sua conexão e tente novamente.",
+          podeRepetir: true,
+        });
         return;
       }
+
       if (!data?.ok || !data?.xml) {
-        toast.error(data?.mensagem || "Não foi possível baixar o XML desta chave.");
+        const meta = EXPLICACAO_MOTIVO[data?.motivo as string];
+        setBuscaErro({
+          titulo: meta?.titulo || "Não foi possível baixar a NF-e",
+          mensagem: data?.mensagem || "A SEFAZ não retornou o XML desta chave.",
+          detalhe: [data?.cStat ? `Código SEFAZ ${data.cStat}` : null, data?.detalhe].filter(Boolean).join(" — ") || undefined,
+          comoResolver: meta?.comoResolver,
+          podeRepetir: data?.podeRepetir ?? meta?.podeRepetir ?? true,
+        });
         return;
       }
+
+      setBuscaEtapa("Processando o XML e preenchendo os dados...");
       await processarXmlNfe(data.xml);
+      setBuscaSucesso(`NF-e baixada da SEFAZ${data.titular ? ` (certificado: ${data.titular})` : ""}. Confira os dados abaixo.`);
     } catch (err: any) {
-      toast.error("Erro na busca: " + (err?.message || "tente novamente"));
+      setBuscaErro({
+        titulo: "Erro inesperado na busca",
+        mensagem: "Algo falhou durante a consulta da nota.",
+        detalhe: err?.message,
+        comoResolver: "Tente novamente ou importe o XML manualmente.",
+        podeRepetir: true,
+      });
     } finally {
       setIsBuscandoChave(false);
+      setBuscaEtapa("");
     }
   };
+
 
   const processarXmlNfe = async (text: string) => {
     try {
@@ -1411,6 +1516,57 @@ export default function Compras() {
                   <p className="text-[11px] text-muted-foreground mt-1">
                     Usa o certificado A1 da unidade para baixar a nota na SEFAZ e preencher fornecedor, itens e valores.
                   </p>
+
+                  {isBuscandoChave && (
+                    <div className="mt-2 flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground" aria-live="polite">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                      <span>{buscaEtapa || "Consultando a SEFAZ..."}</span>
+                    </div>
+                  )}
+
+                  {!isBuscandoChave && buscaSucesso && (
+                    <div className="mt-2 flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground" aria-live="polite">
+                      <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
+                      <span>{buscaSucesso}</span>
+                    </div>
+                  )}
+
+                  {!isBuscandoChave && buscaErro && (
+                    <div className="mt-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5" role="alert" aria-live="assertive">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-destructive" />
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <p className="text-xs font-semibold text-destructive">{buscaErro.titulo}</p>
+                          <p className="text-xs text-foreground/80 break-words">{buscaErro.mensagem}</p>
+                          {buscaErro.comoResolver && (
+                            <p className="text-[11px] text-muted-foreground break-words">
+                              <span className="font-medium">Como resolver: </span>{buscaErro.comoResolver}
+                            </p>
+                          )}
+                          {buscaErro.detalhe && (
+                            <p className="text-[11px] text-muted-foreground/80 break-all">Detalhe técnico: {buscaErro.detalhe}</p>
+                          )}
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {buscaErro.podeRepetir && (
+                              <Button type="button" size="sm" variant="outline" className="h-9 gap-1.5" onClick={buscarPorChave}>
+                                <RefreshCw className="h-3.5 w-3.5" /> Tentar novamente
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-9 gap-1.5"
+                              onClick={() => xmlInputRef.current?.click()}
+                            >
+                              <Upload className="h-3.5 w-3.5" /> Importar XML manualmente
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                 </div>
 
 
