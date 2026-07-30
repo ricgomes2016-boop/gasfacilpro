@@ -128,6 +128,8 @@ export default function Compras() {
   const [open, setOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+  const [isBuscandoChave, setIsBuscandoChave] = useState(false);
+
   const [quickFornOpen, setQuickFornOpen] = useState(false);
   const [quickFornForm, setQuickFornForm] = useState({ razao_social: "", nome_fantasia: "", cnpj: "", tipo: "gas", telefone: "", email: "", cidade: "" });
   const xmlInputRef = useRef<HTMLInputElement>(null);
