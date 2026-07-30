@@ -22,7 +22,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   ShoppingCart, Plus, DollarSign, Truck, FileText, Upload, Trash2,
-  Camera, Loader2, TrendingUp, TrendingDown, BarChart3, CalendarDays, Mail,
+  Camera, Loader2, TrendingUp, TrendingDown, BarChart3, CalendarDays, Mail, Search,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDate, getBrasiliaDateString } from "@/lib/utils";
@@ -128,6 +128,8 @@ export default function Compras() {
   const [open, setOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+  const [isBuscandoChave, setIsBuscandoChave] = useState(false);
+
   const [quickFornOpen, setQuickFornOpen] = useState(false);
   const [quickFornForm, setQuickFornForm] = useState({ razao_social: "", nome_fantasia: "", cnpj: "", tipo: "gas", telefone: "", email: "", cidade: "" });
   const xmlInputRef = useRef<HTMLInputElement>(null);
@@ -727,10 +729,54 @@ export default function Compras() {
       return;
     }
 
+    const text = await file.text();
+    await processarXmlNfe(text);
+  };
+
+  const buscarPorChave = async () => {
+    const chave = (form.chave_nfe || "").replace(/\D/g, "");
+    if (chave.length !== 44) {
+      toast.error("Informe a chave completa da NF-e (44 dígitos)");
+      return;
+    }
+    if (!unidadeAtual?.id) {
+      toast.error("Selecione uma unidade");
+      return;
+    }
+
+    setIsBuscandoChave(true);
     try {
-      const text = await file.text();
+      const { data: dup } = await (supabase as any).from("compras")
+        .select("id, numero_nota_fiscal").eq("chave_nfe", chave).maybeSingle();
+      if (dup) {
+        toast.error(`Esta NF-e já foi importada (NF ${dup.numero_nota_fiscal || "S/N"})`);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("baixar-nfe-chave", {
+        body: { chave, unidadeId: unidadeAtual.id },
+      });
+      if (error) {
+        toast.error("Falha ao consultar a SEFAZ: " + error.message);
+        return;
+      }
+      if (!data?.ok || !data?.xml) {
+        toast.error(data?.mensagem || "Não foi possível baixar o XML desta chave.");
+        return;
+      }
+      await processarXmlNfe(data.xml);
+    } catch (err: any) {
+      toast.error("Erro na busca: " + (err?.message || "tente novamente"));
+    } finally {
+      setIsBuscandoChave(false);
+    }
+  };
+
+  const processarXmlNfe = async (text: string) => {
+    try {
       const parser = new DOMParser();
       const xml = parser.parseFromString(text, "text/xml");
+
 
       const nfe = xml.querySelector("infNFe, NFe infNFe");
       if (!nfe) { toast.error("XML inválido ou não é uma NFe"); return; }
@@ -1342,13 +1388,31 @@ export default function Compras() {
                 {/* Chave NFe */}
                 <div>
                   <Label>Chave da NFe (44 dígitos)</Label>
-                  <Input
-                    value={form.chave_nfe}
-                    onChange={e => setForm({ ...form, chave_nfe: e.target.value.replace(/\D/g, "").slice(0, 44) })}
-                    placeholder="0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"
-                    maxLength={44}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      className="flex-1"
+                      value={form.chave_nfe}
+                      onChange={e => setForm({ ...form, chave_nfe: e.target.value.replace(/\D/g, "").slice(0, 44) })}
+                      placeholder="0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"
+                      maxLength={44}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-11 shrink-0 gap-2"
+                      onClick={buscarPorChave}
+                      disabled={isBuscandoChave || (form.chave_nfe || "").length !== 44}
+                      title="Buscar dados da NF-e na SEFAZ com o certificado digital"
+                    >
+                      {isBuscandoChave ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      <span className="hidden sm:inline">{isBuscandoChave ? "Buscando..." : "Buscar NF-e"}</span>
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Usa o certificado A1 da unidade para baixar a nota na SEFAZ e preencher fornecedor, itens e valores.
+                  </p>
                 </div>
+
 
                 {/* Data da compra */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
