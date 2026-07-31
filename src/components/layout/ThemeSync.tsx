@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useUnidade } from "@/contexts/UnidadeContext";
-import { supabase } from "@/integrations/supabase/client";
 import {
   applyTheme,
   DASHBOARD_PASTEL_BRAND_THEME_ID,
@@ -23,14 +22,7 @@ export function ThemeSync() {
   const { unidadeAtual } = useUnidade();
 
   useEffect(() => {
-    if (!unidadeAtual) return;
-
-    void supabase
-      .from("configuracoes_visuais")
-      .select("id")
-      .eq("unidade_id", unidadeAtual.id)
-      .maybeSingle()
-      .then(syncDashboardPastel, syncDashboardPastel);
+    syncDashboardPastel();
   }, [unidadeAtual?.id]);
 
   return null;
