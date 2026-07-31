@@ -134,15 +134,18 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
       const compressed = await compressImage(file);
       const blob = await (await fetch(compressed)).blob();
       const fileName = `cheques/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-      const { error } = await supabase.storage.from("product-images").upload(fileName, blob, { cacheControl: "3600" });
+      const { error } = await supabase.storage.from("cheques-docs").upload(fileName, blob, { cacheControl: "3600" });
       if (error) throw error;
-      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
-      setChequeFotoUrl(urlData.publicUrl);
+      const { data: urlData, error: signErr } = await supabase.storage
+        .from("cheques-docs")
+        .createSignedUrl(fileName, 60 * 60 * 24 * 365 * 5);
+      if (signErr || !urlData?.signedUrl) throw signErr || new Error("Erro ao gerar link do cheque");
+      setChequeFotoUrl(urlData.signedUrl);
       toast.success("Foto enviada! Extraindo dados...");
 
       try {
         const { data: ocrData, error: ocrError } = await supabase.functions.invoke("parse-cheque-photo", {
-          body: { image_url: urlData.publicUrl },
+          body: { image_url: urlData.signedUrl },
         });
         if (!ocrError && ocrData?.success && ocrData.data) {
           const d = ocrData.data;
