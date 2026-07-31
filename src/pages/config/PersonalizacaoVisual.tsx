@@ -8,14 +8,21 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Palette, Image, Sun, Moon, Printer, Upload, Check, Save, Building2, Loader2 } from "lucide-react";
+import { Palette, Image, Sun, Printer, Upload, Check, Save, Building2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import type { BrandThemeId } from "@/lib/brandThemes";
-import { THEME_PRESETS, COLOR_OPTIONS, applyTheme, PRESET_THEME_OVERRIDES } from "@/lib/themeUtils";
+import {
+  applyTheme,
+  COLOR_OPTIONS,
+  DASHBOARD_PASTEL_BRAND_THEME_ID,
+  DASHBOARD_PASTEL_PRESET_ID,
+  DASHBOARD_PASTEL_PRIMARY,
+  THEME_PRESETS,
+} from "@/lib/themeUtils";
 
 interface ComprovanteConfig {
   mostrarLogo: boolean;
@@ -34,7 +41,7 @@ interface PersonalizacaoConfig {
 
 const DEFAULT_CONFIG: PersonalizacaoConfig = {
   darkMode: false,
-  corPrimaria: "187 65% 38%",
+  corPrimaria: DASHBOARD_PASTEL_PRIMARY,
   nomeEmpresa: "Gás Fácil",
   logoUrl: null,
   comprovante: {
@@ -65,11 +72,9 @@ export default function PersonalizacaoVisual() {
 
   // Apply theme whenever it changes
   useEffect(() => {
-    const matchedPreset = THEME_PRESETS.find(
-      (p) => p.cor === config.corPrimaria && p.dark === config.darkMode && PRESET_THEME_OVERRIDES[p.id]
-    );
-    applyTheme(config.darkMode, config.corPrimaria, matchedPreset?.id);
-  }, [config.darkMode, config.corPrimaria]);
+    applyTheme(false, DASHBOARD_PASTEL_PRIMARY, DASHBOARD_PASTEL_PRESET_ID);
+    setBrandTheme(DASHBOARD_PASTEL_BRAND_THEME_ID);
+  }, [setBrandTheme]);
 
   const loadConfig = async () => {
     if (!unidadeAtual) return;
@@ -86,8 +91,8 @@ export default function PersonalizacaoVisual() {
       if (data) {
         const comprovante = (data.comprovante as unknown as ComprovanteConfig) ?? DEFAULT_CONFIG.comprovante;
         const loaded: PersonalizacaoConfig = {
-          darkMode: data.dark_mode ?? false,
-          corPrimaria: data.cor_primaria ?? DEFAULT_CONFIG.corPrimaria,
+          darkMode: false,
+          corPrimaria: DASHBOARD_PASTEL_PRIMARY,
           nomeEmpresa: data.nome_empresa ?? DEFAULT_CONFIG.nomeEmpresa,
           logoUrl: data.logo_url ?? null,
           comprovante,
@@ -140,8 +145,8 @@ export default function PersonalizacaoVisual() {
         .upsert(
           [{
             unidade_id: unidadeAtual.id,
-            dark_mode: config.darkMode,
-            cor_primaria: config.corPrimaria,
+            dark_mode: false,
+            cor_primaria: DASHBOARD_PASTEL_PRIMARY,
             nome_empresa: config.nomeEmpresa,
             logo_url: logoPreview === null ? null : (uploadedLogoUrl ?? config.logoUrl),
             comprovante: comprovanteJson,
@@ -288,38 +293,34 @@ export default function PersonalizacaoVisual() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Palette className="h-5 w-5 text-primary" />
-                <CardTitle>Tema e Cores</CardTitle>
+                <CardTitle>Tema do Sistema</CardTitle>
               </div>
               <CardDescription>
-                Escolha o tema e personalize as cores do sistema
+                Dashboard Pastel aplicado como padrão visual único.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {config.darkMode ? (
-                    <Moon className="h-5 w-5 text-muted-foreground" />
-                  ) : (
-                    <Sun className="h-5 w-5 text-foreground/60" />
-                  )}
+                  <Sun className="h-5 w-5 text-foreground/60" />
                   <div>
-                    <p className="font-medium">Modo Escuro</p>
+                    <p className="font-medium">Modo claro</p>
                     <p className="text-sm text-muted-foreground">
-                      {config.darkMode ? "Tema escuro ativado" : "Tema claro ativado"}
+                      Dashboard Pastel ativo em toda a interface
                     </p>
                   </div>
                 </div>
                 <Switch
-                  checked={config.darkMode}
-                  onCheckedChange={(v) => setConfig((p) => ({ ...p, darkMode: v }))}
+                  checked={false}
+                  disabled
                 />
               </div>
               <Separator />
               {/* Theme Presets */}
               <div className="space-y-3">
-                <Label>Temas Prontos</Label>
+                <Label>Padrão visual</Label>
                 <div className="grid grid-cols-2 gap-3">
-                  {THEME_PRESETS.map((preset) => {
+                  {THEME_PRESETS.filter((preset) => preset.id === DASHBOARD_PASTEL_PRESET_ID).map((preset) => {
                     const isActive = "brandThemeId" in preset
                       ? brandTheme === preset.brandThemeId
                       : config.corPrimaria === preset.cor && config.darkMode === preset.dark;
@@ -361,16 +362,16 @@ export default function PersonalizacaoVisual() {
               </div>
               <Separator />
               <div className="space-y-3">
-                <Label>Cor Primária</Label>
+                <Label>Cor principal</Label>
                 <div className="flex flex-wrap gap-3">
-                  {COLOR_OPTIONS.map((opt) => {
+                  {COLOR_OPTIONS.filter((opt) => opt.hsl === DASHBOARD_PASTEL_PRIMARY).map((opt) => {
                     const isSelected = config.corPrimaria === opt.hsl;
                     return (
                       <button
                         key={opt.label}
                         className="flex flex-col items-center gap-1 group"
                         title={opt.label}
-                        onClick={() => setConfig((p) => ({ ...p, corPrimaria: opt.hsl }))}
+                        onClick={() => setConfig((p) => ({ ...p, corPrimaria: DASHBOARD_PASTEL_PRIMARY, darkMode: false }))}
                       >
                         <div
                           className={`h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all ${
@@ -388,7 +389,7 @@ export default function PersonalizacaoVisual() {
                   })}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  As cores são aplicadas imediatamente em toda a interface.
+                  A cor oficial do Dashboard Pastel permanece fixa para manter consistência visual.
                 </p>
               </div>
             </CardContent>

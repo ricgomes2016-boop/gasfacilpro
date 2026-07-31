@@ -54,9 +54,9 @@
 }
 
 .brand-theme-pastel-dashboard {
-  --brand-font: 'Inter', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-  --background: 220 11% 96%;
-  --foreground: 240 10% 9%;
+  --brand-font: 'Manrope', 'Inter', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --background: 222 24% 97%;
+  --foreground: 230 22% 10%;
   --card: 0 0% 100%;
   --card-foreground: 240 10% 9%;
   --popover: 0 0% 100%;
@@ -68,17 +68,17 @@
   --accent: 27 100% 88%;
   --accent-foreground: 33 68% 43%;
   --muted: 225 23% 94%;
-  --muted-foreground: 233 7% 47%;
+  --muted-foreground: 230 10% 38%;
   --success: 151 70% 39%;
   --success-foreground: 0 0% 100%;
   --warning: 34 76% 48%;
   --warning-foreground: 0 0% 100%;
   --info: 218 45% 57%;
   --info-foreground: 0 0% 100%;
-  --border: 225 20% 90%;
-  --input: 225 20% 90%;
+  --border: 225 22% 88%;
+  --input: 225 22% 86%;
   --ring: 250 100% 65%;
-  --radius: 1.25rem;
+  --radius: 0.75rem;
   --sidebar-background: 220 20% 98%;
   --sidebar-gradient-from: 220 20% 98%;
   --sidebar-gradient-to: 276 100% 96%;

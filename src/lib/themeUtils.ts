@@ -1,6 +1,11 @@
 import { BrandThemeId } from "./brandThemes";
 
+export const DASHBOARD_PASTEL_PRESET_ID = "dashboard-pastel";
+export const DASHBOARD_PASTEL_BRAND_THEME_ID: BrandThemeId = "pastel-dashboard";
+export const DASHBOARD_PASTEL_PRIMARY = "250 100% 65%";
+
 export const COLOR_OPTIONS = [
+  { hsl: DASHBOARD_PASTEL_PRIMARY, label: "Pastel", hex: "#6D4AFF" },
   { hsl: "187 65% 38%", label: "Teal", hex: "#219ebc" },
   { hsl: "210 80% 50%", label: "Azul", hex: "#1a6fcc" },
   { hsl: "260 60% 50%", label: "Roxo", hex: "#6b3fa0" },
@@ -101,14 +106,15 @@ export const THEME_PRESETS = [
     brandThemeId: "saas",
   },
   {
-    id: "dashboard-pastel",
+    id: DASHBOARD_PASTEL_PRESET_ID,
     label: "Dashboard Pastel",
-    description: "Inspirado no Weihu: roxo, gelo e cards em tons pastel",
-    cor: "250 100% 65%",
+    description: "Tema fixo do sistema: claro, limpo, com acentos vivos e superfícies pastel",
+    cor: DASHBOARD_PASTEL_PRIMARY,
     hex: "#6D4AFF",
     dark: false,
     gradient: "linear-gradient(135deg, #6D4AFF 0%, #DDEBFF 28%, #FFD9F1 56%, #FFE5C4 78%, #CFF6E9 100%)",
-    brandThemeId: "pastel-dashboard",
+    brandThemeId: DASHBOARD_PASTEL_BRAND_THEME_ID,
+    recommended: true,
   },
   {
     id: "forte-gas",
@@ -500,6 +506,7 @@ export const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
     "--border": "225 20% 90%",
     "--input": "225 20% 90%",
     "--ring": "250 100% 65%",
+    "--radius": "0.75rem",
     "--sidebar-background": "220 20% 98%",
     "--sidebar-gradient-from": "220 20% 98%",
     "--sidebar-gradient-to": "276 100% 96%",

@@ -1,8 +1,23 @@
 import { useEffect } from "react";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { supabase } from "@/integrations/supabase/client";
-import { applyTheme, THEME_PRESETS, PRESET_THEME_OVERRIDES } from "@/lib/themeUtils";
+import {
+  applyTheme,
+  DASHBOARD_PASTEL_BRAND_THEME_ID,
+  DASHBOARD_PASTEL_PRESET_ID,
+  DASHBOARD_PASTEL_PRIMARY,
+} from "@/lib/themeUtils";
 import { BRAND_THEME_STORAGE_KEY } from "@/lib/brandThemes";
+
+function syncDashboardPastel() {
+  applyTheme(false, DASHBOARD_PASTEL_PRIMARY, DASHBOARD_PASTEL_PRESET_ID);
+
+  const currentBrandThemeId = localStorage.getItem(BRAND_THEME_STORAGE_KEY);
+  if (currentBrandThemeId !== DASHBOARD_PASTEL_BRAND_THEME_ID) {
+    localStorage.setItem(BRAND_THEME_STORAGE_KEY, DASHBOARD_PASTEL_BRAND_THEME_ID);
+    window.dispatchEvent(new Event("dashboard-theme-change"));
+  }
+}
 
 export function ThemeSync() {
   const { unidadeAtual } = useUnidade();
@@ -10,50 +25,12 @@ export function ThemeSync() {
   useEffect(() => {
     if (!unidadeAtual) return;
 
-    // Busca a configuração do banco
     supabase
       .from("configuracoes_visuais")
-      .select("dark_mode, cor_primaria")
+      .select("id")
       .eq("unidade_id", unidadeAtual.id)
       .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          const matchedPreset = THEME_PRESETS.find(
-            (p) =>
-              p.cor === data.cor_primaria &&
-              p.dark === data.dark_mode &&
-              PRESET_THEME_OVERRIDES[p.id]
-          );
-
-          // Aplica cores e variáveis via utilitário
-          applyTheme(data.dark_mode ?? false, data.cor_primaria ?? "187 65% 38%", matchedPreset?.id);
-
-          // Sincroniza o localStorage para garantir que a classe brand-theme seja removida se for um tema clássico
-          // e mantida se for um tema SaaS/Pastel
-          const presetWithBrandThemeId = THEME_PRESETS.find(
-            (p) => p.cor === data.cor_primaria && p.dark === data.dark_mode && "brandThemeId" in p
-          );
-          
-          const currentBrandThemeId = localStorage.getItem(BRAND_THEME_STORAGE_KEY);
-          const targetBrandThemeId = presetWithBrandThemeId
-            ? (presetWithBrandThemeId as any).brandThemeId
-            : (matchedPreset ? "classic" : "premium");
-
-          if (currentBrandThemeId !== targetBrandThemeId) {
-             localStorage.setItem(BRAND_THEME_STORAGE_KEY, targetBrandThemeId);
-             window.dispatchEvent(new Event("dashboard-theme-change"));
-          }
-        } else {
-           // Fallback: tema oficial Prestige Slate & Emerald
-           applyTheme(false, "163 80% 26%", "prestige-emerald");
-           const current = localStorage.getItem(BRAND_THEME_STORAGE_KEY);
-           if (current !== "classic") {
-             localStorage.setItem(BRAND_THEME_STORAGE_KEY, "classic");
-             window.dispatchEvent(new Event("dashboard-theme-change"));
-           }
-        }
-
-      });
+      .finally(syncDashboardPastel);
   }, [unidadeAtual?.id]);
 
   return null;
