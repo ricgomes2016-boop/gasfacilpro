@@ -12418,6 +12418,10 @@ export type Database = {
         Args: { _empresa_id: string; _user_id: string }
         Returns: boolean
       }
+      entregador_pode_ver_cliente: {
+        Args: { _cliente_id: string }
+        Returns: boolean
+      }
       execute_readonly_query: { Args: { query_text: string }; Returns: Json }
       gerar_codigo_indicacao_cliente: {
         Args: { _cliente_id: string; _nome: string }

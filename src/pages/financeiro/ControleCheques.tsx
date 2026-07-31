@@ -110,10 +110,13 @@ export default function ControleCheques() {
           canvas.toBlob(async (blob) => {
             if (!blob) { reject("Erro ao comprimir"); return; }
             const fileName = `cheques/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-            const { error } = await supabase.storage.from("product-images").upload(fileName, blob, { cacheControl: "3600" });
+            const { error } = await supabase.storage.from("cheques-docs").upload(fileName, blob, { cacheControl: "3600" });
             if (error) { reject(error.message); return; }
-            const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
-            resolve(urlData.publicUrl);
+            const { data: urlData, error: signErr } = await supabase.storage
+              .from("cheques-docs")
+              .createSignedUrl(fileName, 60 * 60 * 24 * 365 * 5);
+            if (signErr || !urlData?.signedUrl) { reject(signErr?.message || "Erro ao gerar link"); return; }
+            resolve(urlData.signedUrl);
           }, "image/jpeg", 0.8);
         };
         img.onerror = reject;

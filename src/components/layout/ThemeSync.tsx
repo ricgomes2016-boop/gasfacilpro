@@ -25,12 +25,12 @@ export function ThemeSync() {
   useEffect(() => {
     if (!unidadeAtual) return;
 
-    supabase
+    void supabase
       .from("configuracoes_visuais")
       .select("id")
       .eq("unidade_id", unidadeAtual.id)
       .maybeSingle()
-      .finally(syncDashboardPastel);
+      .then(syncDashboardPastel, syncDashboardPastel);
   }, [unidadeAtual?.id]);
 
   return null;
