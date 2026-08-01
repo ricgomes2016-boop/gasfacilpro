@@ -13,6 +13,74 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
   const queryClient = useQueryClient();
   const { unidadeAtual } = useUnidade();
 
+  type SupabaseMutationResult = { error: { message: string } | null };
+
+  const ensureNoError = (result: SupabaseMutationResult, label: string) => {
+    if (result.error) {
+      throw new Error(`${label}: ${result.error.message}`);
+    }
+  };
+
+  const limparVinculosPedido = async (pedidoId: string) => {
+    const db = supabase;
+
+    await Promise.all([
+      db.from("cliente_creditos").update({ pedido_id: null }).eq("pedido_id", pedidoId),
+      db.from("cliente_indicacoes").update({ primeiro_pedido_id: null }).eq("primeiro_pedido_id", pedidoId),
+      db.from("chat_mensagens").update({ pedido_id: null }).eq("pedido_id", pedidoId),
+      db.from("chamadas_recebidas").update({ pedido_gerado_id: null }).eq("pedido_gerado_id", pedidoId),
+      db.from("vendas_antecipadas").update({ pedido_utilizacao_id: null }).eq("pedido_utilizacao_id", pedidoId),
+      db.from("vale_gas").update({ venda_id: null }).eq("venda_id", pedidoId),
+    ]).then((results) => {
+      results.forEach((result, index) => ensureNoError(result, `Erro ao desvincular referência ${index + 1}`));
+    });
+
+    const { data: contasReceber } = await db
+      .from("contas_receber")
+      .select("id")
+      .eq("pedido_id", pedidoId);
+    const contasReceberIds = (contasReceber || []).map((conta: { id: string }) => conta.id);
+
+    if (contasReceberIds.length > 0) {
+      await Promise.all([
+        db.from("boletos_emitidos").delete().in("conta_receber_id", contasReceberIds),
+        db.from("pagamentos_cartao").delete().in("conta_receber_id", contasReceberIds),
+      ]).then((results) => {
+        results.forEach((result, index) => ensureNoError(result, `Erro ao excluir vínculo financeiro ${index + 1}`));
+      });
+    }
+
+    const { data: devolucoes } = await db
+      .from("devolucoes")
+      .select("id")
+      .eq("pedido_id", pedidoId);
+    const devolucaoIds = (devolucoes || []).map((devolucao: { id: string }) => devolucao.id);
+
+    if (devolucaoIds.length > 0) {
+      ensureNoError(
+        await db.from("devolucao_itens").delete().in("devolucao_id", devolucaoIds),
+        "Erro ao excluir itens de devolução"
+      );
+    }
+
+    await Promise.all([
+      db.from("notificacoes_status_pedido").delete().eq("pedido_id", pedidoId),
+      db.from("avaliacoes_entrega").delete().eq("pedido_id", pedidoId),
+      db.from("comprovantes_entrega").delete().eq("pedido_id", pedidoId),
+      db.from("rastreio_lote").delete().eq("pedido_id", pedidoId),
+      db.from("cheques").delete().eq("pedido_id", pedidoId),
+      db.from("devolucoes").delete().eq("pedido_id", pedidoId),
+      db.from("conferencia_cartao").delete().eq("pedido_id", pedidoId),
+      db.from("pagamentos_cartao").delete().eq("pedido_id", pedidoId),
+      db.from("movimentacoes_caixa").delete().eq("pedido_id", pedidoId),
+      db.from("movimentacoes_bancarias").delete().eq("referencia_id", pedidoId).eq("referencia_tipo", "pedido"),
+      db.from("extrato_bancario").delete().eq("pedido_id", pedidoId),
+      db.from("contas_receber").delete().eq("pedido_id", pedidoId),
+    ]).then((results) => {
+      results.forEach((result, index) => ensureNoError(result, `Erro ao excluir dependência ${index + 1}`));
+    });
+  };
+
   const formatarDataPedido = (value: string) => {
     const data = new Date(value);
     return format(data, "dd/MM/yyyy HH:mm", { locale: ptBR });
@@ -240,6 +308,8 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
           pedidoData?.unidade_id
         );
       }
+
+      await limparVinculosPedido(pedidoId);
 
       const { error: itensError } = await supabase
         .from("pedido_itens")
