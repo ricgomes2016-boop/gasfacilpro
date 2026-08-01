@@ -1184,8 +1184,8 @@ export default function Pedidos() {
         })()}
 
         {/* Table - #3 responsive with hidden columns on mobile */}
-        <Card className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
-          <CardHeader className="border-b border-border bg-muted/40 px-4 py-3">
+        <Card className="orders-table-card overflow-hidden border border-border bg-card shadow-sm">
+          <CardHeader className="border-b border-border bg-muted/35 px-4 py-2.5">
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-sm font-semibold text-foreground">Pedidos <span className="text-muted-foreground font-normal">({pedidosFiltrados.length})</span></CardTitle>
               {/* #4 - Pagination info */}
@@ -1194,7 +1194,7 @@ export default function Pedidos() {
               </span>
             </div>
           </CardHeader>
-          <CardContent className="saas-table-scope overflow-x-auto max-w-full p-0">
+          <CardContent className="overflow-x-auto max-w-full p-0">
             {isLoading ?
             <div className="space-y-3">
                 {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
@@ -1230,7 +1230,7 @@ export default function Pedidos() {
                   return (
                     <div
                       key={pedido.id}
-                      className={`rounded-2xl border border-border bg-card shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition-all ${pedido.status === "cancelado" ? "opacity-60" : ""} ${expandido ? "ring-1 ring-primary/20" : ""}`}
+                      className={`mobile-record-card transition-all ${pedido.status === "cancelado" ? "opacity-60" : ""} ${expandido ? "ring-1 ring-primary/20" : ""}`}
                     >
                       {/* Header do card */}
                       <div className="flex items-start gap-2 p-3">
@@ -1386,8 +1386,189 @@ export default function Pedidos() {
               </div>
 
 
-              {/* Desktop table */}
-              <div className="overflow-x-auto min-w-0 hidden md:block">
+              {/* Desktop table - compact Forte Gas style */}
+              <div className="hidden min-w-0 overflow-x-auto md:block">
+                <Table className="min-w-[980px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={selecionados.size === pedidosPaginados.length && pedidosPaginados.length > 0}
+                          onCheckedChange={toggleSelecionarTodos}
+                        />
+                      </TableHead>
+                      <TableHead className="w-[112px]">Pedido</TableHead>
+                      <TableHead className="min-w-[260px]">Cliente</TableHead>
+                      <TableHead className="min-w-[190px]">Itens</TableHead>
+                      <TableHead className="w-[220px]">Entrega</TableHead>
+                      <TableHead className="w-[150px] text-right">Valor</TableHead>
+                      <TableHead className="w-[128px]">Status</TableHead>
+                      <TableHead className="w-12 text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pedidosPaginados.map((pedido) => (
+                      <TableRow key={pedido.id} className={pedido.status === "cancelado" ? "opacity-60" : ""}>
+                        <TableCell>
+                          <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} />
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <Button variant="link" className="h-auto p-0 text-xs font-semibold text-primary" onClick={() => editarPedido(pedido.id)}>
+                            #{getNumExib(pedido)}
+                          </Button>
+                          <div className="mt-1">
+                            <OrigemBadge origem={pedido.origem_pedido} />
+                          </div>
+                          <div className="mt-1 text-[11px] text-muted-foreground">
+                            {podeAlterarDataEntrega ? (
+                              <Input
+                                type="date"
+                                defaultValue={dataPedidoParaInput(pedido.data)}
+                                onChange={(e) => alterarDataEntrega(pedido, e.target.value)}
+                                className="h-7 w-[108px] px-2 text-[11px]"
+                              />
+                            ) : (
+                              pedido.data
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <button
+                            type="button"
+                            onClick={() => abrirVisualizacao(pedido)}
+                            className="block max-w-[260px] truncate text-left text-sm font-semibold text-foreground hover:text-primary"
+                            title={pedido.cliente}
+                          >
+                            {pedido.cliente}
+                          </button>
+                          <div className="mt-1 flex max-w-[280px] items-center gap-1.5 text-xs text-muted-foreground">
+                            <MapPin className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate" title={pedido.endereco}>{pedido.endereco}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <p className="max-w-[210px] truncate text-xs font-medium text-foreground" title={formatarItensComQtd(pedido)}>
+                            {formatarItensComQtd(pedido)}
+                          </p>
+                          {pedido.observacoes && (
+                            <p className="mt-1 max-w-[210px] truncate text-[11px] text-muted-foreground" title={pedido.observacoes}>
+                              Obs: {pedido.observacoes}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell className="align-top">
+                          {pedido.entregador ? (
+                            <Badge variant="outline" className="cursor-pointer text-xs hover:bg-accent" onClick={() => abrirTransferencia(pedido)}>
+                              <Truck className="mr-1 h-3 w-3" />
+                              {pedido.entregador}
+                            </Badge>
+                          ) : !isPedidoBloqueado(pedido.status) ? (
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-primary" onClick={() => abrirTransferencia(pedido)}>
+                                <Sparkles className="mr-1 h-3 w-3" />
+                                Atribuir
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => marcarPortariaHandler(pedido.id)} title="Retirada na portaria">
+                                <Building2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+
+                          <div className="mt-2 text-xs">
+                            {podeEditarCanalPedido(pedido) ? (
+                              <Popover open={editandoCanalId === `d-${pedido.id}`} onOpenChange={(open) => setEditandoCanalId(open ? `d-${pedido.id}` : null)}>
+                                <PopoverTrigger asChild>
+                                  <span
+                                    role="button"
+                                    tabIndex={0}
+                                    className="inline-flex cursor-pointer items-center gap-1 rounded-sm outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring"
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        setEditandoCanalId(`d-${pedido.id}`);
+                                      }
+                                    }}
+                                  >
+                                    <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>
+                                    <Pencil className="h-3 w-3 text-muted-foreground" />
+                                  </span>
+                                </PopoverTrigger>
+                                <PopoverContent className="z-50 w-72 border border-border bg-popover p-0 shadow-lg" align="start">
+                                  {renderCanalCommand(pedido.id, pedido.canal_venda)}
+                                </PopoverContent>
+                              </Popover>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top text-right">
+                          <p className="whitespace-nowrap text-sm font-bold tabular-nums text-foreground">R$ {pedido.valor.toFixed(2)}</p>
+                          <button
+                            type="button"
+                            onClick={() => { setPedidoEditarPagamento(pedido); setEditarPagamentoAberto(true); }}
+                            className="group mt-2 inline-flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            title="Clique para editar forma de pagamento, operadora ou chave PIX"
+                          >
+                            {pedido.forma_pagamento ? (
+                              <Badge variant="outline" className="cursor-pointer gap-1 text-xs group-hover:bg-accent">
+                                <CreditCard className="h-3 w-3" />
+                                <span className="max-w-[110px] truncate">{formaLabel(pedido.forma_pagamento)}</span>
+                                <Pencil className="h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="cursor-pointer gap-1 border-warning/50 bg-warning/10 text-xs text-warning hover:bg-warning/20">
+                                <CreditCard className="h-3 w-3" />
+                                Definir
+                              </Badge>
+                            )}
+                          </button>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
+                        </TableCell>
+                        <TableCell className="pr-3 text-right align-top">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="mr-2 h-4 w-4" />Visualizar</DropdownMenuItem>
+                              {!isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>}
+                              {pedido.agendado && !isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="mr-2 h-4 w-4" />Editar agendamento</DropdownMenuItem>}
+                              {!isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="mr-2 h-4 w-4" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>}
+                              {!isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="mr-2 h-4 w-4" />Portaria (Retirada)</DropdownMenuItem>}
+                              {unidades.length > 1 && !isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}><MoveRight className="mr-2 h-4 w-4" />Transferir p/ Filial</DropdownMenuItem>}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="mr-2 h-4 w-4" />Imprimir</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="mr-2 h-4 w-4" />WhatsApp</DropdownMenuItem>
+                              {!isPedidoBloqueado(pedido.status) && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  {pedido.status !== "em_rota" && <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "em_rota")}><Truck className="mr-2 h-4 w-4" />Marcar Em Rota</DropdownMenuItem>}
+                                  <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "entregue")}><CheckCircle className="mr-2 h-4 w-4" />Marcar Entregue</DropdownMenuItem>
+                                  {pedido.status !== "pendente" && <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "pendente")}><Clock className="mr-2 h-4 w-4" />Voltar p/ Pendente</DropdownMenuItem>}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => cancelarPedido(pedido.id)}><XCircle className="mr-2 h-4 w-4" />Cancelar Pedido</DropdownMenuItem>
+                                </>
+                              )}
+                              <DropdownMenuSeparator />
+                              {pedido.status !== "finalizado" && <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => abrirExclusao(pedido)}><Trash2 className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Legacy desktop table */}
+              <div className="hidden">
                 <Table className="min-w-[600px]">
                   <TableHeader>
                     <TableRow>
