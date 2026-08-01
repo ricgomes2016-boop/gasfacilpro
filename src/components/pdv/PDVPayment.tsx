@@ -55,7 +55,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
   const [taxaEntregaGasPovo, setTaxaEntregaGasPovo] = useState("");
   const [pixModalOpen, setPixModalOpen] = useState(false);
   const [cardModalOpen, setCardModalOpen] = useState(false);
-  const [pendingExtras, setPendingExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string; info?: string; parcelas?: number } | null>(null);
+  const [pendingExtras, setPendingExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string; info?: string; parcelas?: number; taxa_extra?: number } | null>(null);
   const { unidadeAtual } = useUnidade();
   const { toast } = useToast();
 
@@ -227,6 +227,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
         conta_bancaria_id: pendingExtras?.conta_bancaria_id,
         info: pendingExtras?.info,
         parcelas: formaPagamento === "credito" ? pendingExtras?.parcelas || 1 : undefined,
+        taxa_extra: formaPagamento === "credito" && pendingExtras?.taxa_extra ? pendingExtras.taxa_extra : undefined,
       },
     ]);
     setPendingExtras(null);
@@ -398,13 +399,19 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
         tipoCartao={cardTipo}
         parcelasInicial={pendingExtras?.parcelas || 1}
         preferredOperator={formaPagamento === "pix_maquininha" ? "pagbank" : undefined}
+        applyInstallmentSurcharge
         onSelect={(op) => {
           const parcelasInfo = formaPagamento === "credito" ? ` • Crédito ${op.parcelas || 1}x` : "";
+          const acrescimoInfo = op.acrescimoValor && op.acrescimoValor > 0 ? ` • Acrésc. R$ ${op.acrescimoValor.toFixed(2)}` : "";
+          if (formaPagamento === "credito" && op.valorComAcrescimo && op.valorComAcrescimo > 0) {
+            setValorParcial(op.valorComAcrescimo.toFixed(2).replace(".", ","));
+          }
           setPendingExtras({
             operadora_id: op.id,
             conta_bancaria_id: op.conta_bancaria_id || undefined,
             parcelas: formaPagamento === "credito" ? op.parcelas || 1 : undefined,
-            info: `${op.nome}${parcelasInfo} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo}`,
+            taxa_extra: formaPagamento === "credito" ? op.acrescimoValor || undefined : undefined,
+            info: `${op.nome}${parcelasInfo}${acrescimoInfo} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo}`,
           });
         }}
       />

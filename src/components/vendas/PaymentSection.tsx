@@ -87,6 +87,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   const [pendingContaBancaria, setPendingContaBancaria] = useState<string | null>(null);
   const [pendingCardInfo, setPendingCardInfo] = useState<string | null>(null);
   const [pendingParcelas, setPendingParcelas] = useState<number | undefined>(undefined);
+  const [pendingAcrescimoParcelado, setPendingAcrescimoParcelado] = useState(0);
 
   const { unidadeAtual } = useUnidade();
   const effectiveUnidadeNome = unidadeId ? undefined : unidadeAtual?.nome;
@@ -202,6 +203,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     setPendingContaBancaria(null);
     setPendingCardInfo(null);
     setPendingParcelas(undefined);
+    setPendingAcrescimoParcelado(0);
   };
 
   const addPagamento = () => {
@@ -251,6 +253,9 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     }
     if (forma === "cartao_credito") {
       novoPagamento.parcelas = pendingParcelas || 1;
+      if (pendingAcrescimoParcelado > 0) {
+        novoPagamento.taxa_extra = pendingAcrescimoParcelado;
+      }
     }
 
     const taxaNum = forma === "gas_do_povo" ? parseCurrency(taxaEntregaGasPovo) : 0;
@@ -610,12 +615,18 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
         unidadeId={unidadeId}
         parcelasInicial={pendingParcelas || 1}
         preferredOperator={forma === "pix_maquininha" ? "pagbank" : undefined}
+        applyInstallmentSurcharge
         onSelect={(op) => {
           setPendingOperadora({ id: op.id, nome: op.nome });
           if (op.conta_bancaria_id) setPendingContaBancaria(op.conta_bancaria_id);
           setPendingParcelas(op.parcelas);
+          setPendingAcrescimoParcelado(op.acrescimoValor || 0);
+          if (forma === "cartao_credito" && op.valorComAcrescimo && op.valorComAcrescimo > 0) {
+            setValorDisplay(formatCurrency(op.valorComAcrescimo.toFixed(2).replace(".", ",")));
+          }
           const parcelasInfo = forma === "cartao_credito" ? ` • Crédito ${op.parcelas || 1}x` : "";
-          setPendingCardInfo(`${op.nome}${parcelasInfo} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo} • Líq. R$ ${op.valorLiquido.toFixed(2)}`);
+          const acrescimoInfo = op.acrescimoValor && op.acrescimoValor > 0 ? ` • Acrésc. R$ ${op.acrescimoValor.toFixed(2)}` : "";
+          setPendingCardInfo(`${op.nome}${parcelasInfo}${acrescimoInfo} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo} • Líq. R$ ${op.valorLiquido.toFixed(2)}`);
         }}
       />
     </>
