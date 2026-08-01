@@ -63,6 +63,12 @@ export default function AdminUnidades() {
   const [migrateEmail, setMigrateEmail] = useState("");
   const [migrating, setMigrating] = useState(false);
 
+  // Inativar / excluir
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deletingUnidade, setDeletingUnidade] = useState<Unidade | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+
   const fetchData = async () => {
     const [unidadesRes, empresasRes] = await Promise.all([
       supabase.from("unidades").select("id, nome, tipo, empresa_id, endereco, cidade, estado, ativo").order("nome"),
