@@ -22,13 +22,13 @@ import {
 "@/components/ui/popover";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuSeparator, DropdownMenuTrigger } from
+  DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from
 "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import {
   Search, Eye, Truck, CheckCircle, Clock, XCircle, Sparkles,
   User, RefreshCw, MoreHorizontal, Edit, ArrowRightLeft, Printer,
-  Share2, DollarSign, Trash2, Lock, MessageCircle, CreditCard,
+  Share2, DollarSign, Trash2, Lock, MessageCircle, CreditCard, Columns3,
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckSquare, Building2, Pencil, MoveRight, Map as MapIcon,
   Download, Package, Calendar, SlidersHorizontal, MapPin, Phone } from
 "lucide-react";
@@ -126,7 +126,52 @@ function formatarItensComQtd(pedido: PedidoFormatado): string {
   return pedido.produtos || "";
 }
 
+function formatarItensEmLinhas(pedido: PedidoFormatado): string[] {
+  if (pedido.itens && pedido.itens.length > 0) {
+    return pedido.itens.map((it) => `${Number(it.quantidade) || 0}x ${it.produto?.nome || "Produto"}`);
+  }
+  return (pedido.produtos || "")
+    .split(/\s*[Â··,;|]\s*/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 const PEDIDOS_FILTROS_STORAGE_KEY = "pedidos:filtros:v1";
+
+type PedidoTableColumnKey =
+  | "pedido"
+  | "data"
+  | "cliente"
+  | "produtos"
+  | "canal"
+  | "pagamento"
+  | "status"
+  | "valor"
+  | "acoes";
+
+const PEDIDOS_COLUNAS: Array<{ key: PedidoTableColumnKey; label: string; required?: boolean }> = [
+  { key: "pedido", label: "Pedido", required: true },
+  { key: "data", label: "Data do pedido" },
+  { key: "cliente", label: "Cliente", required: true },
+  { key: "produtos", label: "Produtos" },
+  { key: "canal", label: "Canal de venda" },
+  { key: "pagamento", label: "Pagamento" },
+  { key: "status", label: "Status" },
+  { key: "valor", label: "Valor" },
+  { key: "acoes", label: "Ações", required: true },
+];
+
+const PEDIDOS_COLUNAS_PADRAO: Record<PedidoTableColumnKey, boolean> = {
+  pedido: true,
+  data: true,
+  cliente: true,
+  produtos: true,
+  canal: true,
+  pagamento: true,
+  status: true,
+  valor: true,
+  acoes: true,
+};
 
 type PedidosFiltrosPersistidos = {
   dataInicio?: string;
@@ -167,6 +212,13 @@ export default function Pedidos() {
   const [busca, setBusca] = useState(filtrosPersistidosIniciais.busca ?? "");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const [colunasVisiveis, setColunasVisiveis] = useState<Record<PedidoTableColumnKey, boolean>>(PEDIDOS_COLUNAS_PADRAO);
+  const colunaVisivel = (key: PedidoTableColumnKey) => colunasVisiveis[key];
+  const toggleColuna = (key: PedidoTableColumnKey) => {
+    const coluna = PEDIDOS_COLUNAS.find((item) => item.key === key);
+    if (coluna?.required) return;
+    setColunasVisiveis((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
   const toggleExpandido = (id: string) => setExpandidos((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   // Persistir filtros na sessão para preservar ao navegar (ex.: editar pedido e voltar)
@@ -1148,8 +1200,30 @@ export default function Pedidos() {
           <CardHeader className="border-b border-border bg-muted/35 px-4 py-2.5">
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-sm font-semibold text-foreground">Pedidos <span className="text-muted-foreground font-normal">({pedidosFiltrados.length})</span></CardTitle>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="ml-auto h-8 gap-2 rounded-md px-2.5 text-xs">
+                    <Columns3 className="h-3.5 w-3.5" />
+                    Colunas
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Selecionar colunas</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {PEDIDOS_COLUNAS.map((coluna) => (
+                    <DropdownMenuCheckboxItem
+                      key={coluna.key}
+                      checked={colunasVisiveis[coluna.key]}
+                      disabled={coluna.required}
+                      onCheckedChange={() => toggleColuna(coluna.key)}
+                    >
+                      {coluna.label}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
               {/* #4 - Pagination info */}
-              <span className="text-[11px] font-medium text-muted-foreground">
+              <span className="hidden text-[11px] font-medium text-muted-foreground sm:inline">
                 Pág. {paginaAtual}/{totalPages}
               </span>
             </div>
@@ -1204,6 +1278,14 @@ export default function Pedidos() {
                             <PedidoStatusPill status={pedido.agendado && !bloqueado ? "agendado" : pedido.status} />
                           </div>
                           <p className="mt-1 text-[15px] font-semibold text-foreground truncate">{pedido.cliente}</p>
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            <span className="inline-flex rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                              {pedido.data}
+                            </span>
+                            <span className="inline-flex max-w-[150px] rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                              <span className="truncate">{pedido.canal_venda || "Sem canal"}</span>
+                            </span>
+                          </div>
                           <p className="text-xs text-muted-foreground truncate">
                             {itensResumo}{itensExtras > 0 && <span className="text-muted-foreground/70"> · +{itensExtras} item{itensExtras > 1 ? "s" : ""}</span>}
                           </p>
@@ -1348,7 +1430,7 @@ export default function Pedidos() {
 
               {/* Desktop table - compact Forte Gas style */}
               <div className="hidden min-w-0 overflow-x-auto md:block">
-                <Table className="min-w-[1160px]">
+                <Table className="min-w-[1080px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-10">
@@ -1357,14 +1439,15 @@ export default function Pedidos() {
                           onCheckedChange={toggleSelecionarTodos}
                         />
                       </TableHead>
-                      <TableHead className="w-[142px]">Pedido</TableHead>
-                      <TableHead className="min-w-[280px]">Cliente</TableHead>
-                      <TableHead className="min-w-[190px]">Produtos</TableHead>
-                      <TableHead className="w-[176px]">Entregador</TableHead>
-                      <TableHead className="w-[190px]">Canal / Pagamento</TableHead>
-                      <TableHead className="w-[132px]">Status</TableHead>
-                      <TableHead className="w-[120px] text-right">Valor</TableHead>
-                      <TableHead className="w-12 text-right">Ações</TableHead>
+                      {colunaVisivel("pedido") && <TableHead className="w-[105px]">Pedido</TableHead>}
+                      {colunaVisivel("data") && <TableHead className="w-[136px]">Data do pedido</TableHead>}
+                      {colunaVisivel("cliente") && <TableHead className="min-w-[250px]">Cliente</TableHead>}
+                      {colunaVisivel("produtos") && <TableHead className="w-[180px]">Produtos</TableHead>}
+                      {colunaVisivel("canal") && <TableHead className="w-[150px]">Canal de Venda</TableHead>}
+                      {colunaVisivel("pagamento") && <TableHead className="w-[160px]">Pagamento</TableHead>}
+                      {colunaVisivel("status") && <TableHead className="w-[128px]">Status</TableHead>}
+                      {colunaVisivel("valor") && <TableHead className="w-[118px] text-right">Valor</TableHead>}
+                      {colunaVisivel("acoes") && <TableHead className="w-12 text-right">Ações</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1373,79 +1456,70 @@ export default function Pedidos() {
                         <TableCell>
                           <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} />
                         </TableCell>
-                        <TableCell className="align-top">
-                          <Button variant="link" className="h-auto p-0 text-xs font-semibold text-primary" onClick={() => editarPedido(pedido.id)}>
-                            #{getNumExib(pedido)}
-                          </Button>
-                          <div className="mt-1">
-                            <OrigemBadge origem={pedido.origem_pedido} />
-                          </div>
-                          <div className="mt-1 text-[11px] text-muted-foreground">
+                        {colunaVisivel("pedido") && (
+                          <TableCell className="align-top">
+                            <Button variant="link" className="h-auto p-0 text-xs font-semibold text-primary" onClick={() => editarPedido(pedido.id)}>
+                              #{getNumExib(pedido)}
+                            </Button>
+                          </TableCell>
+                        )}
+                        {colunaVisivel("data") && (
+                          <TableCell className="align-top">
                             {podeAlterarDataEntrega ? (
                               <Input
                                 type="date"
                                 defaultValue={dataPedidoParaInput(pedido.data)}
                                 onChange={(e) => alterarDataEntrega(pedido, e.target.value)}
-                                className="h-7 w-[108px] px-2 text-[11px]"
+                                className="h-8 w-[122px] rounded-md px-2 text-xs"
                               />
                             ) : (
-                              pedido.data
+                              <span className="text-xs font-medium text-foreground">{pedido.data}</span>
                             )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <button
-                            type="button"
-                            onClick={() => abrirVisualizacao(pedido)}
-                            className="block max-w-[260px] truncate text-left text-sm font-semibold text-foreground hover:text-primary"
-                            title={pedido.cliente}
-                          >
-                            {pedido.cliente}
-                          </button>
-                          <div className="mt-1 flex max-w-[300px] items-center gap-1.5 text-xs text-muted-foreground">
-                            <MapPin className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate" title={pedido.endereco}>{pedido.endereco}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <p className="max-w-[210px] truncate text-xs font-medium text-foreground" title={formatarItensComQtd(pedido)}>
-                            {formatarItensComQtd(pedido)}
-                          </p>
-                          {pedido.observacoes && (
-                            <p className="mt-1 max-w-[210px] truncate text-[11px] text-muted-foreground" title={pedido.observacoes}>
-                              Obs: {pedido.observacoes}
-                            </p>
-                          )}
-                        </TableCell>
-                        <TableCell className="align-top">
-                          {pedido.entregador ? (
-                            <Badge variant="outline" className="cursor-pointer text-xs hover:bg-accent" onClick={() => abrirTransferencia(pedido)}>
-                              <Truck className="mr-1 h-3 w-3" />
-                              {pedido.entregador}
-                            </Badge>
-                          ) : !isPedidoBloqueado(pedido.status) ? (
-                            <div className="flex gap-1">
-                              <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-primary" onClick={() => abrirTransferencia(pedido)}>
-                                <Sparkles className="mr-1 h-3 w-3" />
-                                Atribuir
-                              </Button>
-                              <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => marcarPortariaHandler(pedido.id)} title="Retirada na portaria">
-                                <Building2 className="h-3 w-3" />
-                              </Button>
+                          </TableCell>
+                        )}
+                        {colunaVisivel("cliente") && (
+                          <TableCell className="align-top">
+                            <button
+                              type="button"
+                              onClick={() => abrirVisualizacao(pedido)}
+                              className="block max-w-[280px] truncate text-left text-sm font-semibold text-foreground hover:text-primary"
+                              title={pedido.cliente}
+                            >
+                              {pedido.cliente}
+                            </button>
+                            <div className="mt-1 flex max-w-[300px] items-center gap-1.5 text-xs text-muted-foreground">
+                              <MapPin className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate" title={pedido.endereco}>{pedido.endereco}</span>
                             </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">-</span>
-                          )}
-
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <div>
+                          </TableCell>
+                        )}
+                        {colunaVisivel("produtos") && (
+                          <TableCell className="align-top">
+                            <div className="max-w-[170px] space-y-1 text-xs font-medium text-foreground" title={formatarItensComQtd(pedido)}>
+                              {formatarItensEmLinhas(pedido).slice(0, 4).map((item, index) => (
+                                <p key={`${pedido.id}-item-${index}`} className="leading-snug">
+                                  {item}
+                                </p>
+                              ))}
+                            </div>
+                            {formatarItensEmLinhas(pedido).length > 4 && (
+                              <p className="mt-1 text-[11px] text-muted-foreground">+{formatarItensEmLinhas(pedido).length - 4} item(ns)</p>
+                            )}
+                            {pedido.observacoes && (
+                              <p className="mt-1 max-w-[170px] truncate text-[11px] text-muted-foreground" title={pedido.observacoes}>
+                                Obs: {pedido.observacoes}
+                              </p>
+                            )}
+                          </TableCell>
+                        )}
+                        {colunaVisivel("canal") && (
+                          <TableCell className="align-top">
                             {podeEditarCanalPedido(pedido) ? (
                               <Popover open={editandoCanalId === `d-${pedido.id}`} onOpenChange={(open) => setEditandoCanalId(open ? `d-${pedido.id}` : null)}>
                                 <PopoverTrigger asChild>
                                   <button
                                     type="button"
-                                    className="inline-flex max-w-[172px] items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    className="inline-flex max-w-[140px] items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                     title={pedido.canal_venda || "Canal não informado"}
                                   >
                                     <span className="truncate">{pedido.canal_venda || "-"}</span>
@@ -1457,13 +1531,16 @@ export default function Pedidos() {
                                 </PopoverContent>
                               </Popover>
                             ) : (
-                              <span className="block max-w-[172px] truncate text-xs font-medium text-foreground" title={pedido.canal_venda || ""}>{pedido.canal_venda || "-"}</span>
+                              <span className="block max-w-[140px] truncate text-xs font-medium text-foreground" title={pedido.canal_venda || ""}>{pedido.canal_venda || "-"}</span>
                             )}
-                          </div>
+                          </TableCell>
+                        )}
+                        {colunaVisivel("pagamento") && (
+                          <TableCell className="align-top">
                           <button
                             type="button"
                             onClick={() => { setPedidoEditarPagamento(pedido); setEditarPagamentoAberto(true); }}
-                            className="group mt-2 inline-flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="group inline-flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             title="Clique para editar forma de pagamento, operadora ou chave PIX"
                           >
                             {pedido.forma_pagamento ? (
@@ -1479,14 +1556,15 @@ export default function Pedidos() {
                               </Badge>
                             )}
                           </button>
-                        </TableCell>
-                        <TableCell className="align-top">
+                          </TableCell>
+                        )}
+                        {colunaVisivel("status") && <TableCell className="align-top">
                           <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
-                        </TableCell>
-                        <TableCell className="align-top text-right">
+                        </TableCell>}
+                        {colunaVisivel("valor") && <TableCell className="align-top text-right">
                           <p className="whitespace-nowrap text-sm font-bold tabular-nums text-foreground">R$ {pedido.valor.toFixed(2)}</p>
-                        </TableCell>
-                        <TableCell className="pr-3 text-right align-top">
+                        </TableCell>}
+                        {colunaVisivel("acoes") && <TableCell className="pr-3 text-right align-top">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -1517,7 +1595,7 @@ export default function Pedidos() {
                               {pedido.status !== "finalizado" && <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => abrirExclusao(pedido)}><Trash2 className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>}
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        </TableCell>
+                        </TableCell>}
                       </TableRow>
                     ))}
                   </TableBody>
