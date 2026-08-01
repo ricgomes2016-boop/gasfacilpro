@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Loader2, MapPin, Search, ArrowRightLeft, Building2, AlertTriangle, Info } from "lucide-react";
+import { Plus, Loader2, MapPin, Search, ArrowRightLeft, Building2, AlertTriangle, Info, Power, PowerOff, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
