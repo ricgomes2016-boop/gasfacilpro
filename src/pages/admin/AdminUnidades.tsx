@@ -150,6 +150,47 @@ export default function AdminUnidades() {
     }
   };
 
+  const handleToggleAtivo = async (u: Unidade) => {
+    setTogglingId(u.id);
+    try {
+      const { error } = await supabase
+        .from("unidades")
+        .update({ ativo: !u.ativo })
+        .eq("id", u.id);
+      if (error) throw error;
+      setUnidades((prev) => prev.map((x) => (x.id === u.id ? { ...x, ativo: !u.ativo } : x)));
+      toast.success(u.ativo ? `Unidade "${u.nome}" inativada` : `Unidade "${u.nome}" reativada`);
+    } catch (err: any) {
+      toast.error("Erro ao atualizar unidade: " + err.message);
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingUnidade) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("unidades").delete().eq("id", deletingUnidade.id);
+      if (error) throw error;
+      setUnidades((prev) => prev.filter((x) => x.id !== deletingUnidade.id));
+      toast.success(`Unidade "${deletingUnidade.nome}" excluída`);
+      setDeletingUnidade(null);
+    } catch (err: any) {
+      const msg = String(err?.message || "");
+      if (msg.includes("foreign key") || msg.includes("violates") || err?.code === "23503") {
+        toast.error(
+          "Não é possível excluir: existem registros (pedidos, clientes, estoque) vinculados a esta unidade. Use 'Inativar'.",
+        );
+      } else {
+        toast.error("Erro ao excluir: " + msg);
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+
   const empresasAtivas = empresas.filter((e) => e.ativo);
   const filtered = unidades.filter((u) => {
     const emp = getEmpresa(u.empresa_id);
