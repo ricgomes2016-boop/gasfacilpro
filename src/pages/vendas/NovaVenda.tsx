@@ -1204,6 +1204,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             operadora_id: (p as any).operadora_id,
             conta_bancaria_id: (p as any).conta_bancaria_id,
             parcelas: (p as any).parcelas,
+            taxa_desconto_percentual: (p as any).taxa_desconto_percentual,
           })),
           unidadeId: unidadeAtual?.id,
           entregadorId: pedidoJaEntregue ? entregador.id : null,

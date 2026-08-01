@@ -42,7 +42,7 @@ interface CardOperatorSelectorModalProps {
   parcelasInicial?: number;
   preferredOperator?: string;
   applyInstallmentSurcharge?: boolean;
-  onSelect: (operadora: { id: string; nome: string; taxa: number; prazo: number; valorLiquido: number; conta_bancaria_id?: string | null; parcelas?: number; acrescimoPercentual?: number; acrescimoValor?: number; valorComAcrescimo?: number }) => void;
+  onSelect: (operadora: { id: string; nome: string; taxa: number; prazo: number; valorLiquido: number; conta_bancaria_id?: string | null; parcelas?: number; taxaParcelamentoPercentual?: number; taxaParcelamentoValor?: number; taxaTotal?: number }) => void;
 }
 
 const JUROS_CREDITO_PARCELADO_MENSAL = 1.99;
@@ -117,22 +117,16 @@ export function CardOperatorSelectorModal({
   }[tipoCartao];
 
   const selectedOp = operadoras.find((o) => o.id === selected);
-  const acrescimoPercentual = applyInstallmentSurcharge && tipoCartao === "credito" && parcelas > 1
+  const taxaParcelamentoPercentual = applyInstallmentSurcharge && tipoCartao === "credito" && parcelas > 1
     ? JUROS_CREDITO_PARCELADO_MENSAL * (parcelas - 1)
     : 0;
-  const acrescimoValor = valor * (acrescimoPercentual / 100);
-  const valorComAcrescimo = valor + acrescimoValor;
-  const getValorComAcrescimoPorParcela = (quantidadeParcelas: number) => {
-    const percentual = applyInstallmentSurcharge && tipoCartao === "credito" && quantidadeParcelas > 1
-      ? JUROS_CREDITO_PARCELADO_MENSAL * (quantidadeParcelas - 1)
-      : 0;
-    return valor + valor * (percentual / 100);
-  };
+  const taxaParcelamentoValor = valor * (taxaParcelamentoPercentual / 100);
 
   const handleConfirm = () => {
     if (!selectedOp) return;
     const { taxa, prazo } = getTaxaEPrazo(selectedOp);
-    const valorLiquido = valorComAcrescimo - valorComAcrescimo * (taxa / 100);
+    const taxaTotal = taxa + taxaParcelamentoPercentual;
+    const valorLiquido = valor - valor * (taxaTotal / 100);
     onSelect({
       id: selectedOp.id,
       nome: selectedOp.nome,
@@ -141,9 +135,9 @@ export function CardOperatorSelectorModal({
       valorLiquido,
       conta_bancaria_id: selectedOp.conta_bancaria_id || null,
       parcelas: tipoCartao === "credito" ? parcelas : undefined,
-      acrescimoPercentual,
-      acrescimoValor,
-      valorComAcrescimo,
+      taxaParcelamentoPercentual,
+      taxaParcelamentoValor,
+      taxaTotal,
     });
     onClose();
   };
@@ -179,13 +173,13 @@ export function CardOperatorSelectorModal({
                 <SelectContent>
                   {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
                     <SelectItem key={n} value={String(n)}>
-                      {n}x {n > 1 ? `de R$ ${(getValorComAcrescimoPorParcela(n) / n).toFixed(2)}` : "à vista"}
+                      {n}x {n > 1 ? `de R$ ${(valor / n).toFixed(2)}` : "à vista"}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="mt-2 text-[11px] text-muted-foreground">
-                1x usa a taxa de crédito à vista; 2x ou mais tem acréscimo de 1,99% ao mês.
+                1x usa a taxa de crédito à vista; 2x ou mais desconta 1,99% ao mês do valor líquido.
               </p>
             </div>
           )}
@@ -197,12 +191,12 @@ export function CardOperatorSelectorModal({
                 <p className="text-sm font-bold">R$ {valor.toFixed(2)}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase text-muted-foreground">Acréscimo</p>
-                <p className="text-sm font-bold text-warning">+R$ {acrescimoValor.toFixed(2)}</p>
+                <p className="text-[10px] uppercase text-muted-foreground">Desconto</p>
+                <p className="text-sm font-bold text-warning">-R$ {taxaParcelamentoValor.toFixed(2)}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase text-muted-foreground">Cartão</p>
-                <p className="text-sm font-bold text-primary">R$ {valorComAcrescimo.toFixed(2)}</p>
+                <p className="text-[10px] uppercase text-muted-foreground">Cobrado</p>
+                <p className="text-sm font-bold text-primary">R$ {valor.toFixed(2)}</p>
               </div>
             </div>
           )}
@@ -217,7 +211,8 @@ export function CardOperatorSelectorModal({
             <div className="space-y-2">
               {operadoras.map((op) => {
                 const { taxa, prazo } = getTaxaEPrazo(op);
-                const liquido = valorComAcrescimo - valorComAcrescimo * (taxa / 100);
+                const taxaTotal = taxa + taxaParcelamentoPercentual;
+                const liquido = valor - valor * (taxaTotal / 100);
                 const isSelected = selected === op.id;
 
                 return (
@@ -258,7 +253,7 @@ export function CardOperatorSelectorModal({
                           <Percent className="h-3 w-3" />
                           <span className="text-[10px] uppercase">Taxa</span>
                         </div>
-                        <p className="text-sm font-bold">{taxa.toFixed(2)}%</p>
+                        <p className="text-sm font-bold">{taxaTotal.toFixed(2)}%</p>
                       </div>
                       <div className="p-2 bg-muted/50 rounded">
                         <div className="flex items-center justify-center gap-1 text-muted-foreground mb-0.5">
@@ -290,7 +285,17 @@ export function CardOperatorSelectorModal({
               </div>
               <div className="flex justify-between text-sm">
                 <span>Taxa ({tipoLabel})</span>
-                <span className="font-semibold">{getTaxaEPrazo(selectedOp).taxa.toFixed(2)}%</span>
+                <span className="font-semibold">{(getTaxaEPrazo(selectedOp).taxa + taxaParcelamentoPercentual).toFixed(2)}%</span>
+              </div>
+              {tipoCartao === "credito" && taxaParcelamentoPercentual > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span>Desconto parcelamento</span>
+                  <span className="font-semibold">-{taxaParcelamentoPercentual.toFixed(2)}%</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm">
+                <span>Valor cobrado</span>
+                <span className="font-semibold">R$ {valor.toFixed(2)}</span>
               </div>
               {tipoCartao === "credito" && (
                 <div className="flex justify-between text-sm">
@@ -305,7 +310,7 @@ export function CardOperatorSelectorModal({
               <div className="flex justify-between text-sm font-bold pt-1 border-t">
                 <span>Valor Líquido</span>
                 <span className="text-success">
-                  R$ {(valorComAcrescimo - valorComAcrescimo * (getTaxaEPrazo(selectedOp).taxa / 100)).toFixed(2)}
+                  R$ {(valor - valor * ((getTaxaEPrazo(selectedOp).taxa + taxaParcelamentoPercentual) / 100)).toFixed(2)}
                 </span>
               </div>
             </div>

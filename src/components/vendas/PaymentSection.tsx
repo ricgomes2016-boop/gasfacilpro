@@ -33,6 +33,7 @@ export interface Pagamento {
   operadora_nome?: string;
   conta_bancaria_id?: string;
   parcelas?: number;
+  taxa_desconto_percentual?: number;
   // Cobrança extra associada (ex.: taxa de entrega do Gás do Povo)
   // Quando presente, aumenta o total efetivo da venda em `taxa_extra` e
   // um pagamento adicional deve ser lançado para cobrir esse valor.
@@ -87,7 +88,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   const [pendingContaBancaria, setPendingContaBancaria] = useState<string | null>(null);
   const [pendingCardInfo, setPendingCardInfo] = useState<string | null>(null);
   const [pendingParcelas, setPendingParcelas] = useState<number | undefined>(undefined);
-  const [pendingAcrescimoParcelado, setPendingAcrescimoParcelado] = useState(0);
+  const [pendingTaxaDescontoPercentual, setPendingTaxaDescontoPercentual] = useState(0);
 
   const { unidadeAtual } = useUnidade();
   const effectiveUnidadeNome = unidadeId ? undefined : unidadeAtual?.nome;
@@ -203,7 +204,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     setPendingContaBancaria(null);
     setPendingCardInfo(null);
     setPendingParcelas(undefined);
-    setPendingAcrescimoParcelado(0);
+    setPendingTaxaDescontoPercentual(0);
   };
 
   const addPagamento = () => {
@@ -253,8 +254,8 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     }
     if (forma === "cartao_credito") {
       novoPagamento.parcelas = pendingParcelas || 1;
-      if (pendingAcrescimoParcelado > 0) {
-        novoPagamento.taxa_extra = pendingAcrescimoParcelado;
+      if (pendingTaxaDescontoPercentual > 0) {
+        novoPagamento.taxa_desconto_percentual = pendingTaxaDescontoPercentual;
       }
     }
 
@@ -620,13 +621,11 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
           setPendingOperadora({ id: op.id, nome: op.nome });
           if (op.conta_bancaria_id) setPendingContaBancaria(op.conta_bancaria_id);
           setPendingParcelas(op.parcelas);
-          setPendingAcrescimoParcelado(op.acrescimoValor || 0);
-          if (forma === "cartao_credito" && op.valorComAcrescimo && op.valorComAcrescimo > 0) {
-            setValorDisplay(formatCurrency(op.valorComAcrescimo.toFixed(2).replace(".", ",")));
-          }
+          setPendingTaxaDescontoPercentual(op.taxaParcelamentoPercentual || 0);
           const parcelasInfo = forma === "cartao_credito" ? ` • Crédito ${op.parcelas || 1}x` : "";
-          const acrescimoInfo = op.acrescimoValor && op.acrescimoValor > 0 ? ` • Acrésc. R$ ${op.acrescimoValor.toFixed(2)}` : "";
-          setPendingCardInfo(`${op.nome}${parcelasInfo}${acrescimoInfo} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo} • Líq. R$ ${op.valorLiquido.toFixed(2)}`);
+          const descontoInfo = op.taxaParcelamentoPercentual && op.taxaParcelamentoPercentual > 0 ? ` • Desc. parc. ${op.taxaParcelamentoPercentual.toFixed(2)}%` : "";
+          const taxaInfo = op.taxaTotal && op.taxaTotal > op.taxa ? op.taxaTotal : op.taxa;
+          setPendingCardInfo(`${op.nome}${parcelasInfo}${descontoInfo} • Taxa total ${taxaInfo.toFixed(2)}% • D+${op.prazo} • Líq. R$ ${op.valorLiquido.toFixed(2)}`);
         }}
       />
     </>

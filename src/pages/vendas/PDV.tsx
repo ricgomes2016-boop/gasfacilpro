@@ -352,6 +352,7 @@ export default function PDV() {
           operadora_id: p.operadora_id,
           conta_bancaria_id: p.conta_bancaria_id,
           parcelas: p.parcelas,
+          taxa_desconto_percentual: p.taxa_desconto_percentual,
         })),
         unidadeId: unidadeAtual?.id,
       });
