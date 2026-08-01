@@ -793,7 +793,10 @@
 
   .app-card {
     @apply relative bg-card;
-    box-shadow: 0 1px 2px hsl(163 40% 12% / 0.04);
+    border-color: hsl(var(--border));
+    border-radius: var(--radius);
+    background-image: none;
+    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04);
   }
 
   .app-card::before,
@@ -803,15 +806,17 @@
   }
 
   .app-card.kpi::before {
-    content: "";
+    content: none;
   }
 
   .app-card-header {
-    @apply bg-card;
+    border-bottom: 1px solid hsl(var(--border) / 0.58);
+    background: hsl(var(--muted) / 0.24);
   }
 
   .app-card-title {
     @apply text-foreground;
+    letter-spacing: 0;
   }
 
   .app-card-title:is(.text-primary, .text-secondary, .text-success, .text-warning, .text-info, .text-destructive, .text-muted-foreground) {
@@ -825,28 +830,33 @@
 
   .app-card :where(.app-card, .modern-panel),
   .modern-panel :where(.app-card, .modern-panel) {
-    @apply border-border/50 bg-card shadow-none;
+    @apply border-border bg-card shadow-none;
   }
 
 
   .table-card-shell {
-    @apply overflow-hidden rounded-xl border border-primary/10 bg-card;
-    box-shadow: 0 1px 2px hsl(163 40% 12% / 0.04);
+    @apply overflow-hidden border border-border bg-card;
+    border-radius: var(--radius);
+    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04);
   }
 
   .modern-panel {
-    @apply relative overflow-hidden rounded-xl border border-primary/10 bg-card;
-    box-shadow: 0 1px 2px hsl(163 40% 12% / 0.04);
+    @apply relative overflow-hidden border border-border bg-card;
+    border-radius: var(--radius);
+    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04);
   }
 
   .modern-soft-panel {
-    @apply rounded-xl border border-primary/10 bg-card;
-    box-shadow: 0 1px 2px hsl(163 40% 12% / 0.04);
+    @apply border border-border bg-card;
+    border-radius: var(--radius);
+    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04);
   }
 
   .modern-status-card {
-    @apply relative overflow-hidden rounded-2xl border border-border/45 bg-gradient-to-br from-card via-card to-muted/25 shadow-md shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/10;
-    box-shadow: var(--shadow-md);
+    @apply relative overflow-hidden border border-border bg-card transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/25;
+    border-radius: var(--radius);
+    background-image: none;
+    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04);
   }
 
   .dashboard-shell {
@@ -980,47 +990,59 @@
   }
 
   .kpi-card-content {
-    @apply flex min-h-24 items-center gap-3 p-3 sm:p-4;
+    @apply flex min-h-20 items-center gap-3 p-3.5 sm:p-4;
   }
 
   .kpi-value {
-    @apply min-w-0 truncate text-xl font-bold leading-tight sm:text-2xl;
+    @apply min-w-0 text-[1.35rem] font-bold leading-tight sm:text-[1.55rem];
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
   }
 
   .kpi-label {
-    @apply text-xs font-medium;
-    color: currentColor;
-    opacity: 0.82;
+    @apply text-[11px] font-semibold uppercase;
+    color: hsl(var(--muted-foreground));
+    letter-spacing: 0.04em;
+    opacity: 1;
   }
 
   /* Solid tile treatment for legacy .kpi-card-* variants — mirrors .app-card.kpi */
   .kpi-card[class*="kpi-card-"] {
-    background: hsl(var(--tile-tone, var(--tile-blue))) !important;
-    background-image: none !important;
-    color: hsl(var(--tile-tone-fg, var(--tile-blue-fg))) !important;
-    border: 0 !important;
-    border-left: 0 !important;
+    background:
+      linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--tile-tone, var(--tile-blue)) / 0.10) 100%) !important;
+    color: hsl(var(--foreground)) !important;
+    border: 1px solid hsl(var(--tile-tone, var(--tile-blue)) / 0.18) !important;
+    border-left: 4px solid hsl(var(--tile-tone, var(--tile-blue)) / 0.78) !important;
     border-radius: var(--radius) !important;
     box-shadow:
-      0 1px 0 0 hsl(var(--tile-tone, var(--tile-blue)) / 0.0),
-      0 10px 24px -14px hsl(var(--tile-tone, var(--tile-blue)) / 0.55),
-      0 2px 6px -2px hsl(var(--tile-tone, var(--tile-blue)) / 0.35) !important;
+      0 1px 2px hsl(var(--foreground) / 0.04),
+      0 8px 18px -16px hsl(var(--tile-tone, var(--tile-blue)) / 0.45) !important;
   }
-  .kpi-card[class*="kpi-card-"] .kpi-value,
+
+  .kpi-card[class*="kpi-card-"] .kpi-value {
+    color: hsl(var(--foreground)) !important;
+  }
+
   .kpi-card[class*="kpi-card-"] .kpi-label,
+  .kpi-card[class*="kpi-card-"] [class*="text-muted-foreground"] {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
   .kpi-card[class*="kpi-card-"] [class*="text-success"],
   .kpi-card[class*="kpi-card-"] [class*="text-warning"],
   .kpi-card[class*="kpi-card-"] [class*="text-info"],
   .kpi-card[class*="kpi-card-"] [class*="text-primary"],
-  .kpi-card[class*="kpi-card-"] [class*="text-destructive"],
-  .kpi-card[class*="kpi-card-"] [class*="text-muted-foreground"] {
-    color: hsl(var(--tile-tone-fg, var(--tile-blue-fg))) !important;
+  .kpi-card[class*="kpi-card-"] [class*="text-destructive"] {
+    color: hsl(var(--tile-tone, var(--tile-blue))) !important;
   }
+
   .kpi-card[class*="kpi-card-"] .status-card-icon,
   .kpi-card[class*="kpi-card-"] [class*="status-card-icon-"] {
-    background: hsl(var(--tile-tone-fg, var(--tile-blue-fg)) / 0.18) !important;
-    color: hsl(var(--tile-tone-fg, var(--tile-blue-fg))) !important;
-    border: 0 !important;
+    background: hsl(var(--tile-tone, var(--tile-blue)) / 0.12) !important;
+    color: hsl(var(--tile-tone, var(--tile-blue))) !important;
+    border: 1px solid hsl(var(--tile-tone, var(--tile-blue)) / 0.16) !important;
+    border-radius: var(--radius) !important;
+    box-shadow: none !important;
   }
 
   .kpi-card-primary     { --tile-tone: var(--tile-violet); --tile-tone-fg: var(--tile-violet-fg); }
@@ -1230,17 +1252,16 @@
     .app-card,
     .modern-panel,
     .modern-status-card {
-      border-color: hsl(var(--border) / 0.72);
-      background:
-        linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card)) 56%, hsl(var(--muted) / 0.22) 100%);
-      box-shadow: var(--shadow-md);
+      border-color: hsl(var(--border));
+      background: hsl(var(--card));
+      box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04);
     }
 
     .app-card:hover,
     .modern-panel:hover,
     .modern-status-card:hover {
-      border-color: hsl(var(--primary) / 0.24);
-      box-shadow: var(--shadow-lg);
+      border-color: hsl(var(--primary) / 0.22);
+      box-shadow: 0 10px 24px -20px hsl(var(--foreground) / 0.22);
     }
 
     .app-card::before,
@@ -1258,8 +1279,7 @@
     .section-header-critical,
     .section-header-muted {
       border-color: hsl(var(--border) / 0.62);
-      background:
-        linear-gradient(90deg, hsl(var(--muted) / 0.52), hsl(var(--card)) 72%);
+      background: hsl(var(--muted) / 0.24);
     }
 
     .app-card-title,
@@ -1312,10 +1332,10 @@
     .modern-panel,
     .modern-soft-panel,
     .modern-status-card {
-      @apply rounded-xl;
+      border-radius: var(--radius);
       border-color: hsl(var(--border) / 0.78);
-      background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted) / 0.18) 100%);
-      box-shadow: var(--shadow-sm);
+      background: hsl(var(--card));
+      box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04);
     }
 
     .app-card::before,
@@ -1333,6 +1353,7 @@
     .section-header-critical,
     .section-header-muted {
       @apply rounded-t-xl px-3 py-3;
+      background: hsl(var(--muted) / 0.22);
     }
 
     .app-card-content {
@@ -1741,6 +1762,33 @@
   .app-card.kpi[data-tone="amber"]  { --tile-tone: var(--tile-amber);  --tile-tone-fg: var(--tile-amber-fg); }
   .app-card.kpi[data-tone="red"]    { --tile-tone: var(--tile-red);    --tile-tone-fg: var(--tile-red-fg); }
   .app-card.kpi[data-tone="sky"]    { --tile-tone: var(--tile-sky);    --tile-tone-fg: var(--tile-sky-fg); }
+
+  .app-card.kpi {
+    border-color: hsl(var(--tile-tone, var(--tile-blue)) / 0.18) !important;
+    border-left: 4px solid hsl(var(--tile-tone, var(--tile-blue)) / 0.78) !important;
+    background:
+      linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--tile-tone, var(--tile-blue)) / 0.10) 100%) !important;
+    color: hsl(var(--foreground)) !important;
+    box-shadow:
+      0 1px 2px hsl(var(--foreground) / 0.04),
+      0 8px 18px -16px hsl(var(--tile-tone, var(--tile-blue)) / 0.45) !important;
+  }
+
+  .app-card.kpi .app-card-title,
+  .app-card.kpi .text-foreground {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .app-card.kpi .text-muted-foreground,
+  .app-card.kpi .kpi-label {
+    color: hsl(var(--muted-foreground)) !important;
+    opacity: 1 !important;
+  }
+
+  .app-card.kpi svg {
+    color: hsl(var(--tile-tone, var(--tile-blue))) !important;
+    stroke: currentColor;
+  }
 }
 
 /* ============================================================
