@@ -10,9 +10,16 @@ import { ShoppingCart } from "lucide-react";
 
 const statusConfig = {
   entregue: { label: "Entregue", variant: "success" as const },
+  finalizado: { label: "Finalizado", variant: "success" as const },
+  pago_cartao: { label: "Pago (cartão)", variant: "success" as const },
+  pago: { label: "Pago", variant: "success" as const },
   pendente: { label: "Pendente", variant: "warning" as const },
+  em_preparo: { label: "Em preparo", variant: "warning" as const },
+  confirmado: { label: "Confirmado", variant: "default" as const },
   em_rota: { label: "Em Rota", variant: "default" as const },
+  saiu_entrega: { label: "Saiu p/ entrega", variant: "default" as const },
   cancelado: { label: "Cancelado", variant: "destructive" as const },
+  devolvido: { label: "Devolvido", variant: "destructive" as const },
 };
 
 export function RecentSales() {
