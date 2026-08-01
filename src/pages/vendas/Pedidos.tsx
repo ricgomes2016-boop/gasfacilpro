@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, type ElementType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -66,10 +66,10 @@ import { EditarPagamentoPedidoDialog } from "@/components/vendas/EditarPagamento
 function OrigemBadge({ origem }: { origem?: string | null }) {
   const meta = getOrigemMeta(origem);
   return (
-    <Badge variant="outline" className={`text-[10px] gap-1 ${meta.color}`} title={meta.label}>
-      <span aria-hidden>{meta.icon}</span>
+    <span className="inline-flex max-w-full items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground" title={meta.label}>
+      <span aria-hidden className="text-[12px] leading-none">{meta.icon}</span>
       <span className="truncate">{meta.label}</span>
-    </Badge>
+    </span>
   );
 }
 
@@ -127,11 +127,6 @@ function formatarItensComQtd(pedido: PedidoFormatado): string {
 }
 
 const PEDIDOS_FILTROS_STORAGE_KEY = "pedidos:filtros:v1";
-
-const cnStatusTab = (active: boolean) =>
-  `flex shrink-0 items-center gap-1 rounded-xl px-3 py-2 text-xs font-medium transition-all whitespace-nowrap ${
-    active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-  }`;
 
 type PedidosFiltrosPersistidos = {
   dataInicio?: string;
@@ -1091,44 +1086,6 @@ export default function Pedidos() {
         }
 
 
-        {/* KPIs premium grid - 4 tiles + Total ocupando linha inteira no mobile */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full min-w-0">
-          {[
-            { tone: "warning", Icon: Clock,       value: contadores.pendente,  label: "Pendentes",  color: "text-warning",    bg: "bg-warning/10" },
-            { tone: "info",    Icon: Truck,       value: contadores.em_rota,   label: "Em Rota",    color: "text-info",       bg: "bg-info/10" },
-            { tone: "success", Icon: CheckCircle, value: contadores.entregue,  label: "Entregues",  color: "text-success",    bg: "bg-success/10" },
-            { tone: "destructive", Icon: XCircle, value: contadores.cancelado, label: "Cancelados", color: "text-destructive", bg: "bg-destructive/10" },
-          ].map((k) => (
-            <Card key={k.label} className="rounded-2xl border-border bg-card shadow-sm">
-              <CardContent className="flex items-center gap-3 p-4 min-h-[92px]">
-                <div className={`h-11 w-11 shrink-0 rounded-xl flex items-center justify-center ${k.bg}`}>
-                  <k.Icon className={`h-5 w-5 ${k.color}`} />
-                </div>
-                <div className="min-w-0">
-                  <p className={`text-2xl font-bold leading-none tabular-nums ${k.color}`}>{k.value}</p>
-                  <p className="text-xs text-muted-foreground mt-1 truncate">{k.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          <Card className="rounded-2xl border-border bg-gradient-to-br from-success/10 to-success/5 shadow-sm col-span-2 md:col-span-1">
-            <CardContent className="flex items-center gap-3 p-4 min-h-[92px]">
-              <div className="h-11 w-11 shrink-0 rounded-xl flex items-center justify-center bg-success/15">
-                <DollarSign className="h-5 w-5 text-success" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-lg md:text-base lg:text-lg font-bold leading-none text-success truncate tabular-nums">
-                  R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1 truncate">Total Vendas</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-
-
-
         {/* #7 - Batch actions bar */}
         {selecionados.size > 0 &&
         <Card className="modern-panel border-primary/25 bg-primary/5">
@@ -1151,29 +1108,32 @@ export default function Pedidos() {
           </Card>
         }
 
-        {/* Status Tabs - segmented control */}
+        {/* Status Tabs - Forte Gas style */}
         {(() => {
-          const tabs: Array<{ key: string; label: string; count: number }> = [
-            { key: "todos", label: "Todos", count: pedidos.length },
-            { key: "pendente", label: "Pendentes", count: contadores.pendente },
-            { key: "em_rota", label: "Em rota", count: contadores.em_rota },
-            { key: "entregue", label: "Entregues", count: contadores.entregue },
-            { key: "agendado", label: "Agendados", count: pedidos.filter((p) => p.agendado && !["cancelado","entregue","finalizado"].includes(p.status)).length },
-            { key: "cancelado", label: "Cancelados", count: contadores.cancelado },
+          const tabs: Array<{ key: string; label: string; count: number; icon?: ElementType; cls: string }> = [
+            { key: "pendente", label: "Pendente", count: contadores.pendente, icon: Clock, cls: "border-warning/35 bg-warning/10 text-warning hover:bg-warning/15" },
+            { key: "visualizado", label: "Visualizado", count: pedidos.filter((p) => p.status === "visualizado").length, icon: Eye, cls: "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15" },
+            { key: "em_rota", label: "Em Rota", count: contadores.em_rota, icon: Truck, cls: "border-info/35 bg-info/10 text-info hover:bg-info/15" },
+            { key: "entregue", label: "Entregue", count: contadores.entregue, icon: CheckCircle, cls: "border-success/35 bg-success/10 text-success hover:bg-success/15" },
+            { key: "agendado", label: "Agendado", count: pedidos.filter((p) => p.agendado && !["cancelado","entregue","finalizado"].includes(p.status)).length, icon: Calendar, cls: "border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100" },
+            { key: "cancelado", label: "Cancelado", count: contadores.cancelado, icon: XCircle, cls: "border-destructive/35 bg-destructive/10 text-destructive hover:bg-destructive/15" },
+            { key: "todos", label: "Total", count: pedidos.length, cls: "border-border bg-background text-muted-foreground hover:bg-muted/60" },
           ];
           return (
-            <div className="flex gap-1.5 overflow-x-auto rounded-2xl bg-muted/60 p-1.5 no-scrollbar">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
               {tabs.map((t) => {
                 const active = filtroStatus === t.key;
+                const Icon = t.icon;
                 return (
                   <button
                     key={t.key}
                     type="button"
                     onClick={() => setFiltroStatus(t.key)}
-                    className={cnStatusTab(active)}
+                    className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold transition-all ${t.cls} ${active ? "ring-2 ring-primary/20 ring-offset-1 ring-offset-background" : ""}`}
                   >
+                    {Icon && <Icon className="h-3.5 w-3.5" />}
                     <span className="truncate">{t.label}</span>
-                    <span className={`ml-1 rounded-full px-1.5 text-[10px] font-semibold ${active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                    <span className="rounded-full bg-background/80 px-1.5 text-[10px] font-bold text-current shadow-sm">
                       {t.count}
                     </span>
                   </button>
@@ -1388,7 +1348,7 @@ export default function Pedidos() {
 
               {/* Desktop table - compact Forte Gas style */}
               <div className="hidden min-w-0 overflow-x-auto md:block">
-                <Table className="min-w-[980px]">
+                <Table className="min-w-[1420px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-10">
@@ -1397,12 +1357,16 @@ export default function Pedidos() {
                           onCheckedChange={toggleSelecionarTodos}
                         />
                       </TableHead>
-                      <TableHead className="w-[112px]">Pedido</TableHead>
-                      <TableHead className="min-w-[260px]">Cliente</TableHead>
-                      <TableHead className="min-w-[190px]">Itens</TableHead>
-                      <TableHead className="w-[220px]">Entrega</TableHead>
-                      <TableHead className="w-[150px] text-right">Valor</TableHead>
+                      <TableHead className="w-[96px]">Origem</TableHead>
+                      <TableHead className="w-[122px]">Nº / Data</TableHead>
+                      <TableHead className="min-w-[230px]">Cliente</TableHead>
+                      <TableHead className="min-w-[230px]">Endereço</TableHead>
+                      <TableHead className="min-w-[170px]">Produtos</TableHead>
+                      <TableHead className="w-[180px]">Entregador</TableHead>
+                      <TableHead className="w-[150px]">Canal</TableHead>
+                      <TableHead className="w-[170px]">Pagamento</TableHead>
                       <TableHead className="w-[128px]">Status</TableHead>
+                      <TableHead className="w-[120px] text-right">Valor</TableHead>
                       <TableHead className="w-12 text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1413,12 +1377,12 @@ export default function Pedidos() {
                           <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} />
                         </TableCell>
                         <TableCell className="align-top">
+                          <OrigemBadge origem={pedido.origem_pedido} />
+                        </TableCell>
+                        <TableCell className="align-top">
                           <Button variant="link" className="h-auto p-0 text-xs font-semibold text-primary" onClick={() => editarPedido(pedido.id)}>
                             #{getNumExib(pedido)}
                           </Button>
-                          <div className="mt-1">
-                            <OrigemBadge origem={pedido.origem_pedido} />
-                          </div>
                           <div className="mt-1 text-[11px] text-muted-foreground">
                             {podeAlterarDataEntrega ? (
                               <Input
@@ -1441,7 +1405,9 @@ export default function Pedidos() {
                           >
                             {pedido.cliente}
                           </button>
-                          <div className="mt-1 flex max-w-[280px] items-center gap-1.5 text-xs text-muted-foreground">
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <div className="flex max-w-[250px] items-center gap-1.5 text-xs text-muted-foreground">
                             <MapPin className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate" title={pedido.endereco}>{pedido.endereco}</span>
                           </div>
@@ -1476,40 +1442,33 @@ export default function Pedidos() {
                             <span className="text-xs text-muted-foreground">-</span>
                           )}
 
-                          <div className="mt-2 text-xs">
-                            {podeEditarCanalPedido(pedido) ? (
-                              <Popover open={editandoCanalId === `d-${pedido.id}`} onOpenChange={(open) => setEditandoCanalId(open ? `d-${pedido.id}` : null)}>
-                                <PopoverTrigger asChild>
-                                  <span
-                                    role="button"
-                                    tabIndex={0}
-                                    className="inline-flex cursor-pointer items-center gap-1 rounded-sm outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring"
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === " ") {
-                                        e.preventDefault();
-                                        setEditandoCanalId(`d-${pedido.id}`);
-                                      }
-                                    }}
-                                  >
-                                    <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>
-                                    <Pencil className="h-3 w-3 text-muted-foreground" />
-                                  </span>
-                                </PopoverTrigger>
-                                <PopoverContent className="z-50 w-72 border border-border bg-popover p-0 shadow-lg" align="start">
-                                  {renderCanalCommand(pedido.id, pedido.canal_venda)}
-                                </PopoverContent>
-                              </Popover>
-                            ) : (
-                              <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>
-                            )}
-                          </div>
                         </TableCell>
-                        <TableCell className="align-top text-right">
-                          <p className="whitespace-nowrap text-sm font-bold tabular-nums text-foreground">R$ {pedido.valor.toFixed(2)}</p>
+                        <TableCell className="align-top">
+                          {podeEditarCanalPedido(pedido) ? (
+                            <Popover open={editandoCanalId === `d-${pedido.id}`} onOpenChange={(open) => setEditandoCanalId(open ? `d-${pedido.id}` : null)}>
+                              <PopoverTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="inline-flex max-w-[140px] items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                  title={pedido.canal_venda || "Canal não informado"}
+                                >
+                                  <span className="truncate">{pedido.canal_venda || "-"}</span>
+                                  <Pencil className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="z-50 w-72 border border-border bg-popover p-0 shadow-lg" align="start">
+                                {renderCanalCommand(pedido.id, pedido.canal_venda)}
+                              </PopoverContent>
+                            </Popover>
+                          ) : (
+                            <span className="block max-w-[140px] truncate text-xs font-medium text-foreground" title={pedido.canal_venda || ""}>{pedido.canal_venda || "-"}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="align-top">
                           <button
                             type="button"
                             onClick={() => { setPedidoEditarPagamento(pedido); setEditarPagamentoAberto(true); }}
-                            className="group mt-2 inline-flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="group inline-flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             title="Clique para editar forma de pagamento, operadora ou chave PIX"
                           >
                             {pedido.forma_pagamento ? (
@@ -1528,6 +1487,9 @@ export default function Pedidos() {
                         </TableCell>
                         <TableCell className="align-top">
                           <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
+                        </TableCell>
+                        <TableCell className="align-top text-right">
+                          <p className="whitespace-nowrap text-sm font-bold tabular-nums text-foreground">R$ {pedido.valor.toFixed(2)}</p>
                         </TableCell>
                         <TableCell className="pr-3 text-right align-top">
                           <DropdownMenu>
