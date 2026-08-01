@@ -320,17 +320,47 @@ export default function AdminUnidades() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openMigrate(u)}
-                          title="Promover a empresa independente"
-                          className="text-xs gap-1"
-                        >
-                          <ArrowRightLeft className="h-3.5 w-3.5" />
-                          Migrar
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openMigrate(u)}
+                            title="Promover a empresa independente"
+                            className="text-xs gap-1"
+                          >
+                            <ArrowRightLeft className="h-3.5 w-3.5" />
+                            Migrar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleAtivo(u)}
+                            disabled={togglingId === u.id}
+                            title={u.ativo ? "Inativar unidade" : "Reativar unidade"}
+                            className="text-xs gap-1"
+                          >
+                            {togglingId === u.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : u.ativo ? (
+                              <PowerOff className="h-3.5 w-3.5" />
+                            ) : (
+                              <Power className="h-3.5 w-3.5" />
+                            )}
+                            {u.ativo ? "Inativar" : "Reativar"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeletingUnidade(u)}
+                            title="Excluir unidade"
+                            className="text-xs gap-1 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Excluir
+                          </Button>
+                        </div>
                       </TableCell>
+
                     </TableRow>
                   ))
                 )}
