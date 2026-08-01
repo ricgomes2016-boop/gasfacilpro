@@ -322,29 +322,29 @@ export default function CentralAtendimento() {
   return (
     <MainLayout>
       <Header title="Central de Atendimento" subtitle="Dashboard operacional em tempo real" />
-      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-5 max-w-[1500px] mx-auto">
 
         {/* Banner de permissão de notificações desktop */}
         {"Notification" in window && Notification.permission === "default" && (
-          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-center justify-between gap-3">
+          <div className="bg-card border border-primary/20 rounded-lg px-4 py-3 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/20 rounded-full">
-                <AlertTriangle className="h-5 w-5 text-primary" />
+              <div className="h-9 w-9 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-4 w-4 text-primary" />
               </div>
               <div>
                 <p className="text-sm font-medium">Ative as notificações desktop</p>
                 <p className="text-xs text-muted-foreground">Receba alertas de novos pedidos mesmo quando a aba não estiver visível.</p>
               </div>
             </div>
-            <Button size="sm" onClick={() => Notification.requestPermission()}>
+            <Button size="sm" className="h-9 rounded-md" onClick={() => Notification.requestPermission()}>
               Ativar
             </Button>
           </div>
         )}
 
         {/* === DASHBOARD KPIs === */}
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-          <Card>
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 xl:grid-cols-6">
+          <Card className="rounded-lg border-border/70 shadow-sm">
             <CardContent className="flex items-center gap-3 p-3">
               <div className="rounded-lg bg-primary/10 p-2">
                 <ShoppingCart className="h-5 w-5 text-primary" />
@@ -356,7 +356,7 @@ export default function CentralAtendimento() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-lg border-border/70 shadow-sm">
             <CardContent className="flex items-center gap-3 p-3">
               <div className="rounded-lg bg-warning/10 p-2">
                 <Timer className="h-5 w-5 text-warning" />
@@ -368,7 +368,7 @@ export default function CentralAtendimento() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-lg border-border/70 shadow-sm">
             <CardContent className="flex items-center gap-3 p-3">
               <div className={`rounded-lg p-2 ${stats.pedidosAtrasados > 0 ? "bg-destructive/10" : "bg-muted"}`}>
                 <AlertTriangle className={`h-5 w-5 ${stats.pedidosAtrasados > 0 ? "text-destructive" : "text-muted-foreground"}`} />
@@ -382,7 +382,7 @@ export default function CentralAtendimento() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-lg border-border/70 shadow-sm">
             <CardContent className="flex items-center gap-3 p-3">
               <div className="rounded-lg bg-success/10 p-2">
                 <Truck className="h-5 w-5 text-success" />
@@ -394,7 +394,7 @@ export default function CentralAtendimento() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-lg border-border/70 shadow-sm">
             <CardContent className="flex items-center gap-3 p-3">
               <div className="rounded-lg bg-destructive/10 p-2">
                 <PhoneMissed className="h-5 w-5 text-destructive" />
@@ -406,7 +406,7 @@ export default function CentralAtendimento() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-lg border-border/70 shadow-sm">
             <CardContent className="flex items-center gap-3 p-3">
               <div className="rounded-lg bg-accent p-2">
                 <BarChart3 className="h-5 w-5 text-accent-foreground" />
@@ -420,24 +420,24 @@ export default function CentralAtendimento() {
         </div>
 
         {/* === TABS === */}
-        <Tabs defaultValue="fila">
-          <TabsList className="w-full sm:w-auto">
-            <TabsTrigger value="fila" className="gap-1.5">
+        <Tabs defaultValue="fila" className="space-y-4">
+          <TabsList className="h-auto w-full justify-start overflow-x-auto rounded-lg bg-muted/60 p-1">
+            <TabsTrigger value="fila" className="h-9 rounded-md gap-1.5 whitespace-nowrap">
               <ShoppingCart className="h-3.5 w-3.5" />
               Fila de Pedidos
               {stats.pedidosNaFila > 0 && (
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">{stats.pedidosNaFila}</Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="chamadas" className="gap-1.5">
+            <TabsTrigger value="chamadas" className="h-9 rounded-md gap-1.5 whitespace-nowrap">
               <Phone className="h-3.5 w-3.5" />
               Chamadas
             </TabsTrigger>
-            <TabsTrigger value="chat" className="gap-1.5">
+            <TabsTrigger value="chat" className="h-9 rounded-md gap-1.5 whitespace-nowrap">
               <MessageSquare className="h-3.5 w-3.5" />
               Chat WhatsApp
             </TabsTrigger>
-            <TabsTrigger value="whatsapp" className="gap-1.5">
+            <TabsTrigger value="whatsapp" className="h-9 rounded-md gap-1.5 whitespace-nowrap">
               <Zap className="h-3.5 w-3.5" />
               Respostas Rápidas
             </TabsTrigger>
@@ -445,18 +445,78 @@ export default function CentralAtendimento() {
 
           {/* === FILA DE PEDIDOS === */}
           <TabsContent value="fila" className="mt-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Pedidos Ativos</CardTitle>
+            <Card className="rounded-lg border-border/70 shadow-sm overflow-hidden">
+              <CardHeader className="pb-3 border-b bg-muted/20">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <span>Pedidos Ativos</span>
+                  <Badge variant="outline" className="rounded-md">{pedidosFila.length} na fila</Badge>
+                </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 {pedidosFila.length === 0 ? (
                   <div className="text-center py-8">
                     <CheckCircle2 className="h-8 w-8 text-success mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">Nenhum pedido na fila! 🎉</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <>
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full min-w-[900px] text-sm">
+                      <thead className="bg-muted/45">
+                        <tr className="border-b text-[11px] uppercase tracking-wide text-muted-foreground">
+                          <th className="px-4 py-3 text-left font-semibold">Pedido</th>
+                          <th className="px-4 py-3 text-left font-semibold">Cliente</th>
+                          <th className="px-4 py-3 text-left font-semibold">Status</th>
+                          <th className="px-4 py-3 text-left font-semibold">Tempo</th>
+                          <th className="px-4 py-3 text-left font-semibold">Canal</th>
+                          <th className="px-4 py-3 text-left font-semibold">Entregador</th>
+                          <th className="px-4 py-3 text-right font-semibold">Valor</th>
+                          <th className="px-4 py-3 text-right font-semibold">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pedidosFila.map((pedido) => {
+                          const mins = differenceInMinutes(new Date(), new Date(pedido.created_at));
+                          const atrasado = pedido.status === "pendente" && mins > 30;
+                          const statusInfo = pedidoStatusConfig[pedido.status] || pedidoStatusConfig.pendente;
+                          return (
+                            <tr key={pedido.id} className={`border-b last:border-b-0 hover:bg-muted/25 transition-colors ${atrasado ? "bg-destructive/5" : ""}`}>
+                              <td className="px-4 py-3 font-mono text-xs text-muted-foreground">#{pedido.id.slice(0, 8)}</td>
+                              <td className="px-4 py-3">
+                                <p className="font-semibold text-foreground truncate max-w-[220px]">{(pedido.clientes as any)?.nome || "Cliente"}</p>
+                                {pedido.endereco_entrega && <p className="text-xs text-muted-foreground truncate max-w-[260px]">{pedido.endereco_entrega}</p>}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-xs font-semibold">
+                                  <span className={`h-2 w-2 rounded-full ${statusInfo.color}`} />
+                                  {statusInfo.label}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`inline-flex items-center gap-1 text-xs font-medium ${atrasado ? "text-destructive" : "text-muted-foreground"}`}>
+                                  <Clock className="h-3.5 w-3.5" />
+                                  {mins}min
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-xs font-medium text-muted-foreground">{pedido.canal_venda || "Manual"}</td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">{(pedido.entregadores as any)?.nome || "Sem entregador"}</td>
+                              <td className="px-4 py-3 text-right font-bold tabular-nums">
+                                {Number(pedido.valor_total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex justify-end">
+                                  <Button size="sm" variant="outline" className="h-8 rounded-md text-xs" onClick={() => navigate(`/vendas/pedidos?pedido=${pedido.id}`)}>
+                                    Ver pedido
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="md:hidden divide-y">
                     {pedidosFila.map((pedido) => {
                       const mins = differenceInMinutes(new Date(), new Date(pedido.created_at));
                       const atrasado = pedido.status === "pendente" && mins > 30;
@@ -464,50 +524,39 @@ export default function CentralAtendimento() {
                       return (
                         <div
                           key={pedido.id}
-                          className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                            atrasado ? "border-destructive/50 bg-destructive/5" : "border-border"
+                          className={`p-4 transition-colors ${
+                            atrasado ? "bg-destructive/5" : "bg-card"
                           }`}
                         >
-                          <div className={`h-2.5 w-2.5 rounded-full ${statusInfo.color} flex-shrink-0`} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium text-sm truncate">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-mono text-[11px] text-muted-foreground">#{pedido.id.slice(0, 8)}</p>
+                              <span className="font-semibold text-sm block truncate">
                                 {(pedido.clientes as any)?.nome || "Cliente"}
                               </span>
-                              <Badge variant="outline" className="text-xs">{statusInfo.label}</Badge>
-                              {atrasado && (
-                                <Badge variant="destructive" className="text-xs gap-1">
-                                  <AlertTriangle className="h-3 w-3" />
-                                  {mins}min
-                                </Badge>
-                              )}
+                              {pedido.endereco_entrega && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{pedido.endereco_entrega}</p>}
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                              <span>{format(new Date(pedido.created_at), "HH:mm")}</span>
-                              <span>R$ {Number(pedido.valor_total).toFixed(2)}</span>
-                              {pedido.canal_venda && <span>{pedido.canal_venda}</span>}
-                              {(pedido.entregadores as any)?.nome && (
-                                <span className="flex items-center gap-1">
-                                  <Truck className="h-3 w-3" />
-                                  {(pedido.entregadores as any).nome}
-                                </span>
-                              )}
-                            </div>
+                            <Badge variant={atrasado ? "destructive" : "outline"} className="rounded-md text-xs shrink-0">{atrasado ? `${mins}min` : statusInfo.label}</Badge>
                           </div>
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-xs h-7"
-                              onClick={() => navigate(`/vendas/pedidos?pedido=${pedido.id}`)}
-                            >
-                              Ver
-                            </Button>
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                            <span>{format(new Date(pedido.created_at), "HH:mm")}</span>
+                            <span className="text-right font-bold text-foreground">{Number(pedido.valor_total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                            <span>{pedido.canal_venda || "Manual"}</span>
+                            <span className="text-right">{(pedido.entregadores as any)?.nome || "Sem entregador"}</span>
                           </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-3 h-9 w-full rounded-md text-xs"
+                            onClick={() => navigate(`/vendas/pedidos?pedido=${pedido.id}`)}
+                          >
+                            Ver pedido
+                          </Button>
                         </div>
                       );
                     })}
                   </div>
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -515,20 +564,20 @@ export default function CentralAtendimento() {
 
           {/* === CHAMADAS === */}
           <TabsContent value="chamadas" className="mt-4 space-y-4">
-            <Card>
-              <CardContent className="pt-4">
+            <Card className="rounded-lg border-border/70 shadow-sm">
+              <CardContent className="p-3">
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Buscar por telefone ou nome..."
-                      className="pl-9"
+                      className="h-9 rounded-md pl-9"
                       value={busca}
                       onChange={(e) => setBusca(e.target.value)}
                     />
                   </div>
                   <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                    <SelectTrigger className="w-full sm:w-[160px]">
+                    <SelectTrigger className="h-9 rounded-md w-full sm:w-[160px]">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -540,7 +589,7 @@ export default function CentralAtendimento() {
                     </SelectContent>
                   </Select>
                   <Select value={periodo} onValueChange={setPeriodo}>
-                    <SelectTrigger className="w-full sm:w-[140px]">
+                    <SelectTrigger className="h-9 rounded-md w-full sm:w-[140px]">
                       <SelectValue placeholder="Período" />
                     </SelectTrigger>
                     <SelectContent>
@@ -553,14 +602,78 @@ export default function CentralAtendimento() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="pt-4">
+            <Card className="rounded-lg border-border/70 shadow-sm overflow-hidden">
+              <CardContent className="p-0">
                 {loading ? (
                   <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
                 ) : chamadasFiltradas.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">Nenhuma chamada no período</p>
                 ) : (
-                  <div className="space-y-1">
+                  <>
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full min-w-[960px] text-sm">
+                      <thead className="bg-muted/45">
+                        <tr className="border-b text-[11px] uppercase tracking-wide text-muted-foreground">
+                          <th className="px-4 py-3 text-left font-semibold">Canal</th>
+                          <th className="px-4 py-3 text-left font-semibold">Cliente</th>
+                          <th className="px-4 py-3 text-left font-semibold">Telefone</th>
+                          <th className="px-4 py-3 text-left font-semibold">BINA</th>
+                          <th className="px-4 py-3 text-left font-semibold">Status</th>
+                          <th className="px-4 py-3 text-left font-semibold">Duração</th>
+                          <th className="px-4 py-3 text-left font-semibold">Quando</th>
+                          <th className="px-4 py-3 text-right font-semibold">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {chamadasFiltradas.map((chamada) => {
+                          const status = statusConfig[chamada.status] || statusConfig.recebida;
+                          const dur = formatDuracao(chamada.duracao_segundos);
+                          const isWhatsapp = chamada.tipo === "whatsapp";
+                          return (
+                            <tr key={chamada.id} className="border-b last:border-b-0 hover:bg-muted/25 transition-colors">
+                              <td className="px-4 py-3">
+                                <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold ${isWhatsapp ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
+                                  {isWhatsapp ? <MessageSquare className="h-3.5 w-3.5" /> : <Phone className="h-3.5 w-3.5" />}
+                                  {isWhatsapp ? "WhatsApp" : "Telefone"}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <p className="font-semibold text-foreground truncate max-w-[220px]">{chamada.cliente_nome || "Desconhecido"}</p>
+                                {chamada.observacoes && <p className="text-xs text-muted-foreground truncate max-w-[260px]">{chamada.observacoes}</p>}
+                              </td>
+                              <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{formatDid(chamada.telefone)}</td>
+                              <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{formatDid(chamada.did)}</td>
+                              <td className="px-4 py-3"><Badge variant={status.variant} className="rounded-md text-xs">{status.label}</Badge></td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">{dur || "-"}</td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">{formatDistanceToNow(new Date(chamada.created_at), { addSuffix: true, locale: ptBR })}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex justify-end gap-1">
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-md" onClick={() => openWhatsappFor(chamada.telefone || "", chamada.cliente_nome)} title="Enviar WhatsApp">
+                                    <Zap className="h-3.5 w-3.5 text-success" />
+                                  </Button>
+                                  {chamada.status !== "retornar" && chamada.status !== "atendida" && (
+                                    <Button size="icon" variant="ghost" className="h-8 w-8 rounded-md" onClick={() => handleMarcarRetornar(chamada.id)} title="Marcar retorno">
+                                      <RotateCcw className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                  <Button size="sm" variant="outline" className="h-8 rounded-md text-xs" onClick={() => handleNovaVenda(chamada)}>
+                                    <ShoppingCart className="h-3.5 w-3.5 mr-1" />
+                                    Venda
+                                  </Button>
+                                  {chamada.cliente_id && (
+                                    <Button size="icon" variant="ghost" className="h-8 w-8 rounded-md" onClick={() => navigate(`/clientes/cadastro/${chamada.cliente_id}`)} title="Abrir cliente">
+                                      <User className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="md:hidden divide-y">
                     {chamadasFiltradas.map((chamada, idx) => {
                       const status = statusConfig[chamada.status] || statusConfig.recebida;
                       const dur = formatDuracao(chamada.duracao_segundos);
@@ -654,6 +767,7 @@ export default function CentralAtendimento() {
                       );
                     })}
                   </div>
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -661,23 +775,23 @@ export default function CentralAtendimento() {
 
           {/* === RESPOSTAS RÁPIDAS WHATSAPP === */}
           <TabsContent value="chat" className="mt-4">
-            <Card>
-              <CardHeader className="pb-3">
+            <Card className="rounded-lg border-border/70 shadow-sm overflow-hidden">
+              <CardHeader className="pb-3 border-b bg-muted/20">
                 <CardTitle className="text-base flex items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-success" />
                   Chat WhatsApp · (43) 3524-1094
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <WhatsAppInbox className="h-[600px]" />
+              <CardContent className="p-0">
+                <WhatsAppInbox className="h-[calc(100vh-17rem)] min-h-[560px] border-0 rounded-none" />
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="whatsapp" className="mt-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader className="pb-3">
+              <Card className="rounded-lg border-border/70 shadow-sm">
+                <CardHeader className="pb-3 border-b bg-muted/20">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Zap className="h-5 w-5 text-success" />
                     Templates de Mensagem
@@ -688,7 +802,7 @@ export default function CentralAtendimento() {
                     <button
                       key={tmpl.id}
                       onClick={() => handleSelectTemplate(tmpl.id)}
-                      className={`w-full text-left p-3 rounded-lg border transition-colors text-sm ${
+                      className={`w-full text-left p-3 rounded-md border transition-colors text-sm ${
                         selectedTemplate === tmpl.id
                           ? "border-primary bg-primary/5"
                           : "border-border hover:bg-muted/50"
@@ -701,8 +815,8 @@ export default function CentralAtendimento() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="pb-3">
+              <Card className="rounded-lg border-border/70 shadow-sm">
+                <CardHeader className="pb-3 border-b bg-muted/20">
                   <CardTitle className="text-base">Enviar Mensagem</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -710,6 +824,7 @@ export default function CentralAtendimento() {
                     <label className="text-sm font-medium">Telefone do Destinatário</label>
                     <Input
                       placeholder="(XX) XXXXX-XXXX"
+                      className="rounded-md"
                       value={whatsappDestinatario}
                       onChange={(e) => setWhatsappDestinatario(e.target.value)}
                     />
@@ -718,6 +833,7 @@ export default function CentralAtendimento() {
                     <label className="text-sm font-medium">Mensagem</label>
                     <Textarea
                       rows={5}
+                      className="rounded-md"
                       value={whatsappMsg}
                       onChange={(e) => setWhatsappMsg(e.target.value)}
                       placeholder="Selecione um template ou escreva sua mensagem..."
@@ -727,11 +843,11 @@ export default function CentralAtendimento() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button className="flex-1 gap-2" onClick={handleSendWhatsapp}>
+                    <Button className="flex-1 gap-2 rounded-md" onClick={handleSendWhatsapp}>
                       <Send className="h-4 w-4" />
                       Enviar via WhatsApp
                     </Button>
-                    <Button variant="outline" size="icon" onClick={handleCopyWhatsapp}>
+                    <Button variant="outline" size="icon" className="rounded-md" onClick={handleCopyWhatsapp}>
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
