@@ -513,6 +513,42 @@ export default function AdminUnidades() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Delete Dialog */}
+      <AlertDialog open={!!deletingUnidade} onOpenChange={(o) => !o && setDeletingUnidade(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Excluir unidade
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                A unidade <strong>"{deletingUnidade?.nome}"</strong> da empresa{" "}
+                <strong>{deletingUnidade ? getEmpresaNome(deletingUnidade.empresa_id) : ""}</strong> será excluída
+                permanentemente.
+              </span>
+              <span className="block font-semibold text-destructive">Esta ação não pode ser desfeita.</span>
+              <span className="block text-xs">
+                Se a unidade já tiver movimentações (pedidos, clientes, estoque), a exclusão será bloqueada — nesse caso
+                use a opção <strong>Inativar</strong>.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Excluir definitivamente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
       {/* Global loading overlay */}
       {migrating && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
