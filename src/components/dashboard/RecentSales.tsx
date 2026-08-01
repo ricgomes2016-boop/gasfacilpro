@@ -100,8 +100,8 @@ export function RecentSales() {
                   <p className="text-sm text-muted-foreground">{sale.produtos}</p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <Badge variant={statusConfig[sale.status].variant}>
-                    {statusConfig[sale.status].label}
+                  <Badge variant={sale.statusVariant}>
+                    {sale.statusLabel}
                   </Badge>
                   <div className="text-right">
                     <p className="font-semibold text-foreground">
