@@ -41,46 +41,9 @@ export function RemindersWidget() {
       const em7dias = addDays(hoje, 7).toISOString().split("T")[0];
       const em3dias = addDays(hoje, 3).toISOString().split("T")[0];
 
-      // 1. Aniversariantes da semana
-      const mesAtual = hoje.getMonth() + 1;
-      const diaAtual = hoje.getDate();
-      const diaFim = addDays(hoje, 7).getDate();
-      const mesFim = addDays(hoje, 7).getMonth() + 1;
+      // 1. (Aniversariantes removido: a base de clientes não possui data de nascimento,
+      //    o lembrete anterior usava a data de cadastro e gerava informação incorreta.)
 
-      let clientesQuery = supabase
-        .from("clientes")
-        .select("id, nome, created_at, data_nascimento")
-        .eq("ativo", true)
-        .limit(500);
-      if (unidadeAtual?.id) clientesQuery = clientesQuery.eq("unidade_id", unidadeAtual.id);
-      const { data: clientes } = await clientesQuery;
-
-      // We check birthdays via created_at anniversary (common in gas businesses)
-      // In a real scenario, a "data_nascimento" column would be better
-      if (clientes) {
-        const aniversariantes = clientes.filter((c: any) => {
-          if (!c.data_nascimento) return false;
-          const nasc = new Date(`${String(c.data_nascimento).slice(0, 10)}T12:00:00`);
-          if (Number.isNaN(nasc.getTime())) return false;
-          const anivEsteAno = new Date(hoje.getFullYear(), nasc.getMonth(), nasc.getDate());
-          const diff = differenceInDays(anivEsteAno, hoje);
-          return diff >= 0 && diff <= 7;
-        });
-        if (aniversariantes.length > 0) {
-          items.push({
-            id: "aniversarios",
-            icon: Cake,
-            iconColor: "text-primary",
-            bgColor: "bg-primary/10",
-            title: `${aniversariantes.length} aniversariante${aniversariantes.length > 1 ? "s" : ""} esta semana`,
-            description: aniversariantes.slice(0, 3).map(c => c.nome.split(" ")[0]).join(", ") +
-              (aniversariantes.length > 3 ? ` e +${aniversariantes.length - 3}` : ""),
-            badge: "Clientes",
-            badgeVariant: "secondary",
-            link: "/clientes/cadastro",
-          });
-        }
-      }
 
       // 2. Contas a pagar — vencidas + próximos 3 dias
       let contasQuery = supabase
