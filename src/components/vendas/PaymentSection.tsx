@@ -32,6 +32,7 @@ export interface Pagamento {
   operadora_id?: string;
   operadora_nome?: string;
   conta_bancaria_id?: string;
+  parcelas?: number;
   // Cobrança extra associada (ex.: taxa de entrega do Gás do Povo)
   // Quando presente, aumenta o total efetivo da venda em `taxa_extra` e
   // um pagamento adicional deve ser lançado para cobrir esse valor.
@@ -85,6 +86,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   const [pendingOperadora, setPendingOperadora] = useState<{ id: string; nome: string } | null>(null);
   const [pendingContaBancaria, setPendingContaBancaria] = useState<string | null>(null);
   const [pendingCardInfo, setPendingCardInfo] = useState<string | null>(null);
+  const [pendingParcelas, setPendingParcelas] = useState<number | undefined>(undefined);
 
   const { unidadeAtual } = useUnidade();
   const effectiveUnidadeNome = unidadeId ? undefined : unidadeAtual?.nome;
@@ -199,6 +201,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     setPendingOperadora(null);
     setPendingContaBancaria(null);
     setPendingCardInfo(null);
+    setPendingParcelas(undefined);
   };
 
   const addPagamento = () => {
@@ -245,6 +248,9 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     }
     if (pendingContaBancaria) {
       novoPagamento.conta_bancaria_id = pendingContaBancaria;
+    }
+    if (forma === "cartao_credito") {
+      novoPagamento.parcelas = pendingParcelas || 1;
     }
 
     const taxaNum = forma === "gas_do_povo" ? parseCurrency(taxaEntregaGasPovo) : 0;
@@ -355,7 +361,10 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
                         <p className="text-xs text-muted-foreground">Venc: {format(new Date(pag.data_vencimento_fiado + "T12:00:00"), "dd/MM/yyyy")}</p>
                       )}
                       {pag.operadora_nome && (
-                        <p className="text-xs text-muted-foreground">Operadora: {pag.operadora_nome}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Operadora: {pag.operadora_nome}
+                          {pag.forma === "cartao_credito" && pag.parcelas ? ` · Crédito ${pag.parcelas}x` : ""}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -572,10 +581,13 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
         valor={parseCurrency(valorDisplay) || diferenca}
         tipoCartao={cardTipoMap[forma] || "debito"}
         unidadeId={unidadeId}
+        parcelasInicial={pendingParcelas || 1}
         onSelect={(op) => {
           setPendingOperadora({ id: op.id, nome: op.nome });
           if (op.conta_bancaria_id) setPendingContaBancaria(op.conta_bancaria_id);
-          setPendingCardInfo(`${op.nome} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo} • Líq. R$ ${op.valorLiquido.toFixed(2)}`);
+          setPendingParcelas(op.parcelas);
+          const parcelasInfo = forma === "cartao_credito" ? ` • Crédito ${op.parcelas || 1}x` : "";
+          setPendingCardInfo(`${op.nome}${parcelasInfo} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo} • Líq. R$ ${op.valorLiquido.toFixed(2)}`);
         }}
       />
     </>

@@ -18,6 +18,7 @@ export interface PagamentoRoteamento {
   operadora_id?: string;
   terminal_id?: string;
   conta_bancaria_id?: string;
+  parcelas?: number;
 }
 
 interface RotearPagamentosParams {
@@ -116,7 +117,7 @@ export async function resolverContaDestino(params: {
  * Se operadoraId for fornecido (escolha do atendente/entregador), usa essa.
  * Caso contrário, cai na primeira ativa da unidade.
  */
-async function getOperadoraConfig(unidadeId: string | null, tipo: string, operadoraId?: string | null) {
+async function getOperadoraConfig(unidadeId: string | null, tipo: string, operadoraId?: string | null, parcelas = 1) {
   let query = supabase
     .from("operadoras_cartao")
     .select("id, nome, taxa_debito, taxa_credito_vista, taxa_credito_parcelado, prazo_debito, prazo_credito, taxa_pix, prazo_pix, conta_bancaria_id");
@@ -140,7 +141,7 @@ async function getOperadoraConfig(unidadeId: string | null, tipo: string, operad
     taxa = Number(data.taxa_debito) || 0;
     prazo = Number(data.prazo_debito) || 1;
   } else {
-    taxa = Number(data.taxa_credito_vista) || 0;
+    taxa = parcelas > 1 ? Number(data.taxa_credito_parcelado) || 0 : Number(data.taxa_credito_vista) || 0;
     prazo = Number(data.prazo_credito) || 30;
   }
 
@@ -306,7 +307,10 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
         // D+N: cron diário liquida no vencimento.
         promises.push(
           (async () => {
-            const op = await getOperadoraConfig(unidadeId || null, pag.forma, pag.operadora_id);
+            const formaNorm = pag.forma === "debito" ? "cartao_debito"
+              : pag.forma === "credito" ? "cartao_credito" : pag.forma;
+            const parcelas = formaNorm === "cartao_credito" ? Math.max(1, Number(pag.parcelas) || 1) : 1;
+            const op = await getOperadoraConfig(unidadeId || null, pag.forma, pag.operadora_id, parcelas);
             const taxa = op ? op.taxa : 0;
             const prazo = op ? op.prazo : (pag.forma.includes("debito") ? 1 : 30);
             const valorTaxa = pag.valor * (taxa / 100);
@@ -323,14 +327,13 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
               operadoraContaId: op?.conta_bancaria_id || null,
             });
 
-            const formaNorm = pag.forma === "debito" ? "cartao_debito"
-              : pag.forma === "credito" ? "cartao_credito" : pag.forma;
             const liquidaAgora = prazo === 0 && !!contaDestino;
             const vencimento = format(addDays(new Date(), prazo), "yyyy-MM-dd");
+            const descricaoParcelas = formaNorm === "cartao_credito" && parcelas > 1 ? ` ${parcelas}x` : "";
 
             await insertContasReceber({
               cliente: op?.nome || clienteNome || "Operadora Cartão",
-              descricao: `${tipoLabel} - Venda #${pedidoRef}`,
+              descricao: `${tipoLabel}${descricaoParcelas} - Venda #${pedidoRef}`,
               valor: pag.valor,
               vencimento,
               status: liquidaAgora ? "recebida" : "pendente",
@@ -342,6 +345,8 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
               taxa_percentual: taxa,
               valor_taxa: valorTaxa,
               valor_liquido: valorLiquido,
+              parcela_atual: 1,
+              total_parcelas: parcelas,
               cliente_id: clienteId || null,
               conta_bancaria_destino_id: contaDestino,
             });

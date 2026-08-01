@@ -109,12 +109,15 @@ export function OrderSummary({
               <p className="text-xs text-muted-foreground uppercase tracking-wide">
                 Pagamentos
               </p>
-              {pagamentos.map((p) => (
+              {pagamentos.map((p) => {
+                const parcelasInfo = p.forma === "cartao_credito" && p.parcelas ? ` ${p.parcelas}x` : "";
+                return (
                 <div key={p.id} className="flex justify-between gap-2 text-sm w-full min-w-0">
-                  <span className="capitalize truncate min-w-0 flex-1">{p.forma.replace("_", " ")}</span>
+                  <span className="capitalize truncate min-w-0 flex-1">{p.forma.replace("_", " ")}{parcelasInfo}</span>
                   <span className="shrink-0">R$ {p.valor.toFixed(2)}</span>
                 </div>
-              ))}
+                );
+              })}
               <div className="flex justify-between text-sm font-medium pt-1">
                 <span>Total Pago</span>
                 <span className={pagamentoCompleto ? "text-success" : "text-destructive"}>

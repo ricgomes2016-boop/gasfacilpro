@@ -115,6 +115,7 @@ export function EditarPagamentoPedidoDialog({ open, onOpenChange, pedido, onSave
           data_vencimento_fiado: p.data_vencimento_fiado,
           operadora_id: p.operadora_id,
           conta_bancaria_id: p.conta_bancaria_id,
+          parcelas: p.parcelas,
         })),
         unidadeId: unidadeAtual?.id ?? null,
         entregadorId: pedido.entregador_id ?? null,

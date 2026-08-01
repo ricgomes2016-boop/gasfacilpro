@@ -172,6 +172,8 @@ export async function liquidarRecebivel(
           taxa_percentual: taxa,
           valor_taxa: valorTaxa,
           valor_liquido: valorLiquido,
+          parcela_atual: 1,
+          total_parcelas: linha.forma === "cartao_credito" ? Math.max(1, Number(linha.parcelas) || 1) : 1,
           cliente_id: conta.cliente_id || null,
           conta_bancaria_destino_id: contaDestino,
         } as any);

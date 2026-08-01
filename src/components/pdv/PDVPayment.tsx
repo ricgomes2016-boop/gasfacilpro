@@ -21,6 +21,7 @@ export interface PDVPagamento {
   operadora_id?: string;
   conta_bancaria_id?: string;
   info?: string;
+  parcelas?: number;
   /** Cobrança extra (ex.: taxa de entrega Gás do Povo) associada a este pagamento. */
   taxa_extra?: number;
 }
@@ -53,7 +54,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
   const [taxaEntregaGasPovo, setTaxaEntregaGasPovo] = useState("");
   const [pixModalOpen, setPixModalOpen] = useState(false);
   const [cardModalOpen, setCardModalOpen] = useState(false);
-  const [pendingExtras, setPendingExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string; info?: string } | null>(null);
+  const [pendingExtras, setPendingExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string; info?: string; parcelas?: number } | null>(null);
   const { unidadeAtual } = useUnidade();
   const { toast } = useToast();
 
@@ -197,6 +198,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
         operadora_id: pendingExtras?.operadora_id,
         conta_bancaria_id: pendingExtras?.conta_bancaria_id,
         info: pendingExtras?.info,
+        parcelas: formaPagamento === "credito" ? pendingExtras?.parcelas || 1 : undefined,
       },
     ]);
     setPendingExtras(null);
@@ -365,10 +367,14 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
         onClose={() => setCardModalOpen(false)}
         valor={valorParcialNum > 0 ? valorParcialNum : restante}
         tipoCartao={cardTipo}
+        parcelasInicial={pendingExtras?.parcelas || 1}
         onSelect={(op) => {
+          const parcelasInfo = formaPagamento === "credito" ? ` • Crédito ${op.parcelas || 1}x` : "";
           setPendingExtras({
             operadora_id: op.id,
-            info: `${op.nome} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo}`,
+            conta_bancaria_id: op.conta_bancaria_id || undefined,
+            parcelas: formaPagamento === "credito" ? op.parcelas || 1 : undefined,
+            info: `${op.nome}${parcelasInfo} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo}`,
           });
         }}
       />

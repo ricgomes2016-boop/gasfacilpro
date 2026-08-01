@@ -32,7 +32,8 @@ interface CardOperatorSelectorModalProps {
   valor: number;
   tipoCartao: "debito" | "credito" | "pix_maquininha";
   unidadeId?: string;
-  onSelect: (operadora: { id: string; nome: string; taxa: number; prazo: number; valorLiquido: number; conta_bancaria_id?: string | null }) => void;
+  parcelasInicial?: number;
+  onSelect: (operadora: { id: string; nome: string; taxa: number; prazo: number; valorLiquido: number; conta_bancaria_id?: string | null; parcelas?: number }) => void;
 }
 
 export function CardOperatorSelectorModal({
@@ -41,10 +42,12 @@ export function CardOperatorSelectorModal({
   valor,
   tipoCartao,
   unidadeId: externalUnidadeId,
+  parcelasInicial = 1,
   onSelect,
 }: CardOperatorSelectorModalProps) {
   const [operadoras, setOperadoras] = useState<Operadora[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [parcelas, setParcelas] = useState(parcelasInicial);
   const [loading, setLoading] = useState(true);
   const { unidadeAtual } = useUnidade();
 
@@ -52,6 +55,7 @@ export function CardOperatorSelectorModal({
 
   useEffect(() => {
     if (!open || !resolvedUnidadeId) return;
+    setParcelas(tipoCartao === "credito" ? Math.max(1, parcelasInicial || 1) : 1);
     setLoading(true);
     supabase
       .from("operadoras_cartao")
@@ -65,14 +69,17 @@ export function CardOperatorSelectorModal({
         else setSelected(null);
         setLoading(false);
       });
-  }, [open, resolvedUnidadeId]);
+  }, [open, resolvedUnidadeId, tipoCartao, parcelasInicial]);
 
   const getTaxaEPrazo = (op: Operadora) => {
     switch (tipoCartao) {
       case "debito":
         return { taxa: Number(op.taxa_debito) || 0, prazo: op.prazo_debito || 0 };
       case "credito":
-        return { taxa: Number(op.taxa_credito_vista) || 0, prazo: op.prazo_credito || 0 };
+        return {
+          taxa: parcelas > 1 ? Number(op.taxa_credito_parcelado) || 0 : Number(op.taxa_credito_vista) || 0,
+          prazo: op.prazo_credito || 0,
+        };
       case "pix_maquininha":
         return { taxa: Number(op.taxa_pix) || 0, prazo: op.prazo_pix || 0 };
       default:
@@ -99,6 +106,7 @@ export function CardOperatorSelectorModal({
       prazo,
       valorLiquido,
       conta_bancaria_id: selectedOp.conta_bancaria_id || null,
+      parcelas: tipoCartao === "credito" ? parcelas : undefined,
     });
     onClose();
   };
@@ -121,6 +129,31 @@ export function CardOperatorSelectorModal({
               R$ {valor.toFixed(2)}
             </p>
           </div>
+
+          {tipoCartao === "credito" && (
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Parcelas do crédito
+              </p>
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                  <Button
+                    key={n}
+                    type="button"
+                    variant={parcelas === n ? "default" : "outline"}
+                    size="sm"
+                    className="h-9"
+                    onClick={() => setParcelas(n)}
+                  >
+                    {n}x
+                  </Button>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                1x usa a taxa de crédito à vista; 2x ou mais usa a taxa de crédito parcelado.
+              </p>
+            </div>
+          )}
 
           {loading ? (
             <p className="text-center text-muted-foreground text-sm py-4">Carregando operadoras...</p>
@@ -207,6 +240,12 @@ export function CardOperatorSelectorModal({
                 <span>Taxa ({tipoLabel})</span>
                 <span className="font-semibold">{getTaxaEPrazo(selectedOp).taxa.toFixed(2)}%</span>
               </div>
+              {tipoCartao === "credito" && (
+                <div className="flex justify-between text-sm">
+                  <span>Parcelas</span>
+                  <span className="font-semibold">{parcelas}x</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span>Recebe em</span>
                 <span className="font-semibold">D+{getTaxaEPrazo(selectedOp).prazo}</span>

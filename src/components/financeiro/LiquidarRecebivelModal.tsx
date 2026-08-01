@@ -510,6 +510,7 @@ export function LiquidarRecebivelModal({
           valor={Number(currentCardLinha.valor) || 0}
           tipoCartao={cardModal.tipo}
           unidadeId={conta?.unidade_id || undefined}
+          parcelasInicial={currentCardLinha.parcelas || 1}
           onSelect={(op) => {
             const uid = currentCardLinha._uid;
             updateLinha(uid, {
@@ -518,6 +519,7 @@ export function LiquidarRecebivelModal({
               operadora_taxa: op.taxa,
               operadora_prazo: op.prazo,
               operadora_conta_bancaria_id: op.conta_bancaria_id || null,
+              parcelas: cardModal.tipo === "credito" ? op.parcelas || 1 : undefined,
               _configurado: true,
             });
           }}

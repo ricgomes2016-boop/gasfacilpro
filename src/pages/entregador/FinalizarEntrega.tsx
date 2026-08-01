@@ -46,6 +46,7 @@ interface Pagamento {
   codigo_voucher?: string;
   conta_bancaria_id?: string;
   operadora_id?: string;
+  parcelas?: number;
 }
 
 
@@ -108,7 +109,7 @@ export default function FinalizarEntrega() {
   const [cardModalOpen, setCardModalOpen] = useState(false);
   const [cardModalTipo, setCardModalTipo] = useState<"credito" | "debito" | "pix_maquininha">("credito");
   const [selectedPaymentInfo, setSelectedPaymentInfo] = useState<string | null>(null);
-  const [selectedPaymentExtras, setSelectedPaymentExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string }>({});
+  const [selectedPaymentExtras, setSelectedPaymentExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string; parcelas?: number }>({});
   const [cardPaymentOpen, setCardPaymentOpen] = useState(false);
   const [entregadorIdLocal, setEntregadorIdLocal] = useState<string | null>(null);
   const [dataEntrega, setDataEntrega] = useState(getBrasiliaDateString());
@@ -232,6 +233,9 @@ export default function FinalizarEntrega() {
       }
       if (selectedPaymentExtras.operadora_id) {
         pag.operadora_id = selectedPaymentExtras.operadora_id;
+      }
+      if (novoPagamentoForma === "CartÃ£o CrÃ©dito") {
+        pag.parcelas = selectedPaymentExtras.parcelas || 1;
       }
       setPagamentos((prev) => [...prev, pag]);
 
@@ -958,8 +962,13 @@ export default function FinalizarEntrega() {
         valor={diferenca > 0 ? diferenca : totalItens}
         tipoCartao={cardModalTipo}
         unidadeId={unidadeId || undefined}
+        parcelasInicial={selectedPaymentExtras.parcelas || 1}
         onSelect={(op) => {
-          setSelectedPaymentExtras({ operadora_id: op.id });
+          setSelectedPaymentExtras({
+            operadora_id: op.id,
+            conta_bancaria_id: op.conta_bancaria_id || undefined,
+            parcelas: cardModalTipo === "credito" ? op.parcelas || 1 : undefined,
+          });
           setSelectedPaymentInfo(`${op.nome} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo} • Líq. R$ ${op.valorLiquido.toFixed(2)}`);
         }}
       />

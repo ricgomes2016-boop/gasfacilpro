@@ -448,6 +448,17 @@ export default function EntregadorNovaVenda({ noLayout = false }: EntregadorNova
     try {
       const enderecoCompleto = [cliente.endereco, cliente.numero && `Nº ${cliente.numero}`, cliente.complemento, cliente.bairro].filter(Boolean).join(", ");
 
+      const encodePagamentoMarker = (p: Pagamento) => {
+        const parts: string[] = [];
+        if (p.operadora_id) parts.push(`op:${p.operadora_id}`);
+        if (p.conta_bancaria_id) parts.push(`cta:${p.conta_bancaria_id}`);
+        if (p.forma === "cartao_credito" && p.parcelas && p.parcelas > 1) parts.push(`par:${p.parcelas}`);
+        return parts.length ? ` [${parts.join("|")}]` : "";
+      };
+      const formaPagamentoResumo = pagamentos.length === 1
+        ? `${pagamentos[0].forma}${encodePagamentoMarker(pagamentos[0])}`
+        : pagamentos.map((p) => `${p.forma} R$${p.valor.toFixed(2)}${encodePagamentoMarker(p)}`).join(", ");
+
       const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert({
@@ -456,7 +467,7 @@ export default function EntregadorNovaVenda({ noLayout = false }: EntregadorNova
           unidade_id: entregadorUnidadeId,
           endereco_entrega: enderecoCompleto,
           valor_total: total,
-          forma_pagamento: pagamentos.map(p => p.forma).filter((v, i, a) => a.indexOf(v) === i).join(", "),
+          forma_pagamento: formaPagamentoResumo,
           canal_venda: canalVenda,
           origem_pedido: "app_entregador",
           observacoes: observacao || null,

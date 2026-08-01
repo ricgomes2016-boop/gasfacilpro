@@ -223,7 +223,8 @@ export function generateReceiptPdf(data: ReceiptData): void {
 
   doc.setFont("helvetica", "normal");
   data.pagamentos.forEach((pag) => {
-    doc.text(formatPaymentMethod(pag.forma), marginLeft, yPos);
+    const parcelasInfo = pag.forma === "cartao_credito" && pag.parcelas ? ` ${pag.parcelas}x` : "";
+    doc.text(`${formatPaymentMethod(pag.forma)}${parcelasInfo}`, marginLeft, yPos);
     doc.text(formatCurrency(pag.valor), pageWidth - marginRight, yPos, { align: "right" });
     yPos += 3;
   });

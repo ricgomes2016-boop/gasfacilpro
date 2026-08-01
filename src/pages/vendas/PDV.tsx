@@ -335,7 +335,7 @@ export default function PDV() {
         data: new Date(),
         cliente: { nome: "Consumidor Final", telefone: "", endereco: "Retirada no local" },
         itens,
-        pagamentos: pagamentos.map((p) => ({ id: p.id, forma: p.forma, valor: p.valor })),
+        pagamentos: pagamentos.map((p) => ({ id: p.id, forma: p.forma, valor: p.valor, parcelas: p.parcelas })),
         entregadorNome: null,
         canalVenda: "portaria",
         observacoes: "",
@@ -351,6 +351,7 @@ export default function PDV() {
           valor: p.valor,
           operadora_id: p.operadora_id,
           conta_bancaria_id: p.conta_bancaria_id,
+          parcelas: p.parcelas,
         })),
         unidadeId: unidadeAtual?.id,
       });

@@ -162,6 +162,7 @@ interface PagamentoMultiplo {
   conta_bancaria_id?: string;
   taxa?: number;
   prazo?: number;
+  parcelas?: number;
 }
 
 /** Retorna tipo de cartão se a forma exigir seleção de operadora, senão null. */
@@ -382,15 +383,16 @@ export default function AcertoEntregador() {
   };
 
   // Extrai marker [op:UUID|cta:UUID] do fim da string e retorna {clean, operadora_id, conta_bancaria_id}
-  const stripMarker = (raw: string): { clean: string; operadora_id?: string; conta_bancaria_id?: string } => {
+  const stripMarker = (raw: string): { clean: string; operadora_id?: string; conta_bancaria_id?: string; parcelas?: number } => {
     const m = raw.match(/^(.*?)\s*\[([^\]]+)\]\s*$/);
     if (!m) return { clean: raw };
     const clean = m[1].trim();
-    const out: { clean: string; operadora_id?: string; conta_bancaria_id?: string } = { clean };
+    const out: { clean: string; operadora_id?: string; conta_bancaria_id?: string; parcelas?: number } = { clean };
     m[2].split("|").forEach((tok) => {
       const [k, v] = tok.split(":");
       if (k === "op" && v) out.operadora_id = v;
       if (k === "cta" && v) out.conta_bancaria_id = v;
+      if (k === "par" && v) out.parcelas = Number(v) || undefined;
     });
     return out;
   };
@@ -401,12 +403,12 @@ export default function AcertoEntregador() {
     let pagamentos: PagamentoMultiplo[] = [];
     const fp = entrega.forma_pagamento || "";
     const parseOne = (part: string, fallbackValor: number): PagamentoMultiplo => {
-      const { clean, operadora_id, conta_bancaria_id } = stripMarker(part);
+      const { clean, operadora_id, conta_bancaria_id, parcelas } = stripMarker(part);
       const match = clean.match(/^(.+?)\s+R\$(\d+[\.,]?\d*)$/);
       if (match) {
-        return { forma: match[1].trim(), valor: parseFloat(match[2].replace(",", ".")), operadora_id, conta_bancaria_id };
+        return { forma: match[1].trim(), valor: parseFloat(match[2].replace(",", ".")), operadora_id, conta_bancaria_id, parcelas };
       }
-      return { forma: clean, valor: fallbackValor, operadora_id, conta_bancaria_id };
+      return { forma: clean, valor: fallbackValor, operadora_id, conta_bancaria_id, parcelas };
     };
     if (fp.startsWith("Múltiplos: ")) {
       const parts = fp.replace("Múltiplos: ", "").split(" + ");
@@ -415,8 +417,8 @@ export default function AcertoEntregador() {
       const parts = fp.split(", ");
       pagamentos = parts.map((p: string) => parseOne(p, totalEntrega / parts.length));
     } else if (fp) {
-      const { clean, operadora_id, conta_bancaria_id } = stripMarker(fp);
-      pagamentos = [{ forma: clean, valor: totalEntrega, operadora_id, conta_bancaria_id }];
+      const { clean, operadora_id, conta_bancaria_id, parcelas } = stripMarker(fp);
+      pagamentos = [{ forma: clean, valor: totalEntrega, operadora_id, conta_bancaria_id, parcelas }];
     } else {
       pagamentos = [{ forma: "Dinheiro", valor: totalEntrega }];
     }
@@ -535,6 +537,7 @@ export default function AcertoEntregador() {
         const parts: string[] = [];
         if (p.operadora_id) parts.push(`op:${p.operadora_id}`);
         if (p.conta_bancaria_id) parts.push(`cta:${p.conta_bancaria_id}`);
+        if (p.parcelas && p.parcelas > 1) parts.push(`par:${p.parcelas}`);
         return parts.length ? ` [${parts.join("|")}]` : "";
       };
 
@@ -762,14 +765,15 @@ export default function AcertoEntregador() {
           let pagamentos: PagamentoRoteamento[] = [];
 
           // Extrai marker [op:...|cta:...] anexado à parte
-          const extractMarker = (raw: string): { clean: string; operadora_id?: string; conta_bancaria_id?: string } => {
+          const extractMarker = (raw: string): { clean: string; operadora_id?: string; conta_bancaria_id?: string; parcelas?: number } => {
             const m = raw.match(/^(.*?)\s*\[([^\]]+)\]\s*$/);
             if (!m) return { clean: raw };
-            const out: { clean: string; operadora_id?: string; conta_bancaria_id?: string } = { clean: m[1].trim() };
+            const out: { clean: string; operadora_id?: string; conta_bancaria_id?: string; parcelas?: number } = { clean: m[1].trim() };
             m[2].split("|").forEach((tok) => {
               const [k, v] = tok.split(":");
               if (k === "op" && v) out.operadora_id = v;
               if (k === "cta" && v) out.conta_bancaria_id = v;
+              if (k === "par" && v) out.parcelas = Number(v) || undefined;
             });
             return out;
           };
@@ -778,13 +782,13 @@ export default function AcertoEntregador() {
           if (isMultiplo) {
             const cleanFp = fp.replace(/^m[uú]ltiplos?:\s*/i, "");
             const parts = cleanFp.split(/,\s*|\s*\+\s*/).filter(Boolean);
-            const parsed: { forma: string; valor: number | null; operadora_id?: string; conta_bancaria_id?: string }[] = parts.map((part: string) => {
-              const { clean, operadora_id, conta_bancaria_id } = extractMarker(part.trim());
+            const parsed: { forma: string; valor: number | null; operadora_id?: string; conta_bancaria_id?: string; parcelas?: number }[] = parts.map((part: string) => {
+              const { clean, operadora_id, conta_bancaria_id, parcelas } = extractMarker(part.trim());
               const match = clean.match(/^(.+?)\s+R?\$?\s*([\d.,]+)$/);
               if (match) {
-                return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseValorBR(match[2]), operadora_id, conta_bancaria_id };
+                return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseValorBR(match[2]), operadora_id, conta_bancaria_id, parcelas };
               }
-              return { forma: normalizarFormaPagamento(clean), valor: null, operadora_id, conta_bancaria_id };
+              return { forma: normalizarFormaPagamento(clean), valor: null, operadora_id, conta_bancaria_id, parcelas };
             });
             const somaExplicita = parsed.reduce((a, p) => a + (p.valor ?? 0), 0);
             const semValor = parsed.filter((p) => p.valor === null);
@@ -795,10 +799,11 @@ export default function AcertoEntregador() {
               valor: p.valor !== null ? p.valor : divididoEntreSemValor,
               operadora_id: p.operadora_id,
               conta_bancaria_id: p.conta_bancaria_id,
+              parcelas: p.parcelas,
             }));
           } else if (fp) {
-            const { clean, operadora_id, conta_bancaria_id } = extractMarker(fp);
-            pagamentos = [{ forma: normalizarFormaPagamento(clean), valor: totalEntrega, operadora_id, conta_bancaria_id }];
+            const { clean, operadora_id, conta_bancaria_id, parcelas } = extractMarker(fp);
+            pagamentos = [{ forma: normalizarFormaPagamento(clean), valor: totalEntrega, operadora_id, conta_bancaria_id, parcelas }];
           } else {
             pagamentos = [{ forma: "dinheiro", valor: totalEntrega }];
           }
@@ -1860,6 +1865,7 @@ export default function AcertoEntregador() {
             valor={pg.valor || 0}
             tipoCartao={tipo}
             unidadeId={unidadeAtual?.id}
+            parcelasInicial={pg.parcelas || 1}
             onSelect={(op) => {
               const novos = [...editingEntrega.pagamentos_multiplos];
               novos[cardModalIdx] = {
@@ -1869,6 +1875,7 @@ export default function AcertoEntregador() {
                 conta_bancaria_id: op.conta_bancaria_id || undefined,
                 taxa: op.taxa,
                 prazo: op.prazo,
+                parcelas: tipo === "credito" ? op.parcelas || 1 : undefined,
               };
               setEditingEntrega({ ...editingEntrega, pagamentos_multiplos: novos });
             }}
