@@ -26,68 +26,83 @@ export function DashboardFinancialHero() {
       const sb = supabase as any;
       const iniISO = format(ini, "yyyy-MM-dd");
       const fimISO = format(fim, "yyyy-MM-dd");
+      const abertos = ["pendente", "parcial", "atrasada", "vencida"];
 
       const [receberQ, pagarQ, receitaHojeQ] = await Promise.all([
         sb.from("contas_receber")
           .select("valor, status, vencimento")
-          .or(`unidade_id.eq.${unidadeAtual!.id},unidade_id.is.null`)
-          .in("status", ["pendente", "parcial", "atrasada", "vencida"])
-          .lte("vencimento", fimISO),
+          .eq("unidade_id", unidadeAtual!.id)
+          .in("status", abertos),
         sb.from("contas_pagar")
           .select("valor, status, vencimento")
-          .or(`unidade_id.eq.${unidadeAtual!.id},unidade_id.is.null`)
-          .in("status", ["pendente", "parcial", "atrasada", "vencida"])
-          .lte("vencimento", fimISO),
+          .eq("unidade_id", unidadeAtual!.id)
+          .in("status", abertos),
         sb.from("pedidos")
           .select("valor_total, status")
-          .or(`unidade_id.eq.${unidadeAtual!.id},unidade_id.is.null`)
+          .eq("unidade_id", unidadeAtual!.id)
           .gte("data_entrega", iniISO)
           .lte("data_entrega", fimISO),
       ]);
 
-      const receber = (receberQ.data || []).reduce(
-        (s: number, r: any) => s + Number(r.valor || 0),
-        0
-      );
-      const pagar = (pagarQ.data || []).reduce(
-        (s: number, r: any) => s + Number(r.valor || 0),
-        0
-      );
+      const soma = (rows: any[]) => rows.reduce((s, r) => s + Number(r.valor || 0), 0);
+      const receberRows: any[] = receberQ.data || [];
+      const pagarRows: any[] = pagarQ.data || [];
+
+      const receberVencidos = soma(receberRows.filter((r) => r.vencimento < iniISO));
+      const receberHoje = soma(receberRows.filter((r) => r.vencimento === iniISO));
+      const receberTotal = soma(receberRows);
+
+      const pagarVencidos = soma(pagarRows.filter((r) => r.vencimento < iniISO));
+      const pagarHoje = soma(pagarRows.filter((r) => r.vencimento === iniISO));
+      const pagarTotal = soma(pagarRows);
+
       const receitaHoje = (receitaHojeQ.data || [])
         .filter((p: any) => ["entregue", "finalizado", "pago_cartao"].includes(p.status))
         .reduce((s: number, p: any) => s + Number(p.valor_total || 0), 0);
 
-      return { receber, pagar, receitaHoje };
+      return {
+        receberVencidos, receberHoje, receberTotal,
+        pagarVencidos, pagarHoje, pagarTotal,
+        receitaHoje,
+      };
     },
   });
 
   const cards = [
     {
-      title: "A receber hoje",
-      value: fmtBRL(data?.receber ?? 0),
+      title: "A receber em aberto",
+      value: fmtBRL(data?.receberTotal ?? 0),
       action: "Ir para contas a receber",
       icon: TrendingUp,
       className: "from-[#66bd67] to-[#4d9f52]",
       path: "/financeiro/receber",
+      details: [
+        { label: "Vencidos", value: fmtBRL(data?.receberVencidos ?? 0) },
+        { label: "Vencem hoje", value: fmtBRL(data?.receberHoje ?? 0) },
+      ],
     },
     {
-      title: "A pagar hoje",
-      value: fmtBRL(data?.pagar ?? 0),
+      title: "A pagar em aberto",
+      value: fmtBRL(data?.pagarTotal ?? 0),
       action: "Ir para contas a pagar",
       icon: TrendingDown,
       className: "from-[#c83c35] to-[#a72d28]",
       path: "/financeiro/pagar",
+      details: [
+        { label: "Vencidos", value: fmtBRL(data?.pagarVencidos ?? 0) },
+        { label: "Vencem hoje", value: fmtBRL(data?.pagarHoje ?? 0) },
+      ],
     },
     {
-      title: "Fluxo financeiro",
+      title: "Receita de hoje",
       value: fmtBRL(data?.receitaHoje ?? 0),
       action: "Ir para fluxo de caixa",
       icon: WalletCards,
       className: "from-[#4f68e8] to-[#3041a6]",
       path: "/financeiro/fluxo",
       details: [
-        { label: "Recebimentos", value: fmtBRL(data?.receber ?? 0) },
-        { label: "Pagamentos", value: fmtBRL(data?.pagar ?? 0) },
+        { label: "A receber hoje", value: fmtBRL(data?.receberHoje ?? 0) },
+        { label: "A pagar hoje", value: fmtBRL(data?.pagarHoje ?? 0) },
       ],
     },
   ];

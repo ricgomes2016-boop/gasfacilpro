@@ -10,9 +10,16 @@ import { ShoppingCart } from "lucide-react";
 
 const statusConfig = {
   entregue: { label: "Entregue", variant: "success" as const },
+  finalizado: { label: "Finalizado", variant: "success" as const },
+  pago_cartao: { label: "Pago (cartão)", variant: "success" as const },
+  pago: { label: "Pago", variant: "success" as const },
   pendente: { label: "Pendente", variant: "warning" as const },
+  em_preparo: { label: "Em preparo", variant: "warning" as const },
+  confirmado: { label: "Confirmado", variant: "default" as const },
   em_rota: { label: "Em Rota", variant: "default" as const },
+  saiu_entrega: { label: "Saiu p/ entrega", variant: "default" as const },
   cancelado: { label: "Cancelado", variant: "destructive" as const },
+  devolvido: { label: "Devolvido", variant: "destructive" as const },
 };
 
 export function RecentSales() {
@@ -48,14 +55,16 @@ export function RecentSales() {
           .map((i: any) => `${i.quantidade}x ${i.produtos?.nome || "Produto"}`)
           .join(", ") || "Sem itens";
 
-        const status = p.status as keyof typeof statusConfig;
+        const raw = String(p.status || "");
+        const cfg = statusConfig[raw as keyof typeof statusConfig];
 
         return {
           id: p.id,
           customer: p.clientes?.nome || "Cliente",
           produtos,
           total: Number(p.valor_total) || 0,
-          status: statusConfig[status] ? status : "pendente",
+          statusLabel: cfg?.label || raw.replace(/_/g, " ") || "—",
+          statusVariant: cfg?.variant || ("secondary" as const),
           time: format(new Date(p.created_at), "HH:mm"),
         };
       });
@@ -91,8 +100,8 @@ export function RecentSales() {
                   <p className="text-sm text-muted-foreground">{sale.produtos}</p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <Badge variant={statusConfig[sale.status].variant}>
-                    {statusConfig[sale.status].label}
+                  <Badge variant={sale.statusVariant}>
+                    {sale.statusLabel}
                   </Badge>
                   <div className="text-right">
                     <p className="font-semibold text-foreground">

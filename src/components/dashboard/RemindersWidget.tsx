@@ -41,48 +41,15 @@ export function RemindersWidget() {
       const em7dias = addDays(hoje, 7).toISOString().split("T")[0];
       const em3dias = addDays(hoje, 3).toISOString().split("T")[0];
 
-      // 1. Aniversariantes da semana
-      const mesAtual = hoje.getMonth() + 1;
-      const diaAtual = hoje.getDate();
-      const diaFim = addDays(hoje, 7).getDate();
-      const mesFim = addDays(hoje, 7).getMonth() + 1;
+      // 1. (Aniversariantes removido: a base de clientes não possui data de nascimento,
+      //    o lembrete anterior usava a data de cadastro e gerava informação incorreta.)
 
-      const { data: clientes } = await supabase
-        .from("clientes")
-        .select("id, nome, created_at")
-        .eq("ativo", true)
-        .limit(500);
-
-      // We check birthdays via created_at anniversary (common in gas businesses)
-      // In a real scenario, a "data_nascimento" column would be better
-      if (clientes) {
-        const aniversariantes = clientes.filter(c => {
-          const created = new Date(c.created_at);
-          const anivEsteAno = new Date(hoje.getFullYear(), created.getMonth(), created.getDate());
-          const diff = differenceInDays(anivEsteAno, hoje);
-          return diff >= 0 && diff <= 7;
-        });
-        if (aniversariantes.length > 0) {
-          items.push({
-            id: "aniversarios",
-            icon: Cake,
-            iconColor: "text-primary",
-            bgColor: "bg-primary/10",
-            title: `${aniversariantes.length} aniversariante${aniversariantes.length > 1 ? "s" : ""} esta semana`,
-            description: aniversariantes.slice(0, 3).map(c => c.nome.split(" ")[0]).join(", ") +
-              (aniversariantes.length > 3 ? ` e +${aniversariantes.length - 3}` : ""),
-            badge: "Clientes",
-            badgeVariant: "secondary",
-            link: "/clientes/cadastro",
-          });
-        }
-      }
 
       // 2. Contas a pagar — vencidas + próximos 3 dias
       let contasQuery = supabase
         .from("contas_pagar")
         .select("id, descricao, valor, vencimento")
-        .eq("status", "pendente")
+        .in("status", ["pendente", "parcial", "atrasada", "vencida"])
         .lte("vencimento", em3dias)
         .order("vencimento");
       if (unidadeAtual?.id) contasQuery = contasQuery.eq("unidade_id", unidadeAtual.id);
@@ -108,7 +75,7 @@ export function RemindersWidget() {
       let receberProxQuery = supabase
         .from("contas_receber")
         .select("id, descricao, valor, vencimento")
-        .eq("status", "pendente")
+        .in("status", ["pendente", "parcial", "atrasada", "vencida"])
         .gte("vencimento", hojeStr)
         .lte("vencimento", em3dias)
         .order("vencimento");
@@ -183,7 +150,7 @@ export function RemindersWidget() {
       let receberQuery = supabase
         .from("contas_receber")
         .select("id, descricao, valor, vencimento")
-        .eq("status", "pendente")
+        .in("status", ["pendente", "parcial", "atrasada", "vencida"])
         .lt("vencimento", hojeStr)
         .order("vencimento")
         .limit(50);
@@ -201,7 +168,7 @@ export function RemindersWidget() {
           description: `Total: R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
           badge: "Cobrar",
           badgeVariant: "destructive",
-          link: "/financeiro/contas-receber",
+          link: "/financeiro/receber",
         });
       }
 
