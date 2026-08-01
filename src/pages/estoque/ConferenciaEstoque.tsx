@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 type GrupoProduto = "P13" | "P20" | "P45" | "Agua";
 type TipoEstoque = "cheio" | "vazio";
 type ValoresConferencia = Record<string, Record<GrupoProduto, Record<TipoEstoque, number>>>;
+type ModoPersistencia = "banco" | "local";
 
 interface RegistroConferencia {
   unidade_id: string;
@@ -81,6 +82,7 @@ export default function ConferenciaEstoque() {
   const [valores, setValores] = useState<ValoresConferencia>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [modoPersistencia, setModoPersistencia] = useState<ModoPersistencia>("banco");
 
   const lojasVisiveis = useMemo(() => {
     if (lojaFiltro === "todas") return unidades;
@@ -90,6 +92,22 @@ export default function ConferenciaEstoque() {
   const escopoLabel = lojaFiltro === "todas"
     ? "Todas as lojas"
     : lojasVisiveis[0]?.nome || unidadeAtual?.nome || "Loja selecionada";
+
+  const getLocalStorageKey = () =>
+    `gasfacil:estoque-conferencia:${dataConferencia}:${lojaFiltro}`;
+
+  const carregarConferenciaLocal = (base: ValoresConferencia) => {
+    try {
+      const salvo = localStorage.getItem(getLocalStorageKey());
+      return salvo ? { ...base, ...JSON.parse(salvo) } : base;
+    } catch {
+      return base;
+    }
+  };
+
+  const salvarConferenciaLocal = (dados: ValoresConferencia) => {
+    localStorage.setItem(getLocalStorageKey(), JSON.stringify(dados));
+  };
 
   const carregarConferencia = async () => {
     if (unidadesLoading) return;
@@ -118,14 +136,11 @@ export default function ConferenciaEstoque() {
       });
 
       setValores(base);
+      setModoPersistencia("banco");
     } catch (error) {
       console.error("Erro ao carregar conferencia manual:", error);
-      setValores(base);
-      toast({
-        title: "Conferência manual ainda não disponível",
-        description: "A tabela de conferências precisa estar publicada no Supabase.",
-        variant: "destructive",
-      });
+      setModoPersistencia("local");
+      setValores(carregarConferenciaLocal(base));
     } finally {
       setIsLoading(false);
     }
@@ -220,6 +235,15 @@ export default function ConferenciaEstoque() {
 
     setIsSaving(true);
     try {
+      if (modoPersistencia === "local") {
+        salvarConferenciaLocal(valores);
+        toast({
+          title: "Conferência salva localmente",
+          description: "Assim que a tabela estiver publicada no Lovable, o salvamento irá para o Supabase.",
+        });
+        return;
+      }
+
       const { error } = await (supabase as any)
         .from("estoque_conferencias")
         .upsert(registros, {
@@ -230,10 +254,11 @@ export default function ConferenciaEstoque() {
       toast({ title: "Conferência salva", description: `${escopoLabel} - ${formatarDataBR(dataConferencia)}` });
     } catch (error) {
       console.error("Erro ao salvar conferencia manual:", error);
+      setModoPersistencia("local");
+      salvarConferenciaLocal(valores);
       toast({
-        title: "Erro ao salvar conferência",
-        description: "Verifique se a migration da tabela estoque_conferencias foi publicada.",
-        variant: "destructive",
+        title: "Conferência salva localmente",
+        description: "O Supabase do Lovable ainda não aceitou a tabela; mantive os dados neste navegador.",
       });
     } finally {
       setIsSaving(false);
@@ -390,7 +415,7 @@ export default function ConferenciaEstoque() {
 
               <div className="hidden items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 md:flex">
                 <Store className="h-4 w-4" />
-                {escopoLabel}
+                {modoPersistencia === "local" ? "Modo local" : escopoLabel}
               </div>
             </div>
           </CardContent>
