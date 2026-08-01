@@ -50,7 +50,7 @@ export function ClienteTable({ clientes, loading, onEdit, onDelete, onManageUnid
   };
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border/40">
+    <div className="w-full">
       <Table>
         <TableHeader>
           <TableRow className="border-b border-border/50 hover:bg-transparent">

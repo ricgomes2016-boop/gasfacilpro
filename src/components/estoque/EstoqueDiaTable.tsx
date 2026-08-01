@@ -299,7 +299,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
               return (
                 <div
                   key={`m-${linha.produtoId}-${idx}`}
-                  className="rounded-[18px] border border-border bg-card p-4 shadow-[0_4px_16px_rgba(15,23,42,0.06)]"
+                  className="mobile-record-card p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">

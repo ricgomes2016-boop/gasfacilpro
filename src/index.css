@@ -872,33 +872,61 @@
     color: hsl(var(--primary-foreground)) !important;
   }
 
+  .app-table-wrap {
+    border-color: hsl(var(--border));
+    border-radius: var(--radius);
+    background: hsl(var(--card));
+    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04);
+  }
+
+  .app-table-wrap::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .app-table-wrap::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.45);
+  }
+
+  .app-table-wrap::-webkit-scrollbar-thumb {
+    border: 2px solid hsl(var(--card));
+    border-radius: 999px;
+    background: hsl(var(--border));
+  }
+
   .saas-table {
-    @apply w-full border-collapse;
+    @apply w-full;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: hsl(var(--card));
   }
 
   .saas-table thead tr,
   .saas-table-header {
-    @apply bg-muted/40 text-foreground shadow-none;
+    background: hsl(var(--muted) / 0.72);
+    box-shadow: inset 0 -1px 0 hsl(var(--border));
+    color: hsl(var(--foreground));
   }
 
   .saas-table th {
-    @apply border-0 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-secondary/60 md:px-6;
+    @apply border-0 px-4 py-2.5 text-[11px] font-semibold uppercase text-muted-foreground;
+    letter-spacing: 0.04em;
     border-radius: 0 !important;
   }
 
   .system-surface :where(table thead tr) {
-    background-color: hsl(var(--muted) / 0.45) !important;
+    background-color: hsl(var(--muted) / 0.72) !important;
   }
 
   .system-surface :where(table thead th) {
-    color: hsl(var(--secondary) / 0.65) !important;
-    font-weight: 700;
+    color: hsl(var(--muted-foreground)) !important;
+    font-weight: 650;
     opacity: 1;
   }
 
   .system-surface :where(table thead th .lucide, table thead th svg) {
-    color: hsl(var(--secondary) / 0.65) !important;
-    stroke: hsl(var(--secondary) / 0.65) !important;
+    color: hsl(var(--muted-foreground)) !important;
+    stroke: hsl(var(--muted-foreground)) !important;
   }
 
   .saas-table tbody tr {
@@ -906,12 +934,21 @@
   }
 
   .saas-table tbody td {
-    @apply border-0 bg-transparent px-4 py-3.5 shadow-none md:px-6;
+    @apply border-0 bg-transparent px-4 py-3 shadow-none;
     border-radius: 0 !important;
   }
 
+  .saas-table tbody tr:nth-child(even) td {
+    background: hsl(var(--muted) / 0.16);
+  }
+
   .saas-table tbody tr:hover td {
-    @apply bg-primary/[0.035];
+    background: hsl(var(--primary) / 0.045);
+  }
+
+  .saas-table tfoot td {
+    background: hsl(var(--muted) / 0.65);
+    font-weight: 700;
   }
 
 
@@ -998,11 +1035,13 @@
   }
 
   .semantic-mobile-card {
-    @apply modern-panel space-y-3 p-3 sm:p-4;
+    @apply space-y-3 border border-border bg-card p-3 shadow-sm shadow-foreground/5 sm:p-4;
+    border-radius: var(--radius);
   }
 
   .mobile-record-card {
-    @apply rounded-2xl border border-border/55 bg-card p-3 shadow-sm shadow-foreground/5;
+    @apply border border-border bg-card p-3 shadow-sm shadow-foreground/5;
+    border-radius: var(--radius);
   }
 
   .mobile-record-card-header {
@@ -1019,6 +1058,34 @@
 
   .mobile-record-card-footer {
     @apply mt-3 flex items-center justify-between gap-2 border-t border-border/45 pt-3;
+  }
+
+  @media (max-width: 767px) {
+    .app-table-wrap {
+      margin-inline: -0.125rem;
+      box-shadow: none;
+    }
+
+    .saas-table {
+      min-width: 680px;
+      font-size: 12px;
+    }
+
+    .saas-table th {
+      height: 2.5rem;
+      padding: 0.625rem 0.75rem;
+    }
+
+    .saas-table tbody td {
+      padding: 0.75rem;
+    }
+
+    .semantic-mobile-card,
+    .mobile-record-card {
+      border-color: hsl(var(--border)) !important;
+      background: hsl(var(--card)) !important;
+      box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04) !important;
+    }
   }
 
   .highlight-card-primary { @apply rounded-2xl border-transparent bg-primary text-primary-foreground shadow-md shadow-primary/20; }
@@ -1586,13 +1653,13 @@
      .app-card on small viewports. */
   @media (max-width: 767px) {
     .app-card > [data-slot="card-content"]:has(> .md\:hidden) {
-      padding: 0 !important;
+      padding-inline: 0.75rem !important;
+      padding-bottom: 0.75rem !important;
     }
     .app-card .md\:hidden > div[class*="rounded"] {
-      border-radius: 0 !important;
-      border-left: 0 !important;
-      border-right: 0 !important;
-      box-shadow: none !important;
+      border-radius: var(--radius) !important;
+      border-color: hsl(var(--border)) !important;
+      box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04) !important;
     }
   }
 }
