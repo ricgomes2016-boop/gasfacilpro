@@ -47,18 +47,22 @@ export function RemindersWidget() {
       const diaFim = addDays(hoje, 7).getDate();
       const mesFim = addDays(hoje, 7).getMonth() + 1;
 
-      const { data: clientes } = await supabase
+      let clientesQuery = supabase
         .from("clientes")
-        .select("id, nome, created_at")
+        .select("id, nome, created_at, data_nascimento")
         .eq("ativo", true)
         .limit(500);
+      if (unidadeAtual?.id) clientesQuery = clientesQuery.eq("unidade_id", unidadeAtual.id);
+      const { data: clientes } = await clientesQuery;
 
       // We check birthdays via created_at anniversary (common in gas businesses)
       // In a real scenario, a "data_nascimento" column would be better
       if (clientes) {
-        const aniversariantes = clientes.filter(c => {
-          const created = new Date(c.created_at);
-          const anivEsteAno = new Date(hoje.getFullYear(), created.getMonth(), created.getDate());
+        const aniversariantes = clientes.filter((c: any) => {
+          if (!c.data_nascimento) return false;
+          const nasc = new Date(`${String(c.data_nascimento).slice(0, 10)}T12:00:00`);
+          if (Number.isNaN(nasc.getTime())) return false;
+          const anivEsteAno = new Date(hoje.getFullYear(), nasc.getMonth(), nasc.getDate());
           const diff = differenceInDays(anivEsteAno, hoje);
           return diff >= 0 && diff <= 7;
         });
@@ -82,7 +86,7 @@ export function RemindersWidget() {
       let contasQuery = supabase
         .from("contas_pagar")
         .select("id, descricao, valor, vencimento")
-        .eq("status", "pendente")
+        .in("status", ["pendente", "parcial", "atrasada", "vencida"])
         .lte("vencimento", em3dias)
         .order("vencimento");
       if (unidadeAtual?.id) contasQuery = contasQuery.eq("unidade_id", unidadeAtual.id);
@@ -108,7 +112,7 @@ export function RemindersWidget() {
       let receberProxQuery = supabase
         .from("contas_receber")
         .select("id, descricao, valor, vencimento")
-        .eq("status", "pendente")
+        .in("status", ["pendente", "parcial", "atrasada", "vencida"])
         .gte("vencimento", hojeStr)
         .lte("vencimento", em3dias)
         .order("vencimento");
@@ -183,7 +187,7 @@ export function RemindersWidget() {
       let receberQuery = supabase
         .from("contas_receber")
         .select("id, descricao, valor, vencimento")
-        .eq("status", "pendente")
+        .in("status", ["pendente", "parcial", "atrasada", "vencida"])
         .lt("vencimento", hojeStr)
         .order("vencimento")
         .limit(50);
@@ -201,7 +205,7 @@ export function RemindersWidget() {
           description: `Total: R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
           badge: "Cobrar",
           badgeVariant: "destructive",
-          link: "/financeiro/contas-receber",
+          link: "/financeiro/receber",
         });
       }
 
