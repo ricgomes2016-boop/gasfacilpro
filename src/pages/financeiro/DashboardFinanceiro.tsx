@@ -17,6 +17,14 @@ import { KpiCard, SectionCard } from "@/components/shared";
 import { PremiumKpiCard } from "@/components/dashboard/premium/PremiumKpiCard";
 import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
 import { chartGridProps, chartAxisTick, fmtBRLcompact } from "@/components/dashboard/premium/chartTheme";
+import {
+  isContaPagarAberta,
+  isRecebivelClienteAberto,
+  isRecebivelOperadoraAberto,
+  sumBy,
+  valorBruto,
+  valorLiquidoOperadora,
+} from "@/lib/financeiro/financeiroClassificacao";
 
 export default function DashboardFinanceiro() {
   const { unidadeAtual } = useUnidade();
@@ -78,22 +86,25 @@ export default function DashboardFinanceiro() {
   });
 
   // KPIs
-  const pagarPendente = contasPagar.filter((c: any) => c.status === "pendente");
+  const pagarPendente = contasPagar.filter((c: any) => isContaPagarAberta(c));
   const totalPagar = pagarPendente.reduce((s: number, c: any) => s + Number(c.valor), 0);
   const vencidasPagar = pagarPendente.filter((c: any) => c.vencimento < hoje);
   const totalVencidasPagar = vencidasPagar.reduce((s: number, c: any) => s + Number(c.valor), 0);
 
-  const receberPendente = contasReceber.filter((c: any) => c.status === "pendente");
-  const totalReceber = receberPendente.reduce((s: number, c: any) => s + Number(c.valor), 0);
+  const receberPendente = contasReceber.filter((c: any) => isRecebivelClienteAberto(c));
+  const recebiveisOperadoraPendentes = contasReceber.filter((c: any) => isRecebivelOperadoraAberto(c));
+  const totalReceber = sumBy(receberPendente, valorBruto);
+  const totalRecebiveisOperadora = sumBy(recebiveisOperadoraPendentes, valorLiquidoOperadora);
   const vencidasReceber = receberPendente.filter((c: any) => c.vencimento < hoje);
-  const totalVencidasReceber = vencidasReceber.reduce((s: number, c: any) => s + Number(c.valor), 0);
+  const totalVencidasReceber = sumBy(vencidasReceber, valorBruto);
 
-  const saldoProjetado = totalReceber - totalPagar;
+  const saldoProjetado = totalReceber + totalRecebiveisOperadora - totalPagar;
 
   // Próximos 7 dias
   const prox7 = format(addDays(new Date(), 7), "yyyy-MM-dd");
   const pagarProx7 = pagarPendente.filter((c: any) => c.vencimento >= hoje && c.vencimento <= prox7).reduce((s: number, c: any) => s + Number(c.valor), 0);
   const receberProx7 = receberPendente.filter((c: any) => c.vencimento >= hoje && c.vencimento <= prox7).reduce((s: number, c: any) => s + Number(c.valor), 0);
+  const operadoraProx7 = recebiveisOperadoraPendentes.filter((c: any) => c.vencimento >= hoje && c.vencimento <= prox7).reduce((s: number, c: any) => s + Number(c.valor_liquido || c.valor), 0);
 
   // Gráfico mensal
   const chartData = (() => {
@@ -118,7 +129,8 @@ export default function DashboardFinanceiro() {
 
   // Pie chart - composição
   const pieData = [
-    { name: "A Receber", value: totalReceber, color: "hsl(var(--success))" },
+    { name: "A Receber Cliente", value: totalReceber, color: "hsl(var(--success))" },
+    { name: "Operadoras", value: totalRecebiveisOperadora, color: "hsl(var(--primary))" },
     { name: "A Pagar", value: totalPagar, color: "hsl(var(--destructive))" },
     { name: "Vencidas (Pagar)", value: totalVencidasPagar, color: "hsl(var(--warning))" },
     { name: "Vencidas (Receber)", value: totalVencidasReceber, color: "hsl(var(--accent))" },
@@ -129,7 +141,7 @@ export default function DashboardFinanceiro() {
   if (vencidasPagar.length > 0) alertas.push({ tipo: "danger", msg: `${vencidasPagar.length} conta(s) a pagar vencida(s) — R$ ${totalVencidasPagar.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` });
   if (vencidasReceber.length > 0) alertas.push({ tipo: "warning", msg: `${vencidasReceber.length} recebível(is) vencido(s) — R$ ${totalVencidasReceber.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` });
   if (saldoProjetado < 0) alertas.push({ tipo: "danger", msg: `Saldo projetado negativo: R$ ${saldoProjetado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` });
-  if (pagarProx7 > receberProx7) alertas.push({ tipo: "warning", msg: `Próximos 7 dias: saídas (R$ ${pagarProx7.toLocaleString("pt-BR")}) superam entradas (R$ ${receberProx7.toLocaleString("pt-BR")})` });
+  if (pagarProx7 > receberProx7 + operadoraProx7) alertas.push({ tipo: "warning", msg: `Proximos 7 dias: saidas (R$ ${pagarProx7.toLocaleString("pt-BR")}) superam entradas previstas (R$ ${(receberProx7 + operadoraProx7).toLocaleString("pt-BR")})` });
 
   const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 
@@ -138,11 +150,16 @@ export default function DashboardFinanceiro() {
       <Header title="Dashboard Financeiro" subtitle="Visão consolidada das finanças" />
       <div className="p-4 md:p-6 space-y-6">
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
           <PremiumKpiCard
-            label="A Receber" value={fmt(totalReceber)} icon={ArrowUpRight} tone="success"
-            subtitle={`${receberPendente.length} pendente(s)`}
+            label="A Receber Cliente" value={fmt(totalReceber)} icon={ArrowUpRight} tone="success"
+            subtitle={`${receberPendente.length} fiado(s)/prazo`}
             onClick={() => navigate("/financeiro/receber")}
+          />
+          <PremiumKpiCard
+            label="Receb. Operadora" value={fmt(totalRecebiveisOperadora)} icon={CreditCard} tone="primary"
+            subtitle={`${recebiveisOperadoraPendentes.length} cartao/pix maq.`}
+            onClick={() => navigate("/financeiro/cartoes")}
           />
           <PremiumKpiCard
             label="A Pagar" value={fmt(totalPagar)} icon={ArrowDownRight} tone="destructive"
@@ -152,7 +169,7 @@ export default function DashboardFinanceiro() {
           <PremiumKpiCard
             label="Saldo Projetado" value={fmt(saldoProjetado)} icon={DollarSign}
             tone={saldoProjetado >= 0 ? "success" : "destructive"}
-            subtitle="Receber − Pagar"
+            subtitle="Cliente + operadora - pagar"
           />
           <PremiumKpiCard
             label="Saldo Bancário" value={fmt(saldoBancario)} icon={Banknote}
@@ -178,13 +195,13 @@ export default function DashboardFinanceiro() {
         {/* Recebíveis por Banco */}
         <SectionCard
           title="Recebíveis por Banco"
-          description="Cartão, PIX-maquininha e boletos aguardando depósito"
+          description="Cartao, PIX-maquininha e recebiveis de operadora aguardando deposito"
           actions={
             <Button
               size="sm"
               onClick={async () => {
                 const hoje2 = getBrasiliaDateString();
-                const aLiquidar = receberPendente.filter((c: any) => c.vencimento <= hoje2 && c.conta_bancaria_destino_id);
+                const aLiquidar = recebiveisOperadoraPendentes.filter((c: any) => c.vencimento <= hoje2 && c.conta_bancaria_destino_id);
                 if (!aLiquidar.length) { alert("Nenhum recebível vencido para liquidar hoje."); return; }
                 if (!confirm(`Liquidar ${aLiquidar.length} recebível(is) vencido(s) — R$ ${aLiquidar.reduce((s: number, c: any) => s + Number(c.valor_liquido || c.valor), 0).toFixed(2)}?`)) return;
                 const { criarMovimentacaoBancaria } = await import("@/services/paymentRoutingService");
@@ -218,7 +235,7 @@ export default function DashboardFinanceiro() {
             const semBanco = { nome: "⚠ Sem banco vinculado", banco: "", hoje: 0, d7: 0, d30: 0, total: 0, count: 0 };
             const d7 = format(addDays(new Date(), 7), "yyyy-MM-dd");
             const d30 = format(addDays(new Date(), 30), "yyyy-MM-dd");
-            receberPendente.forEach((c: any) => {
+            recebiveisOperadoraPendentes.forEach((c: any) => {
               const cbId = c.conta_bancaria_destino_id;
               const target = cbId
                 ? (grupos[cbId] ||= { nome: contasBancarias.find((b: any) => b.id === cbId)?.nome || "Conta", banco: contasBancarias.find((b: any) => b.id === cbId)?.banco || "", hoje: 0, d7: 0, d30: 0, total: 0, count: 0 })

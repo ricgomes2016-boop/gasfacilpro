@@ -6,6 +6,15 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { cn } from "@/lib/utils";
+import {
+  isContaPagarAberta,
+  isRecebivelClienteAberto,
+  isRecebivelOperadora,
+  isStatusRecebido,
+  sumBy,
+  valorBruto,
+  valorLiquidoOperadora,
+} from "@/lib/financeiro/financeiroClassificacao";
 
 const fmtBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
@@ -26,17 +35,15 @@ export function DashboardFinancialHero() {
       const sb = supabase as any;
       const iniISO = format(ini, "yyyy-MM-dd");
       const fimISO = format(fim, "yyyy-MM-dd");
-      const abertos = ["pendente", "parcial", "atrasada", "vencida"];
 
       const [receberQ, pagarQ, receitaHojeQ] = await Promise.all([
         sb.from("contas_receber")
-          .select("valor, status, vencimento")
-          .eq("unidade_id", unidadeAtual!.id)
-          .in("status", abertos),
+          .select("valor, valor_liquido, status, vencimento, forma_pagamento, operadora_id, data_recebimento")
+          .eq("unidade_id", unidadeAtual!.id),
         sb.from("contas_pagar")
           .select("valor, status, vencimento")
           .eq("unidade_id", unidadeAtual!.id)
-          .in("status", abertos),
+          .lte("vencimento", fimISO),
         sb.from("pedidos")
           .select("valor_total, status")
           .eq("unidade_id", unidadeAtual!.id)
@@ -44,18 +51,30 @@ export function DashboardFinancialHero() {
           .lte("data_entrega", fimISO),
       ]);
 
-      const soma = (rows: any[]) => rows.reduce((s, r) => s + Number(r.valor || 0), 0);
-      const receberRows: any[] = receberQ.data || [];
-      const pagarRows: any[] = pagarQ.data || [];
+      const contasReceber = receberQ.data || [];
+      const receberRows = contasReceber.filter((r: any) => isRecebivelClienteAberto(r));
+      const operadoraRows = contasReceber.filter(
+        (r: any) => isRecebivelOperadora(r) && !isStatusRecebido(r.status) && r.vencimento <= fimISO
+      );
+      const operadoraRecebidaHoje = contasReceber.filter(
+        (r: any) => isRecebivelOperadora(r) && isStatusRecebido(r.status) && r.data_recebimento >= iniISO && r.data_recebimento <= fimISO
+      );
+      const pagarRows = (pagarQ.data || []).filter((r: any) => isContaPagarAberta(r));
 
-      const receberVencidos = soma(receberRows.filter((r) => r.vencimento < iniISO));
-      const receberHoje = soma(receberRows.filter((r) => r.vencimento === iniISO));
-      const receberTotal = soma(receberRows);
+      const receberVencidos = sumBy(receberRows.filter((r: any) => r.vencimento < iniISO), valorBruto);
+      const receberHoje = sumBy(receberRows.filter((r: any) => r.vencimento === iniISO), valorBruto);
+      const receberTotal = sumBy(receberRows, valorBruto);
 
-      const pagarVencidos = soma(pagarRows.filter((r) => r.vencimento < iniISO));
-      const pagarHoje = soma(pagarRows.filter((r) => r.vencimento === iniISO));
-      const pagarTotal = soma(pagarRows);
+      const pagarVencidos = pagarRows
+        .filter((r: any) => r.vencimento < iniISO)
+        .reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
+      const pagarHoje = pagarRows
+        .filter((r: any) => r.vencimento === iniISO)
+        .reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
+      const pagarTotal = pagarRows.reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
 
+      const receberOperadora = sumBy(operadoraRows, valorLiquidoOperadora);
+      const recebidoHoje = sumBy(operadoraRecebidaHoje, valorLiquidoOperadora);
       const receitaHoje = (receitaHojeQ.data || [])
         .filter((p: any) => ["entregue", "finalizado", "pago_cartao"].includes(p.status))
         .reduce((s: number, p: any) => s + Number(p.valor_total || 0), 0);
@@ -63,7 +82,7 @@ export function DashboardFinancialHero() {
       return {
         receberVencidos, receberHoje, receberTotal,
         pagarVencidos, pagarHoje, pagarTotal,
-        receitaHoje,
+        receitaHoje, receberOperadora, recebidoHoje,
       };
     },
   });
@@ -101,7 +120,8 @@ export function DashboardFinancialHero() {
       className: "from-[#4f68e8] to-[#3041a6]",
       path: "/financeiro/fluxo",
       details: [
-        { label: "A receber hoje", value: fmtBRL(data?.receberHoje ?? 0) },
+        { label: "Recebido hoje", value: fmtBRL(data?.recebidoHoje ?? 0) },
+        { label: "Operadoras", value: fmtBRL(data?.receberOperadora ?? 0) },
         { label: "A pagar hoje", value: fmtBRL(data?.pagarHoje ?? 0) },
       ],
     },
