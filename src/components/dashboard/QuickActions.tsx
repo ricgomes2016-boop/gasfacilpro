@@ -47,10 +47,11 @@ export function QuickActions() {
             <button
               key={a.path}
               onClick={() => navigate(a.path)}
-              className={`quick-action-tile group flex min-h-[96px] min-w-0 flex-col items-center justify-center gap-2 rounded-xl px-3 py-4 shadow-[0_12px_22px_-16px_rgba(15,23,42,0.6)] transition-all duration-150 hover:-translate-y-0.5 hover:brightness-105 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 ${a.tone}`}
+              style={{ color: "#fff" }}
+              className={`quick-action-tile group flex min-h-[96px] min-w-0 flex-col items-center justify-center gap-2 rounded-xl px-3 py-4 !text-white shadow-[0_12px_22px_-16px_rgba(15,23,42,0.6)] transition-all duration-150 hover:-translate-y-0.5 hover:brightness-105 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 ${a.tone}`}
             >
-              <a.icon className="h-6 w-6 shrink-0" strokeWidth={2.25} />
-              <span className="w-full break-words text-center text-[12px] font-bold leading-tight tracking-normal">
+              <a.icon className="h-6 w-6 shrink-0 !text-white" strokeWidth={2.25} />
+              <span className="w-full break-words text-center text-[12px] font-bold leading-tight tracking-normal !text-white">
                 {a.label}
               </span>
             </button>

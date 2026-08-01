@@ -101,8 +101,9 @@ export function DashboardFinancialHero() {
             key={card.title}
             type="button"
             onClick={() => navigate(card.path)}
+            style={{ color: "#fff" }}
             className={cn(
-              "group relative min-h-[210px] overflow-hidden rounded-2xl bg-gradient-to-br p-6 text-left text-white shadow-[0_18px_42px_-24px_rgba(15,23,42,0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-22px_rgba(15,23,42,0.58)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:min-h-[230px]",
+              "group relative min-h-[210px] overflow-hidden rounded-2xl bg-gradient-to-br p-6 text-left !text-white shadow-[0_18px_42px_-24px_rgba(15,23,42,0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-22px_rgba(15,23,42,0.58)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:min-h-[230px]",
               card.className
             )}
           >
@@ -110,30 +111,30 @@ export function DashboardFinancialHero() {
             <div className="absolute -bottom-16 left-8 h-32 w-32 rounded-full bg-white/5" />
             <div className="relative flex h-full flex-col justify-between">
               <div className="flex items-start justify-between gap-4">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/18 text-white backdrop-blur-sm">
-                  <Icon className="h-6 w-6" strokeWidth={2.3} />
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/18 !text-white backdrop-blur-sm">
+                  <Icon className="h-6 w-6 !text-white" strokeWidth={2.3} />
                 </span>
-                <ArrowRight className="mt-3 h-5 w-5 opacity-70 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="mt-3 h-5 w-5 !text-white opacity-70 transition-transform group-hover:translate-x-1" />
               </div>
 
               <div className="mt-6">
-                <p className="text-sm font-semibold text-white/88">{card.title}</p>
-                <p className="mt-3 text-4xl font-black leading-none tracking-tight text-white">
+                <p className="text-sm font-semibold !text-white opacity-90">{card.title}</p>
+                <p className="mt-3 text-4xl font-black leading-none tracking-tight !text-white">
                   {card.value}
                 </p>
                 {card.details ? (
                   <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
                     {card.details.map((detail) => (
                       <div key={detail.label} className="min-w-0">
-                        <p className="text-white/70">{detail.label}</p>
-                        <p className="mt-1 truncate font-bold text-white">{detail.value}</p>
+                        <p className="!text-white opacity-75">{detail.label}</p>
+                        <p className="mt-1 truncate font-bold !text-white">{detail.value}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-white/82">
+                  <p className="mt-5 inline-flex items-center gap-2 text-sm font-medium !text-white opacity-85">
                     {card.action}
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="h-4 w-4 !text-white" />
                   </p>
                 )}
               </div>
