@@ -33,8 +33,15 @@ interface CardOperatorSelectorModalProps {
   tipoCartao: "debito" | "credito" | "pix_maquininha";
   unidadeId?: string;
   parcelasInicial?: number;
+  preferredOperator?: string;
   onSelect: (operadora: { id: string; nome: string; taxa: number; prazo: number; valorLiquido: number; conta_bancaria_id?: string | null; parcelas?: number }) => void;
 }
+
+const normalizeText = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 
 export function CardOperatorSelectorModal({
   open,
@@ -43,6 +50,7 @@ export function CardOperatorSelectorModal({
   tipoCartao,
   unidadeId: externalUnidadeId,
   parcelasInicial = 1,
+  preferredOperator,
   onSelect,
 }: CardOperatorSelectorModalProps) {
   const [operadoras, setOperadoras] = useState<Operadora[]>([]);
@@ -65,11 +73,15 @@ export function CardOperatorSelectorModal({
       .then(({ data }) => {
         const items = (data || []) as any as Operadora[];
         setOperadoras(items);
-        if (items.length === 1) setSelected(items[0].id);
+        const preferred = preferredOperator
+          ? items.find((item) => normalizeText(item.nome).includes(normalizeText(preferredOperator)))
+          : null;
+        if (preferred) setSelected(preferred.id);
+        else if (items.length === 1) setSelected(items[0].id);
         else setSelected(null);
         setLoading(false);
       });
-  }, [open, resolvedUnidadeId, tipoCartao, parcelasInicial]);
+  }, [open, resolvedUnidadeId, tipoCartao, parcelasInicial, preferredOperator]);
 
   const getTaxaEPrazo = (op: Operadora) => {
     switch (tipoCartao) {

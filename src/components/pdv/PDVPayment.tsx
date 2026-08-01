@@ -13,6 +13,7 @@ import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal"
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface PDVPagamento {
   id: string;
@@ -109,8 +110,34 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
 
   const podeFinalizar = totalPago >= totalEfetivo && pagamentos.length > 0;
 
+  const preselectPreferredOperator = async (preferredOperator: string, fallbackInfo?: string) => {
+    const resolvedUnidadeId = unidadeAtual?.id;
+    if (!resolvedUnidadeId) {
+      if (fallbackInfo) setPendingExtras({ info: fallbackInfo });
+      return;
+    }
 
-  const handleSelectForma = (value: string) => {
+    const { data } = await supabase
+      .from("operadoras_cartao")
+      .select("id, nome, conta_bancaria_id, prazo_credito")
+      .eq("unidade_id", resolvedUnidadeId)
+      .eq("ativo", true);
+
+    const normalize = (text: string) =>
+      text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const op = ((data || []) as any[]).find((item) => normalize(item.nome || "").includes(normalize(preferredOperator)));
+    if (op) {
+      setPendingExtras({
+        operadora_id: op.id,
+        conta_bancaria_id: op.conta_bancaria_id || undefined,
+        info: `${op.nome} • Gás do Povo • D+${Number(op.prazo_credito) || 2}`,
+      });
+    } else if (fallbackInfo) {
+      setPendingExtras({ info: fallbackInfo });
+    }
+  };
+
+  const handleSelectForma = async (value: string) => {
     if (value === "gas_do_povo") {
       if (!cartoElegivelGasDoPovo) {
         toast({
@@ -122,6 +149,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
       }
       setFormaPagamento(value);
       setPendingExtras({ info: `Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2)` });
+      await preselectPreferredOperator("azulzinha", `Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2)`);
       setValorParcial(gasDoPovoValor.toFixed(2).replace(".", ","));
       return;
     }
@@ -356,6 +384,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
         onClose={() => setPixModalOpen(false)}
         valor={valorParcialNum > 0 ? valorParcialNum : restante}
         beneficiario={unidadeAtual?.nome}
+        preferredBank="itau"
         onSelect={(_chavePix, contaBancariaId) => {
           setPendingExtras({ conta_bancaria_id: contaBancariaId, info: "PIX via conta selecionada" });
         }}
@@ -368,6 +397,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
         valor={valorParcialNum > 0 ? valorParcialNum : restante}
         tipoCartao={cardTipo}
         parcelasInicial={pendingExtras?.parcelas || 1}
+        preferredOperator={formaPagamento === "pix_maquininha" ? "pagbank" : undefined}
         onSelect={(op) => {
           const parcelasInfo = formaPagamento === "credito" ? ` • Crédito ${op.parcelas || 1}x` : "";
           setPendingExtras({

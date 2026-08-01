@@ -2,6 +2,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDateString } from "@/lib/utils";
 import { addDays, format } from "date-fns";
 
+const normalizeText = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
 export interface PagamentoRoteamento {
   forma: string;
   valor: number;
@@ -129,23 +135,28 @@ async function getOperadoraConfig(unidadeId: string | null, tipo: string, operad
     query = query.or(`unidade_id.eq.${unidadeId},unidade_id.is.null`).eq("ativo", true);
   }
 
-  const { data } = await query.limit(1).maybeSingle();
-  if (!data) return null;
+  const { data } = await query.limit(tipo === "gas_do_povo" && !operadoraId ? 20 : 1);
+  const rows = Array.isArray(data) ? data : data ? [data] : [];
+  const selected = tipo === "gas_do_povo" && !operadoraId
+    ? rows.find((row: any) => normalizeText(row.nome || "").includes("azulzinha")) || rows[0]
+    : rows[0];
+  const dataRow = selected;
+  if (!dataRow) return null;
 
   let taxa = 0;
   let prazo = 0;
   if (tipo === "pix_maquininha") {
-    taxa = Number((data as any).taxa_pix) || 0;
-    prazo = Number((data as any).prazo_pix) || 0;
+    taxa = Number((dataRow as any).taxa_pix) || 0;
+    prazo = Number((dataRow as any).prazo_pix) || 0;
   } else if (tipo === "cartao_debito" || tipo === "debito") {
-    taxa = Number(data.taxa_debito) || 0;
-    prazo = Number(data.prazo_debito) || 1;
+    taxa = Number(dataRow.taxa_debito) || 0;
+    prazo = Number(dataRow.prazo_debito) || 1;
   } else {
-    taxa = parcelas > 1 ? Number(data.taxa_credito_parcelado) || 0 : Number(data.taxa_credito_vista) || 0;
-    prazo = Number(data.prazo_credito) || 30;
+    taxa = parcelas > 1 ? Number(dataRow.taxa_credito_parcelado) || 0 : Number(dataRow.taxa_credito_vista) || 0;
+    prazo = Number(dataRow.prazo_credito) || 30;
   }
 
-  return { id: data.id, nome: data.nome, taxa, prazo, conta_bancaria_id: (data as any).conta_bancaria_id as string | null };
+  return { id: dataRow.id, nome: dataRow.nome, taxa, prazo, conta_bancaria_id: (dataRow as any).conta_bancaria_id as string | null };
 }
 
 /**

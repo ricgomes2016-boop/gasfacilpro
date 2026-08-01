@@ -511,6 +511,7 @@ export function LiquidarRecebivelModal({
           tipoCartao={cardModal.tipo}
           unidadeId={conta?.unidade_id || undefined}
           parcelasInicial={currentCardLinha.parcelas || 1}
+          preferredOperator={cardModal.tipo === "pix_maquininha" ? "pagbank" : undefined}
           onSelect={(op) => {
             const uid = currentCardLinha._uid;
             updateLinha(uid, {
@@ -533,6 +534,7 @@ export function LiquidarRecebivelModal({
           valor={Number(currentPixLinha.valor) || 0}
           beneficiario={conta?.cliente || undefined}
           unidadeId={conta?.unidade_id || undefined}
+          preferredBank="itau"
           onSelect={(chave, contaId) => {
             const uid = currentPixLinha._uid;
             updateLinha(uid, {

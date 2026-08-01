@@ -288,7 +288,32 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     return formasPagamento.find((f) => f.value === formaValue) || formasPagamento[0];
   };
 
-  const handleFormaChange = (value: string) => {
+  const preselectPreferredOperator = async (preferredOperator: string, fallbackInfo?: string) => {
+    const resolvedUnidadeId = unidadeId || unidadeAtual?.id;
+    if (!resolvedUnidadeId) {
+      if (fallbackInfo) setPendingCardInfo(fallbackInfo);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("operadoras_cartao")
+      .select("id, nome, conta_bancaria_id, prazo_credito")
+      .eq("unidade_id", resolvedUnidadeId)
+      .eq("ativo", true);
+
+    const normalize = (text: string) =>
+      text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const op = ((data || []) as any[]).find((item) => normalize(item.nome || "").includes(normalize(preferredOperator)));
+    if (op) {
+      setPendingOperadora({ id: op.id, nome: op.nome });
+      if (op.conta_bancaria_id) setPendingContaBancaria(op.conta_bancaria_id);
+      setPendingCardInfo(`${op.nome} • Gás do Povo • D+${Number(op.prazo_credito) || 2}`);
+    } else if (fallbackInfo) {
+      setPendingCardInfo(fallbackInfo);
+    }
+  };
+
+  const handleFormaChange = async (value: string) => {
     if (value === "gas_do_povo") {
       if (!cartoElegivelGasDoPovo) {
         toast.error("Gás do Povo aceito apenas para venda de exatamente 1× Gás P13.");
@@ -298,6 +323,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
       resetExtraFields();
       setValorDisplay(formatCurrency(gasDoPovoValor.toFixed(2).replace(".", ",")));
       setPendingCardInfo(`Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2, taxa 0%)`);
+      await preselectPreferredOperator("azulzinha", `Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2, taxa 0%)`);
       return;
     }
     setForma(value);
@@ -568,6 +594,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
         valor={parseCurrency(valorDisplay) || diferenca}
         beneficiario={effectiveUnidadeNome}
         unidadeId={unidadeId}
+        preferredBank="itau"
         onSelect={(chavePix, contaBancariaId) => {
           setPendingContaBancaria(contaBancariaId);
           setPendingCardInfo(`Chave PIX selecionada ✓`);
@@ -582,6 +609,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
         tipoCartao={cardTipoMap[forma] || "debito"}
         unidadeId={unidadeId}
         parcelasInicial={pendingParcelas || 1}
+        preferredOperator={forma === "pix_maquininha" ? "pagbank" : undefined}
         onSelect={(op) => {
           setPendingOperadora({ id: op.id, nome: op.nome });
           if (op.conta_bancaria_id) setPendingContaBancaria(op.conta_bancaria_id);

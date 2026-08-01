@@ -948,6 +948,7 @@ export default function FinalizarEntrega() {
         valor={diferenca > 0 ? diferenca : totalItens}
         beneficiario={nomeUnidade || undefined}
         unidadeId={unidadeId || undefined}
+        preferredBank="itau"
         onSelect={(chavePix, contaBancariaId) => {
           setSelectedPaymentExtras({ conta_bancaria_id: contaBancariaId });
           setSelectedPaymentInfo("PIX via conta selecionada");
@@ -963,6 +964,7 @@ export default function FinalizarEntrega() {
         tipoCartao={cardModalTipo}
         unidadeId={unidadeId || undefined}
         parcelasInicial={selectedPaymentExtras.parcelas || 1}
+        preferredOperator={cardModalTipo === "pix_maquininha" ? "pagbank" : undefined}
         onSelect={(op) => {
           setSelectedPaymentExtras({
             operadora_id: op.id,

@@ -25,8 +25,15 @@ interface PixKeySelectorModalProps {
   valor: number;
   beneficiario?: string;
   unidadeId?: string;
+  preferredBank?: string;
   onSelect: (chavePix: string, contaBancariaId: string) => void;
 }
+
+const normalizeText = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 
 export function PixKeySelectorModal({
   open,
@@ -34,6 +41,7 @@ export function PixKeySelectorModal({
   valor,
   beneficiario,
   unidadeId: externalUnidadeId,
+  preferredBank,
   onSelect,
 }: PixKeySelectorModalProps) {
   const [chaves, setChaves] = useState<ChavePix[]>([]);
@@ -55,11 +63,18 @@ export function PixKeySelectorModal({
       .then(({ data }) => {
         const items = (data || []).filter((c: any) => c.chave_pix) as ChavePix[];
         setChaves(items);
-        if (items.length === 1) setSelected(items[0].id);
+        const preferred = preferredBank
+          ? items.find((item) => {
+              const target = normalizeText(preferredBank);
+              return normalizeText(`${item.banco} ${item.nome}`).includes(target);
+            })
+          : null;
+        if (preferred) setSelected(preferred.id);
+        else if (items.length === 1) setSelected(items[0].id);
         else setSelected(null);
         setLoading(false);
       });
-  }, [open, resolvedUnidadeId]);
+  }, [open, resolvedUnidadeId, preferredBank]);
 
   const selectedChave = chaves.find((c) => c.id === selected);
 
