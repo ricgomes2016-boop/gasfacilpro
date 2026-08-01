@@ -109,7 +109,9 @@ export default function ControleCheques() {
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           canvas.toBlob(async (blob) => {
             if (!blob) { reject("Erro ao comprimir"); return; }
-            const fileName = `cheques/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+            const { data: empresaId, error: empErr } = await supabase.rpc("get_user_empresa_id");
+            if (empErr || !empresaId) { reject("Não foi possível identificar a empresa do usuário"); return; }
+            const fileName = `${empresaId}/cheques/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
             const { error } = await supabase.storage.from("cheques-docs").upload(fileName, blob, { cacheControl: "3600" });
             if (error) { reject(error.message); return; }
             const { data: urlData, error: signErr } = await supabase.storage
