@@ -7,6 +7,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CreditCard, CheckCircle, Clock, Percent } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -147,20 +154,18 @@ export function CardOperatorSelectorModal({
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Parcelas do crédito
               </p>
-              <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
-                  <Button
-                    key={n}
-                    type="button"
-                    variant={parcelas === n ? "default" : "outline"}
-                    size="sm"
-                    className="h-9"
-                    onClick={() => setParcelas(n)}
-                  >
-                    {n}x
-                  </Button>
-                ))}
-              </div>
+              <Select value={String(parcelas)} onValueChange={(value) => setParcelas(Number(value))}>
+                <SelectTrigger className="h-11 bg-background">
+                  <SelectValue placeholder="Selecione as parcelas" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}x {n > 1 ? `de R$ ${(valor / n).toFixed(2)}` : "à vista"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="mt-2 text-[11px] text-muted-foreground">
                 1x usa a taxa de crédito à vista; 2x ou mais usa a taxa de crédito parcelado.
               </p>
