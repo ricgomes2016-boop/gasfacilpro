@@ -296,7 +296,7 @@ export default function PersonalizacaoVisual() {
                 <CardTitle>Tema do Sistema</CardTitle>
               </div>
               <CardDescription>
-                Dashboard Pastel aplicado como padrão visual único.
+                Dashboard Clean aplicado como padrão visual único.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -306,7 +306,7 @@ export default function PersonalizacaoVisual() {
                   <div>
                     <p className="font-medium">Modo claro</p>
                     <p className="text-sm text-muted-foreground">
-                      Dashboard Pastel ativo em toda a interface
+                      Dashboard Clean ativo em toda a interface
                     </p>
                   </div>
                 </div>
@@ -389,7 +389,7 @@ export default function PersonalizacaoVisual() {
                   })}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  A cor oficial do Dashboard Pastel permanece fixa para manter consistência visual.
+                  A cor oficial do Dashboard Clean permanece fixa para manter consistência visual.
                 </p>
               </div>
             </CardContent>

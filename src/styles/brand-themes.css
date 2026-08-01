@@ -54,40 +54,45 @@
 }
 
 .brand-theme-pastel-dashboard {
-  --brand-font: 'Manrope', 'Inter', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-  --background: 222 24% 97%;
-  --foreground: 230 22% 10%;
+  --brand-font: 'Inter', 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --background: 210 20% 97%;
+  --foreground: 220 39% 11%;
   --card: 0 0% 100%;
-  --card-foreground: 240 10% 9%;
+  --card-foreground: 220 39% 11%;
   --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 9%;
-  --primary: 250 100% 65%;
+  --popover-foreground: 220 39% 11%;
+  --primary: 221 83% 53%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 217 100% 94%;
-  --secondary-foreground: 218 45% 57%;
-  --accent: 27 100% 88%;
-  --accent-foreground: 33 68% 43%;
-  --muted: 225 23% 94%;
-  --muted-foreground: 230 10% 38%;
-  --success: 151 70% 39%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --accent: 24 95% 53%;
+  --accent-foreground: 0 0% 100%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --success: 142 71% 45%;
   --success-foreground: 0 0% 100%;
-  --warning: 34 76% 48%;
+  --warning: 38 92% 50%;
   --warning-foreground: 0 0% 100%;
-  --info: 218 45% 57%;
+  --info: 221 83% 53%;
   --info-foreground: 0 0% 100%;
-  --border: 225 22% 88%;
-  --input: 225 22% 86%;
-  --ring: 250 100% 65%;
-  --radius: 0.75rem;
-  --sidebar-background: 220 20% 98%;
-  --sidebar-gradient-from: 220 20% 98%;
-  --sidebar-gradient-to: 276 100% 96%;
-  --sidebar-foreground: 235 9% 28%;
-  --sidebar-primary: 250 100% 65%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 221 83% 53%;
+  --radius: 0.625rem;
+  --sidebar-background: 0 0% 100%;
+  --sidebar-gradient-from: 0 0% 100%;
+  --sidebar-gradient-to: 0 0% 100%;
+  --sidebar-foreground: 215 16% 47%;
+  --sidebar-primary: 221 83% 53%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 0 0% 100%;
-  --sidebar-accent-foreground: 250 62% 52%;
-  --sidebar-border: 225 20% 88%;
+  --sidebar-accent: 214 100% 97%;
+  --sidebar-accent-foreground: 221 83% 53%;
+  --sidebar-border: 214 32% 91%;
+  --sidebar-ring: 221 83% 53%;
+  --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(221 83% 33%) 100%);
+  --shadow-glow: 0 4px 20px hsl(221 83% 53% / 0.15);
 }
 
 .brand-theme-signature {

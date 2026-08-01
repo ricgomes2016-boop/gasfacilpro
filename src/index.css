@@ -529,10 +529,7 @@
 
   .brand-theme-pastel-dashboard.system-surface {
     background:
-      radial-gradient(circle at 12% 10%, hsl(250 100% 65% / 0.08), transparent 22rem),
-      radial-gradient(circle at 78% 4%, hsl(331 100% 93% / 0.72), transparent 24rem),
-      radial-gradient(circle at 92% 72%, hsl(160 72% 89% / 0.5), transparent 22rem),
-      linear-gradient(180deg, hsl(220 11% 96%) 0%, hsl(230 22% 98%) 100%);
+      linear-gradient(180deg, hsl(210 20% 98%) 0%, hsl(210 20% 96%) 100%);
   }
 
   /* ============================================================
@@ -542,14 +539,14 @@
    * sem exigir refactor de cada arquivo.
    * ============================================================ */
   .system-surface main [data-slot="card"] {
-    border-radius: 1rem;
-    border-color: hsl(var(--border) / 0.55);
-    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.6) inset, 0 12px 32px -28px hsl(var(--foreground) / 0.22);
+    border-radius: var(--radius);
+    border-color: hsl(var(--border));
+    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04);
     transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
   }
   .system-surface main :where([data-slot="card"]:hover) {
-    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.7) inset, 0 22px 46px -30px hsl(var(--foreground) / 0.28);
-    border-color: hsl(var(--border) / 0.85);
+    box-shadow: 0 4px 12px hsl(var(--foreground) / 0.06);
+    border-color: hsl(var(--border));
   }
   .system-surface main :where([data-slot="card"] [data-slot="card-header"]) {
     border-bottom: 1px solid hsl(var(--border) / 0.5);
@@ -565,24 +562,48 @@
 
   .brand-theme-pastel-dashboard .bg-card,
   .brand-theme-pastel-dashboard [class*="bg-card"] {
-    border-color: hsl(225 20% 88% / 0.7);
-    box-shadow: 0 18px 46px -34px hsl(240 12% 20% / 0.26), 0 1px 0 hsl(0 0% 100% / 0.82) inset;
+    border-color: hsl(var(--border));
+    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04);
   }
 
   .brand-theme-pastel-dashboard.app-sidebar-premium,
   .brand-theme-pastel-dashboard .app-sidebar-premium {
-    background:
-      radial-gradient(circle at 16% 14%, hsl(250 100% 65% / 0.08), transparent 12rem),
-      radial-gradient(circle at 84% 76%, hsl(331 100% 93% / 0.7), transparent 13rem),
-      linear-gradient(180deg, hsl(220 20% 99%) 0%, hsl(276 100% 97%) 100%);
-    box-shadow: 18px 0 44px -34px hsl(240 12% 20% / 0.34);
+    background: hsl(var(--sidebar-background));
+    background-image: none;
+    border-color: hsl(var(--sidebar-border));
+    box-shadow: 1px 0 0 hsl(var(--sidebar-border));
+  }
+
+  .brand-theme-pastel-dashboard.app-sidebar-premium::after,
+  .brand-theme-pastel-dashboard .app-sidebar-premium::after,
+  .brand-theme-pastel-dashboard .app-mobile-sidebar-modern::before {
+    display: none !important;
   }
 
   .brand-theme-pastel-dashboard input,
   .brand-theme-pastel-dashboard textarea,
   .brand-theme-pastel-dashboard [role="combobox"] {
-    border-color: hsl(225 20% 88% / 0.74);
-    background-color: hsl(0 0% 100% / 0.86);
+    min-height: 42px;
+    border-color: hsl(var(--input));
+    border-radius: var(--radius);
+    background-color: hsl(var(--card));
+    box-shadow: 0 1px 2px hsl(var(--foreground) / 0.04);
+  }
+
+  .brand-theme-pastel-dashboard input:focus,
+  .brand-theme-pastel-dashboard textarea:focus,
+  .brand-theme-pastel-dashboard [role="combobox"]:focus-visible {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.18);
+  }
+
+  .brand-theme-pastel-dashboard button:not(.rounded-full),
+  .brand-theme-pastel-dashboard [role="button"]:not(.rounded-full) {
+    border-radius: var(--radius);
+  }
+
+  .brand-theme-pastel-dashboard :where([class*="rounded-2xl"], [class*="rounded-xl"]):not(.rounded-full) {
+    border-radius: var(--radius) !important;
   }
 
   .venda-card {

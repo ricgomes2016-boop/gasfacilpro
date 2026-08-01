@@ -61,13 +61,13 @@ export const brandThemes: BrandThemePreset[] = [
   },
   {
     id: "pastel-dashboard",
-    name: "Dashboard Pastel",
-    description: "Visual inspirado no Weihu: claro, roxo e cards em tons pastel.",
+    name: "Dashboard Clean",
+    description: "ERP claro inspirado no Forte Gas: azul operacional, laranja discreto e campos objetivos.",
     className: "brand-theme-pastel-dashboard",
     logoVariant: "markText",
     logoMark,
     logoFull,
-    fontLabel: "Plus Jakarta Sans",
+    fontLabel: "Inter",
   },
   {
     id: "signature",

@@ -85,8 +85,8 @@ export default function AuthErp() {
       portalKey="erp"
       title="GásFácil Pro - ERP"
       subtitle="Sistema de gestão da distribuidora"
-      gradientFrom="220 78% 58%"
-      gradientTo="265 70% 52%"
+      gradientFrom="221 83% 53%"
+      gradientTo="221 83% 33%"
       showFooter={false}
       showMobileHero={false}
       sideContent={
@@ -105,13 +105,13 @@ export default function AuthErp() {
           </div>
           <div className="grid gap-3 text-sm text-white/85">
             <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/12">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/12">
                 <Building2 className="h-4 w-4" />
               </span>
               Perfis de administrador, gestor, financeiro e operacional
             </div>
             <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/12">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/12">
                 <Headphones className="h-4 w-4" />
               </span>
               Suporte disponível para problemas de acesso
@@ -120,7 +120,7 @@ export default function AuthErp() {
         </div>
       }
       logo={
-        <div className="h-14 w-14 rounded-xl overflow-hidden shadow-lg">
+        <div className="h-14 w-14 rounded-lg overflow-hidden shadow-lg">
           <img src={iconErp} alt="ERP" className="h-14 w-14 object-cover" />
         </div>
       }
@@ -207,7 +207,7 @@ export default function AuthErp() {
           )}
         </div>
 
-        <Button type="submit" className="w-full bg-success text-slate-950 hover:bg-success" disabled={form.isLoading || resetLoading}>
+        <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={form.isLoading || resetLoading}>
           {form.isLoading ? (
             <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>
           ) : (
