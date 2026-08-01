@@ -123,7 +123,12 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const [sending, setSending] = useState(false);
   const [novaOpen, setNovaOpen] = useState(false);
   const [storeAvatar, setStoreAvatar] = useState<string | null>(null);
-  const [unitIntegration, setUnitIntegration] = useState<{ numero: string | null; provedor: string | null; ativo: boolean } | null>(null);
+  const [unitIntegration, setUnitIntegration] = useState<{
+    numero: string | null;
+    provedor: string | null;
+    ativo: boolean;
+    status: string | null;
+  } | null>(null);
   const [profileSyncStatus, setProfileSyncStatus] = useState<"idle" | "syncing" | "offline">("idle");
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -178,6 +183,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
               numero: data.numero_telefone || null,
               provedor: data.provedor || data.provedor_tipo || null,
               ativo: data.ativo ?? false,
+              status: data.status_conexao || null,
             }
           : null
       );
@@ -705,6 +711,9 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     if (p === "zapi") return "Z-API";
     return unitIntegration.provedor.toUpperCase();
   })();
+  const isWhatsAppConnected = Boolean(
+    unitIntegration?.ativo && (unitIntegration.numero || unitIntegration.status === "conectado")
+  );
 
   // Quick replies (apenas inserem texto, não enviam)
   const quickReplies = [
@@ -742,9 +751,9 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
               <span
                 className={cn(
                   "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white",
-                  unitIntegration?.ativo ? "bg-[#25d366]" : "bg-[#b54708]"
+                  isWhatsAppConnected ? "bg-[#25d366]" : "bg-[#b54708]"
                 )}
-                title={unitIntegration?.ativo ? "Conectado" : "Desconectado"}
+                title={isWhatsAppConnected ? "Conectado" : "Desconectado"}
               />
             </div>
             <div className="flex-1 min-w-0">
@@ -752,7 +761,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                 {unidadeAtual?.nome || "Selecione uma unidade"}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                {unitIntegration?.numero ? (
+                {isWhatsAppConnected ? (
                   <>
                     <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold px-1.5 py-0.5 rounded-md bg-[#25d366]/15 text-[#017561] border border-[#25d366]/25">
                       <CheckCircle2 className="h-3 w-3" />
@@ -763,7 +772,9 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                         {provedorLabel}
                       </span>
                     )}
-                    <span className="text-[11px] text-[#667781] truncate">{unitIntegration.numero}</span>
+                    {unitIntegration?.numero && (
+                      <span className="text-[11px] text-[#667781] truncate">{unitIntegration.numero}</span>
+                    )}
                   </>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold px-1.5 py-0.5 rounded-md bg-[#fef0c7] text-[#b54708] border border-[#fdb022]/40">

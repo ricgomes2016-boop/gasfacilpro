@@ -12,6 +12,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { Header } from "@/components/layout/Header";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, RefreshCw, CheckCircle2, X } from "lucide-react";
@@ -180,7 +181,8 @@ export default function WhatsAppWebLogin() {
 
   return (
     <MainLayout>
-      <div className="h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
+      <Header title="WhatsApp Web" subtitle="Conexao Z-API da unidade selecionada" />
+      <div className="h-[calc(100vh-8.5rem)] min-h-[560px] flex flex-col overflow-hidden">
         {/* WhatsApp Green Header Bar */}
         <div className="h-[127px] bg-[#00a884] flex-shrink-0" />
 
@@ -254,7 +256,7 @@ export default function WhatsAppWebLogin() {
                         Nenhuma integração WhatsApp configurada.
                       </p>
                       <button
-                        onClick={() => navigate("/integracoes?open=whatsapp")}
+                        onClick={() => navigate("/config/integracoes?open=whatsapp")}
                         className="text-[#00a884] text-sm hover:underline"
                       >
                         Configurar WhatsApp →
@@ -354,7 +356,7 @@ export default function WhatsAppWebLogin() {
                     )}
                   </div>
                   <button
-                    onClick={() => navigate("/chat")}
+                    onClick={() => navigate("/whatsapp/conversas")}
                     className="bg-[#00a884] hover:bg-[#008f72] text-white px-8 py-3 rounded-full text-sm font-medium transition-colors flex items-center gap-2"
                   >
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
@@ -385,7 +387,7 @@ export default function WhatsAppWebLogin() {
                       Tentar novamente
                     </button>
                     <button
-                      onClick={() => navigate("/integracoes?open=whatsapp")}
+                      onClick={() => navigate("/config/integracoes?open=whatsapp")}
                       className="text-[#00a884] hover:bg-[#00a884]/5 px-5 py-2.5 rounded-full text-sm font-medium transition-colors border border-[#00a884]/30"
                     >
                       Configurar
