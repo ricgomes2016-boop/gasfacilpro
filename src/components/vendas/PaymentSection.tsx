@@ -133,7 +133,9 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     try {
       const compressed = await compressImage(file);
       const blob = await (await fetch(compressed)).blob();
-      const fileName = `cheques/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+      const { data: empresaId, error: empErr } = await supabase.rpc("get_user_empresa_id");
+      if (empErr || !empresaId) throw empErr || new Error("Não foi possível identificar a empresa do usuário");
+      const fileName = `${empresaId}/cheques/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
       const { error } = await supabase.storage.from("cheques-docs").upload(fileName, blob, { cacheControl: "3600" });
       if (error) throw error;
       const { data: urlData, error: signErr } = await supabase.storage
