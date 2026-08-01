@@ -55,14 +55,16 @@ export function RecentSales() {
           .map((i: any) => `${i.quantidade}x ${i.produtos?.nome || "Produto"}`)
           .join(", ") || "Sem itens";
 
-        const status = p.status as keyof typeof statusConfig;
+        const raw = String(p.status || "");
+        const cfg = statusConfig[raw as keyof typeof statusConfig];
 
         return {
           id: p.id,
           customer: p.clientes?.nome || "Cliente",
           produtos,
           total: Number(p.valor_total) || 0,
-          status: statusConfig[status] ? status : "pendente",
+          statusLabel: cfg?.label || raw.replace(/_/g, " ") || "—",
+          statusVariant: cfg?.variant || ("secondary" as const),
           time: format(new Date(p.created_at), "HH:mm"),
         };
       });
