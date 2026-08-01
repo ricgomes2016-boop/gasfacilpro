@@ -12466,6 +12466,10 @@ export type Database = {
         Args: { _cliente_id: string }
         Returns: boolean
       }
+      excluir_pedido_completo: {
+        Args: { _pedido_id: string }
+        Returns: undefined
+      }
       execute_readonly_query: { Args: { query_text: string }; Returns: Json }
       gerar_codigo_indicacao_cliente: {
         Args: { _cliente_id: string; _nome: string }
