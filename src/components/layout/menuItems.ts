@@ -197,6 +197,7 @@ export const menuItems: MenuItem[] = [
     submenu: [
       { icon: Gauge, label: "Dashboard", path: "/estoque/dashboard" },
       { icon: PackageOpen, label: "Estoque do Dia", path: "/estoque" },
+      { icon: ClipboardCheck, label: "Conferência de Estoque", path: "/estoque/conferencia" },
       { icon: ShoppingBag, label: "Produtos", path: "/cadastros/produtos" },
       { icon: ShoppingBasket, label: "Compras", path: "/estoque/compras" },
       { icon: Factory, label: "Fornecedores", path: "/cadastros/fornecedores" },
