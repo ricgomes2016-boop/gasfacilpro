@@ -46,6 +46,7 @@ interface CardOperatorSelectorModalProps {
 }
 
 const JUROS_CREDITO_PARCELADO_MENSAL = 1.99;
+const TAXA_CREDITO_PARCELADO_BASE = 4.99;
 
 const normalizeText = (value: string) =>
   value
@@ -100,7 +101,11 @@ export function CardOperatorSelectorModal({
         return { taxa: Number(op.taxa_debito) || 0, prazo: op.prazo_debito || 0 };
       case "credito":
         return {
-          taxa: parcelas > 1 ? Number(op.taxa_credito_parcelado) || 0 : Number(op.taxa_credito_vista) || 0,
+          taxa: parcelas > 1 && applyInstallmentSurcharge
+            ? TAXA_CREDITO_PARCELADO_BASE
+            : parcelas > 1
+              ? Number(op.taxa_credito_parcelado) || 0
+              : Number(op.taxa_credito_vista) || 0,
           prazo: op.prazo_credito || 0,
         };
       case "pix_maquininha":

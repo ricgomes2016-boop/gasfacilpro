@@ -1066,6 +1066,17 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       // Extract cheque/fiado data from pagamentos
       const chequePag = pagamentos.find(p => p.forma === "cheque");
       const fiadoPag = pagamentos.find(p => p.forma === "fiado");
+      const encodePagamentoMarker = (p: any) => {
+        const parts: string[] = [];
+        if (p.operadora_id) parts.push(`op:${p.operadora_id}`);
+        if (p.conta_bancaria_id) parts.push(`cta:${p.conta_bancaria_id}`);
+        if (p.forma === "cartao_credito" && p.parcelas && p.parcelas > 1) parts.push(`par:${p.parcelas}`);
+        if (p.forma === "cartao_credito" && p.taxa_total_percentual) parts.push(`tx:${Number(p.taxa_total_percentual).toFixed(2)}`);
+        return parts.length ? ` [${parts.join("|")}]` : "";
+      };
+      const formaPagamentoResumo = pagamentos.length === 1
+        ? `${pagamentos[0].forma}${encodePagamentoMarker(pagamentos[0])}`
+        : pagamentos.map((p) => `${p.forma} R$${p.valor.toFixed(2)}${encodePagamentoMarker(p)}`).join(", ");
 
       const pedidoJaEntregue = jaEntregue && !!entregador.id;
       const pedidoInsert: any = {
@@ -1074,7 +1085,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         vendedor_id: vendedor.id,
         endereco_entrega: enderecoCompleto,
         valor_total: totalEfetivoVenda,
-        forma_pagamento: pagamentos.map((p) => p.forma).join(", "),
+        forma_pagamento: formaPagamentoResumo,
         canal_venda: canalVenda,
         origem_pedido: "erp",
         observacoes: customer.observacao,
@@ -1205,6 +1216,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             conta_bancaria_id: (p as any).conta_bancaria_id,
             parcelas: (p as any).parcelas,
             taxa_desconto_percentual: (p as any).taxa_desconto_percentual,
+            taxa_total_percentual: (p as any).taxa_total_percentual,
           })),
           unidadeId: unidadeAtual?.id,
           entregadorId: pedidoJaEntregue ? entregador.id : null,
@@ -1286,13 +1298,24 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       ].filter(Boolean).join(", ");
 
       const agendamentoDate = new Date(`${dataAgendamento}T${horaAgendamento}:00`);
+      const encodePagamentoMarker = (p: any) => {
+        const parts: string[] = [];
+        if (p.operadora_id) parts.push(`op:${p.operadora_id}`);
+        if (p.conta_bancaria_id) parts.push(`cta:${p.conta_bancaria_id}`);
+        if (p.forma === "cartao_credito" && p.parcelas && p.parcelas > 1) parts.push(`par:${p.parcelas}`);
+        if (p.forma === "cartao_credito" && p.taxa_total_percentual) parts.push(`tx:${Number(p.taxa_total_percentual).toFixed(2)}`);
+        return parts.length ? ` [${parts.join("|")}]` : "";
+      };
+      const formaPagamentoResumo = pagamentos.length === 1
+        ? `${pagamentos[0].forma}${encodePagamentoMarker(pagamentos[0])}`
+        : pagamentos.map((p) => `${p.forma} R$${p.valor.toFixed(2)}${encodePagamentoMarker(p)}`).join(", ");
 
       const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert({
           cliente_id: customer.id, entregador_id: entregador.id, vendedor_id: vendedor.id,
           endereco_entrega: enderecoCompleto, valor_total: totalEfetivoVenda,
-          forma_pagamento: pagamentos.map((p) => p.forma).join(", "),
+          forma_pagamento: formaPagamentoResumo,
           canal_venda: canalVenda, origem_pedido: "erp", observacoes: customer.observacao,
           status: "pendente", unidade_id: unidadeAtual?.id,
           data_entrega: dataAgendamento,

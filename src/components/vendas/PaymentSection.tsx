@@ -34,6 +34,7 @@ export interface Pagamento {
   conta_bancaria_id?: string;
   parcelas?: number;
   taxa_desconto_percentual?: number;
+  taxa_total_percentual?: number;
   // Cobrança extra associada (ex.: taxa de entrega do Gás do Povo)
   // Quando presente, aumenta o total efetivo da venda em `taxa_extra` e
   // um pagamento adicional deve ser lançado para cobrir esse valor.
@@ -89,6 +90,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   const [pendingCardInfo, setPendingCardInfo] = useState<string | null>(null);
   const [pendingParcelas, setPendingParcelas] = useState<number | undefined>(undefined);
   const [pendingTaxaDescontoPercentual, setPendingTaxaDescontoPercentual] = useState(0);
+  const [pendingTaxaTotalPercentual, setPendingTaxaTotalPercentual] = useState(0);
 
   const { unidadeAtual } = useUnidade();
   const effectiveUnidadeNome = unidadeId ? undefined : unidadeAtual?.nome;
@@ -205,6 +207,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     setPendingCardInfo(null);
     setPendingParcelas(undefined);
     setPendingTaxaDescontoPercentual(0);
+    setPendingTaxaTotalPercentual(0);
   };
 
   const addPagamento = () => {
@@ -256,6 +259,9 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
       novoPagamento.parcelas = pendingParcelas || 1;
       if (pendingTaxaDescontoPercentual > 0) {
         novoPagamento.taxa_desconto_percentual = pendingTaxaDescontoPercentual;
+      }
+      if (pendingTaxaTotalPercentual > 0) {
+        novoPagamento.taxa_total_percentual = pendingTaxaTotalPercentual;
       }
     }
 
@@ -622,6 +628,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
           if (op.conta_bancaria_id) setPendingContaBancaria(op.conta_bancaria_id);
           setPendingParcelas(op.parcelas);
           setPendingTaxaDescontoPercentual(op.taxaParcelamentoPercentual || 0);
+          setPendingTaxaTotalPercentual(op.taxaTotal || op.taxa || 0);
           const parcelasInfo = forma === "cartao_credito" ? ` • Crédito ${op.parcelas || 1}x` : "";
           const descontoInfo = op.taxaParcelamentoPercentual && op.taxaParcelamentoPercentual > 0 ? ` • Desc. parc. ${op.taxaParcelamentoPercentual.toFixed(2)}%` : "";
           const taxaInfo = op.taxaTotal && op.taxaTotal > op.taxa ? op.taxaTotal : op.taxa;

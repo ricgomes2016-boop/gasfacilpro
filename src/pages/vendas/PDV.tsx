@@ -353,6 +353,7 @@ export default function PDV() {
           conta_bancaria_id: p.conta_bancaria_id,
           parcelas: p.parcelas,
           taxa_desconto_percentual: p.taxa_desconto_percentual,
+          taxa_total_percentual: p.taxa_total_percentual,
         })),
         unidadeId: unidadeAtual?.id,
       });

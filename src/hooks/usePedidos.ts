@@ -24,6 +24,33 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
   const limparVinculosPedido = async (pedidoId: string) => {
     const db = supabase;
 
+    const { data: movimentacoesBancarias } = await db
+      .from("movimentacoes_bancarias")
+      .select("conta_bancaria_id, valor")
+      .eq("referencia_id", pedidoId)
+      .eq("referencia_tipo", "pedido");
+
+    const ajustePorConta = (movimentacoesBancarias || []).reduce<Record<string, number>>((acc, mov: any) => {
+      if (!mov.conta_bancaria_id) return acc;
+      acc[mov.conta_bancaria_id] = (acc[mov.conta_bancaria_id] || 0) + Number(mov.valor || 0);
+      return acc;
+    }, {});
+
+    for (const [contaId, valorMovimentado] of Object.entries(ajustePorConta)) {
+      const { data: conta, error: contaError } = await db
+        .from("contas_bancarias")
+        .select("saldo_atual")
+        .eq("id", contaId)
+        .maybeSingle();
+      if (contaError) throw new Error(`Erro ao buscar saldo bancário: ${contaError.message}`);
+
+      const { error: saldoError } = await db
+        .from("contas_bancarias")
+        .update({ saldo_atual: Number(conta?.saldo_atual || 0) - valorMovimentado })
+        .eq("id", contaId);
+      if (saldoError) throw new Error(`Erro ao reverter saldo bancário: ${saldoError.message}`);
+    }
+
     await Promise.all([
       db.from("cliente_creditos").update({ pedido_id: null }).eq("pedido_id", pedidoId),
       db.from("cliente_indicacoes").update({ primeiro_pedido_id: null }).eq("primeiro_pedido_id", pedidoId),
@@ -310,19 +337,23 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
         );
       }
 
-      await limparVinculosPedido(pedidoId);
+      const { error: rpcError } = await (supabase as any).rpc("excluir_pedido_completo", { _pedido_id: pedidoId });
+      if (rpcError) {
+        console.warn("RPC excluir_pedido_completo indisponível, usando fallback cliente:", rpcError.message);
+        await limparVinculosPedido(pedidoId);
 
-      const { error: itensError } = await supabase
-        .from("pedido_itens")
-        .delete()
-        .eq("pedido_id", pedidoId);
-      if (itensError) throw itensError;
+        const { error: itensError } = await supabase
+          .from("pedido_itens")
+          .delete()
+          .eq("pedido_id", pedidoId);
+        if (itensError) throw itensError;
 
-      const { error } = await supabase
-        .from("pedidos")
-        .delete()
-        .eq("id", pedidoId);
-      if (error) throw error;
+        const { error } = await supabase
+          .from("pedidos")
+          .delete()
+          .eq("id", pedidoId);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pedidos"] });

@@ -163,6 +163,7 @@ interface PagamentoMultiplo {
   taxa?: number;
   prazo?: number;
   parcelas?: number;
+  taxa_total_percentual?: number;
 }
 
 /** Retorna tipo de cartão se a forma exigir seleção de operadora, senão null. */
@@ -538,6 +539,7 @@ export default function AcertoEntregador() {
         if (p.operadora_id) parts.push(`op:${p.operadora_id}`);
         if (p.conta_bancaria_id) parts.push(`cta:${p.conta_bancaria_id}`);
         if (p.parcelas && p.parcelas > 1) parts.push(`par:${p.parcelas}`);
+        if (p.taxa_total_percentual) parts.push(`tx:${Number(p.taxa_total_percentual).toFixed(2)}`);
         return parts.length ? ` [${parts.join("|")}]` : "";
       };
 
@@ -765,15 +767,16 @@ export default function AcertoEntregador() {
           let pagamentos: PagamentoRoteamento[] = [];
 
           // Extrai marker [op:...|cta:...] anexado à parte
-          const extractMarker = (raw: string): { clean: string; operadora_id?: string; conta_bancaria_id?: string; parcelas?: number } => {
+          const extractMarker = (raw: string): { clean: string; operadora_id?: string; conta_bancaria_id?: string; parcelas?: number; taxa_total_percentual?: number } => {
             const m = raw.match(/^(.*?)\s*\[([^\]]+)\]\s*$/);
             if (!m) return { clean: raw };
-            const out: { clean: string; operadora_id?: string; conta_bancaria_id?: string; parcelas?: number } = { clean: m[1].trim() };
+            const out: { clean: string; operadora_id?: string; conta_bancaria_id?: string; parcelas?: number; taxa_total_percentual?: number } = { clean: m[1].trim() };
             m[2].split("|").forEach((tok) => {
               const [k, v] = tok.split(":");
               if (k === "op" && v) out.operadora_id = v;
               if (k === "cta" && v) out.conta_bancaria_id = v;
               if (k === "par" && v) out.parcelas = Number(v) || undefined;
+              if (k === "tx" && v) out.taxa_total_percentual = Number(v) || undefined;
             });
             return out;
           };
@@ -782,13 +785,13 @@ export default function AcertoEntregador() {
           if (isMultiplo) {
             const cleanFp = fp.replace(/^m[uú]ltiplos?:\s*/i, "");
             const parts = cleanFp.split(/,\s*|\s*\+\s*/).filter(Boolean);
-            const parsed: { forma: string; valor: number | null; operadora_id?: string; conta_bancaria_id?: string; parcelas?: number }[] = parts.map((part: string) => {
-              const { clean, operadora_id, conta_bancaria_id, parcelas } = extractMarker(part.trim());
+            const parsed: { forma: string; valor: number | null; operadora_id?: string; conta_bancaria_id?: string; parcelas?: number; taxa_total_percentual?: number }[] = parts.map((part: string) => {
+              const { clean, operadora_id, conta_bancaria_id, parcelas, taxa_total_percentual } = extractMarker(part.trim());
               const match = clean.match(/^(.+?)\s+R?\$?\s*([\d.,]+)$/);
               if (match) {
-                return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseValorBR(match[2]), operadora_id, conta_bancaria_id, parcelas };
+                return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseValorBR(match[2]), operadora_id, conta_bancaria_id, parcelas, taxa_total_percentual };
               }
-              return { forma: normalizarFormaPagamento(clean), valor: null, operadora_id, conta_bancaria_id, parcelas };
+              return { forma: normalizarFormaPagamento(clean), valor: null, operadora_id, conta_bancaria_id, parcelas, taxa_total_percentual };
             });
             const somaExplicita = parsed.reduce((a, p) => a + (p.valor ?? 0), 0);
             const semValor = parsed.filter((p) => p.valor === null);
@@ -800,10 +803,11 @@ export default function AcertoEntregador() {
               operadora_id: p.operadora_id,
               conta_bancaria_id: p.conta_bancaria_id,
               parcelas: p.parcelas,
+              taxa_total_percentual: p.taxa_total_percentual,
             }));
           } else if (fp) {
-            const { clean, operadora_id, conta_bancaria_id, parcelas } = extractMarker(fp);
-            pagamentos = [{ forma: normalizarFormaPagamento(clean), valor: totalEntrega, operadora_id, conta_bancaria_id, parcelas }];
+            const { clean, operadora_id, conta_bancaria_id, parcelas, taxa_total_percentual } = extractMarker(fp);
+            pagamentos = [{ forma: normalizarFormaPagamento(clean), valor: totalEntrega, operadora_id, conta_bancaria_id, parcelas, taxa_total_percentual }];
           } else {
             pagamentos = [{ forma: "dinheiro", valor: totalEntrega }];
           }
@@ -1867,6 +1871,7 @@ export default function AcertoEntregador() {
             unidadeId={unidadeAtual?.id}
             parcelasInicial={pg.parcelas || 1}
             preferredOperator={tipo === "pix_maquininha" ? "pagbank" : undefined}
+            applyInstallmentSurcharge
             onSelect={(op) => {
               const novos = [...editingEntrega.pagamentos_multiplos];
               novos[cardModalIdx] = {
@@ -1877,6 +1882,7 @@ export default function AcertoEntregador() {
                 taxa: op.taxa,
                 prazo: op.prazo,
                 parcelas: tipo === "credito" ? op.parcelas || 1 : undefined,
+                taxa_total_percentual: tipo === "credito" ? op.taxaTotal || op.taxa : undefined,
               };
               setEditingEntrega({ ...editingEntrega, pagamentos_multiplos: novos });
             }}

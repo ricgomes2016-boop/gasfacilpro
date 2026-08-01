@@ -24,6 +24,7 @@ export interface PDVPagamento {
   info?: string;
   parcelas?: number;
   taxa_desconto_percentual?: number;
+  taxa_total_percentual?: number;
   /** Cobrança extra (ex.: taxa de entrega Gás do Povo) associada a este pagamento. */
   taxa_extra?: number;
 }
@@ -56,7 +57,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
   const [taxaEntregaGasPovo, setTaxaEntregaGasPovo] = useState("");
   const [pixModalOpen, setPixModalOpen] = useState(false);
   const [cardModalOpen, setCardModalOpen] = useState(false);
-  const [pendingExtras, setPendingExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string; info?: string; parcelas?: number; taxa_extra?: number; taxa_desconto_percentual?: number } | null>(null);
+  const [pendingExtras, setPendingExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string; info?: string; parcelas?: number; taxa_extra?: number; taxa_desconto_percentual?: number; taxa_total_percentual?: number } | null>(null);
   const { unidadeAtual } = useUnidade();
   const { toast } = useToast();
 
@@ -229,6 +230,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
         info: pendingExtras?.info,
         parcelas: formaPagamento === "credito" ? pendingExtras?.parcelas || 1 : undefined,
         taxa_desconto_percentual: formaPagamento === "credito" ? pendingExtras?.taxa_desconto_percentual : undefined,
+        taxa_total_percentual: formaPagamento === "credito" ? pendingExtras?.taxa_total_percentual : undefined,
       },
     ]);
     setPendingExtras(null);
@@ -410,6 +412,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
             conta_bancaria_id: op.conta_bancaria_id || undefined,
             parcelas: formaPagamento === "credito" ? op.parcelas || 1 : undefined,
             taxa_desconto_percentual: formaPagamento === "credito" ? op.taxaParcelamentoPercentual || undefined : undefined,
+            taxa_total_percentual: formaPagamento === "credito" ? op.taxaTotal || undefined : undefined,
             info: `${op.nome}${parcelasInfo}${descontoInfo} • Taxa total ${taxaInfo.toFixed(2)}% • D+${op.prazo}`,
           });
         }}

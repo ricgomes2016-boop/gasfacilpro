@@ -26,6 +26,7 @@ export interface PagamentoRoteamento {
   conta_bancaria_id?: string;
   parcelas?: number;
   taxa_desconto_percentual?: number;
+  taxa_total_percentual?: number;
 }
 
 interface RotearPagamentosParams {
@@ -325,7 +326,8 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
             const op = await getOperadoraConfig(unidadeId || null, pag.forma, pag.operadora_id, parcelas);
             const taxaBase = op ? op.taxa : 0;
             const taxaParcelamento = formaNorm === "cartao_credito" ? Math.max(0, Number(pag.taxa_desconto_percentual) || 0) : 0;
-            const taxa = taxaBase + taxaParcelamento;
+            const taxaTotalInformada = formaNorm === "cartao_credito" ? Math.max(0, Number(pag.taxa_total_percentual) || 0) : 0;
+            const taxa = taxaTotalInformada > 0 ? taxaTotalInformada : taxaBase + taxaParcelamento;
             const prazo = op ? op.prazo : (pag.forma.includes("debito") ? 1 : 30);
             const valorTaxa = pag.valor * (taxa / 100);
             const valorLiquido = pag.valor - valorTaxa;
