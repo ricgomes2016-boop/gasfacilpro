@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Loader2, MapPin, Search, ArrowRightLeft, Building2, AlertTriangle, Info } from "lucide-react";
+import { Plus, Loader2, MapPin, Search, ArrowRightLeft, Building2, AlertTriangle, Info, Power, PowerOff, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -62,6 +62,12 @@ export default function AdminUnidades() {
   const [migrateCnpj, setMigrateCnpj] = useState("");
   const [migrateEmail, setMigrateEmail] = useState("");
   const [migrating, setMigrating] = useState(false);
+
+  // Inativar / excluir
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deletingUnidade, setDeletingUnidade] = useState<Unidade | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
 
   const fetchData = async () => {
     const [unidadesRes, empresasRes] = await Promise.all([
@@ -143,6 +149,47 @@ export default function AdminUnidades() {
       setMigratingUnidade(null);
     }
   };
+
+  const handleToggleAtivo = async (u: Unidade) => {
+    setTogglingId(u.id);
+    try {
+      const { error } = await supabase
+        .from("unidades")
+        .update({ ativo: !u.ativo })
+        .eq("id", u.id);
+      if (error) throw error;
+      setUnidades((prev) => prev.map((x) => (x.id === u.id ? { ...x, ativo: !u.ativo } : x)));
+      toast.success(u.ativo ? `Unidade "${u.nome}" inativada` : `Unidade "${u.nome}" reativada`);
+    } catch (err: any) {
+      toast.error("Erro ao atualizar unidade: " + err.message);
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingUnidade) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("unidades").delete().eq("id", deletingUnidade.id);
+      if (error) throw error;
+      setUnidades((prev) => prev.filter((x) => x.id !== deletingUnidade.id));
+      toast.success(`Unidade "${deletingUnidade.nome}" excluída`);
+      setDeletingUnidade(null);
+    } catch (err: any) {
+      const msg = String(err?.message || "");
+      if (msg.includes("foreign key") || msg.includes("violates") || err?.code === "23503") {
+        toast.error(
+          "Não é possível excluir: existem registros (pedidos, clientes, estoque) vinculados a esta unidade. Use 'Inativar'.",
+        );
+      } else {
+        toast.error("Erro ao excluir: " + msg);
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
 
   const empresasAtivas = empresas.filter((e) => e.ativo);
   const filtered = unidades.filter((u) => {
@@ -320,17 +367,47 @@ export default function AdminUnidades() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openMigrate(u)}
-                          title="Promover a empresa independente"
-                          className="text-xs gap-1"
-                        >
-                          <ArrowRightLeft className="h-3.5 w-3.5" />
-                          Migrar
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openMigrate(u)}
+                            title="Promover a empresa independente"
+                            className="text-xs gap-1"
+                          >
+                            <ArrowRightLeft className="h-3.5 w-3.5" />
+                            Migrar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleAtivo(u)}
+                            disabled={togglingId === u.id}
+                            title={u.ativo ? "Inativar unidade" : "Reativar unidade"}
+                            className="text-xs gap-1"
+                          >
+                            {togglingId === u.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : u.ativo ? (
+                              <PowerOff className="h-3.5 w-3.5" />
+                            ) : (
+                              <Power className="h-3.5 w-3.5" />
+                            )}
+                            {u.ativo ? "Inativar" : "Reativar"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeletingUnidade(u)}
+                            title="Excluir unidade"
+                            className="text-xs gap-1 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Excluir
+                          </Button>
+                        </div>
                       </TableCell>
+
                     </TableRow>
                   ))
                 )}
@@ -435,6 +512,42 @@ export default function AdminUnidades() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete Dialog */}
+      <AlertDialog open={!!deletingUnidade} onOpenChange={(o) => !o && setDeletingUnidade(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Excluir unidade
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                A unidade <strong>"{deletingUnidade?.nome}"</strong> da empresa{" "}
+                <strong>{deletingUnidade ? getEmpresaNome(deletingUnidade.empresa_id) : ""}</strong> será excluída
+                permanentemente.
+              </span>
+              <span className="block font-semibold text-destructive">Esta ação não pode ser desfeita.</span>
+              <span className="block text-xs">
+                Se a unidade já tiver movimentações (pedidos, clientes, estoque), a exclusão será bloqueada — nesse caso
+                use a opção <strong>Inativar</strong>.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Excluir definitivamente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {/* Global loading overlay */}
       {migrating && (
