@@ -1164,7 +1164,7 @@ export default function Pedidos() {
         {(() => {
           const tabs: Array<{ key: string; label: string; count: number; icon?: ElementType; cls: string }> = [
             { key: "pendente", label: "Pendente", count: contadores.pendente, icon: Clock, cls: "border-warning/35 bg-warning/10 text-warning hover:bg-warning/15" },
-            { key: "visualizado", label: "Visualizado", count: pedidos.filter((p) => p.status === "visualizado").length, icon: Eye, cls: "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15" },
+            { key: "visualizado", label: "Visualizado", count: pedidos.filter((p) => (p.status as string) === "visualizado").length, icon: Eye, cls: "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15" },
             { key: "em_rota", label: "Em Rota", count: contadores.em_rota, icon: Truck, cls: "border-info/35 bg-info/10 text-info hover:bg-info/15" },
             { key: "entregue", label: "Entregue", count: contadores.entregue, icon: CheckCircle, cls: "border-success/35 bg-success/10 text-success hover:bg-success/15" },
             { key: "agendado", label: "Agendado", count: pedidos.filter((p) => p.agendado && !["cancelado","entregue","finalizado"].includes(p.status)).length, icon: Calendar, cls: "border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100" },
