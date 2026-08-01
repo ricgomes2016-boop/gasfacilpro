@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, Download, FileSpreadsheet, Loader2, RefreshCw, Store } from "lucide-react";
+import { CalendarDays, Download, FileSpreadsheet, Loader2, RefreshCw, Save, Store } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -20,26 +20,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Unidade, useUnidade } from "@/contexts/UnidadeContext";
+import { useToast } from "@/hooks/use-toast";
 
 type GrupoProduto = "P13" | "P20" | "P45" | "Agua";
 type TipoEstoque = "cheio" | "vazio";
+type ValoresConferencia = Record<string, Record<GrupoProduto, Record<TipoEstoque, number>>>;
 
-interface ProdutoConferencia {
-  id: string;
-  nome: string;
-  estoque: number | null;
-  tipo_botijao: string | null;
-  categoria: string | null;
-  unidade_id: string | null;
+interface RegistroConferencia {
+  unidade_id: string;
+  produto_grupo: GrupoProduto;
+  tipo_estoque: TipoEstoque;
+  quantidade: number;
 }
-
-type TotaisProduto = Record<GrupoProduto, Record<TipoEstoque, number>>;
 
 interface LinhaConferencia {
   unidade: Unidade;
-  totais: TotaisProduto;
+  totais: Record<GrupoProduto, Record<TipoEstoque, number>>;
   totalGeral: number;
 }
 
@@ -47,38 +45,15 @@ const grupos: { key: GrupoProduto; label: string; tone: string; mobileTone: stri
   { key: "P13", label: "P13", tone: "bg-[#e66f2f] text-white", mobileTone: "border-[#e66f2f]/30 bg-[#fff4ed]" },
   { key: "P20", label: "P20", tone: "bg-[#e66f2f] text-white", mobileTone: "border-[#e66f2f]/30 bg-[#fff4ed]" },
   { key: "P45", label: "P45", tone: "bg-[#e66f2f] text-white", mobileTone: "border-[#e66f2f]/30 bg-[#fff4ed]" },
-  { key: "Agua", label: "Água", tone: "bg-[#198fbe] text-white", mobileTone: "border-[#198fbe]/30 bg-[#eef9fd]" },
+  { key: "Agua", label: "Agua", tone: "bg-[#198fbe] text-white", mobileTone: "border-[#198fbe]/30 bg-[#eef9fd]" },
 ];
 
-const criarTotaisZerados = (): TotaisProduto => ({
+const criarTotaisZerados = () => ({
   P13: { cheio: 0, vazio: 0 },
   P20: { cheio: 0, vazio: 0 },
   P45: { cheio: 0, vazio: 0 },
   Agua: { cheio: 0, vazio: 0 },
 });
-
-const normalizar = (texto: string | null | undefined) =>
-  (texto || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-
-const identificarGrupo = (produto: ProdutoConferencia): GrupoProduto | null => {
-  const alvo = `${produto.nome} ${produto.categoria || ""}`;
-  const texto = normalizar(alvo);
-
-  if (texto.includes("agua") || /\b20\s*l\b/.test(texto) || texto.includes("galao")) return "Agua";
-  if (/\bp\s*45\b/.test(texto) || /\b45\s*kg\b/.test(texto) || texto.includes("p45")) return "P45";
-  if (/\bp\s*20\b/.test(texto) || /\b20\s*kg\b/.test(texto) || texto.includes("p20")) return "P20";
-  if (/\bp\s*13\b/.test(texto) || /\b13\s*kg\b/.test(texto) || texto.includes("p13")) return "P13";
-
-  return null;
-};
-
-const identificarTipo = (produto: ProdutoConferencia): TipoEstoque => {
-  const texto = normalizar(`${produto.tipo_botijao || ""} ${produto.nome}`);
-  return texto.includes("vazio") || texto.includes("vasilhame") ? "vazio" : "cheio";
-};
 
 const formatarDataBR = (data: string) =>
   format(parseISO(`${data}T12:00:00`), "dd/MM/yyyy", { locale: ptBR });
@@ -91,13 +66,21 @@ const nomeArquivoSeguro = (texto: string) =>
     .replace(/^-|-$/g, "")
     .toLowerCase();
 
+const criarValoresVazios = (lojas: Unidade[]): ValoresConferencia =>
+  lojas.reduce((acc, loja) => {
+    acc[loja.id] = criarTotaisZerados();
+    return acc;
+  }, {} as ValoresConferencia);
+
 export default function ConferenciaEstoque() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { unidades, unidadeAtual, loading: unidadesLoading } = useUnidade();
   const [dataConferencia, setDataConferencia] = useState(format(new Date(), "yyyy-MM-dd"));
   const [lojaFiltro, setLojaFiltro] = useState("todas");
-  const [produtos, setProdutos] = useState<ProdutoConferencia[]>([]);
+  const [valores, setValores] = useState<ValoresConferencia>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const lojasVisiveis = useMemo(() => {
     if (lojaFiltro === "todas") return unidades;
@@ -108,16 +91,17 @@ export default function ConferenciaEstoque() {
     ? "Todas as lojas"
     : lojasVisiveis[0]?.nome || unidadeAtual?.nome || "Loja selecionada";
 
-  const carregarProdutos = async () => {
+  const carregarConferencia = async () => {
     if (unidadesLoading) return;
 
+    const base = criarValoresVazios(unidades);
     setIsLoading(true);
+
     try {
-      let query = supabase
-        .from("produtos")
-        .select("id, nome, estoque, tipo_botijao, categoria, unidade_id")
-        .eq("ativo", true)
-        .order("nome");
+      let query = (supabase as any)
+        .from("estoque_conferencias")
+        .select("unidade_id, produto_grupo, tipo_estoque, quantidade")
+        .eq("data_conferencia", dataConferencia);
 
       if (lojaFiltro !== "todas") {
         query = query.eq("unidade_id", lojaFiltro);
@@ -126,14 +110,20 @@ export default function ConferenciaEstoque() {
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
-      setProdutos((data || []) as ProdutoConferencia[]);
+
+      (data || []).forEach((registro: RegistroConferencia) => {
+        if (!base[registro.unidade_id]) base[registro.unidade_id] = criarTotaisZerados();
+        base[registro.unidade_id][registro.produto_grupo][registro.tipo_estoque] = Number(registro.quantidade || 0);
+      });
+
+      setValores(base);
     } catch (error) {
-      console.error("Erro ao carregar conferencia de estoque:", error);
+      console.error("Erro ao carregar conferencia manual:", error);
+      setValores(base);
       toast({
-        title: "Erro ao carregar estoque",
-        description: "Nao foi possivel buscar os produtos para conferencia.",
+        title: "Conferência manual ainda não disponível",
+        description: "A tabela de conferências precisa estar publicada no Supabase.",
         variant: "destructive",
       });
     } finally {
@@ -142,23 +132,29 @@ export default function ConferenciaEstoque() {
   };
 
   useEffect(() => {
-    carregarProdutos();
-  }, [lojaFiltro, unidadesLoading, unidades.length]);
+    carregarConferencia();
+  }, [dataConferencia, lojaFiltro, unidadesLoading, unidades.length]);
+
+  const atualizarValor = (unidadeId: string, grupo: GrupoProduto, tipo: TipoEstoque, value: string) => {
+    const quantidade = Math.max(0, Number(value || 0));
+
+    setValores((prev) => {
+      const next = { ...prev };
+      next[unidadeId] = next[unidadeId] || criarTotaisZerados();
+      next[unidadeId] = {
+        ...next[unidadeId],
+        [grupo]: {
+          ...next[unidadeId][grupo],
+          [tipo]: Number.isFinite(quantidade) ? quantidade : 0,
+        },
+      };
+      return next;
+    });
+  };
 
   const linhas = useMemo<LinhaConferencia[]>(() => {
     return lojasVisiveis.map((unidade) => {
-      const totais = criarTotaisZerados();
-
-      produtos
-        .filter((produto) => produto.unidade_id === unidade.id)
-        .forEach((produto) => {
-          const grupo = identificarGrupo(produto);
-          if (!grupo) return;
-
-          const tipo = identificarTipo(produto);
-          totais[grupo][tipo] += Number(produto.estoque || 0);
-        });
-
+      const totais = valores[unidade.id] || criarTotaisZerados();
       const totalGeral = grupos.reduce(
         (acc, grupo) => acc + totais[grupo.key].cheio + totais[grupo.key].vazio,
         0
@@ -166,7 +162,7 @@ export default function ConferenciaEstoque() {
 
       return { unidade, totais, totalGeral };
     });
-  }, [lojasVisiveis, produtos]);
+  }, [lojasVisiveis, valores]);
 
   const resumo = useMemo(() => {
     return linhas.reduce(
@@ -195,6 +191,55 @@ export default function ConferenciaEstoque() {
       linha.totais.Agua.vazio,
     ]);
 
+  const salvarConferencia = async () => {
+    if (linhas.length === 0) {
+      toast({ title: "Nenhuma loja para salvar", variant: "destructive" });
+      return;
+    }
+
+    const registros = linhas.flatMap((linha) =>
+      grupos.flatMap((grupo) => [
+        {
+          data_conferencia: dataConferencia,
+          unidade_id: linha.unidade.id,
+          produto_grupo: grupo.key,
+          tipo_estoque: "cheio",
+          quantidade: linha.totais[grupo.key].cheio || 0,
+          conferido_por: user?.id || null,
+        },
+        {
+          data_conferencia: dataConferencia,
+          unidade_id: linha.unidade.id,
+          produto_grupo: grupo.key,
+          tipo_estoque: "vazio",
+          quantidade: linha.totais[grupo.key].vazio || 0,
+          conferido_por: user?.id || null,
+        },
+      ])
+    );
+
+    setIsSaving(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("estoque_conferencias")
+        .upsert(registros, {
+          onConflict: "data_conferencia,unidade_id,produto_grupo,tipo_estoque",
+        });
+
+      if (error) throw error;
+      toast({ title: "Conferência salva", description: `${escopoLabel} - ${formatarDataBR(dataConferencia)}` });
+    } catch (error) {
+      console.error("Erro ao salvar conferencia manual:", error);
+      toast({
+        title: "Erro ao salvar conferência",
+        description: "Verifique se a migration da tabela estoque_conferencias foi publicada.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const exportarExcel = () => {
     if (linhas.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
@@ -218,24 +263,11 @@ export default function ConferenciaEstoque() {
       { s: { r: 2, c: 5 }, e: { r: 2, c: 6 } },
       { s: { r: 2, c: 7 }, e: { r: 2, c: 8 } },
     ];
-    ws["!cols"] = [
-      { wch: 22 },
-      { wch: 9 },
-      { wch: 9 },
-      { wch: 9 },
-      { wch: 9 },
-      { wch: 9 },
-      { wch: 9 },
-      { wch: 9 },
-      { wch: 9 },
-    ];
+    ws["!cols"] = [{ wch: 22 }, ...Array.from({ length: 8 }, () => ({ wch: 9 }))];
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Conferencia");
-    XLSX.writeFile(
-      wb,
-      `conferencia-estoque-${dataConferencia}-${nomeArquivoSeguro(escopoLabel)}.xlsx`
-    );
+    XLSX.writeFile(wb, `conferencia-estoque-${dataConferencia}-${nomeArquivoSeguro(escopoLabel)}.xlsx`);
   };
 
   const exportarPDF = () => {
@@ -266,17 +298,13 @@ export default function ConferenciaEstoque() {
         lineColor: [30, 41, 59],
         lineWidth: 0.2,
       },
-      columnStyles: {
-        0: { halign: "left", fontStyle: "bold", cellWidth: 42 },
-      },
+      columnStyles: { 0: { halign: "left", fontStyle: "bold", cellWidth: 42 } },
       headStyles: {
         fillColor: [17, 24, 39],
         textColor: [255, 255, 255],
         fontStyle: "bold",
       },
-      alternateRowStyles: {
-        fillColor: [248, 250, 252],
-      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
     });
 
     doc.save(`conferencia-estoque-${dataConferencia}-${nomeArquivoSeguro(escopoLabel)}.pdf`);
@@ -287,19 +315,23 @@ export default function ConferenciaEstoque() {
       <Header title="Conferência de Estoque" subtitle="Gestão de Estoque" />
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5 p-3 sm:p-6">
         <EstoquePageHeader
-          title="Conferência diária"
-          description="Fechamento visual de cheios e vazios por loja, no mesmo formato usado na conferência física."
+          title="Conferência diária manual"
+          description="Digite os valores conferidos fisicamente por loja. A exportação usa exatamente os números informados."
           actions={
             <>
-              <Button variant="outline" size="sm" className="h-10 gap-2" onClick={carregarProdutos} disabled={isLoading}>
+              <Button variant="outline" size="sm" className="h-10 gap-2" onClick={carregarConferencia} disabled={isLoading}>
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Atualizar
+              </Button>
+              <Button size="sm" className="h-10 gap-2 bg-emerald-600 hover:bg-emerald-700" onClick={salvarConferencia} disabled={isSaving}>
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Salvar
               </Button>
               <Button variant="outline" size="sm" className="h-10 gap-2" onClick={exportarPDF}>
                 <Download className="h-4 w-4" />
                 PDF
               </Button>
-              <Button size="sm" className="h-10 gap-2" onClick={exportarExcel}>
+              <Button variant="outline" size="sm" className="h-10 gap-2" onClick={exportarExcel}>
                 <FileSpreadsheet className="h-4 w-4" />
                 Excel
               </Button>
@@ -370,18 +402,12 @@ export default function ConferenciaEstoque() {
               <table className="w-full min-w-[900px] border-collapse bg-white text-sm">
                 <thead>
                   <tr>
-                    <th
-                      colSpan={9}
-                      className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950"
-                    >
+                    <th colSpan={9} className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
                       {formatarDataBR(dataConferencia)}
                     </th>
                   </tr>
                   <tr>
-                    <th
-                      rowSpan={2}
-                      className="w-[210px] border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black text-white"
-                    >
+                    <th rowSpan={2} className="w-[210px] border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black text-white">
                       Lojas
                     </th>
                     {grupos.map((grupo) => (
@@ -421,11 +447,25 @@ export default function ConferenciaEstoque() {
                           {linha.unidade.nome}
                         </td>
                         {grupos.flatMap((grupo) => [
-                          <td key={`${linha.unidade.id}-${grupo.key}-cheio`} className="border border-slate-900 px-3 py-1.5 text-center font-black text-blue-700">
-                            {linha.totais[grupo.key].cheio || ""}
+                          <td key={`${linha.unidade.id}-${grupo.key}-cheio`} className="border border-slate-900 p-0">
+                            <Input
+                              type="number"
+                              min="0"
+                              inputMode="numeric"
+                              value={linha.totais[grupo.key].cheio || ""}
+                              onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "cheio", event.target.value)}
+                              className="h-10 rounded-none border-0 text-center text-base font-black text-blue-700 shadow-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                            />
                           </td>,
-                          <td key={`${linha.unidade.id}-${grupo.key}-vazio`} className="border border-slate-900 px-3 py-1.5 text-center font-black text-blue-700">
-                            {linha.totais[grupo.key].vazio || ""}
+                          <td key={`${linha.unidade.id}-${grupo.key}-vazio`} className="border border-slate-900 p-0">
+                            <Input
+                              type="number"
+                              min="0"
+                              inputMode="numeric"
+                              value={linha.totais[grupo.key].vazio || ""}
+                              onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "vazio", event.target.value)}
+                              className="h-10 rounded-none border-0 text-center text-base font-black text-blue-700 shadow-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                            />
                           </td>,
                         ])}
                       </tr>
@@ -467,18 +507,32 @@ export default function ConferenciaEstoque() {
                   <div className="border-b border-slate-200 bg-slate-900 px-4 py-3">
                     <p className="text-base font-black text-white">{linha.unidade.nome}</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 p-3">
+                  <div className="grid grid-cols-1 gap-2 p-3 xs:grid-cols-2">
                     {grupos.map((grupo) => (
                       <div key={grupo.key} className={`rounded-lg border p-3 ${grupo.mobileTone}`}>
                         <p className="mb-2 text-sm font-black text-slate-950">{grupo.label}</p>
-                        <div className="grid grid-cols-2 gap-2 text-center">
-                          <div className="rounded-md bg-white px-2 py-2 shadow-sm">
-                            <p className="text-[11px] font-semibold uppercase text-slate-500">Cheio</p>
-                            <p className="text-lg font-black text-blue-700">{linha.totais[grupo.key].cheio}</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1 rounded-md bg-white px-2 py-2 shadow-sm">
+                            <Label className="text-[11px] font-semibold uppercase text-slate-500">Cheio</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              inputMode="numeric"
+                              value={linha.totais[grupo.key].cheio || ""}
+                              onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "cheio", event.target.value)}
+                              className="h-9 rounded-md text-center text-lg font-black text-blue-700"
+                            />
                           </div>
-                          <div className="rounded-md bg-white px-2 py-2 shadow-sm">
-                            <p className="text-[11px] font-semibold uppercase text-slate-500">Vazio</p>
-                            <p className="text-lg font-black text-blue-700">{linha.totais[grupo.key].vazio}</p>
+                          <div className="space-y-1 rounded-md bg-white px-2 py-2 shadow-sm">
+                            <Label className="text-[11px] font-semibold uppercase text-slate-500">Vazio</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              inputMode="numeric"
+                              value={linha.totais[grupo.key].vazio || ""}
+                              onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "vazio", event.target.value)}
+                              className="h-9 rounded-md text-center text-lg font-black text-blue-700"
+                            />
                           </div>
                         </div>
                       </div>
