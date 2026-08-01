@@ -31,6 +31,7 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
       db.from("chamadas_recebidas").update({ pedido_gerado_id: null }).eq("pedido_gerado_id", pedidoId),
       db.from("vendas_antecipadas").update({ pedido_utilizacao_id: null }).eq("pedido_utilizacao_id", pedidoId),
       db.from("vale_gas").update({ venda_id: null }).eq("venda_id", pedidoId),
+      db.from("vendas_antecipadas_vales").update({ pedido_id: null }).eq("pedido_id", pedidoId),
     ]).then((results) => {
       results.forEach((result, index) => ensureNoError(result, `Erro ao desvincular referência ${index + 1}`));
     });
