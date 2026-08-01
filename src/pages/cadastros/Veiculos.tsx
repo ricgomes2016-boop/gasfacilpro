@@ -31,6 +31,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { VeiculoDetalheDialog } from "@/components/frota/VeiculoDetalheDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -126,6 +127,7 @@ export default function Veiculos() {
   const [fipeLoading, setFipeLoading] = useState(false);
   const [bulkFipeLoading, setBulkFipeLoading] = useState(false);
   const { unidadeAtual, unidades } = useUnidade();
+  const { empresa } = useEmpresa();
   const [importingCrlv, setImportingCrlv] = useState(false);
 
   const getDocStatus = (date: string | null) => {
@@ -515,7 +517,7 @@ export default function Veiculos() {
                         value={(form as any)[key] || null}
                         onChange={(url) => setForm({ ...form, [key]: url || "" } as any)}
                         bucket="vehicle-photos"
-                        folder="veiculos"
+                        folder={empresa?.id ? `${empresa.id}/veiculos` : "veiculos"}
                         allowCamera
                       />
                     </div>

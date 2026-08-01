@@ -12632,6 +12632,10 @@ export type Database = {
         Args: { _target_user_id: string }
         Returns: boolean
       }
+      vehicle_photo_belongs_to_empresa: {
+        Args: { _object_name: string }
+        Returns: boolean
+      }
       vincular_vales_empenho: {
         Args: {
           _empenho_id: string
