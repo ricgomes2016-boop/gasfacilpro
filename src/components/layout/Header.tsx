@@ -159,7 +159,7 @@ export function Header({ title, subtitle }: HeaderProps) {
                 {(unidadeAtual?.nome || empresa?.nome) && (
                   <>
                     <span className="hidden text-border sm:inline">·</span>
-                    <span className="min-w-0 truncate text-sm font-semibold text-primary sm:text-base">
+                    <span className="hidden min-w-0 truncate text-sm font-semibold text-primary sm:block sm:text-base">
                       {unidadeAtual?.nome || empresa?.nome}
                     </span>
                   </>
@@ -206,7 +206,11 @@ export function Header({ title, subtitle }: HeaderProps) {
             ? "h-11 justify-end gap-1"
             : "h-10 justify-end gap-0.5 sm:h-12 sm:gap-1 xl:gap-1.5"
         )}>
-          {!isCleanTheme && <UnidadeSelector />}
+          {!isCleanTheme && (
+            <div className="hidden xl:block">
+              <UnidadeSelector />
+            </div>
+          )}
 
           <div className={cn("shrink-0", isCleanTheme ? "block" : "hidden xl:block")}>
             <CommandPalette />

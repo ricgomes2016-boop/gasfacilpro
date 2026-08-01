@@ -1267,7 +1267,7 @@ export default function Pedidos() {
                       className={`mobile-record-card transition-all ${pedido.status === "cancelado" ? "opacity-60" : ""} ${expandido ? "ring-1 ring-primary/20" : ""}`}
                     >
                       {/* Header do card */}
-                      <div className="flex items-start gap-2 p-3">
+                      <div className="flex items-start gap-2 p-3 pb-2">
                         <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} className="mt-1 shrink-0" />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-2">
@@ -1278,6 +1278,13 @@ export default function Pedidos() {
                             <PedidoStatusPill status={pedido.agendado && !bloqueado ? "agendado" : pedido.status} />
                           </div>
                           <p className="mt-1 text-[15px] font-semibold text-foreground truncate">{pedido.cliente}</p>
+                          <div className="mt-1 flex items-start gap-1.5 text-xs leading-snug text-muted-foreground">
+                            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                            <span className="line-clamp-2 min-w-0">{pedido.endereco}</span>
+                          </div>
+                          <p className="mt-2 text-xs font-medium text-foreground/80 truncate">
+                            {itensResumo}{itensExtras > 0 && <span className="text-muted-foreground/70"> +{itensExtras} item{itensExtras > 1 ? "s" : ""}</span>}
+                          </p>
                           <div className="mt-2 flex flex-wrap items-center gap-1.5">
                             <span className="inline-flex rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground">
                               {pedido.data}
@@ -1286,9 +1293,6 @@ export default function Pedidos() {
                               <span className="truncate">{pedido.canal_venda || "Sem canal"}</span>
                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {itensResumo}{itensExtras > 0 && <span className="text-muted-foreground/70"> · +{itensExtras} item{itensExtras > 1 ? "s" : ""}</span>}
-                          </p>
                         </div>
                       </div>
 
@@ -1303,12 +1307,6 @@ export default function Pedidos() {
                           />
                           {horario && <span className="text-[11px] text-muted-foreground shrink-0">{horario}</span>}
                         </div>
-                      </div>
-
-                      {/* Linha endereço + entregador */}
-                      <div className="flex items-center gap-2 px-3 pb-2 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3 shrink-0" />
-                        <span className="truncate flex-1">{pedido.endereco}</span>
                       </div>
 
                       {/* Entregador */}

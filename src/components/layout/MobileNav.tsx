@@ -4,8 +4,13 @@ import {
   LogOut,
   Menu,
   ChevronDown,
-  X,
-  Store,
+  LayoutDashboard,
+  Monitor,
+  PlusCircle,
+  ClipboardList,
+  UserPlus,
+  PackageOpen,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -37,6 +42,16 @@ const menuIconColors: Record<string, string> = {
 const subMenuIconColors: Record<string, string> = new Proxy({}, {
   get: () => "text-sidebar-foreground/85",
 }) as Record<string, string>;
+
+const favoriteItems = [
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+  { icon: Monitor, label: "PDV", path: "/vendas/pdv" },
+  { icon: PlusCircle, label: "Nova Venda", path: "/vendas/nova" },
+  { icon: ClipboardList, label: "Pedidos", path: "/vendas/pedidos" },
+  { icon: UserPlus, label: "Clientes", path: "/clientes/cadastro" },
+  { icon: PackageOpen, label: "Estoque", path: "/estoque" },
+  { icon: Wallet, label: "Financeiro", path: "/financeiro/fluxo" },
+];
 
 export function MobileNav() {
   const location = useLocation();
@@ -91,21 +106,21 @@ export function MobileNav() {
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className={cn(themeClass, "app-sidebar-premium app-mobile-sidebar-modern w-[min(86vw,320px)] overflow-hidden rounded-r-[1.75rem] border-r border-sidebar-border/15 p-0 text-sidebar-foreground shadow-2xl")}>
+      <SheetContent side="left" className={cn(themeClass, "app-sidebar-premium app-mobile-sidebar-modern w-[min(88vw,330px)] overflow-hidden rounded-r-2xl border-r border-sidebar-border/15 p-0 text-sidebar-foreground shadow-2xl")}>
         <div className="relative z-10 h-full flex flex-col">
           {/* Header */}
-          <div className="flex h-20 items-center justify-center border-b border-sidebar-border/15 px-5 py-3">
-            <div className="flex min-w-0 items-center justify-center gap-3">
+          <div className="flex h-16 items-center border-b border-sidebar-border/15 px-4 py-2">
+            <div className="flex min-w-0 items-center gap-2.5">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 className="shrink-0"
               >
-                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-12 w-12 shrink-0 object-contain" />
+                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-10 w-10 shrink-0 object-contain" />
               </motion.div>
               <div className="flex min-w-0 flex-col justify-center leading-none">
-                <span className="truncate text-[16px] font-extrabold tracking-[-0.03em] text-sidebar-foreground">
+                <span className="truncate text-[15px] font-extrabold tracking-[-0.03em] text-sidebar-foreground">
                   Gas Facil
                 </span>
                 <span className="mt-1 inline-flex w-fit rounded-full bg-sidebar-accent/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-sidebar-foreground/80 ring-1 ring-sidebar-border/20">
@@ -120,8 +135,39 @@ export function MobileNav() {
           </div>
 
           {/* Menu */}
-          <nav className="flex-1 overflow-y-auto px-3.5 py-5 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="space-y-2">
+          <nav className="flex-1 overflow-y-auto px-3 py-3 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="mb-4">
+              <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
+                Favoritos
+              </p>
+              <div className="grid grid-cols-2 gap-1">
+                {favoriteItems.map((fav) => {
+                  const FavIcon = fav.icon;
+                  const favActive = isActive(fav.path);
+                  return (
+                    <Link
+                      key={fav.path}
+                      to={fav.path}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors",
+                        favActive
+                          ? "bg-primary/10 text-primary ring-1 ring-primary/15"
+                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                      )}
+                    >
+                      <FavIcon className="h-[15px] w-[15px] shrink-0" />
+                      <span className="truncate">{fav.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
+              Navegação
+            </p>
+            <div className="space-y-1">
               {menuItems.map((item, idx) => {
                 const Icon = item.icon;
                 const hasSubmenu = !!item.submenu;
@@ -139,10 +185,10 @@ export function MobileNav() {
                       <button
                         onClick={() => toggleMenu(item.label)}
                         className={cn(
-                          "group flex w-full items-center justify-between rounded-full px-4 py-3.5 text-[13px] font-semibold tracking-normal transition-all duration-200",
+                          "group flex w-full items-center justify-between rounded-xl px-3 py-2 text-[13px] font-medium transition-colors duration-150",
                           hasActiveChild
-                            ? "gradient-primary text-primary-foreground shadow-lg shadow-foreground/10 ring-1 ring-sidebar-border/25"
-                            : "text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
+                            ? "bg-primary/10 text-primary ring-1 ring-primary/15"
+                            : "text-sidebar-foreground/75 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
                         )}
                       >
                         <div className="flex items-center gap-3">
@@ -170,7 +216,7 @@ export function MobileNav() {
                             transition={{ duration: 0.25, ease: "easeInOut" }}
                             className="overflow-hidden"
                           >
-                            <div className="ml-6 mt-2 space-y-1.5 border-l border-sidebar-border/20 py-1.5 pl-3">
+                            <div className="ml-6 mt-2 max-h-[360px] space-y-1.5 overflow-y-auto border-l border-sidebar-border/20 py-1.5 pl-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                               {item.submenu?.map((sub, subIdx) => {
                                 const SubIcon = sub.icon;
                                 const subActive = isActive(sub.path);
@@ -187,7 +233,7 @@ export function MobileNav() {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={() => setOpen(false)}
-                                        className="group flex items-center gap-2.5 rounded-full px-3.5 py-2.5 text-[12px] font-bold transition-all duration-200 text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
+                                        className="group flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[12.5px] font-medium text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
                                       >
                                         <SubIcon className={cn(
                                           "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
@@ -201,10 +247,10 @@ export function MobileNav() {
                                         to={sub.path!}
                                         onClick={() => setOpen(false)}
                                         className={cn(
-                                          "group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
+                                          "group flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150",
                                           subActive
-                                            ? "gradient-primary text-primary-foreground shadow-sm ring-1 ring-sidebar-border/25"
-                                            : "text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
+                                            ? "bg-primary/10 text-primary ring-1 ring-primary/15"
+                                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
                                         )}
                                       >
                                         <SubIcon className={cn(
@@ -237,10 +283,10 @@ export function MobileNav() {
                       to={item.path!}
                       onClick={() => setOpen(false)}
                       className={cn(
-                        "group flex items-center gap-3.5 rounded-full px-4 py-3.5 text-[13px] font-semibold tracking-normal transition-all duration-200",
+                        "group flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors duration-150",
                         isActive(item.path!)
-                          ? "gradient-primary text-primary-foreground shadow-lg shadow-foreground/10 ring-1 ring-sidebar-border/25"
-                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
+                          ? "bg-primary/10 text-primary ring-1 ring-primary/15"
+                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
                       )}
                     >
                       <Icon className={cn(
