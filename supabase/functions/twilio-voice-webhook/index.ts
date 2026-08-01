@@ -175,7 +175,7 @@ serve(async (req) => {
     !fromDigits.match(/^0+$/) &&
     !OPERATOR_LAST10.has(fromLast10);
 
-  // Resolve empresa pelo DID (To). Fallback: Forte Gás (DID +554337717463)
+  // Resolve empresa pelo DID (To). Fallback: Forte Gas (DID operacional +554323980020)
   let empresaId: string | null = null;
   let empresaNome = "";
   let unidadeId: string | null = null;
@@ -200,10 +200,10 @@ serve(async (req) => {
         }
       }
 
-      // Fallback: se não resolveu, usa o DID padrão da Forte Gás
+      // Fallback: se não resolveu, usa o DID operacional da Forte Gas
       if (!empresaId) {
         const { data: fallback } = await supabase
-          .rpc("resolver_empresa_por_did", { _did: "+554337717463" });
+          .rpc("resolver_empresa_por_did", { _did: "+554323980020" });
         if (fallback && fallback.length > 0) {
           empresaId = fallback[0].empresa_id;
           empresaNome = fallback[0].empresa_nome ?? "";

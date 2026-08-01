@@ -148,7 +148,7 @@ serve(async (req) => {
         const { error } = await supabase
           .from("chamadas_recebidas")
           .update({
-            status: "finalizada",
+            status: "atendida",
             duracao_segundos: durationSecs,
             observacoes: obs.slice(0, 8000),
           })
@@ -175,7 +175,7 @@ serve(async (req) => {
         await supabase
           .from("chamadas_recebidas")
           .update({
-            status: "finalizada",
+            status: "atendida",
             duracao_segundos: durationSecs,
             observacoes: obs.slice(0, 8000),
           })

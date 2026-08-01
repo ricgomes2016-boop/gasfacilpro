@@ -12,10 +12,7 @@ function safeEqualBia(a: string, b: string): boolean {
   return d === 0;
 }
 
-// Empresa fixa para atendimento da Bia por telefone (Central Gas)
-const EMPRESA_BIA_ID = "f27e158e-7ab5-4617-9f66-c6b4a084d293";
-const UNIDADE_BIA_ID = "aa5b7c93-4fe6-4dba-a0b5-2af43cd20614"; // Central Gas
-const FALLBACK_EMPRESA_SLUGS = ["central-gas", "centralgascp", "central-gas-cp"];
+const FALLBACK_DIDS = ["+554323980020", "+554337717463"];
 
 const ok = (data: any) =>
   new Response(JSON.stringify(data), {
@@ -34,6 +31,7 @@ const err = (msg: string, status = 400) =>
 // Se não existir chamada recente, cria uma nova. Retorna o id da chamada usada.
 async function upsertChamadaBia(
   supabase: any,
+  empresaId: string,
   unidadeId: string,
   payload: {
     telefone?: string | null;
@@ -48,6 +46,7 @@ async function upsertChamadaBia(
     const { data: existente } = await supabase
       .from("chamadas_recebidas")
       .select("id, pedido_gerado_id, cliente_id, cliente_nome, telefone")
+      .eq("empresa_id", empresaId)
       .eq("unidade_id", unidadeId)
       .eq("status", "recebida")
       .gte("created_at", desdeIso)
@@ -85,6 +84,7 @@ async function upsertChamadaBia(
         cliente_nome: payload.cliente_nome ?? null,
         tipo: "voip",
         status: "recebida",
+        empresa_id: empresaId,
         unidade_id: unidadeId,
         observacoes: payload.observacoes,
         pedido_gerado_id: payload.pedido_gerado_id ?? null,
@@ -109,7 +109,7 @@ async function resolverEmpresaUnidade(supabase: any, _body: any) {
   const { data: empresa } = await supabase
     .from("empresas")
     .select("id, nome")
-    .eq("id", EMPRESA_BIA_ID)
+    .eq("id", "")
     .maybeSingle();
   if (!empresa) throw new Error("Empresa Central Gas não encontrada");
 
@@ -117,7 +117,7 @@ async function resolverEmpresaUnidade(supabase: any, _body: any) {
   const { data: u1 } = await supabase
     .from("unidades")
     .select("id, nome")
-    .eq("id", UNIDADE_BIA_ID)
+    .eq("id", "")
     .eq("empresa_id", empresa.id)
     .maybeSingle();
   unidade = u1;
@@ -134,6 +134,86 @@ async function resolverEmpresaUnidade(supabase: any, _body: any) {
     unidade = u2;
   }
   if (!unidade) throw new Error("Unidade Central Gas não encontrada");
+  return { empresa, unidade };
+}
+
+function normalizeDid(value: string | null | undefined) {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("55")) return `+${digits}`;
+  return digits.length >= 10 ? `+55${digits.slice(-11)}` : `+${digits}`;
+}
+
+async function resolverEmpresaPorDid(supabase: any, did: string | null | undefined) {
+  const normalized = normalizeDid(did);
+  if (!normalized) return null;
+  const { data, error } = await supabase.rpc("resolver_empresa_por_did", { _did: normalized });
+  if (error) {
+    console.error("[ELEVENLABS-BIA] resolver_empresa_por_did:", error);
+    return null;
+  }
+  return data && data.length > 0 ? data[0] : null;
+}
+
+async function resolverEmpresaUnidadeDinamica(supabase: any, body: any) {
+  let empresaId = body.empresa_id || body.company_id || "";
+  let unidadeId = body.unidade_id || body.store_id || "";
+  const calledNumber = body.called_number || body.calledNumber || body.to || body.did || "";
+
+  if (!empresaId && calledNumber) {
+    const routing = await resolverEmpresaPorDid(supabase, calledNumber);
+    if (routing) {
+      empresaId = routing.empresa_id;
+      unidadeId = unidadeId || routing.unidade_id || "";
+    }
+  }
+
+  if (!empresaId) {
+    for (const did of FALLBACK_DIDS) {
+      const routing = await resolverEmpresaPorDid(supabase, did);
+      if (routing) {
+        empresaId = routing.empresa_id;
+        unidadeId = unidadeId || routing.unidade_id || "";
+        break;
+      }
+    }
+  }
+
+  if (!empresaId) throw new Error("Empresa da Bia nao encontrada pelo contexto da ligacao/DID");
+
+  const { data: empresa } = await supabase
+    .from("empresas")
+    .select("id, nome")
+    .eq("id", empresaId)
+    .eq("ativo", true)
+    .maybeSingle();
+  if (!empresa) throw new Error("Empresa da Bia inativa ou inexistente");
+
+  let unidade: { id: string; nome?: string } | null = null;
+  if (unidadeId) {
+    const { data: u1 } = await supabase
+      .from("unidades")
+      .select("id, nome")
+      .eq("id", unidadeId)
+      .eq("empresa_id", empresa.id)
+      .eq("ativo", true)
+      .maybeSingle();
+    unidade = u1;
+  }
+
+  if (!unidade) {
+    const { data: u2 } = await supabase
+      .from("unidades")
+      .select("id, nome")
+      .eq("empresa_id", empresa.id)
+      .eq("ativo", true)
+      .order("tipo", { ascending: true })
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    unidade = u2;
+  }
+  if (!unidade) throw new Error("Unidade ativa da Bia nao encontrada");
   return { empresa, unidade };
 }
 
@@ -161,7 +241,7 @@ serve(async (req) => {
 
     const action = body.action;
 
-    const { empresa, unidade } = await resolverEmpresaUnidade(supabase, body);
+    const { empresa, unidade } = await resolverEmpresaUnidadeDinamica(supabase, body);
 
     // ============== Helper: regras de horário/domingo ==============
     // Espelha src/hooks/useSundayRules.ts (regra do sistema):
@@ -301,7 +381,7 @@ serve(async (req) => {
       // If the caller-id is explicitly untrusted OR matches an operator number,
       // do NOT try to match a customer by phone. Tell the agent to ask verbally.
       if (callerExplicitlyUntrusted || (!callerConfiavel && isOperatorNumber)) {
-        await upsertChamadaBia(supabase, unidade.id, {
+        await upsertChamadaBia(supabase, empresa.id, unidade.id, {
           telefone: null,
           cliente_id: null,
           cliente_nome: null,
@@ -353,7 +433,7 @@ serve(async (req) => {
         ? ` TABELA OFICIAL DE PREÇOS: ${linhasPrecos}. Use EXCLUSIVAMENTE estes valores. Cote primeiro o preço NORMAL; só ofereça o preço com desconto se o cliente pedir desconto. NUNCA invente valores.`
         : "";
 
-      await upsertChamadaBia(supabase, unidade.id, {
+      await upsertChamadaBia(supabase, empresa.id, unidade.id, {
         telefone,
         cliente_id: clientes?.[0]?.id ?? null,
         cliente_nome: clientes?.[0]?.nome ?? null,
@@ -780,7 +860,7 @@ serve(async (req) => {
           else console.log("[BIA-LINK] linkou pedido", pedido.id, "→ chamada", chamadaRecente.id);
         } else {
           // Sem chamada prévia: cria já linkada
-          await upsertChamadaBia(supabase, unidade.id, {
+          await upsertChamadaBia(supabase, empresa.id, unidade.id, {
             telefone: String(telefone || "").replace(/\D/g, "") || null,
             cliente_id: finalClienteId,
             cliente_nome: finalClienteNome || null,

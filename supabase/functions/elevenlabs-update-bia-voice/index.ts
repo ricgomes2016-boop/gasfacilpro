@@ -4,6 +4,8 @@
 //   - Campos omitidos não são alterados.
 //   - speed default permanece 0.95 quando enviado sem valor explícito? Não — só altera se presente.
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-secret",
@@ -16,15 +18,39 @@ function safeEqual(a: string, b: string): boolean {
   return d === 0;
 }
 
+async function isAdminOrGestor(req: Request): Promise<boolean> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const authHeader = req.headers.get("Authorization") || "";
+  if (!supabaseUrl || !anonKey || !authHeader) return false;
+
+  const supabase = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  const user = userData?.user;
+  if (userError || !user?.id) return false;
+
+  const [{ data: isAdmin }, { data: isGestor }] = await Promise.all([
+    supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }),
+    supabase.rpc("has_role", { _user_id: user.id, _role: "gestor" }),
+  ]);
+
+  return Boolean(isAdmin || isGestor);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Fail-closed: require ELEVENLABS_WEBHOOK_SECRET via x-admin-secret header.
+  // Fail-closed: aceita secret interno ou usuário autenticado admin/gestor.
   const adminSecret = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET") || "";
   const headerSecret = req.headers.get("x-admin-secret") || "";
-  if (!adminSecret || !headerSecret || !safeEqual(adminSecret, headerSecret)) {
+  const hasValidSecret = !!adminSecret && !!headerSecret && safeEqual(adminSecret, headerSecret);
+  const hasValidUser = hasValidSecret ? true : await isAdminOrGestor(req);
+  if (!hasValidSecret && !hasValidUser) {
     return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

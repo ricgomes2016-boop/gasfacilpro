@@ -130,7 +130,7 @@ serve(async (req) => {
       // Fallback: Forte Gás
       if (!empresaId) {
         const { data: fb } = await supabase.rpc("resolver_empresa_por_did", {
-          _did: "+554337717463",
+          _did: "+554323980020",
         });
         if (fb && fb.length > 0) {
           empresaId = fb[0].empresa_id;
@@ -140,6 +140,19 @@ serve(async (req) => {
       }
 
       // 2) Cliente pelo telefone (apenas se confiável)
+      if (empresaId && !unidadeId) {
+        const { data: unidadePadrao } = await supabase
+          .from("unidades")
+          .select("id")
+          .eq("empresa_id", empresaId)
+          .eq("ativo", true)
+          .order("tipo", { ascending: true })
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        unidadeId = unidadePadrao?.id ?? null;
+      }
+
       if (callerConfiavel) {
         const last = fromDigits.slice(-11);
         let q = supabase
@@ -190,6 +203,7 @@ serve(async (req) => {
       // 3) Registra a chamada (popup Bina via realtime)
       const { error: insErr } = await supabase.from("chamadas_recebidas").insert({
         telefone: callerConfiavel ? callerId : null,
+        did: normalizeE164(calledNumber) || null,
         cliente_id: clienteId,
         cliente_nome: clienteNome,
         tipo: "voip",
