@@ -306,7 +306,86 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
 
         {/* Items Table */}
         {itens.length > 0 ? (
-          <div className="venda-modern-surface overflow-x-auto rounded-lg border shadow-sm">
+          <>
+          <div className="venda-modern-surface overflow-hidden rounded-lg border shadow-sm sm:hidden">
+            <div className="grid grid-cols-[minmax(0,1fr)_86px_72px_34px] items-center gap-1 border-b bg-muted/60 px-2 py-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              <span>Produto</span>
+              <span className="text-center">Qtd</span>
+              <span className="text-right">Unit.</span>
+              <span />
+            </div>
+            <div className="divide-y">
+              {itens.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="grid grid-cols-[minmax(0,1fr)_86px_72px_34px] items-center gap-1 px-2 py-2"
+                >
+                  <div className="min-w-0 pr-1">
+                    <p className="truncate text-sm font-semibold text-foreground">{item.nome}</p>
+                    <p className="text-[11px] font-bold text-primary">R$ {item.total.toFixed(2)}</p>
+                  </div>
+
+                  <div className="grid grid-cols-[22px_1fr_22px] items-center rounded-md border bg-background">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-6 rounded-r-none px-0"
+                      onClick={() => updateQuantity(index, -1)}
+                      aria-label="Diminuir quantidade"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={item.quantidade}
+                      onChange={(e) => {
+                        const newQtd = parseInt(e.target.value) || 1;
+                        if (newQtd < 1) return;
+                        const newItens = [...itens];
+                        newItens[index].quantidade = newQtd;
+                        newItens[index].total = newQtd * newItens[index].preco_unitario;
+                        onChange(newItens);
+                      }}
+                      className="h-8 min-w-0 rounded-none border-0 px-0 text-center text-sm font-bold shadow-none focus-visible:ring-0"
+                      data-venda-enter-next
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-6 rounded-l-none px-0"
+                      onClick={() => updateQuantity(index, 1)}
+                      aria-label="Aumentar quantidade"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
+
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={item.preco_unitario}
+                    onChange={(e) => updatePrecoUnitario(index, Number(e.target.value))}
+                    className="h-8 min-w-0 rounded-md px-1 text-right text-sm font-semibold"
+                    data-venda-enter-next
+                  />
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => removeItem(index)}
+                    aria-label="Excluir produto"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="venda-modern-surface hidden overflow-x-auto rounded-lg border shadow-sm sm:block">
             <Table className="min-w-0">
               <TableHeader>
                 <TableRow className="bg-muted/60 hover:bg-muted/60">
@@ -396,6 +475,7 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
               </TableBody>
             </Table>
           </div>
+          </>
         ) : (
           <div className="rounded-lg border border-dashed bg-muted/20 py-10 text-center text-muted-foreground">
             <ShoppingBasket className="h-11 w-11 mx-auto mb-3 text-primary/70" />
