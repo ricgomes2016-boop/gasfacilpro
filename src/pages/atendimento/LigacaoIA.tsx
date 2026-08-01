@@ -4,6 +4,8 @@ import { AlertTriangle, Bot, Check, ChevronLeft, Clock, Cloud, MessageCircle, Ph
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { MainLayout } from "@/components/layout/MainLayout";
+import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -174,7 +176,9 @@ export default function LigacaoIA() {
     : activeRoutes[0];
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-[1280px] mx-auto">
+    <MainLayout>
+      <Header title="Ligacao IA Bia" subtitle="Chamadas Twilio, BINA e pedidos criados pela Bia" />
+      <div className="p-4 md:p-6 space-y-5 max-w-[1280px] mx-auto">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Atendimento telefonico</p>
@@ -432,6 +436,7 @@ export default function LigacaoIA() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </MainLayout>
   );
 }

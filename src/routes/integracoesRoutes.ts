@@ -7,6 +7,7 @@ const WhatsAppTesteEnvio = lazy(() => import("@/pages/WhatsAppTesteEnvio"));
 
 export const integracoesRoutes: RouteConfig[] = [
   { path: "/integracoes", component: Integracoes, roles: ["admin", "gestor"] },
+  { path: "/config/integracoes", component: Integracoes, roles: ["admin", "gestor"] },
   { path: "/whatsapp/credenciais", component: WhatsAppCredenciais, roles: ["admin", "gestor"] },
   { path: "/whatsapp/teste-envio", component: WhatsAppTesteEnvio, roles: ["admin", "gestor"] },
 ];

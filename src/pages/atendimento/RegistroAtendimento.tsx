@@ -4,6 +4,8 @@ import { Bot, CalendarDays, CheckCircle2, Clock3, MessageCircle, Phone, PhoneCal
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { MainLayout } from "@/components/layout/MainLayout";
+import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -225,7 +227,9 @@ export default function RegistroAtendimento() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-[1480px] mx-auto">
+    <MainLayout>
+      <Header title="Registro de Atendimentos" subtitle="Telefone, WhatsApp, Bia IA e pedidos gerados" />
+      <div className="p-4 md:p-6 space-y-5 max-w-[1480px] mx-auto">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Atendimento</p>
@@ -448,6 +452,7 @@ export default function RegistroAtendimento() {
           })}
         </div>
       </Card>
-    </div>
+      </div>
+    </MainLayout>
   );
 }

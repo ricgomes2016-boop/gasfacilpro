@@ -119,6 +119,17 @@ export const menuItems: MenuItem[] = [
     ],
   },
   {
+    icon: MessageCircle,
+    label: "WhatsApp",
+    submenu: [
+      { icon: Smartphone, label: "Conversas", path: "/whatsapp/conversas" },
+      { icon: Users, label: "Contatos", path: "/whatsapp/contatos" },
+      { icon: Megaphone, label: "Campanhas", path: "/whatsapp/campanhas" },
+      { icon: FileText, label: "Templates", path: "/whatsapp/templates" },
+      { icon: Settings2, label: "Integrações", path: "/config/integracoes" },
+    ],
+  },
+  {
     icon: ShoppingCart,
     label: "Vendas",
     submenu: [

@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MainLayout } from "@/components/layout/MainLayout";
+import { Header } from "@/components/layout/Header";
 import { MessageCircle, Phone, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface Conversation {
@@ -130,7 +132,9 @@ export default function WhatsappDashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <MainLayout>
+      <Header title="WhatsApp" subtitle="Atendimento, conversas e conexao Z-API" />
+      <div className="flex h-[calc(100vh-8rem)] min-h-[640px] bg-gray-50">
       {/* Lista de Conversas */}
       <div className="w-96 border-r bg-white flex flex-col">
         <div className="p-4 border-b">
@@ -269,6 +273,7 @@ export default function WhatsappDashboard() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </MainLayout>
   );
 }

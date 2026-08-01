@@ -23,6 +23,7 @@ function ClientePerfilRedirect() {
 
 export const clientesRoutes: RouteConfig[] = [
   { path: "/clientes/cadastro", component: CadastroClientes, roles: ["admin", "gestor", "operacional"] },
+  { path: "/whatsapp/contatos", component: CadastroClientes, roles: ["admin", "gestor", "operacional"] },
   { path: "/clientes/cadastro/:id", component: ClientePerfilPage, roles: ["admin", "gestor", "operacional"] },
   { path: "/clientes/:id", component: ClientePerfilRedirect, roles: ["admin", "gestor", "operacional"] },
   { path: "/clientes/promocoes", component: PromocoesCupons, roles: ["admin", "gestor"] },
