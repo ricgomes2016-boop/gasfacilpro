@@ -79,6 +79,7 @@ import {
   UserCheck as UserCheckIcon,
   BarChart2,
   Phone,
+  PhoneCall,
   Smartphone,
   RotateCcw,
   RefreshCw,
@@ -112,7 +113,8 @@ export const menuItems: MenuItem[] = [
     icon: Phone,
     label: "Atendimento",
     submenu: [
-      { icon: Phone, label: "Central de Atendimento", path: "/atendimento" },
+      { icon: ClipboardList, label: "Registro", path: "/atendimento/registro" },
+      { icon: PhoneCall, label: "LigaÃ§Ã£o IA", path: "/atendimento/ligacao-ia" },
       { icon: Smartphone, label: "Inbox WhatsApp", path: "/chat" },
     ],
   },
