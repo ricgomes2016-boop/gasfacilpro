@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { menuItems } from "./menuItems";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
+import { UnidadeSelector } from "./UnidadeSelector";
 
 const menuIconColors: Record<string, string> = {
   "Dashboard": "text-sidebar-foreground",
@@ -112,6 +113,10 @@ export function MobileNav() {
                 </span>
               </div>
             </div>
+          </div>
+
+          <div className="border-b border-sidebar-border/15 px-3 py-3">
+            <UnidadeSelector variant="sidebar" />
           </div>
 
           {/* Menu */}

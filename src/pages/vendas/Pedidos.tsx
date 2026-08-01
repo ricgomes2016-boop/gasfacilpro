@@ -1348,7 +1348,7 @@ export default function Pedidos() {
 
               {/* Desktop table - compact Forte Gas style */}
               <div className="hidden min-w-0 overflow-x-auto md:block">
-                <Table className="min-w-[1420px]">
+                <Table className="min-w-[1160px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-10">
@@ -1357,15 +1357,12 @@ export default function Pedidos() {
                           onCheckedChange={toggleSelecionarTodos}
                         />
                       </TableHead>
-                      <TableHead className="w-[96px]">Origem</TableHead>
-                      <TableHead className="w-[122px]">Nº / Data</TableHead>
-                      <TableHead className="min-w-[230px]">Cliente</TableHead>
-                      <TableHead className="min-w-[230px]">Endereço</TableHead>
-                      <TableHead className="min-w-[170px]">Produtos</TableHead>
-                      <TableHead className="w-[180px]">Entregador</TableHead>
-                      <TableHead className="w-[150px]">Canal</TableHead>
-                      <TableHead className="w-[170px]">Pagamento</TableHead>
-                      <TableHead className="w-[128px]">Status</TableHead>
+                      <TableHead className="w-[142px]">Pedido</TableHead>
+                      <TableHead className="min-w-[280px]">Cliente</TableHead>
+                      <TableHead className="min-w-[190px]">Produtos</TableHead>
+                      <TableHead className="w-[176px]">Entregador</TableHead>
+                      <TableHead className="w-[190px]">Canal / Pagamento</TableHead>
+                      <TableHead className="w-[132px]">Status</TableHead>
                       <TableHead className="w-[120px] text-right">Valor</TableHead>
                       <TableHead className="w-12 text-right">Ações</TableHead>
                     </TableRow>
@@ -1377,12 +1374,12 @@ export default function Pedidos() {
                           <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} />
                         </TableCell>
                         <TableCell className="align-top">
-                          <OrigemBadge origem={pedido.origem_pedido} />
-                        </TableCell>
-                        <TableCell className="align-top">
                           <Button variant="link" className="h-auto p-0 text-xs font-semibold text-primary" onClick={() => editarPedido(pedido.id)}>
                             #{getNumExib(pedido)}
                           </Button>
+                          <div className="mt-1">
+                            <OrigemBadge origem={pedido.origem_pedido} />
+                          </div>
                           <div className="mt-1 text-[11px] text-muted-foreground">
                             {podeAlterarDataEntrega ? (
                               <Input
@@ -1405,9 +1402,7 @@ export default function Pedidos() {
                           >
                             {pedido.cliente}
                           </button>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <div className="flex max-w-[250px] items-center gap-1.5 text-xs text-muted-foreground">
+                          <div className="mt-1 flex max-w-[300px] items-center gap-1.5 text-xs text-muted-foreground">
                             <MapPin className="h-3.5 w-3.5 shrink-0" />
                             <span className="truncate" title={pedido.endereco}>{pedido.endereco}</span>
                           </div>
@@ -1444,31 +1439,31 @@ export default function Pedidos() {
 
                         </TableCell>
                         <TableCell className="align-top">
-                          {podeEditarCanalPedido(pedido) ? (
-                            <Popover open={editandoCanalId === `d-${pedido.id}`} onOpenChange={(open) => setEditandoCanalId(open ? `d-${pedido.id}` : null)}>
-                              <PopoverTrigger asChild>
-                                <button
-                                  type="button"
-                                  className="inline-flex max-w-[140px] items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                  title={pedido.canal_venda || "Canal não informado"}
-                                >
-                                  <span className="truncate">{pedido.canal_venda || "-"}</span>
-                                  <Pencil className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent className="z-50 w-72 border border-border bg-popover p-0 shadow-lg" align="start">
-                                {renderCanalCommand(pedido.id, pedido.canal_venda)}
-                              </PopoverContent>
-                            </Popover>
-                          ) : (
-                            <span className="block max-w-[140px] truncate text-xs font-medium text-foreground" title={pedido.canal_venda || ""}>{pedido.canal_venda || "-"}</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="align-top">
+                          <div>
+                            {podeEditarCanalPedido(pedido) ? (
+                              <Popover open={editandoCanalId === `d-${pedido.id}`} onOpenChange={(open) => setEditandoCanalId(open ? `d-${pedido.id}` : null)}>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="inline-flex max-w-[172px] items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    title={pedido.canal_venda || "Canal não informado"}
+                                  >
+                                    <span className="truncate">{pedido.canal_venda || "-"}</span>
+                                    <Pencil className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="z-50 w-72 border border-border bg-popover p-0 shadow-lg" align="start">
+                                  {renderCanalCommand(pedido.id, pedido.canal_venda)}
+                                </PopoverContent>
+                              </Popover>
+                            ) : (
+                              <span className="block max-w-[172px] truncate text-xs font-medium text-foreground" title={pedido.canal_venda || ""}>{pedido.canal_venda || "-"}</span>
+                            )}
+                          </div>
                           <button
                             type="button"
                             onClick={() => { setPedidoEditarPagamento(pedido); setEditarPagamentoAberto(true); }}
-                            className="group inline-flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="group mt-2 inline-flex items-center gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             title="Clique para editar forma de pagamento, operadora ou chave PIX"
                           >
                             {pedido.forma_pagamento ? (
