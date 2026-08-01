@@ -57,6 +57,7 @@ interface LinhaResumo {
   nome: string;
   qtd: number;
   total: number;
+  basePrecoMedio: number;
   custoTotal: number;
   temCusto: boolean;
   precoMedio: number;
@@ -66,8 +67,26 @@ interface LinhaResumo {
   margemBaixa: boolean;
 }
 
-const finalizar = (item: { nome: string; qtd: number; total: number; custoTotal: number; temCusto: boolean }): LinhaResumo => {
-  const precoMedio = item.qtd ? item.total / item.qtd : 0;
+type LinhaResumoBase = {
+  nome: string;
+  qtd: number;
+  total: number;
+  basePrecoMedio: number;
+  custoTotal: number;
+  temCusto: boolean;
+};
+
+const criarLinhaBase = (nome: string): LinhaResumoBase => ({
+  nome,
+  qtd: 0,
+  total: 0,
+  basePrecoMedio: 0,
+  custoTotal: 0,
+  temCusto: false,
+});
+
+const finalizar = (item: LinhaResumoBase): LinhaResumo => {
+  const precoMedio = item.qtd ? item.basePrecoMedio / item.qtd : 0;
   const custoMedio = item.qtd && item.temCusto ? item.custoTotal / item.qtd : 0;
   const margem = item.temCusto ? precoMedio - custoMedio : 0;
   const abaixoCusto = item.temCusto && custoMedio > 0 && precoMedio < custoMedio;
@@ -115,10 +134,11 @@ export default function RelatorioVendasSimplificado() {
     return canalOk && entregadorOk;
   }), [pedidos, canalFiltro, entregadorFiltro]);
 
-  const acumular = (map: Map<string, { nome: string; qtd: number; total: number; custoTotal: number; temCusto: boolean }>, chave: string, nomeVisivel: string, qtd: number, preco: number, custo: number | null) => {
-    const atual = map.get(chave) || { nome: nomeVisivel, qtd: 0, total: 0, custoTotal: 0, temCusto: false };
+  const acumular = (map: Map<string, LinhaResumoBase>, chave: string, nomeVisivel: string, qtd: number, preco: number, custo: number | null) => {
+    const atual = map.get(chave) || criarLinhaBase(nomeVisivel);
     atual.qtd += qtd;
     atual.total += qtd * preco;
+    atual.basePrecoMedio += qtd * preco;
     if (custo != null && custo > 0) {
       atual.custoTotal += qtd * custo;
       atual.temCusto = true;
@@ -127,7 +147,7 @@ export default function RelatorioVendasSimplificado() {
   };
 
   const porProduto = useMemo(() => {
-    const map = new Map<string, { nome: string; qtd: number; total: number; custoTotal: number; temCusto: boolean }>();
+    const map = new Map<string, LinhaResumoBase>();
     pedidosFiltrados.forEach(p => p.pedido_itens?.forEach(item => {
       const nome = item.produtos?.nome || "Produto sem nome";
       const qtd = Number(item.quantidade) || 0;
@@ -142,16 +162,18 @@ export default function RelatorioVendasSimplificado() {
   }, [pedidosFiltrados, produtoBusca]);
 
   const porEntregador = useMemo(() => {
-    const map = new Map<string, { nome: string; qtd: number; total: number; custoTotal: number; temCusto: boolean }>();
+    const map = new Map<string, LinhaResumoBase>();
     pedidosFiltrados.forEach(p => {
       const nome = p.entregadores?.nome || "Sem entregador";
-      const atual = map.get(nome) || { nome, qtd: 0, total: 0, custoTotal: 0, temCusto: false };
+      const atual = map.get(nome) || criarLinhaBase(nome);
       // Total do pedido inclui taxas/descontos — usar valor_total para bater com caixa.
       atual.total += Number(p.valor_total) || 0;
       p.pedido_itens?.forEach(item => {
         const qtd = Number(item.quantidade) || 0;
+        const preco = Number(item.preco_unitario) || 0;
         const custo = item.produtos?.preco_custo != null ? Number(item.produtos.preco_custo) : null;
         atual.qtd += qtd;
+        atual.basePrecoMedio += qtd * preco;
         if (custo != null && custo > 0) {
           atual.custoTotal += qtd * custo;
           atual.temCusto = true;
@@ -163,16 +185,18 @@ export default function RelatorioVendasSimplificado() {
   }, [pedidosFiltrados]);
 
   const porCanal = useMemo(() => {
-    const map = new Map<string, { nome: string; qtd: number; total: number; custoTotal: number; temCusto: boolean }>();
+    const map = new Map<string, LinhaResumoBase>();
     pedidosFiltrados.forEach(p => {
       const canal = normCanal(p.canal_venda);
       const nomeVisivel = canalLabels[canal] || canal;
-      const atual = map.get(canal) || { nome: nomeVisivel, qtd: 0, total: 0, custoTotal: 0, temCusto: false };
+      const atual = map.get(canal) || criarLinhaBase(nomeVisivel);
       atual.total += Number(p.valor_total) || 0;
       p.pedido_itens?.forEach(item => {
         const qtd = Number(item.quantidade) || 0;
+        const preco = Number(item.preco_unitario) || 0;
         const custo = item.produtos?.preco_custo != null ? Number(item.produtos.preco_custo) : null;
         atual.qtd += qtd;
+        atual.basePrecoMedio += qtd * preco;
         if (custo != null && custo > 0) {
           atual.custoTotal += qtd * custo;
           atual.temCusto = true;
@@ -186,7 +210,8 @@ export default function RelatorioVendasSimplificado() {
   const totalQtd = porProduto.reduce((sum, item) => sum + item.qtd, 0);
   // Total vendido = soma de valor_total dos pedidos (bate com caixa/relatórios).
   const totalVenda = pedidosFiltrados.reduce((sum, p) => sum + (Number(p.valor_total) || 0), 0);
-  const precoMedio = totalQtd ? totalVenda / totalQtd : 0;
+  const totalBasePrecoMedio = porProduto.reduce((sum, item) => sum + item.basePrecoMedio, 0);
+  const precoMedio = totalQtd ? totalBasePrecoMedio / totalQtd : 0;
   const alertasAbaixoCusto = porProduto.filter(p => p.abaixoCusto).length + porCanal.filter(p => p.abaixoCusto).length + porEntregador.filter(p => p.abaixoCusto).length;
 
   const exportarExcel = () => {
@@ -222,6 +247,7 @@ export default function RelatorioVendasSimplificado() {
   const TabelaResumo = ({ rows, titulo }: { rows: LinhaResumo[]; titulo: string }) => {
     const totQtd = rows.reduce((s, r) => s + r.qtd, 0);
     const totVal = rows.reduce((s, r) => s + r.total, 0);
+    const totBasePrecoMedio = rows.reduce((s, r) => s + r.basePrecoMedio, 0);
     const totCusto = rows.reduce((s, r) => s + r.custoTotal, 0);
     const temCustoTotal = rows.some(r => r.temCusto);
     const alertas = rows.filter(r => r.abaixoCusto).length;
@@ -272,9 +298,9 @@ export default function RelatorioVendasSimplificado() {
                   <TableRow className="bg-muted/50 font-bold">
                     <TableCell>Total</TableCell>
                     <TableCell className="text-right">{totQtd.toLocaleString("pt-BR")}</TableCell>
-                    <TableCell className="text-right">{money(totQtd ? totVal / totQtd : 0)}</TableCell>
+                    <TableCell className="text-right">{money(totQtd ? totBasePrecoMedio / totQtd : 0)}</TableCell>
                     <TableCell className="text-right text-muted-foreground">{temCustoTotal && totQtd ? money(totCusto / totQtd) : "—"}</TableCell>
-                    <TableCell className="text-right">{temCustoTotal && totQtd ? money(totVal / totQtd - totCusto / totQtd) : "—"}</TableCell>
+                    <TableCell className="text-right">{temCustoTotal && totQtd ? money(totBasePrecoMedio / totQtd - totCusto / totQtd) : "—"}</TableCell>
                     <TableCell className="text-right">{money(totVal)}</TableCell>
                   </TableRow>
                 </TableBody>

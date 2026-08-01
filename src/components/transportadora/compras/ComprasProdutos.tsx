@@ -20,16 +20,18 @@ export function ComprasProdutos({ compras }: Props) {
       let totalQtd = 0, totalLiquido = 0;
       let menor = Infinity, maior = 0;
       compras.forEach((c) => {
+        const totalBrutoNF = PRODUTOS.reduce((sum, prod) => {
+          const qtdProduto = Number(c[prod.qtdField] || 0);
+          const custoProduto = Number(c[prod.custoField] || 0);
+          return sum + qtdProduto * custoProduto;
+        }, 0);
         const q = Number(c[p.qtdField] || 0);
         const u = Number(c[p.custoField] || 0);
         if (q > 0) {
-          // Distribui o desconto da NF proporcionalmente entre os itens (qtd deste produto / qtd total da NF)
-          const qtdNF = Number(c.quantidade || 0)
-            || (Number(c.qtd_p13 || 0) + Number(c.qtd_p20 || 0) + Number(c.qtd_p45 || 0) + Number(c.qtd_agua || 0));
           const desc = Number(c.desconto || 0);
-          const descRateado = qtdNF > 0 ? (desc * q) / qtdNF : 0;
           const valorBruto = u * q;
-          const valorLiquido = valorBruto - descRateado;
+          const descRateado = totalBrutoNF > 0 ? (desc * valorBruto) / totalBrutoNF : 0;
+          const valorLiquido = Math.max(0, valorBruto - descRateado);
           const uLiquido = q > 0 ? valorLiquido / q : u;
 
           totalQtd += q;
