@@ -60,6 +60,7 @@ export default function Estoque() {
   const [vendasRaw, setVendasRaw] = useState<MovimentacaoRaw[]>([]);
   const [comprasRaw, setComprasRaw] = useState<MovimentacaoRaw[]>([]);
   const [movRaw, setMovRaw] = useState<MovimentacaoRaw[]>([]);
+  const [saldosIniciais, setSaldosIniciais] = useState<Record<string, Record<string, number>>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [dataInicio, setDataInicio] = useState<Date>(new Date());
   const [dataFim, setDataFim] = useState<Date>(new Date());
