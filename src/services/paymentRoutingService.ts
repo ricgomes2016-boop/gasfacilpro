@@ -116,6 +116,20 @@ export async function resolverContaDestino(params: {
     if (cfg?.ativo !== false && cfg?.conta_bancaria_id) return cfg.conta_bancaria_id as string;
   }
 
+  // 4.5 Banco padrão por forma (ex.: PIX → Itaú)
+  const bancoPadrao = getBancoPadrao(forma);
+  if (bancoPadrao && unidadeId) {
+    const { data: contas } = await supabase
+      .from("contas_bancarias")
+      .select("id, nome, banco")
+      .eq("unidade_id", unidadeId)
+      .eq("ativo", true);
+    const hit = (contas || []).find(
+      (c: any) => matchesNomePadrao(c.banco, bancoPadrao) || matchesNomePadrao(c.nome, bancoPadrao)
+    );
+    if (hit?.id) return hit.id as string;
+  }
+
   // 5. Fallback
   return getContaPrincipal(unidadeId);
 }
