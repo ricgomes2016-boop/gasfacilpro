@@ -111,15 +111,19 @@ function calcularLinha(
 export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, onRefresh, saldosIniciais = {}, periodo }: EstoqueDiaTableProps) {
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
-  const [editDialog, setEditDialog] = useState<{ open: boolean; produtoId: string; nome: string } | null>(null);
+  const [editDialog, setEditDialog] = useState<{ open: boolean; linha: LinhaEstoque; nome: string } | null>(null);
   const [editForm, setEditForm] = useState({
-    tipo: "entrada" as "entrada" | "saida" | "avaria",
+    tipo: "entrada" as "entrada" | "saida" | "avaria" | "saldo_inicial",
     quantidade: "",
     observacoes: "",
   });
-  const [inicialEdit, setInicialEdit] = useState<{ produtoId: string; valor: string } | null>(null);
   const [savingInicial, setSavingInicial] = useState(false);
   const [fluxo, setFluxo] = useState<LinhaEstoque | null>(null);
+
+  const abrirEdicao = (linha: LinhaEstoque, nome: string) => {
+    setEditDialog({ open: true, linha, nome });
+    setEditForm({ tipo: "entrada", quantidade: "", observacoes: "" });
+  };
 
   const dataDiaISO = format(dataDia, "yyyy-MM-dd");
 
