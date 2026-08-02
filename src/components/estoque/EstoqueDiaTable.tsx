@@ -228,7 +228,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
       });
 
       toast({ title: "Saldo inicial atualizado", description: `${linha.inicial} → ${novo} un.` });
-      setInicialEdit(null);
+      setEditDialog(null);
       onRefresh?.();
     } catch (error) {
       console.error("Erro ao salvar saldo inicial:", error);
