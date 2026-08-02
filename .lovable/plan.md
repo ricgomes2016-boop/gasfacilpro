@@ -1,48 +1,45 @@
-## Objetivo
-1. Na tela **Caixa → Despesas**, o modal "Nova Despesa" deve listar **todas as categorias** cadastradas (não só as 4 fixas).
-2. Migrar as despesas de caixa que na verdade são **compras de mercadorias** para a tabela `compras`, evitando que o **R.O.** conte esses valores como despesa e distorça o resultado.
+# Gestão de Estoque — fluxo por produto, saldo inicial editável e data efetiva
 
----
+## Problema atual
 
-## 1. Nova Despesa — carregar categorias reais
+Na tela Estoque do Dia o "Inicial" não é um dado real: ele é calculado de trás para frente a partir do estoque atual do produto (`inicial = atual − entradas + saídas + vendas + avarias`). Consequências:
 
-**Arquivo:** `src/pages/caixa/Despesas.tsx`
+- Não é possível corrigir o saldo inicial de um dia — qualquer erro histórico se propaga.
+- Toda movimentação manual é gravada com a data/hora de agora (`movimentacoes_estoque` só tem `created_at`), então lançar algo para uma data passada é impossível: o filtro mostra o dia escolhido, mas o lançamento cai no dia de hoje.
+- Não existe uma visão de "extrato" que mostre, por produto, cada evento que compôs o saldo (compra, venda, ajuste, avaria, transferência).
 
-- Buscar de `categorias_despesa` onde `ativo = true` e `(unidade_id = unidadeAtual.id OR unidade_id IS NULL)`.
-- Renderizar as opções no `Select` do modal ordenadas por `tipo` (Fixo / Variável) e nome.
-- Mantém a categoria digitada por foto (OCR) — se não existir na lista, aparece como item extra selecionável.
-- Sem mudanças de layout, só troca do `SelectContent`.
+## O que será feito
 
----
+### 1. Saldo inicial editável (clique no valor)
 
-## 2. Migração das compras registradas como despesa
+- Clicar no número da coluna/campo **Inicial** (desktop e mobile) abre um editor inline com a quantidade.
+- Ao salvar, o sistema grava o saldo inicial daquele produto **naquela data** e recalcula a linha: `Atual = Inicial + Entradas − Saídas − Vendas − Avarias`.
+- A diferença entre o saldo inicial informado e o que estava implícito gera um lançamento de ajuste rastreável (com observação "Ajuste de saldo inicial"), para que o estoque atual do produto fique coerente e auditável — nada é sobrescrito às cegas.
+- Só perfis admin/gestor/operacional podem editar; o valor fica registrado com autor e horário.
 
-**Situação atual (Forte Gás e outras unidades):**
-- 21 lançamentos em `movimentacoes_caixa` com `categoria = "Compra de Mercadorias"` e `compra_id NULL`, somando **R$ 237.051,76**.
-- Além destes, 11 já possuem `compra_id` (foram geradas pelo fluxo normal de Compras) — essas **não** serão tocadas.
-- Descrição típica: `"Compra via transferência - <Fornecedor>"`.
+### 2. Lançamentos respeitam a data filtrada
 
-**Ação (via migração SQL revisável):**
+- Toda movimentação criada na tela (botão "Movimentação", ícone de editar na linha, ajuste de saldo inicial) passa a usar a **data selecionada no filtro** como data do evento, e não a data de hoje.
+- O cabeçalho do formulário mostra explicitamente "Lançando em DD/MM/AAAA" para evitar engano.
+- A leitura da tabela passa a filtrar por essa data de evento, então um lançamento retroativo aparece no dia correto.
 
-Para cada registro de `movimentacoes_caixa` com `tipo = 'saida'`, `compra_id IS NULL` e `categoria ILIKE '%mercador%' OR categoria ILIKE 'compra%'`:
+### 3. Análise do fluxo por produto (extrato)
 
-1. Criar registro em `public.compras` com:
-   - `unidade_id`, `valor_total = valor`, `data_compra = created_at::date`, `data_pagamento = created_at::date`
-   - `pago = true`, `status = 'recebida'`, `forma_pagamento = 'dinheiro'` (origem caixa)
-   - `tipo_produto = 'GLP'` (padrão; ajustável depois)
-   - `observacoes = 'Migrado de Despesas em <data> — ' || descricao_original`
-   - `numero_nota_fiscal = 'MIG-' || substring(id::text,1,8)`
-2. Atualizar `movimentacoes_caixa.compra_id` para apontar para o novo `compras.id` e `categoria = 'compras'` (padroniza).
-3. Registrar tudo numa mesma transação com log em `observacoes` para permitir auditoria/reversão.
+- Clicar no nome do produto abre um painel "Fluxo do produto" com o extrato do período filtrado, em ordem cronológica:
+  - saldo inicial do período;
+  - cada compra (com fornecedor e nota, quando houver);
+  - cada venda (pedido e cliente);
+  - entradas/saídas manuais e avarias (com observação e autor);
+  - transferências entre unidades;
+  - saldo acumulado após cada evento e saldo final.
+- Rodapé com totais por tipo de movimento e um alerta quando o saldo calculado divergir do estoque cadastrado do produto (indicando lançamento faltante).
+- Para vasilhames, o extrato mostra a contrapartida automática (venda de gás cheio = entrada de vazio).
 
-**Efeito no R.O.:**
-- O filtro atual de "Custos e despesas" já ignora movimentações de caixa com `compra_id` preenchido — portanto, após a migração, esses R$ 237 mil deixam de aparecer como despesa dupla.
-- O CMV continua sendo apurado pelas vendas × custo médio (não muda).
-- Não há duplicidade financeira: o dinheiro já saiu do caixa; a `compra` fica apenas como referência histórica para o RO.
+## Detalhes técnicos
 
----
-
-## Fora de escopo
-- Ajustes visuais na tela de Despesas.
-- Reprocessamento de estoque (as compras migradas não terão itens — são só registros financeiros históricos).
-- Alteração da lógica do R.O. (já está correta após os últimos ajustes).
+- Migration: adicionar `data_movimento date not null default current_date` em `public.movimentacoes_estoque` (backfill com `created_at::date`) e índice `(unidade_id, data_movimento, produto_id)`.
+- Migration: nova tabela `public.estoque_saldos_iniciais` (`unidade_id`, `produto_id`, `data_referencia`, `quantidade`, `definido_por`, timestamps) com unique `(unidade_id, produto_id, data_referencia)`, GRANTs para `authenticated`/`service_role` e RLS por empresa/unidade nos mesmos moldes de `estoque_conferencias`.
+- `src/pages/Estoque.tsx`: buscar saldos iniciais do período; passar para a tabela; filtrar movimentações por `data_movimento`; enviar a data filtrada nos inserts.
+- `src/components/estoque/EstoqueDiaTable.tsx`: `inicial` passa a vir do saldo salvo quando existir (fallback para o cálculo atual); célula Inicial vira campo editável; nome do produto vira gatilho do extrato.
+- Novo componente `src/components/estoque/FluxoProdutoDialog.tsx` consultando `compra_itens`, `pedido_itens`, `movimentacoes_estoque` e `transferencia_estoque_itens` do produto no período.
+- Sem mudanças em outras telas; regras de contrapartida cheio/vazio permanecem as já existentes.
