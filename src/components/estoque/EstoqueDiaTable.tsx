@@ -548,30 +548,66 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label>Tipo</Label>
-              <Select value={editForm.tipo} onValueChange={(v: "entrada" | "saida" | "avaria") => setEditForm({ ...editForm, tipo: v })}>
+              <Select
+                value={editForm.tipo}
+                onValueChange={(v: "entrada" | "saida" | "avaria" | "saldo_inicial") => setEditForm({ ...editForm, tipo: v })}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="entrada">➕ Entrada</SelectItem>
                   <SelectItem value="saida">➖ Saída</SelectItem>
                   <SelectItem value="avaria">⚠️ Avaria</SelectItem>
+                  <SelectItem value="saldo_inicial">🎯 Ajuste de saldo inicial</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2">
-              <Label>Quantidade</Label>
-              <Input type="number" min="1" value={editForm.quantidade} onChange={(e) => setEditForm({ ...editForm, quantidade: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Observações</Label>
-              <Textarea value={editForm.observacoes} onChange={(e) => setEditForm({ ...editForm, observacoes: e.target.value })} placeholder="Motivo..." />
-            </div>
+            {editForm.tipo === "saldo_inicial" ? (
+              <div className="grid gap-2">
+                <Label>Novo saldo inicial ({format(dataDia, "dd/MM/yyyy")})</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  disabled={savingInicial}
+                  value={editForm.quantidade}
+                  onChange={(e) => setEditForm({ ...editForm, quantidade: e.target.value })}
+                  placeholder={String(editDialog?.linha.inicial ?? 0)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Saldo inicial atual: <span className="font-semibold">{editDialog?.linha.inicial ?? 0}</span> un. O estoque
+                  será ajustado automaticamente e o movimento fica registrado no histórico.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-2">
+                  <Label>Quantidade</Label>
+                  <Input type="number" min="1" value={editForm.quantidade} onChange={(e) => setEditForm({ ...editForm, quantidade: e.target.value })} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Observações</Label>
+                  <Textarea value={editForm.observacoes} onChange={(e) => setEditForm({ ...editForm, observacoes: e.target.value })} placeholder="Motivo..." />
+                </div>
+              </>
+            )}
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                const linha = editDialog?.linha ?? null;
+                setEditDialog(null);
+                setFluxo(linha);
+              }}
+            >
+              Ver fluxo do produto
+            </Button>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialog(null)}>Cancelar</Button>
-            <Button onClick={handleEdit}>Confirmar</Button>
+            <Button onClick={handleEdit} disabled={savingInicial}>Confirmar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       <FluxoProdutoDialog
         open={!!fluxo}
