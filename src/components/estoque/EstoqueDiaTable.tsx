@@ -111,15 +111,19 @@ function calcularLinha(
 export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, onRefresh, saldosIniciais = {}, periodo }: EstoqueDiaTableProps) {
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
-  const [editDialog, setEditDialog] = useState<{ open: boolean; produtoId: string; nome: string } | null>(null);
+  const [editDialog, setEditDialog] = useState<{ open: boolean; linha: LinhaEstoque; nome: string } | null>(null);
   const [editForm, setEditForm] = useState({
-    tipo: "entrada" as "entrada" | "saida" | "avaria",
+    tipo: "entrada" as "entrada" | "saida" | "avaria" | "saldo_inicial",
     quantidade: "",
     observacoes: "",
   });
-  const [inicialEdit, setInicialEdit] = useState<{ produtoId: string; valor: string } | null>(null);
   const [savingInicial, setSavingInicial] = useState(false);
   const [fluxo, setFluxo] = useState<LinhaEstoque | null>(null);
+
+  const abrirEdicao = (linha: LinhaEstoque, nome: string) => {
+    setEditDialog({ open: true, linha, nome });
+    setEditForm({ tipo: "entrada", quantidade: "", observacoes: "" });
+  };
 
   const dataDiaISO = format(dataDia, "yyyy-MM-dd");
 
@@ -175,8 +179,8 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
     return resultado;
   }, [produtos, movimentacoes, saldosIniciais]);
 
-  const salvarSaldoInicial = async (linha: LinhaEstoque) => {
-    const novo = parseInt(inicialEdit?.valor ?? "");
+  const salvarSaldoInicial = async (linha: LinhaEstoque, valor: string) => {
+    const novo = parseInt(valor);
     if (isNaN(novo) || novo < 0) {
       toast({ title: "Erro", description: "Informe uma quantidade válida.", variant: "destructive" });
       return;
@@ -186,7 +190,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
       return;
     }
     if (novo === linha.inicial) {
-      setInicialEdit(null);
+      setEditDialog(null);
       return;
     }
 
@@ -224,7 +228,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
       });
 
       toast({ title: "Saldo inicial atualizado", description: `${linha.inicial} → ${novo} un.` });
-      setInicialEdit(null);
+      setEditDialog(null);
       onRefresh?.();
     } catch (error) {
       console.error("Erro ao salvar saldo inicial:", error);
@@ -239,6 +243,10 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
 
   const handleEdit = async () => {
     if (!editDialog) return;
+    if (editForm.tipo === "saldo_inicial") {
+      await salvarSaldoInicial(editDialog.linha, editForm.quantidade);
+      return;
+    }
     const quantidade = parseInt(editForm.quantidade);
     if (isNaN(quantidade) || quantidade <= 0) {
       toast({ title: "Erro", description: "Informe uma quantidade válida.", variant: "destructive" });
@@ -249,7 +257,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
       const { error: movError } = await (supabase as any)
         .from("movimentacoes_estoque")
         .insert({
-          produto_id: editDialog.produtoId,
+          produto_id: editDialog.linha.produtoId,
           tipo: editForm.tipo,
           quantidade,
           observacoes: editForm.observacoes || null,
@@ -258,13 +266,13 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
         });
       if (movError) throw movError;
 
-      const produto = produtos.find((p) => p.id === editDialog.produtoId);
+      const produto = produtos.find((p) => p.id === editDialog.linha.produtoId);
       if (produto) {
         let novaQtd = produto.estoque;
         if (editForm.tipo === "entrada") novaQtd += quantidade;
         else novaQtd = Math.max(0, novaQtd - quantidade);
 
-        await supabase.from("produtos").update({ estoque: novaQtd }).eq("id", editDialog.produtoId);
+        await supabase.from("produtos").update({ estoque: novaQtd }).eq("id", editDialog.linha.produtoId);
 
         if (produto.botijao_par_id && editForm.tipo !== "avaria") {
           const par = produtos.find((p) => p.id === produto.botijao_par_id);
@@ -373,26 +381,19 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                   className="mobile-record-card p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <button
-                      type="button"
-                      className="flex min-w-0 items-center gap-3 text-left"
-                      onClick={() => setFluxo(linha)}
-                    >
+                    <div className="flex min-w-0 items-center gap-3 text-left">
                       {renderIcon(linha)}
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-foreground underline-offset-2 hover:underline">{displayName}</p>
+                        <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
                         <div className="mt-1">{renderBadge(linha.tipoEstoque)}</div>
                       </div>
-                    </button>
+                    </div>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-9 w-9 shrink-0"
-                      onClick={() => {
-                        setEditDialog({ open: true, produtoId: linha.produtoId, nome: displayName });
-                        setEditForm({ tipo: "entrada", quantidade: "", observacoes: "" });
-                      }}
-                      aria-label="Editar"
+                      onClick={() => abrirEdicao(linha, displayName)}
+                      aria-label="Editar produto"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -401,33 +402,9 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                   <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-muted/40 p-3 text-center tabular-nums">
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Inicial</p>
-                      {inicialEdit?.produtoId === linha.produtoId ? (
-                        <Input
-                          autoFocus
-                          type="number"
-                          min="0"
-                          inputMode="numeric"
-                          disabled={savingInicial}
-                          value={inicialEdit.valor}
-                          onChange={(e) => setInicialEdit({ produtoId: linha.produtoId, valor: e.target.value })}
-                          onBlur={() => salvarSaldoInicial(linha)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") salvarSaldoInicial(linha);
-                            if (e.key === "Escape") setInicialEdit(null);
-                          }}
-                          className="mx-auto h-8 w-16 px-1 text-center text-sm"
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setInicialEdit({ produtoId: linha.produtoId, valor: String(linha.inicial) })}
-                          className={`mx-auto flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-semibold text-foreground hover:bg-background ${linha.inicialManual ? "ring-1 ring-inset ring-primary/40" : ""}`}
-                          aria-label="Editar saldo inicial"
-                        >
-                          {linha.inicial}
-                          <Pencil className="h-3 w-3 text-muted-foreground" />
-                        </button>
-                      )}
+                      <p className={`text-sm font-semibold text-foreground ${linha.inicialManual ? "underline decoration-primary/50" : ""}`}>
+                        {linha.inicial}
+                      </p>
                     </div>
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Entradas</p>
@@ -485,13 +462,13 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                   <TableHead className="font-semibold text-foreground text-center">Avarias</TableHead>
                   <TableHead className="font-semibold text-foreground text-center">Total</TableHead>
                   <TableHead className="font-semibold text-foreground text-center">Atual</TableHead>
-                  <TableHead className="font-semibold text-foreground text-center w-[60px]">Ação</TableHead>
+                  
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {linhas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       Nenhum produto cadastrado
                     </TableCell>
                   </TableRow>
@@ -511,45 +488,26 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                         className="border-b border-border/50 hover:bg-muted/40 transition-colors"
                       >
                         <TableCell className="py-3">
-                          <button
-                            type="button"
-                            onClick={() => setFluxo(linha)}
-                            className="flex items-center gap-2 text-left"
-                          >
+                          <div className="flex items-center gap-2">
                             {renderIcon(linha)}
-                            <span className={`text-sm text-foreground underline-offset-2 hover:underline ${isCheio ? "font-semibold" : "font-medium"}`}>
+                            <span className={`text-sm text-foreground ${isCheio ? "font-semibold" : "font-medium"}`}>
                               {displayName}
                             </span>
-                          </button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 shrink-0"
+                              onClick={() => abrirEdicao(linha, displayName)}
+                              title="Editar produto / ajustar saldo inicial"
+                              aria-label="Editar produto"
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">{renderBadge(linha.tipoEstoque)}</TableCell>
-                        <TableCell className="text-center font-semibold tabular-nums">
-                          {inicialEdit?.produtoId === linha.produtoId ? (
-                            <Input
-                              autoFocus
-                              type="number"
-                              min="0"
-                              disabled={savingInicial}
-                              value={inicialEdit.valor}
-                              onChange={(e) => setInicialEdit({ produtoId: linha.produtoId, valor: e.target.value })}
-                              onBlur={() => salvarSaldoInicial(linha)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") salvarSaldoInicial(linha);
-                                if (e.key === "Escape") setInicialEdit(null);
-                              }}
-                              className="mx-auto h-8 w-20 px-1 text-center"
-                            />
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setInicialEdit({ produtoId: linha.produtoId, valor: String(linha.inicial) })}
-                              className={`mx-auto inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-muted ${linha.inicialManual ? "ring-1 ring-inset ring-primary/40" : ""}`}
-                              title="Clique para ajustar o saldo inicial"
-                            >
-                              {linha.inicial}
-                              <Pencil className="h-3 w-3 text-muted-foreground" />
-                            </button>
-                          )}
+                        <TableCell className={`text-center font-semibold tabular-nums ${linha.inicialManual ? "underline decoration-primary/50" : ""}`}>
+                          {linha.inicial}
                         </TableCell>
                         <TableCell className="text-center font-semibold text-success tabular-nums">
                           {linha.entradas > 0 ? `+${linha.entradas}` : "0"}
@@ -569,19 +527,6 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                         </TableCell>
                         <TableCell className="text-center font-bold text-base border-l tabular-nums">
                           {linha.estoqueAtual}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              setEditDialog({ open: true, produtoId: linha.produtoId, nome: displayName });
-                              setEditForm({ tipo: "entrada", quantidade: "", observacoes: "" });
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -603,30 +548,66 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label>Tipo</Label>
-              <Select value={editForm.tipo} onValueChange={(v: "entrada" | "saida" | "avaria") => setEditForm({ ...editForm, tipo: v })}>
+              <Select
+                value={editForm.tipo}
+                onValueChange={(v: "entrada" | "saida" | "avaria" | "saldo_inicial") => setEditForm({ ...editForm, tipo: v })}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="entrada">➕ Entrada</SelectItem>
                   <SelectItem value="saida">➖ Saída</SelectItem>
                   <SelectItem value="avaria">⚠️ Avaria</SelectItem>
+                  <SelectItem value="saldo_inicial">🎯 Ajuste de saldo inicial</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2">
-              <Label>Quantidade</Label>
-              <Input type="number" min="1" value={editForm.quantidade} onChange={(e) => setEditForm({ ...editForm, quantidade: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Observações</Label>
-              <Textarea value={editForm.observacoes} onChange={(e) => setEditForm({ ...editForm, observacoes: e.target.value })} placeholder="Motivo..." />
-            </div>
+            {editForm.tipo === "saldo_inicial" ? (
+              <div className="grid gap-2">
+                <Label>Novo saldo inicial ({format(dataDia, "dd/MM/yyyy")})</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  disabled={savingInicial}
+                  value={editForm.quantidade}
+                  onChange={(e) => setEditForm({ ...editForm, quantidade: e.target.value })}
+                  placeholder={String(editDialog?.linha.inicial ?? 0)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Saldo inicial atual: <span className="font-semibold">{editDialog?.linha.inicial ?? 0}</span> un. O estoque
+                  será ajustado automaticamente e o movimento fica registrado no histórico.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-2">
+                  <Label>Quantidade</Label>
+                  <Input type="number" min="1" value={editForm.quantidade} onChange={(e) => setEditForm({ ...editForm, quantidade: e.target.value })} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Observações</Label>
+                  <Textarea value={editForm.observacoes} onChange={(e) => setEditForm({ ...editForm, observacoes: e.target.value })} placeholder="Motivo..." />
+                </div>
+              </>
+            )}
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                const linha = editDialog?.linha ?? null;
+                setEditDialog(null);
+                setFluxo(linha);
+              }}
+            >
+              Ver fluxo do produto
+            </Button>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialog(null)}>Cancelar</Button>
-            <Button onClick={handleEdit}>Confirmar</Button>
+            <Button onClick={handleEdit} disabled={savingInicial}>Confirmar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       <FluxoProdutoDialog
         open={!!fluxo}
