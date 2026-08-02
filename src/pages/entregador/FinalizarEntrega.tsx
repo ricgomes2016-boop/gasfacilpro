@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PixQRCode } from "@/components/pix/PixQRCode";
 import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
+import { getOperadoraPadrao } from "@/lib/financeiro/padroesFinanceiros";
 import { format, addDays } from "date-fns";
 import { toast as sonnerToast } from "sonner";
 import { CardPaymentModal } from "@/components/entregador/CardPaymentModal";
@@ -964,7 +965,7 @@ export default function FinalizarEntrega() {
         tipoCartao={cardModalTipo}
         unidadeId={unidadeId || undefined}
         parcelasInicial={selectedPaymentExtras.parcelas || 1}
-        preferredOperator={cardModalTipo === "pix_maquininha" ? "pagbank" : undefined}
+        preferredOperator={getOperadoraPadrao(cardModalTipo)}
         onSelect={(op) => {
           setSelectedPaymentExtras({
             operadora_id: op.id,

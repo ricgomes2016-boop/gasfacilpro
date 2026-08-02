@@ -11,6 +11,7 @@ import {
 import { Banknote, CreditCard, Smartphone, Receipt, Plus, Trash2, Flame } from "lucide-react";
 import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
+import { getOperadoraPadrao } from "@/lib/financeiro/padroesFinanceiros";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -401,7 +402,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
         valor={valorParcialNum > 0 ? valorParcialNum : restante}
         tipoCartao={cardTipo}
         parcelasInicial={pendingExtras?.parcelas || 1}
-        preferredOperator={formaPagamento === "pix_maquininha" ? "pagbank" : undefined}
+        preferredOperator={getOperadoraPadrao(formaPagamento)}
         applyInstallmentSurcharge
         onSelect={(op) => {
           const parcelasInfo = formaPagamento === "credito" ? ` • Crédito ${op.parcelas || 1}x` : "";

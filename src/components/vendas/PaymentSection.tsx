@@ -15,6 +15,7 @@ import { addDays, format } from "date-fns";
 import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
 import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
+import { getOperadoraPadrao } from "@/lib/financeiro/padroesFinanceiros";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { VendaSectionHeader } from "./VendaSectionHeader";
 
@@ -621,7 +622,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
         tipoCartao={cardTipoMap[forma] || "debito"}
         unidadeId={unidadeId}
         parcelasInicial={pendingParcelas || 1}
-        preferredOperator={forma === "pix_maquininha" ? "pagbank" : undefined}
+        preferredOperator={getOperadoraPadrao(forma)}
         applyInstallmentSurcharge
         onSelect={(op) => {
           setPendingOperadora({ id: op.id, nome: op.nome });

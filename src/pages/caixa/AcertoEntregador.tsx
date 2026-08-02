@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
+import { getOperadoraPadrao } from "@/lib/financeiro/padroesFinanceiros";
 
 const formatCurrency = (v: number) =>
   `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
@@ -1870,7 +1871,7 @@ export default function AcertoEntregador() {
             tipoCartao={tipo}
             unidadeId={unidadeAtual?.id}
             parcelasInicial={pg.parcelas || 1}
-            preferredOperator={tipo === "pix_maquininha" ? "pagbank" : undefined}
+            preferredOperator={getOperadoraPadrao(tipo)}
             applyInstallmentSurcharge
             onSelect={(op) => {
               const novos = [...editingEntrega.pagamentos_multiplos];

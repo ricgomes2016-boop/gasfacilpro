@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDateString } from "@/lib/utils";
 import { addDays, format } from "date-fns";
+import { getBancoPadrao, getOperadoraPadrao, matchesNomePadrao } from "@/lib/financeiro/padroesFinanceiros";
 
 const normalizeText = (value: string) =>
   value
@@ -116,6 +117,20 @@ export async function resolverContaDestino(params: {
     if (cfg?.ativo !== false && cfg?.conta_bancaria_id) return cfg.conta_bancaria_id as string;
   }
 
+  // 4.5 Banco padrão por forma (ex.: PIX → Itaú)
+  const bancoPadrao = getBancoPadrao(forma);
+  if (bancoPadrao && unidadeId) {
+    const { data: contas } = await supabase
+      .from("contas_bancarias")
+      .select("id, nome, banco")
+      .eq("unidade_id", unidadeId)
+      .eq("ativo", true);
+    const hit = (contas || []).find(
+      (c: any) => matchesNomePadrao(c.banco, bancoPadrao) || matchesNomePadrao(c.nome, bancoPadrao)
+    );
+    if (hit?.id) return hit.id as string;
+  }
+
   // 5. Fallback
   return getContaPrincipal(unidadeId);
 }
@@ -137,10 +152,11 @@ async function getOperadoraConfig(unidadeId: string | null, tipo: string, operad
     query = query.or(`unidade_id.eq.${unidadeId},unidade_id.is.null`).eq("ativo", true);
   }
 
-  const { data } = await query.limit(tipo === "gas_do_povo" && !operadoraId ? 20 : 1);
+  const { data } = await query.limit(operadoraId ? 1 : 20);
   const rows = Array.isArray(data) ? data : data ? [data] : [];
-  const selected = tipo === "gas_do_povo" && !operadoraId
-    ? rows.find((row: any) => normalizeText(row.nome || "").includes("azulzinha")) || rows[0]
+  const nomePadrao = getOperadoraPadrao(tipo);
+  const selected = !operadoraId && nomePadrao
+    ? rows.find((row: any) => matchesNomePadrao(row.nome, nomePadrao)) || rows[0]
     : rows[0];
   const dataRow = selected;
   if (!dataRow) return null;

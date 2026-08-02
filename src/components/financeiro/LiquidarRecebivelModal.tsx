@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { getBrasiliaDateString } from "@/lib/utils";
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
+import { getOperadoraPadrao } from "@/lib/financeiro/padroesFinanceiros";
 import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
 import {
   liquidarRecebivel,
@@ -511,7 +512,7 @@ export function LiquidarRecebivelModal({
           tipoCartao={cardModal.tipo}
           unidadeId={conta?.unidade_id || undefined}
           parcelasInicial={currentCardLinha.parcelas || 1}
-          preferredOperator={cardModal.tipo === "pix_maquininha" ? "pagbank" : undefined}
+          preferredOperator={getOperadoraPadrao(cardModal.tipo)}
           onSelect={(op) => {
             const uid = currentCardLinha._uid;
             updateLinha(uid, {

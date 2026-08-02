@@ -41,7 +41,7 @@ export function PixKeySelectorModal({
   valor,
   beneficiario,
   unidadeId: externalUnidadeId,
-  preferredBank,
+  preferredBank = "itau",
   onSelect,
 }: PixKeySelectorModalProps) {
   const [chaves, setChaves] = useState<ChavePix[]>([]);
