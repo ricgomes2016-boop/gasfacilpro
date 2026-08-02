@@ -626,6 +626,18 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FluxoProdutoDialog
+        open={!!fluxo}
+        onOpenChange={(o) => !o && setFluxo(null)}
+        produtoId={fluxo?.produtoId || null}
+        produtoNome={fluxo ? buildDisplayName(fluxo) : ""}
+        estoqueAtual={fluxo?.estoqueAtual ?? 0}
+        saldoInicial={fluxo?.inicial ?? 0}
+        inicio={periodo?.inicio ?? dataDia}
+        fim={periodo?.fim ?? dataDia}
+        unidadeId={unidadeAtual?.id}
+      />
     </>
   );
 }
