@@ -243,6 +243,10 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
 
   const handleEdit = async () => {
     if (!editDialog) return;
+    if (editForm.tipo === "saldo_inicial") {
+      await salvarSaldoInicial(editDialog.linha, editForm.quantidade);
+      return;
+    }
     const quantidade = parseInt(editForm.quantidade);
     if (isNaN(quantidade) || quantidade <= 0) {
       toast({ title: "Erro", description: "Informe uma quantidade válida.", variant: "destructive" });
@@ -253,7 +257,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
       const { error: movError } = await (supabase as any)
         .from("movimentacoes_estoque")
         .insert({
-          produto_id: editDialog.produtoId,
+          produto_id: editDialog.linha.produtoId,
           tipo: editForm.tipo,
           quantidade,
           observacoes: editForm.observacoes || null,
@@ -262,13 +266,13 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
         });
       if (movError) throw movError;
 
-      const produto = produtos.find((p) => p.id === editDialog.produtoId);
+      const produto = produtos.find((p) => p.id === editDialog.linha.produtoId);
       if (produto) {
         let novaQtd = produto.estoque;
         if (editForm.tipo === "entrada") novaQtd += quantidade;
         else novaQtd = Math.max(0, novaQtd - quantidade);
 
-        await supabase.from("produtos").update({ estoque: novaQtd }).eq("id", editDialog.produtoId);
+        await supabase.from("produtos").update({ estoque: novaQtd }).eq("id", editDialog.linha.produtoId);
 
         if (produto.botijao_par_id && editForm.tipo !== "avaria") {
           const par = produtos.find((p) => p.id === produto.botijao_par_id);
