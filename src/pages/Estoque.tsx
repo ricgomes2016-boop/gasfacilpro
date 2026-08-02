@@ -578,6 +578,8 @@ export default function Estoque() {
                 produtos={produtos}
                 movimentacoes={dayMov}
                 dataDia={dia}
+                saldosIniciais={saldosIniciais[dayKey] || {}}
+                periodo={{ inicio: dataInicio, fim: dataFim }}
                 isLoading={false}
                 onRefresh={fetchData}
               />
