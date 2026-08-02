@@ -179,8 +179,8 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
     return resultado;
   }, [produtos, movimentacoes, saldosIniciais]);
 
-  const salvarSaldoInicial = async (linha: LinhaEstoque) => {
-    const novo = parseInt(inicialEdit?.valor ?? "");
+  const salvarSaldoInicial = async (linha: LinhaEstoque, valor: string) => {
+    const novo = parseInt(valor);
     if (isNaN(novo) || novo < 0) {
       toast({ title: "Erro", description: "Informe uma quantidade válida.", variant: "destructive" });
       return;
@@ -190,7 +190,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
       return;
     }
     if (novo === linha.inicial) {
-      setInicialEdit(null);
+      setEditDialog(null);
       return;
     }
 
