@@ -107,7 +107,7 @@ function calcularLinha(
   };
 }
 
-export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, onRefresh }: EstoqueDiaTableProps) {
+export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, onRefresh, saldosIniciais = {}, periodo }: EstoqueDiaTableProps) {
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
   const [editDialog, setEditDialog] = useState<{ open: boolean; produtoId: string; nome: string } | null>(null);
@@ -116,6 +116,11 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
     quantidade: "",
     observacoes: "",
   });
+  const [inicialEdit, setInicialEdit] = useState<{ produtoId: string; valor: string } | null>(null);
+  const [savingInicial, setSavingInicial] = useState(false);
+  const [fluxo, setFluxo] = useState<LinhaEstoque | null>(null);
+
+  const dataDiaISO = format(dataDia, "yyyy-MM-dd");
 
   const linhas = useMemo(() => {
     const resultado: LinhaEstoque[] = [];
@@ -143,7 +148,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
       .forEach(([, grupo]) => {
         if (grupo.cheio) {
           const mov = movimentacoes[grupo.cheio.id] || emptyMov;
-          resultado.push(calcularLinha(grupo.cheio, mov, "cheio"));
+          resultado.push(calcularLinha(grupo.cheio, mov, "cheio", saldosIniciais[grupo.cheio.id]));
         }
         if (grupo.vazio) {
           const parCheioId = grupo.cheio?.id;
@@ -158,16 +163,75 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
             saidas_manuais: movVazio.saidas_manuais + movCheio.compras,
             avarias: movVazio.avarias,
           };
-          resultado.push(calcularLinha(grupo.vazio, movCombinado, "vazio"));
+          resultado.push(calcularLinha(grupo.vazio, movCombinado, "vazio", saldosIniciais[grupo.vazio.id]));
         }
         if (grupo.unico && !grupo.cheio && !grupo.vazio) {
           const mov = movimentacoes[grupo.unico.id] || emptyMov;
-          resultado.push(calcularLinha(grupo.unico, mov, null));
+          resultado.push(calcularLinha(grupo.unico, mov, null, saldosIniciais[grupo.unico.id]));
         }
       });
 
     return resultado;
-  }, [produtos, movimentacoes]);
+  }, [produtos, movimentacoes, saldosIniciais]);
+
+  const salvarSaldoInicial = async (linha: LinhaEstoque) => {
+    const novo = parseInt(inicialEdit?.valor ?? "");
+    if (isNaN(novo) || novo < 0) {
+      toast({ title: "Erro", description: "Informe uma quantidade válida.", variant: "destructive" });
+      return;
+    }
+    if (!unidadeAtual?.id) {
+      toast({ title: "Selecione uma unidade", description: "É preciso ter uma unidade ativa.", variant: "destructive" });
+      return;
+    }
+    if (novo === linha.inicial) {
+      setInicialEdit(null);
+      return;
+    }
+
+    setSavingInicial(true);
+    try {
+      const sb = supabase as any;
+      const { data: userData } = await supabase.auth.getUser();
+
+      const { error: upsertError } = await sb
+        .from("estoque_saldos_iniciais")
+        .upsert(
+          {
+            unidade_id: unidadeAtual.id,
+            produto_id: linha.produtoId,
+            data_referencia: dataDiaISO,
+            quantidade: novo,
+            definido_por: userData?.user?.id || null,
+          },
+          { onConflict: "unidade_id,produto_id,data_referencia" }
+        );
+      if (upsertError) throw upsertError;
+
+      const diferenca = novo - linha.inicial;
+      const novoAtual = Math.max(0, linha.estoqueAtual + diferenca);
+
+      await sb.from("produtos").update({ estoque: novoAtual }).eq("id", linha.produtoId);
+
+      await sb.from("movimentacoes_estoque").insert({
+        produto_id: linha.produtoId,
+        tipo: diferenca >= 0 ? "entrada" : "saida",
+        quantidade: Math.abs(diferenca),
+        observacoes: `Ajuste de saldo inicial (${linha.inicial} → ${novo}) em ${format(dataDia, "dd/MM/yyyy")}`,
+        unidade_id: unidadeAtual.id,
+        data_movimento: dataDiaISO,
+      });
+
+      toast({ title: "Saldo inicial atualizado", description: `${linha.inicial} → ${novo} un.` });
+      setInicialEdit(null);
+      onRefresh?.();
+    } catch (error) {
+      console.error("Erro ao salvar saldo inicial:", error);
+      toast({ title: "Erro", description: "Não foi possível salvar o saldo inicial.", variant: "destructive" });
+    } finally {
+      setSavingInicial(false);
+    }
+  };
 
   const dataFmt = format(dataDia, "EEEE, dd/MM/yyyy", { locale: ptBR });
   const dataFmtCapitalized = dataFmt.charAt(0).toUpperCase() + dataFmt.slice(1);
