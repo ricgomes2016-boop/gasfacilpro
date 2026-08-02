@@ -462,7 +462,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                   <TableHead className="font-semibold text-foreground text-center">Avarias</TableHead>
                   <TableHead className="font-semibold text-foreground text-center">Total</TableHead>
                   <TableHead className="font-semibold text-foreground text-center">Atual</TableHead>
-                  <TableHead className="font-semibold text-foreground text-center w-[60px]">Ação</TableHead>
+                  
                 </TableRow>
               </TableHeader>
               <TableBody>
