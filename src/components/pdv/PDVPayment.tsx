@@ -401,7 +401,7 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
         valor={valorParcialNum > 0 ? valorParcialNum : restante}
         tipoCartao={cardTipo}
         parcelasInicial={pendingExtras?.parcelas || 1}
-        preferredOperator={formaPagamento === "pix_maquininha" ? "pagbank" : undefined}
+        preferredOperator={getOperadoraPadrao(formaPagamento)}
         applyInstallmentSurcharge
         onSelect={(op) => {
           const parcelasInfo = formaPagamento === "credito" ? ` • Crédito ${op.parcelas || 1}x` : "";

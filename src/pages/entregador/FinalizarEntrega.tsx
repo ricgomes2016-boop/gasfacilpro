@@ -964,7 +964,7 @@ export default function FinalizarEntrega() {
         tipoCartao={cardModalTipo}
         unidadeId={unidadeId || undefined}
         parcelasInicial={selectedPaymentExtras.parcelas || 1}
-        preferredOperator={cardModalTipo === "pix_maquininha" ? "pagbank" : undefined}
+        preferredOperator={getOperadoraPadrao(cardModalTipo)}
         onSelect={(op) => {
           setSelectedPaymentExtras({
             operadora_id: op.id,

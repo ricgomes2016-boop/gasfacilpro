@@ -1870,7 +1870,7 @@ export default function AcertoEntregador() {
             tipoCartao={tipo}
             unidadeId={unidadeAtual?.id}
             parcelasInicial={pg.parcelas || 1}
-            preferredOperator={tipo === "pix_maquininha" ? "pagbank" : undefined}
+            preferredOperator={getOperadoraPadrao(tipo)}
             applyInstallmentSurcharge
             onSelect={(op) => {
               const novos = [...editingEntrega.pagamentos_multiplos];

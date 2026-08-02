@@ -621,7 +621,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
         tipoCartao={cardTipoMap[forma] || "debito"}
         unidadeId={unidadeId}
         parcelasInicial={pendingParcelas || 1}
-        preferredOperator={forma === "pix_maquininha" ? "pagbank" : undefined}
+        preferredOperator={getOperadoraPadrao(forma)}
         applyInstallmentSurcharge
         onSelect={(op) => {
           setPendingOperadora({ id: op.id, nome: op.nome });

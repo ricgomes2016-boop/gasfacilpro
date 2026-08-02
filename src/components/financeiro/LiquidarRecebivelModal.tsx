@@ -511,7 +511,7 @@ export function LiquidarRecebivelModal({
           tipoCartao={cardModal.tipo}
           unidadeId={conta?.unidade_id || undefined}
           parcelasInicial={currentCardLinha.parcelas || 1}
-          preferredOperator={cardModal.tipo === "pix_maquininha" ? "pagbank" : undefined}
+          preferredOperator={getOperadoraPadrao(cardModal.tipo)}
           onSelect={(op) => {
             const uid = currentCardLinha._uid;
             updateLinha(uid, {
