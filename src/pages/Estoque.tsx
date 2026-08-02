@@ -520,7 +520,9 @@ export default function Estoque() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Movimentação de Estoque</DialogTitle>
-                  <DialogDescription>Registre entrada, saída ou avaria de produtos</DialogDescription>
+                  <DialogDescription>
+                    Registre entrada, saída ou avaria de produtos · Lançando em {format(dataFim, "dd/MM/yyyy")}
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
