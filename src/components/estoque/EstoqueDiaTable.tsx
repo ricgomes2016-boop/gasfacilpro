@@ -245,7 +245,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
     }
 
     try {
-      const { error: movError } = await supabase
+      const { error: movError } = await (supabase as any)
         .from("movimentacoes_estoque")
         .insert({
           produto_id: editDialog.produtoId,
@@ -253,6 +253,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
           quantidade,
           observacoes: editForm.observacoes || null,
           unidade_id: unidadeAtual?.id || null,
+          data_movimento: dataDiaISO,
         });
       if (movError) throw movError;
 
