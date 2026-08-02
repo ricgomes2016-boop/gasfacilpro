@@ -45,6 +45,8 @@ interface EstoqueDiaTableProps {
   dataDia: Date;
   isLoading: boolean;
   onRefresh?: () => void;
+  saldosIniciais?: Record<string, number>;
+  periodo?: { inicio: Date; fim: Date };
 }
 
 interface LinhaEstoque {
@@ -60,13 +62,15 @@ interface LinhaEstoque {
   saidasManuais: number;
   avarias: number;
   inicial: number;
+  inicialManual: boolean;
   total: number;
 }
 
 function calcularLinha(
   produto: Produto,
   mov: MovimentacaoPorProduto,
-  tipoBotijao: string | null
+  tipoBotijao: string | null,
+  saldoSalvo?: number
 ): LinhaEstoque {
   const nomeBase = produto.nome
     .replace(/\s*\(Vazio\)\s*/i, "")
@@ -85,7 +89,8 @@ function calcularLinha(
   // e saidas_manuais já vem somado com compras do cheio (via movCombinado).
   const entradas = compras + entradas_manuais;
   const saidas = saidas_manuais;
-  const inicial = estoqueAtual - entradas + saidas + vendas + avarias;
+  const inicialManual = typeof saldoSalvo === "number";
+  const inicial = inicialManual ? (saldoSalvo as number) : estoqueAtual - entradas + saidas + vendas + avarias;
   const total = inicial + entradas - saidas - vendas - avarias;
 
   const tipoLabel =
@@ -98,7 +103,7 @@ function calcularLinha(
     estoqueAtual,
     vendas, compras, entradas, saidas,
     entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
-    avarias, inicial, total,
+    avarias, inicial, inicialManual, total,
   };
 }
 
