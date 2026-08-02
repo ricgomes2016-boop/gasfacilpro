@@ -488,45 +488,26 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                         className="border-b border-border/50 hover:bg-muted/40 transition-colors"
                       >
                         <TableCell className="py-3">
-                          <button
-                            type="button"
-                            onClick={() => setFluxo(linha)}
-                            className="flex items-center gap-2 text-left"
-                          >
+                          <div className="flex items-center gap-2">
                             {renderIcon(linha)}
-                            <span className={`text-sm text-foreground underline-offset-2 hover:underline ${isCheio ? "font-semibold" : "font-medium"}`}>
+                            <span className={`text-sm text-foreground ${isCheio ? "font-semibold" : "font-medium"}`}>
                               {displayName}
                             </span>
-                          </button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 shrink-0"
+                              onClick={() => abrirEdicao(linha, displayName)}
+                              title="Editar produto / ajustar saldo inicial"
+                              aria-label="Editar produto"
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">{renderBadge(linha.tipoEstoque)}</TableCell>
-                        <TableCell className="text-center font-semibold tabular-nums">
-                          {inicialEdit?.produtoId === linha.produtoId ? (
-                            <Input
-                              autoFocus
-                              type="number"
-                              min="0"
-                              disabled={savingInicial}
-                              value={inicialEdit.valor}
-                              onChange={(e) => setInicialEdit({ produtoId: linha.produtoId, valor: e.target.value })}
-                              onBlur={() => salvarSaldoInicial(linha)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") salvarSaldoInicial(linha);
-                                if (e.key === "Escape") setInicialEdit(null);
-                              }}
-                              className="mx-auto h-8 w-20 px-1 text-center"
-                            />
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setInicialEdit({ produtoId: linha.produtoId, valor: String(linha.inicial) })}
-                              className={`mx-auto inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-muted ${linha.inicialManual ? "ring-1 ring-inset ring-primary/40" : ""}`}
-                              title="Clique para ajustar o saldo inicial"
-                            >
-                              {linha.inicial}
-                              <Pencil className="h-3 w-3 text-muted-foreground" />
-                            </button>
-                          )}
+                        <TableCell className={`text-center font-semibold tabular-nums ${linha.inicialManual ? "underline decoration-primary/50" : ""}`}>
+                          {linha.inicial}
                         </TableCell>
                         <TableCell className="text-center font-semibold text-success tabular-nums">
                           {linha.entradas > 0 ? `+${linha.entradas}` : "0"}
