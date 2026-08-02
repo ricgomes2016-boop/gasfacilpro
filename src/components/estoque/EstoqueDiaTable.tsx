@@ -468,7 +468,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
               <TableBody>
                 {linhas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       Nenhum produto cadastrado
                     </TableCell>
                   </TableRow>
