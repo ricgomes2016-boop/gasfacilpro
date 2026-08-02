@@ -283,7 +283,7 @@ export default function Estoque() {
     if (!produto) return;
 
     try {
-      const { error: movError } = await supabase
+      const { error: movError } = await (supabase as any)
         .from("movimentacoes_estoque")
         .insert({
           produto_id: movForm.produtoId,
@@ -291,6 +291,7 @@ export default function Estoque() {
           quantidade,
           observacoes: movForm.observacoes || null,
           unidade_id: unidadeAtual?.id || null,
+          data_movimento: format(dataFim, "yyyy-MM-dd"),
         });
 
       if (movError) throw movError;
