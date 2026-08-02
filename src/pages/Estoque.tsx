@@ -60,6 +60,7 @@ export default function Estoque() {
   const [vendasRaw, setVendasRaw] = useState<MovimentacaoRaw[]>([]);
   const [comprasRaw, setComprasRaw] = useState<MovimentacaoRaw[]>([]);
   const [movRaw, setMovRaw] = useState<MovimentacaoRaw[]>([]);
+  const [saldosIniciais, setSaldosIniciais] = useState<Record<string, Record<string, number>>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [dataInicio, setDataInicio] = useState<Date>(new Date());
   const [dataFim, setDataFim] = useState<Date>(new Date());
@@ -109,15 +110,29 @@ export default function Estoque() {
         comprasQuery = comprasQuery.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`, { referencedTable: "compras" });
       }
 
-      let movQuery = supabase
+      const inicioDia = format(dataInicio, "yyyy-MM-dd");
+      const fimDia = format(dataFim, "yyyy-MM-dd");
+
+      let movQuery = (supabase as any)
         .from("movimentacoes_estoque")
-        .select("produto_id, tipo, quantidade, created_at, observacoes")
-        .gte("created_at", inicioStr)
-        .lte("created_at", fimStr)
-        .not("observacoes", "like", "%Baixa automática por venda%");
+        .select("produto_id, tipo, quantidade, created_at, data_movimento, observacoes")
+        .gte("data_movimento", inicioDia)
+        .lte("data_movimento", fimDia)
+        .not("observacoes", "like", "%Baixa automática por venda%")
+        .not("observacoes", "like", "%Ajuste de saldo inicial%");
 
       if (unidadeAtual?.id) {
         movQuery = movQuery.eq("unidade_id", unidadeAtual.id);
+      }
+
+      let saldosQuery = (supabase as any)
+        .from("estoque_saldos_iniciais")
+        .select("produto_id, data_referencia, quantidade")
+        .gte("data_referencia", inicioDia)
+        .lte("data_referencia", fimDia);
+
+      if (unidadeAtual?.id) {
+        saldosQuery = saldosQuery.eq("unidade_id", unidadeAtual.id);
       }
 
       const [
@@ -125,14 +140,23 @@ export default function Estoque() {
         { data: vendasData, error: vendasError },
         { data: comprasData, error: comprasError },
         { data: movData, error: movError },
-      ] = await Promise.all([prodQuery, vendasQuery, comprasQuery, movQuery]);
+        { data: saldosData, error: saldosError },
+      ] = await Promise.all([prodQuery, vendasQuery, comprasQuery, movQuery, saldosQuery]);
 
       if (prodError) throw prodError;
       if (vendasError) console.error("Erro vendas:", vendasError);
       if (comprasError) console.error("Erro compras:", comprasError);
       if (movError) console.error("Erro movimentações:", movError);
+      if (saldosError) console.error("Erro saldos iniciais:", saldosError);
 
       setProdutos(prodData || []);
+
+      const saldosMap: Record<string, Record<string, number>> = {};
+      (saldosData || []).forEach((s: any) => {
+        if (!saldosMap[s.data_referencia]) saldosMap[s.data_referencia] = {};
+        saldosMap[s.data_referencia][s.produto_id] = Number(s.quantidade) || 0;
+      });
+      setSaldosIniciais(saldosMap);
 
       // Normalizar vendas com created_at do pedido
       setVendasRaw(
@@ -156,7 +180,7 @@ export default function Estoque() {
           produto_id: m.produto_id,
           quantidade: m.quantidade,
           tipo: m.tipo,
-          created_at: m.created_at,
+          created_at: m.data_movimento ? `${m.data_movimento}T12:00:00` : m.created_at,
         }))
       );
     } catch (error) {
@@ -259,7 +283,7 @@ export default function Estoque() {
     if (!produto) return;
 
     try {
-      const { error: movError } = await supabase
+      const { error: movError } = await (supabase as any)
         .from("movimentacoes_estoque")
         .insert({
           produto_id: movForm.produtoId,
@@ -267,6 +291,7 @@ export default function Estoque() {
           quantidade,
           observacoes: movForm.observacoes || null,
           unidade_id: unidadeAtual?.id || null,
+          data_movimento: format(dataFim, "yyyy-MM-dd"),
         });
 
       if (movError) throw movError;
@@ -495,7 +520,9 @@ export default function Estoque() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Movimentação de Estoque</DialogTitle>
-                  <DialogDescription>Registre entrada, saída ou avaria de produtos</DialogDescription>
+                  <DialogDescription>
+                    Registre entrada, saída ou avaria de produtos · Lançando em {format(dataFim, "dd/MM/yyyy")}
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
@@ -553,6 +580,8 @@ export default function Estoque() {
                 produtos={produtos}
                 movimentacoes={dayMov}
                 dataDia={dia}
+                saldosIniciais={saldosIniciais[dayKey] || {}}
+                periodo={{ inicio: dataInicio, fim: dataFim }}
                 isLoading={false}
                 onRefresh={fetchData}
               />

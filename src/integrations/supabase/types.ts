@@ -4950,6 +4950,47 @@ export type Database = {
           },
         ]
       }
+      estoque_saldos_iniciais: {
+        Row: {
+          created_at: string
+          data_referencia: string
+          definido_por: string | null
+          id: string
+          produto_id: string
+          quantidade: number
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_referencia: string
+          definido_por?: string | null
+          id?: string
+          produto_id: string
+          quantidade?: number
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_referencia?: string
+          definido_por?: string | null
+          id?: string
+          produto_id?: string
+          quantidade?: number
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_saldos_iniciais_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       extrato_bancario: {
         Row: {
           categoria: string | null
@@ -7281,6 +7322,7 @@ export type Database = {
       movimentacoes_estoque: {
         Row: {
           created_at: string
+          data_movimento: string
           id: string
           observacoes: string | null
           produto_id: string
@@ -7291,6 +7333,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          data_movimento?: string
           id?: string
           observacoes?: string | null
           produto_id: string
@@ -7301,6 +7344,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          data_movimento?: string
           id?: string
           observacoes?: string | null
           produto_id?: string

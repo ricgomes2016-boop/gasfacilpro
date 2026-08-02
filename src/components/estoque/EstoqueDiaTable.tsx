@@ -20,6 +20,7 @@ import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { FluxoProdutoDialog } from "@/components/estoque/FluxoProdutoDialog";
 
 interface Produto {
   id: string;
@@ -45,6 +46,8 @@ interface EstoqueDiaTableProps {
   dataDia: Date;
   isLoading: boolean;
   onRefresh?: () => void;
+  saldosIniciais?: Record<string, number>;
+  periodo?: { inicio: Date; fim: Date };
 }
 
 interface LinhaEstoque {
@@ -60,13 +63,15 @@ interface LinhaEstoque {
   saidasManuais: number;
   avarias: number;
   inicial: number;
+  inicialManual: boolean;
   total: number;
 }
 
 function calcularLinha(
   produto: Produto,
   mov: MovimentacaoPorProduto,
-  tipoBotijao: string | null
+  tipoBotijao: string | null,
+  saldoSalvo?: number
 ): LinhaEstoque {
   const nomeBase = produto.nome
     .replace(/\s*\(Vazio\)\s*/i, "")
@@ -85,7 +90,8 @@ function calcularLinha(
   // e saidas_manuais já vem somado com compras do cheio (via movCombinado).
   const entradas = compras + entradas_manuais;
   const saidas = saidas_manuais;
-  const inicial = estoqueAtual - entradas + saidas + vendas + avarias;
+  const inicialManual = typeof saldoSalvo === "number";
+  const inicial = inicialManual ? (saldoSalvo as number) : estoqueAtual - entradas + saidas + vendas + avarias;
   const total = inicial + entradas - saidas - vendas - avarias;
 
   const tipoLabel =
@@ -98,11 +104,11 @@ function calcularLinha(
     estoqueAtual,
     vendas, compras, entradas, saidas,
     entradasManuais: entradas_manuais, saidasManuais: saidas_manuais,
-    avarias, inicial, total,
+    avarias, inicial, inicialManual, total,
   };
 }
 
-export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, onRefresh }: EstoqueDiaTableProps) {
+export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, onRefresh, saldosIniciais = {}, periodo }: EstoqueDiaTableProps) {
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
   const [editDialog, setEditDialog] = useState<{ open: boolean; produtoId: string; nome: string } | null>(null);
@@ -111,6 +117,11 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
     quantidade: "",
     observacoes: "",
   });
+  const [inicialEdit, setInicialEdit] = useState<{ produtoId: string; valor: string } | null>(null);
+  const [savingInicial, setSavingInicial] = useState(false);
+  const [fluxo, setFluxo] = useState<LinhaEstoque | null>(null);
+
+  const dataDiaISO = format(dataDia, "yyyy-MM-dd");
 
   const linhas = useMemo(() => {
     const resultado: LinhaEstoque[] = [];
@@ -138,7 +149,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
       .forEach(([, grupo]) => {
         if (grupo.cheio) {
           const mov = movimentacoes[grupo.cheio.id] || emptyMov;
-          resultado.push(calcularLinha(grupo.cheio, mov, "cheio"));
+          resultado.push(calcularLinha(grupo.cheio, mov, "cheio", saldosIniciais[grupo.cheio.id]));
         }
         if (grupo.vazio) {
           const parCheioId = grupo.cheio?.id;
@@ -153,16 +164,75 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
             saidas_manuais: movVazio.saidas_manuais + movCheio.compras,
             avarias: movVazio.avarias,
           };
-          resultado.push(calcularLinha(grupo.vazio, movCombinado, "vazio"));
+          resultado.push(calcularLinha(grupo.vazio, movCombinado, "vazio", saldosIniciais[grupo.vazio.id]));
         }
         if (grupo.unico && !grupo.cheio && !grupo.vazio) {
           const mov = movimentacoes[grupo.unico.id] || emptyMov;
-          resultado.push(calcularLinha(grupo.unico, mov, null));
+          resultado.push(calcularLinha(grupo.unico, mov, null, saldosIniciais[grupo.unico.id]));
         }
       });
 
     return resultado;
-  }, [produtos, movimentacoes]);
+  }, [produtos, movimentacoes, saldosIniciais]);
+
+  const salvarSaldoInicial = async (linha: LinhaEstoque) => {
+    const novo = parseInt(inicialEdit?.valor ?? "");
+    if (isNaN(novo) || novo < 0) {
+      toast({ title: "Erro", description: "Informe uma quantidade válida.", variant: "destructive" });
+      return;
+    }
+    if (!unidadeAtual?.id) {
+      toast({ title: "Selecione uma unidade", description: "É preciso ter uma unidade ativa.", variant: "destructive" });
+      return;
+    }
+    if (novo === linha.inicial) {
+      setInicialEdit(null);
+      return;
+    }
+
+    setSavingInicial(true);
+    try {
+      const sb = supabase as any;
+      const { data: userData } = await supabase.auth.getUser();
+
+      const { error: upsertError } = await sb
+        .from("estoque_saldos_iniciais")
+        .upsert(
+          {
+            unidade_id: unidadeAtual.id,
+            produto_id: linha.produtoId,
+            data_referencia: dataDiaISO,
+            quantidade: novo,
+            definido_por: userData?.user?.id || null,
+          },
+          { onConflict: "unidade_id,produto_id,data_referencia" }
+        );
+      if (upsertError) throw upsertError;
+
+      const diferenca = novo - linha.inicial;
+      const novoAtual = Math.max(0, linha.estoqueAtual + diferenca);
+
+      await sb.from("produtos").update({ estoque: novoAtual }).eq("id", linha.produtoId);
+
+      await sb.from("movimentacoes_estoque").insert({
+        produto_id: linha.produtoId,
+        tipo: diferenca >= 0 ? "entrada" : "saida",
+        quantidade: Math.abs(diferenca),
+        observacoes: `Ajuste de saldo inicial (${linha.inicial} → ${novo}) em ${format(dataDia, "dd/MM/yyyy")}`,
+        unidade_id: unidadeAtual.id,
+        data_movimento: dataDiaISO,
+      });
+
+      toast({ title: "Saldo inicial atualizado", description: `${linha.inicial} → ${novo} un.` });
+      setInicialEdit(null);
+      onRefresh?.();
+    } catch (error) {
+      console.error("Erro ao salvar saldo inicial:", error);
+      toast({ title: "Erro", description: "Não foi possível salvar o saldo inicial.", variant: "destructive" });
+    } finally {
+      setSavingInicial(false);
+    }
+  };
 
   const dataFmt = format(dataDia, "EEEE, dd/MM/yyyy", { locale: ptBR });
   const dataFmtCapitalized = dataFmt.charAt(0).toUpperCase() + dataFmt.slice(1);
@@ -176,7 +246,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
     }
 
     try {
-      const { error: movError } = await supabase
+      const { error: movError } = await (supabase as any)
         .from("movimentacoes_estoque")
         .insert({
           produto_id: editDialog.produtoId,
@@ -184,6 +254,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
           quantidade,
           observacoes: editForm.observacoes || null,
           unidade_id: unidadeAtual?.id || null,
+          data_movimento: dataDiaISO,
         });
       if (movError) throw movError;
 
@@ -302,13 +373,17 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                   className="mobile-record-card p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-3">
+                    <button
+                      type="button"
+                      className="flex min-w-0 items-center gap-3 text-left"
+                      onClick={() => setFluxo(linha)}
+                    >
                       {renderIcon(linha)}
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
+                        <p className="truncate text-sm font-semibold text-foreground underline-offset-2 hover:underline">{displayName}</p>
                         <div className="mt-1">{renderBadge(linha.tipoEstoque)}</div>
                       </div>
-                    </div>
+                    </button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -326,7 +401,33 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                   <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-muted/40 p-3 text-center tabular-nums">
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Inicial</p>
-                      <p className="text-sm font-semibold text-foreground">{linha.inicial}</p>
+                      {inicialEdit?.produtoId === linha.produtoId ? (
+                        <Input
+                          autoFocus
+                          type="number"
+                          min="0"
+                          inputMode="numeric"
+                          disabled={savingInicial}
+                          value={inicialEdit.valor}
+                          onChange={(e) => setInicialEdit({ produtoId: linha.produtoId, valor: e.target.value })}
+                          onBlur={() => salvarSaldoInicial(linha)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") salvarSaldoInicial(linha);
+                            if (e.key === "Escape") setInicialEdit(null);
+                          }}
+                          className="mx-auto h-8 w-16 px-1 text-center text-sm"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setInicialEdit({ produtoId: linha.produtoId, valor: String(linha.inicial) })}
+                          className={`mx-auto flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-semibold text-foreground hover:bg-background ${linha.inicialManual ? "ring-1 ring-inset ring-primary/40" : ""}`}
+                          aria-label="Editar saldo inicial"
+                        >
+                          {linha.inicial}
+                          <Pencil className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                      )}
                     </div>
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Entradas</p>
@@ -410,15 +511,46 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                         className="border-b border-border/50 hover:bg-muted/40 transition-colors"
                       >
                         <TableCell className="py-3">
-                          <span className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFluxo(linha)}
+                            className="flex items-center gap-2 text-left"
+                          >
                             {renderIcon(linha)}
-                            <span className={`text-sm text-foreground ${isCheio ? "font-semibold" : "font-medium"}`}>
+                            <span className={`text-sm text-foreground underline-offset-2 hover:underline ${isCheio ? "font-semibold" : "font-medium"}`}>
                               {displayName}
                             </span>
-                          </span>
+                          </button>
                         </TableCell>
                         <TableCell className="text-center">{renderBadge(linha.tipoEstoque)}</TableCell>
-                        <TableCell className="text-center font-semibold tabular-nums">{linha.inicial}</TableCell>
+                        <TableCell className="text-center font-semibold tabular-nums">
+                          {inicialEdit?.produtoId === linha.produtoId ? (
+                            <Input
+                              autoFocus
+                              type="number"
+                              min="0"
+                              disabled={savingInicial}
+                              value={inicialEdit.valor}
+                              onChange={(e) => setInicialEdit({ produtoId: linha.produtoId, valor: e.target.value })}
+                              onBlur={() => salvarSaldoInicial(linha)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") salvarSaldoInicial(linha);
+                                if (e.key === "Escape") setInicialEdit(null);
+                              }}
+                              className="mx-auto h-8 w-20 px-1 text-center"
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setInicialEdit({ produtoId: linha.produtoId, valor: String(linha.inicial) })}
+                              className={`mx-auto inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-muted ${linha.inicialManual ? "ring-1 ring-inset ring-primary/40" : ""}`}
+                              title="Clique para ajustar o saldo inicial"
+                            >
+                              {linha.inicial}
+                              <Pencil className="h-3 w-3 text-muted-foreground" />
+                            </button>
+                          )}
+                        </TableCell>
                         <TableCell className="text-center font-semibold text-success tabular-nums">
                           {linha.entradas > 0 ? `+${linha.entradas}` : "0"}
                         </TableCell>
@@ -495,6 +627,18 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FluxoProdutoDialog
+        open={!!fluxo}
+        onOpenChange={(o) => !o && setFluxo(null)}
+        produtoId={fluxo?.produtoId || null}
+        produtoNome={fluxo ? buildDisplayName(fluxo) : ""}
+        estoqueAtual={fluxo?.estoqueAtual ?? 0}
+        saldoInicial={fluxo?.inicial ?? 0}
+        inicio={periodo?.inicio ?? dataDia}
+        fim={periodo?.fim ?? dataDia}
+        unidadeId={unidadeAtual?.id}
+      />
     </>
   );
 }
