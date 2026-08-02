@@ -742,28 +742,33 @@ export default function Pedidos() {
   // #5 - Payment method breakdown
   const [formaExpandida, setFormaExpandida] = useState<string | null>(null);
 
-  // Busca valores reais por forma em contas_receber (fonte da verdade quando há multi-pagamento)
+  // Busca valores reais por forma em contas_receber + caixa (dinheiro não gera título)
   const pedidoIdsAtivos = useMemo(
     () => pedidos.filter((p) => p.status !== "cancelado").map((p) => p.id),
     [pedidos]
   );
-  const { data: recebiveisPorPedido = {} } = useQuery({
+  const { data: breakdownFontes = { recebiveis: {}, caixa: {} } } = useQuery({
     queryKey: ["pedidos-recebiveis-breakdown", pedidoIdsAtivos.slice(0, 1000).join(",")],
     enabled: pedidoIdsAtivos.length > 0,
     queryFn: async () => {
       const ids = pedidoIdsAtivos.slice(0, 1000);
-      const { data } = await supabase
-        .from("contas_receber")
-        .select("pedido_id, forma_pagamento, valor")
-        .in("pedido_id", ids);
-      const map: Record<string, Array<{ forma: string; valor: number }>> = {};
-      (data || []).forEach((r: any) => {
+      const [{ data: cr }, { data: mc }] = await Promise.all([
+        supabase.from("contas_receber").select("pedido_id, forma_pagamento, valor").in("pedido_id", ids),
+        supabase.from("movimentacoes_caixa").select("pedido_id, tipo, valor").in("pedido_id", ids),
+      ]);
+      const recebiveis: Record<string, Array<{ forma: string; valor: number }>> = {};
+      (cr || []).forEach((r: any) => {
         if (!r.pedido_id) return;
-        const arr = map[r.pedido_id] || [];
+        const arr = recebiveis[r.pedido_id] || [];
         arr.push({ forma: String(r.forma_pagamento || "nao_informado").toLowerCase(), valor: Number(r.valor) || 0 });
-        map[r.pedido_id] = arr;
+        recebiveis[r.pedido_id] = arr;
       });
-      return map;
+      const caixa: Record<string, number> = {};
+      (mc || []).forEach((m: any) => {
+        if (!m.pedido_id || m.tipo !== "entrada") return;
+        caixa[m.pedido_id] = (caixa[m.pedido_id] || 0) + (Number(m.valor) || 0);
+      });
+      return { recebiveis, caixa };
     },
   });
 
@@ -771,48 +776,108 @@ export default function Pedidos() {
     const map = new Map<string, number>();
     const detalhes = new Map<string, Array<{ id: string; numero: string; cliente: string; formasCount: number; share: number; total: number }>>();
 
-    const parseFormasFromString = (raw: string): string[] => {
-      const s = raw.trim();
-      if (!s) return ["nao_informado"];
-      // Formatos suportados: "dinheiro", "dinheiro, pix", "multiplo:dinheiro+cartao_credito"
-      const semPrefixo = s.toLowerCase().startsWith("multiplo:") ? s.slice("multiplo:".length) : s;
-      return semPrefixo
-        .split(/[,+]/)
-        .map((x) => x.trim().toLowerCase())
-        .filter(Boolean);
+    // Normaliza um trecho: "dinheiro R$100.00 [op:..|cta:..]" -> { forma: "dinheiro", valor: 100 }
+    const parseTrecho = (raw: string): { forma: string; valor: number | null } => {
+      let s = raw.trim();
+      s = s.replace(/\[[^\]]*\]/g, " "); // remove [op:...|cta:...]
+      const mValor = s.match(/r\$\s*([\d.,]+)/i);
+      let valor: number | null = null;
+      if (mValor) {
+        const num = mValor[1].replace(/\.(?=\d{3}\b)/g, "").replace(",", ".");
+        const n = Number(num);
+        if (Number.isFinite(n)) valor = n;
+      }
+      const forma = s
+        .replace(/r\$\s*[\d.,]+/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+      return { forma: forma || "nao_informado", valor };
     };
 
-    pedidos.filter((p) => p.status !== "cancelado").forEach((p) => {
-      const recebiveis = recebiveisPorPedido[p.id];
-      const numero = p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase();
+    const parseFormasFromString = (raw: string) => {
+      const s = raw.trim();
+      if (!s) return [{ forma: "nao_informado", valor: null as number | null }];
+      const semPrefixo = s.toLowerCase().startsWith("multiplo:") ? s.slice("multiplo:".length) : s;
+      const partes = semPrefixo
+        .split(/[,+]/)
+        .map(parseTrecho)
+        .filter((p) => p.forma && p.forma !== "");
+      return partes.length > 0 ? partes : [{ forma: "nao_informado", valor: null as number | null }];
+    };
 
-      if (recebiveis && recebiveis.length > 0) {
-        // Valores reais por forma (fonte: contas_receber)
-        const porForma = new Map<string, number>();
-        recebiveis.forEach((r) => porForma.set(r.forma, (porForma.get(r.forma) || 0) + r.valor));
-        porForma.forEach((valor, forma) => {
-          map.set(forma, (map.get(forma) || 0) + valor);
-          const arr = detalhes.get(forma) || [];
-          arr.push({ id: p.id, numero, cliente: p.cliente, formasCount: porForma.size, share: valor, total: p.valor });
-          detalhes.set(forma, arr);
-        });
-      } else {
-        // Fallback: parseia string do pedido e divide o valor
-        const formas = parseFormasFromString(p.forma_pagamento || "");
-        const share = p.valor / formas.length;
-        formas.forEach((forma) => {
-          map.set(forma, (map.get(forma) || 0) + share);
-          const arr = detalhes.get(forma) || [];
-          arr.push({ id: p.id, numero, cliente: p.cliente, formasCount: formas.length, share, total: p.valor });
-          detalhes.set(forma, arr);
-        });
+    const isDinheiro = (f: string) => f.includes("dinheiro") || f === "especie" || f === "espécie";
+
+    pedidos.filter((p) => p.status !== "cancelado").forEach((p) => {
+      const recebiveis = breakdownFontes.recebiveis?.[p.id] || [];
+      const caixaValor = breakdownFontes.caixa?.[p.id] || 0;
+      const numero = p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase();
+      const totalPedido = Number(p.valor) || 0;
+
+      // Formas declaradas no pedido (com valor explícito quando existir)
+      const declaradas = parseFormasFromString(p.forma_pagamento || "");
+
+      // 1) valor por forma vindo de contas_receber
+      const porFormaCR = new Map<string, number>();
+      recebiveis.forEach((r) => porFormaCR.set(r.forma, (porFormaCR.get(r.forma) || 0) + r.valor));
+
+      // 2) monta o conjunto de formas do pedido (declaradas + as que têm título)
+      const formas = new Map<string, number | null>();
+      declaradas.forEach((d) => {
+        if (!formas.has(d.forma)) formas.set(d.forma, d.valor);
+        else if (d.valor != null) formas.set(d.forma, (formas.get(d.forma) || 0) + d.valor);
+      });
+      porFormaCR.forEach((_v, f) => {
+        if (!formas.has(f)) formas.set(f, null);
+      });
+
+      // 3) resolve valores: explícito > título > caixa (dinheiro) > rateio do residual
+      const resolvido = new Map<string, number>();
+      const pendentes: string[] = [];
+      formas.forEach((valorExplicito, forma) => {
+        if (valorExplicito != null && valorExplicito > 0) {
+          resolvido.set(forma, valorExplicito);
+        } else if (porFormaCR.has(forma)) {
+          resolvido.set(forma, porFormaCR.get(forma) || 0);
+        } else if (isDinheiro(forma) && caixaValor > 0) {
+          resolvido.set(forma, caixaValor);
+        } else {
+          pendentes.push(forma);
+        }
+      });
+
+      const somaResolvida = Array.from(resolvido.values()).reduce((a, b) => a + b, 0);
+      let residual = totalPedido - somaResolvida;
+
+      if (pendentes.length > 0) {
+        const share = residual > 0 ? residual / pendentes.length : 0;
+        pendentes.forEach((f) => resolvido.set(f, share));
+        residual = 0;
+      } else if (Math.abs(residual) > 0.01 && resolvido.size > 0) {
+        // Ajusta a diferença na maior parcela para fechar com o total do pedido
+        const maior = Array.from(resolvido.entries()).sort((a, b) => b[1] - a[1])[0];
+        resolvido.set(maior[0], maior[1] + residual);
       }
+
+      if (resolvido.size === 0) {
+        resolvido.set("nao_informado", totalPedido);
+      }
+
+      const formasCount = resolvido.size;
+      resolvido.forEach((valor, forma) => {
+        if (Math.abs(valor) < 0.005) return;
+        map.set(forma, (map.get(forma) || 0) + valor);
+        const arr = detalhes.get(forma) || [];
+        arr.push({ id: p.id, numero, cliente: p.cliente, formasCount, share: valor, total: totalPedido });
+        detalhes.set(forma, arr);
+      });
     });
     return {
       pagamentoContadores: Array.from(map.entries()).sort((a, b) => b[1] - a[1]),
       pagamentoDetalhes: detalhes,
     };
-  }, [pedidos, recebiveisPorPedido]);
+  }, [pedidos, breakdownFontes]);
+
 
   // Helper: número curto do UUID (legado), e número de exibição (sequencial > UUID curto)
   const getIdCurto = (id: string) => id.substring(0, 8).toUpperCase();
