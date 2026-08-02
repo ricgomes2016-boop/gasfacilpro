@@ -381,26 +381,19 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                   className="mobile-record-card p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <button
-                      type="button"
-                      className="flex min-w-0 items-center gap-3 text-left"
-                      onClick={() => setFluxo(linha)}
-                    >
+                    <div className="flex min-w-0 items-center gap-3 text-left">
                       {renderIcon(linha)}
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-foreground underline-offset-2 hover:underline">{displayName}</p>
+                        <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
                         <div className="mt-1">{renderBadge(linha.tipoEstoque)}</div>
                       </div>
-                    </button>
+                    </div>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-9 w-9 shrink-0"
-                      onClick={() => {
-                        setEditDialog({ open: true, produtoId: linha.produtoId, nome: displayName });
-                        setEditForm({ tipo: "entrada", quantidade: "", observacoes: "" });
-                      }}
-                      aria-label="Editar"
+                      onClick={() => abrirEdicao(linha, displayName)}
+                      aria-label="Editar produto"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -409,33 +402,9 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                   <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-muted/40 p-3 text-center tabular-nums">
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Inicial</p>
-                      {inicialEdit?.produtoId === linha.produtoId ? (
-                        <Input
-                          autoFocus
-                          type="number"
-                          min="0"
-                          inputMode="numeric"
-                          disabled={savingInicial}
-                          value={inicialEdit.valor}
-                          onChange={(e) => setInicialEdit({ produtoId: linha.produtoId, valor: e.target.value })}
-                          onBlur={() => salvarSaldoInicial(linha)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") salvarSaldoInicial(linha);
-                            if (e.key === "Escape") setInicialEdit(null);
-                          }}
-                          className="mx-auto h-8 w-16 px-1 text-center text-sm"
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setInicialEdit({ produtoId: linha.produtoId, valor: String(linha.inicial) })}
-                          className={`mx-auto flex items-center gap-1 rounded-md px-2 py-0.5 text-sm font-semibold text-foreground hover:bg-background ${linha.inicialManual ? "ring-1 ring-inset ring-primary/40" : ""}`}
-                          aria-label="Editar saldo inicial"
-                        >
-                          {linha.inicial}
-                          <Pencil className="h-3 w-3 text-muted-foreground" />
-                        </button>
-                      )}
+                      <p className={`text-sm font-semibold text-foreground ${linha.inicialManual ? "underline decoration-primary/50" : ""}`}>
+                        {linha.inicial}
+                      </p>
                     </div>
                     <div>
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Entradas</p>
