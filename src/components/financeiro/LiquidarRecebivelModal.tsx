@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { getBrasiliaDateString } from "@/lib/utils";
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
+import { getOperadoraPadrao } from "@/lib/financeiro/padroesFinanceiros";
 import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
 import {
   liquidarRecebivel,

@@ -15,6 +15,7 @@ import { addDays, format } from "date-fns";
 import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
 import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
+import { getOperadoraPadrao } from "@/lib/financeiro/padroesFinanceiros";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { VendaSectionHeader } from "./VendaSectionHeader";
 

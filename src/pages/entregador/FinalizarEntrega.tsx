@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PixQRCode } from "@/components/pix/PixQRCode";
 import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
+import { getOperadoraPadrao } from "@/lib/financeiro/padroesFinanceiros";
 import { format, addDays } from "date-fns";
 import { toast as sonnerToast } from "sonner";
 import { CardPaymentModal } from "@/components/entregador/CardPaymentModal";

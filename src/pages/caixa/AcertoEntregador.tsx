@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
+import { getOperadoraPadrao } from "@/lib/financeiro/padroesFinanceiros";
 
 const formatCurrency = (v: number) =>
   `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;

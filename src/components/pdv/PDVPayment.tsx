@@ -11,6 +11,7 @@ import {
 import { Banknote, CreditCard, Smartphone, Receipt, Plus, Trash2, Flame } from "lucide-react";
 import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
+import { getOperadoraPadrao } from "@/lib/financeiro/padroesFinanceiros";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
