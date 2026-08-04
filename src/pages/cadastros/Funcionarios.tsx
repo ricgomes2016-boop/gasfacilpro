@@ -28,6 +28,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { FuncionarioUnidadesDialog } from "@/components/cadastros/FuncionarioUnidadesDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { VendedorDesempenhoCard } from "@/components/cadastros/VendedorDesempenhoCard";
+import { SignedImage } from "@/components/ui/signed-image";
 
 
 interface Funcionario {
@@ -168,8 +169,8 @@ export default function Funcionarios() {
     const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
     if (error) throw error;
 
-    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-    return data.publicUrl;
+    // Bucket privado: guardamos apenas o caminho (exibido via URL assinada)
+    return path;
   };
 
   const getEntregadorForFuncionario = (funcId: string) =>
@@ -850,7 +851,7 @@ export default function Funcionarios() {
                         </Label>
                         <div className="flex items-center gap-3">
                           {form.foto_url && !fotoFile && (
-                            <img src={form.foto_url} alt={form.nome} className="h-14 w-14 rounded-full object-cover" />
+                            <SignedImage value={form.foto_url} bucket="avatars" alt={form.nome} className="h-14 w-14 rounded-full object-cover" />
                           )}
                           <Input
                             type="file"

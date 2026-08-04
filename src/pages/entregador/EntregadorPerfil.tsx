@@ -18,6 +18,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { resolveSignedUrl } from "@/components/ui/signed-image";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -77,7 +78,7 @@ export default function EntregadorPerfil() {
           .select("avatar_url")
           .eq("user_id", userId)
           .single();
-        if (profileData?.avatar_url) setAvatarUrl(profileData.avatar_url);
+        if (profileData?.avatar_url) setAvatarUrl(await resolveSignedUrl(profileData.avatar_url, "avatars"));
 
         const now = getBrasiliaDate();
         const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
@@ -116,18 +117,14 @@ export default function EntregadorPerfil() {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
-
-      const url = `${publicUrl}?t=${Date.now()}`;
-
+      // Bucket privado: guardamos o caminho e exibimos via URL assinada
       await supabase
         .from("profiles")
-        .update({ avatar_url: url })
+        .update({ avatar_url: filePath })
         .eq("user_id", user.id);
 
-      setAvatarUrl(url);
+      const signed = await resolveSignedUrl(filePath, "avatars");
+      setAvatarUrl(`${signed}${signed.includes("?") ? "&" : "?"}t=${Date.now()}`);
       toast.success("Foto atualizada!");
     } catch (err) {
       console.error(err);
