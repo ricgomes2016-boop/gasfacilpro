@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SugestaoEntregador } from "@/components/sugestao/SugestaoEntregador";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { cn } from "@/lib/utils";
+import { SignedImage } from "@/components/ui/signed-image";
 import { VendaSectionHeader } from "./VendaSectionHeader";
 
 interface Entregador {
@@ -212,7 +213,7 @@ export function DeliveryPersonSelect({ value, onChange, endereco, onVendedorAuto
                   selected ? "bg-primary-foreground/25 shadow-md" : "group-hover:bg-primary-foreground/20"
                 )}>
                   {entregador.foto_url ? (
-                    <img src={entregador.foto_url} alt={entregador.nome} className="h-full w-full object-cover" loading="lazy" />
+                    <SignedImage value={entregador.foto_url} bucket="avatars" alt={entregador.nome} className="h-full w-full object-cover" loading="lazy" />
                   ) : (
                     <span className="flex h-full w-full items-center justify-center">
                       {getInitials(entregador.nome) || <UserRound className="h-5 w-5" />}

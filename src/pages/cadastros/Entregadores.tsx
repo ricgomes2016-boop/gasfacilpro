@@ -18,6 +18,7 @@ import {
 import { Truck, Plus, Search, Edit, Trash2, Phone, LinkIcon, UserCheck, CreditCard, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SignedImage } from "@/components/ui/signed-image";
 import { useUnidade } from "@/contexts/UnidadeContext";
 
 interface Entregador {
@@ -140,8 +141,8 @@ export default function Entregadores() {
     const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
     if (error) throw error;
 
-    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-    return data.publicUrl;
+    // Bucket privado: guardamos apenas o caminho (exibido via URL assinada)
+    return path;
   };
 
   const handleSave = async () => {
@@ -275,7 +276,7 @@ export default function Entregadores() {
                   </Label>
                   <div className="mt-2 flex items-center gap-3">
                     {form.foto_url && !fotoFile && (
-                      <img src={form.foto_url} alt={form.nome} className="h-14 w-14 rounded-full object-cover" />
+                      <SignedImage value={form.foto_url} bucket="avatars" alt={form.nome} className="h-14 w-14 rounded-full object-cover" />
                     )}
                     <Input type="file" accept="image/*" onChange={(e) => setFotoFile(e.target.files?.[0] || null)} />
                   </div>
