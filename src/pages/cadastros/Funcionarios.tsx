@@ -28,6 +28,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { FuncionarioUnidadesDialog } from "@/components/cadastros/FuncionarioUnidadesDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { VendedorDesempenhoCard } from "@/components/cadastros/VendedorDesempenhoCard";
+import { SignedImage } from "@/components/ui/signed-image";
 
 
 interface Funcionario {
