@@ -17,6 +17,7 @@ import {
 import { CreditCard, CheckCircle, Clock, Percent } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { prazoOperadoraD0 } from "@/lib/financeiro/operadoraRecebimento";
 
 interface Operadora {
   id: string;
@@ -98,7 +99,7 @@ export function CardOperatorSelectorModal({
   const getTaxaEPrazo = (op: Operadora) => {
     switch (tipoCartao) {
       case "debito":
-        return { taxa: Number(op.taxa_debito) || 0, prazo: op.prazo_debito || 0 };
+        return { taxa: Number(op.taxa_debito) || 0, prazo: prazoOperadoraD0({ nome: op.nome, prazoCadastro: op.prazo_debito, prazoPadrao: 1 }) };
       case "credito":
         return {
           taxa: parcelas > 1 && applyInstallmentSurcharge
@@ -106,10 +107,10 @@ export function CardOperatorSelectorModal({
             : parcelas > 1
               ? Number(op.taxa_credito_parcelado) || 0
               : Number(op.taxa_credito_vista) || 0,
-          prazo: op.prazo_credito || 0,
+          prazo: prazoOperadoraD0({ nome: op.nome, prazoCadastro: op.prazo_credito, prazoPadrao: 30 }),
         };
       case "pix_maquininha":
-        return { taxa: Number(op.taxa_pix) || 0, prazo: op.prazo_pix || 0 };
+        return { taxa: Number(op.taxa_pix) || 0, prazo: prazoOperadoraD0({ nome: op.nome, prazoCadastro: op.prazo_pix, prazoPadrao: 0 }) };
       default:
         return { taxa: 0, prazo: 0 };
     }

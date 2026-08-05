@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDateString } from "@/lib/utils";
 import { addDays, format } from "date-fns";
 import { criarMovimentacaoBancaria, resolverContaDestino } from "@/services/paymentRoutingService";
+import { prazoOperadoraD0 } from "@/lib/financeiro/operadoraRecebimento";
 
 /**
  * Linha de pagamento usada para liquidar UM recebível (fiado/vale/boleto/cheque).
@@ -144,7 +145,11 @@ export async function liquidarRecebivel(
       case "pix_maquininha": {
         // Cria NOVO recebível do adquirente (D+X) — igual ao fluxo Nova Venda.
         const taxa = Number(linha.operadora_taxa) || 0;
-        const prazo = Number(linha.operadora_prazo) || (linha.forma === "cartao_credito" ? 30 : 1);
+        const prazo = prazoOperadoraD0({
+          nome: linha.operadora_nome,
+          prazoCadastro: linha.operadora_prazo,
+          prazoPadrao: linha.forma === "cartao_credito" ? 30 : linha.forma === "pix_maquininha" ? 0 : 1,
+        });
         const valorTaxa = valor * (taxa / 100);
         const valorLiquido = valor - valorTaxa;
         const tipoLabel =
@@ -159,12 +164,14 @@ export async function liquidarRecebivel(
           terminalId: linha.terminal_id,
           operadoraContaId: linha.operadora_conta_bancaria_id || null,
         });
+        const liquidaAgora = prazo === 0 && !!contaDestino;
         await supabase.from("contas_receber").insert({
           cliente: linha.operadora_nome || "Operadora Cartão",
           descricao: `${tipoLabel} - Liquidação ${origem} #${ref}${linha.parcelas && linha.parcelas > 1 ? ` (${linha.parcelas}x)` : ""}`,
           valor,
           vencimento: format(addDays(new Date(dataRec + "T12:00:00"), prazo), "yyyy-MM-dd"),
-          status: "pendente",
+          status: liquidaAgora ? "recebida" : "pendente",
+          data_recebimento: liquidaAgora ? dataRec : null,
           forma_pagamento: linha.forma,
           pedido_id: conta.pedido_id || null,
           unidade_id: conta.unidade_id || null,
@@ -177,6 +184,17 @@ export async function liquidarRecebivel(
           cliente_id: conta.cliente_id || null,
           conta_bancaria_destino_id: contaDestino,
         } as any);
+        if (liquidaAgora && contaDestino) {
+          await criarMovimentacaoBancaria({
+            contaBancariaId: contaDestino,
+            valor: valorLiquido,
+            descricao: `${tipoLabel} ${linha.operadora_nome || ""} - Liquidacao ${origem} #${ref}`.trim(),
+            categoria: "liquidacao_operadora",
+            unidadeId: conta.unidade_id || undefined,
+            userId,
+            pedidoId: conta.pedido_id || undefined,
+          });
+        }
         break;
       }
       case "cheque": {

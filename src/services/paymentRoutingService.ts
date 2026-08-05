@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDateString } from "@/lib/utils";
 import { addDays, format } from "date-fns";
 import { getBancoPadrao, getOperadoraPadrao, matchesNomePadrao } from "@/lib/financeiro/padroesFinanceiros";
+import { prazoOperadoraD0 } from "@/lib/financeiro/operadoraRecebimento";
 
 const normalizeText = (value: string) =>
   value
@@ -165,13 +166,13 @@ async function getOperadoraConfig(unidadeId: string | null, tipo: string, operad
   let prazo = 0;
   if (tipo === "pix_maquininha") {
     taxa = Number((dataRow as any).taxa_pix) || 0;
-    prazo = Number((dataRow as any).prazo_pix) || 0;
+    prazo = prazoOperadoraD0({ nome: dataRow.nome, prazoCadastro: (dataRow as any).prazo_pix, prazoPadrao: 0 });
   } else if (tipo === "cartao_debito" || tipo === "debito") {
     taxa = Number(dataRow.taxa_debito) || 0;
-    prazo = Number(dataRow.prazo_debito) || 1;
+    prazo = prazoOperadoraD0({ nome: dataRow.nome, prazoCadastro: dataRow.prazo_debito, prazoPadrao: 1 });
   } else {
     taxa = parcelas > 1 ? Number(dataRow.taxa_credito_parcelado) || 0 : Number(dataRow.taxa_credito_vista) || 0;
-    prazo = Number(dataRow.prazo_credito) || 30;
+    prazo = prazoOperadoraD0({ nome: dataRow.nome, prazoCadastro: dataRow.prazo_credito, prazoPadrao: 30 });
   }
 
   return { id: dataRow.id, nome: dataRow.nome, taxa, prazo, conta_bancaria_id: (dataRow as any).conta_bancaria_id as string | null };
