@@ -38,6 +38,7 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
 import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
+import { useNavigate } from "react-router-dom";
 
 interface Mov {
   id: string;
@@ -75,6 +76,13 @@ interface ContaBancaria {
   saldo_atual: number;
 }
 
+interface CategoriaDespesaOption {
+  id: string;
+  nome: string;
+  grupo: string;
+  codigo_contabil: string | null;
+}
+
 interface CaixaSessao {
   id: string;
   valor_abertura: number;
@@ -88,6 +96,7 @@ interface CaixaSessao {
 }
 
 export default function CaixaDia() {
+  const navigate = useNavigate();
   const [movs, setMovs] = useState<Mov[]>([]);
   const [pedidos, setPedidos] = useState<PedidoResumo[]>([]);
   const [produtosVendidos, setProdutosVendidos] = useState<ProdutoVendido[]>([]);
@@ -103,6 +112,7 @@ export default function CaixaDia() {
   const isGestor = hasAnyRole(["admin", "gestor"]);
   const formaLabel = useFormaPagamentoLabel();
   const [form, setForm] = useState({ tipo: "entrada", descricao: "", valor: "", categoria: "" });
+  const [categoriasDespesa, setCategoriasDespesa] = useState<CategoriaDespesaOption[]>([]);
   const [aberturaForm, setAberturaForm] = useState({ valor: "", obs: "" });
   const [fechamentoForm, setFechamentoForm] = useState({ valor: "", obs: "" });
 
@@ -134,6 +144,67 @@ export default function CaixaDia() {
     const pad = (n: number) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   };
+
+  const fetchCategoriasDespesa = async () => {
+    let q = supabase
+      .from("categorias_despesa")
+      .select("id, nome, grupo, codigo_contabil")
+      .eq("ativo", true)
+      .order("grupo", { ascending: true })
+      .order("ordem", { ascending: true })
+      .order("nome", { ascending: true });
+    if (unidadeAtual?.id) q = q.or(`unidade_id.is.null,unidade_id.eq.${unidadeAtual.id}`);
+    const { data, error } = await q;
+    if (error) {
+      console.error(error);
+      setCategoriasDespesa([]);
+      return;
+    }
+    setCategoriasDespesa(data || []);
+  };
+
+  const categoriaLabel = (categoria: CategoriaDespesaOption) => {
+    const codigo = categoria.codigo_contabil ? `${categoria.codigo_contabil} - ` : "";
+    return `${codigo}${categoria.nome}`;
+  };
+
+  const renderCategoriaFiscalSelect = (
+    value: string,
+    onChange: (value: string) => void,
+  ) => (
+    <div className="space-y-2">
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger>
+          <SelectValue placeholder="Selecione uma categoria fiscal" />
+        </SelectTrigger>
+        <SelectContent>
+          {categoriasDespesa.length === 0 ? (
+            <SelectItem value="__sem_categorias__" disabled>
+              Cadastre categorias em Configuracoes
+            </SelectItem>
+          ) : (
+            categoriasDespesa.map((categoria) => (
+              <SelectItem key={categoria.id} value={categoria.nome}>
+                {categoriaLabel(categoria)}
+              </SelectItem>
+            ))
+          )}
+        </SelectContent>
+      </Select>
+      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span>Usa o plano fiscal de Configuracoes.</span>
+        <Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-xs"
+          onClick={() => navigate("/config/categorias-despesa")}
+        >
+          Configurar categorias
+        </Button>
+      </div>
+    </div>
+  );
 
   const openEditMov = (mov: Mov) => {
     setEditMov(mov);
@@ -350,6 +421,7 @@ export default function CaixaDia() {
   };
 
   useEffect(() => { fetchData(); }, [unidadeAtual, dataSelecionada]);
+  useEffect(() => { fetchCategoriasDespesa(); }, [unidadeAtual]);
 
   // === Tesouraria: saldo acumulado total + contas bancárias ===
   const fetchTesouraria = async () => {
@@ -763,14 +835,7 @@ export default function CaixaDia() {
                   <div><Label>Descrição *</Label><Input value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} /></div>
                   <div><Label>Valor *</Label><Input type="number" step="0.01" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} /></div>
                   <div><Label>Categoria</Label>
-                    <Select value={form.categoria} onValueChange={v => setForm({ ...form, categoria: v })}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Vendas">Vendas</SelectItem><SelectItem value="Combustível">Combustível</SelectItem>
-                        <SelectItem value="Alimentação">Alimentação</SelectItem><SelectItem value="Manutenção">Manutenção</SelectItem>
-                        <SelectItem value="Troco">Troco</SelectItem><SelectItem value="Outros">Outros</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {renderCategoriaFiscalSelect(form.categoria, v => setForm({ ...form, categoria: v }))}
                   </div>
                   <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button><Button onClick={handleSubmit}>Registrar</Button></div>
                 </div>
@@ -1319,7 +1384,7 @@ export default function CaixaDia() {
               </div>
               <div>
                 <Label>Categoria</Label>
-                <Input value={editForm.categoria} onChange={(e) => setEditForm({ ...editForm, categoria: e.target.value })} placeholder="Opcional" />
+                {renderCategoriaFiscalSelect(editForm.categoria, v => setEditForm({ ...editForm, categoria: v }))}
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" onClick={() => setEditMov(null)}>Cancelar</Button>

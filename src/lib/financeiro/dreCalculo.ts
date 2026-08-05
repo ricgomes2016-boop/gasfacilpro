@@ -1,12 +1,17 @@
 import { supabase } from "@/integrations/supabase/client";
 import { endOfMonth, format, startOfMonth } from "date-fns";
+import {
+  calcularPrecoMedioCompraPorProduto,
+  classificarDespesaDRE,
+  criarMapaCategoriasFiscais,
+} from "./dreFinanceiro";
 
 /**
  * Regras da DRE (regime de competência) — fonte única de verdade.
  *
  * 1. Receita: apenas pedidos entregues/finalizados/pagos, pela data de entrega.
  *    Pedidos cancelados nunca entram.
- * 2. CMV: quantidade vendida de cada produto x preço de custo cadastrado.
+ * 2. CMV: quantidade vendida de cada produto x preco medio ponderado de compra.
  *    Compras do mês NÃO viram custo — viram estoque.
  * 3. Despesas: cada gasto entra uma única vez. Pagamentos de compras/contas a pagar
  *    são liquidação financeira, não despesa.
@@ -213,6 +218,12 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
     .lte("data_compra", fimDate);
   if (unidadeId) compQ = compQ.eq("unidade_id", unidadeId);
 
+  let categoriasQ = supabase
+    .from("categorias_despesa")
+    .select("nome, grupo")
+    .eq("ativo", true);
+  if (unidadeId) categoriasQ = categoriasQ.or(`unidade_id.is.null,unidade_id.eq.${unidadeId}`);
+
   const [
     { data: pedidos },
     { count: qtdCancelados },
@@ -221,7 +232,9 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
     { data: contasPagar },
     { data: despesasContabeis },
     { data: comprasAbertas },
-  ] = await Promise.all([pq, cancQ, caixaQ, bancoQ, cpQ, dcQ, compQ]);
+    { data: categoriasFiscais },
+  ] = await Promise.all([pq, cancQ, caixaQ, bancoQ, cpQ, dcQ, compQ, categoriasQ]);
+  const mapaCategoriasFiscais = criarMapaCategoriasFiscais(categoriasFiscais || []);
 
   const detalhes = vazioDetalhes();
   const avisos: string[] = [];
@@ -262,11 +275,32 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
       (data || []).forEach((p: any) => produtosInfo.set(p.id, { nome: p.nome, preco_custo: p.preco_custo }));
     }
 
+    let comprasHistoricasQ = supabase
+      .from("compras")
+      .select("id, status")
+      .lte("data_compra", fimDate);
+    if (unidadeId) comprasHistoricasQ = comprasHistoricasQ.eq("unidade_id", unidadeId);
+    const { data: comprasHistoricas } = await comprasHistoricasQ;
+    const compraIds = (comprasHistoricas || [])
+      .filter((c: any) => !["cancelada", "cancelado", "rejeitada", "rejeitado"].includes(String(c.status || "").toLowerCase()))
+      .map((c: any) => c.id)
+      .filter(Boolean);
+    const itensCompra: any[] = [];
+    for (let i = 0; i < compraIds.length; i += 300) {
+      const { data } = await supabase
+        .from("compra_itens")
+        .select("produto_id, quantidade, preco_unitario")
+        .in("compra_id", compraIds.slice(i, i + 300));
+      itensCompra.push(...(data || []));
+    }
+    const custoMedioCompra = calcularPrecoMedioCompraPorProduto(itensCompra);
+
     itens.forEach((item) => {
       if (!item.produto_id) return;
       const info = produtosInfo.get(item.produto_id);
       const qtd = Number(item.quantidade || 0);
-      const custoUnit = Number(info?.preco_custo || 0);
+      const custoMedio = custoMedioCompra.get(item.produto_id);
+      const custoUnit = custoMedio ?? Number(info?.preco_custo || 0);
       const atual = produtosMap.get(item.produto_id) || {
         produto_id: item.produto_id,
         nome: info?.nome || "Produto removido",
@@ -274,7 +308,7 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
         receita: 0,
         custoUnitario: custoUnit,
         custoTotal: 0,
-        semCusto: !info?.preco_custo,
+        semCusto: custoMedio == null && !info?.preco_custo,
       };
       atual.quantidade += qtd;
       atual.receita += qtd * Number(item.preco_unitario || 0);
@@ -290,7 +324,7 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
       detalhes.cmv.push({
         data: fimDate,
         descricao: `${p.nome} — ${p.quantidade.toLocaleString("pt-BR")} un x ${p.custoUnitario.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
-        origem: "Custo do vendido",
+        origem: "Custo medio do vendido",
         valor: p.custoTotal,
       });
     }
@@ -354,7 +388,12 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
     if (d.ehLiquidacao && isLiquidacaoTitulo(d.categoria, d.descricao, d.referenciaTipo)) return;
     if (!d.categoria) semCategoria += 1;
 
-    const grupo = classificarDespesa(d.categoria, d.descricao);
+    const grupoFiscal = classificarDespesaDRE(d.categoria || d.descricao, mapaCategoriasFiscais);
+    if (grupoFiscal === "mercadorias") return;
+    const grupo: DreGrupo =
+      grupoFiscal === "administrativo" ? "administrativa" :
+      grupoFiscal === "financeiro" ? "financeira" :
+      grupoFiscal;
     detalhes[grupo].push({ data: d.data, descricao: d.descricao, origem: d.origem, valor: d.valor });
   });
 
@@ -435,7 +474,7 @@ export const DRE_LINHAS: DreLinhaConfig[] = [
   { categoria: "Receita Bruta de Vendas", tipo: "receita", grupo: "receita", campo: "receitaBruta", ajuda: "Pedidos entregues/finalizados no mês. Cancelados não entram." },
   { categoria: "(-) Impostos e deduções", tipo: "deducao", grupo: "impostos", campo: "impostos", negativo: true, indent: true, ajuda: "Somente impostos efetivamente lançados. Sem percentual estimado." },
   { categoria: "RECEITA LÍQUIDA", tipo: "subtotal", campo: "receitaLiquida" },
-  { categoria: "(-) CMV — custo dos produtos vendidos", tipo: "custo", grupo: "cmv", campo: "cmv", negativo: true, indent: true, ajuda: "Quantidade vendida x preço de custo do produto. Compras do mês viram estoque, não custo." },
+  { categoria: "(-) CMV — custo dos produtos vendidos", tipo: "custo", grupo: "cmv", campo: "cmv", negativo: true, indent: true, ajuda: "Quantidade vendida x preco medio ponderado de compra do produto. Compras do mes viram estoque, nao custo integral." },
   { categoria: "LUCRO BRUTO", tipo: "subtotal", campo: "lucroBruto" },
   { categoria: "(-) Despesas com Pessoal", tipo: "despesa", grupo: "pessoal", campo: "despPessoal", negativo: true, indent: true },
   { categoria: "(-) Despesas Operacionais", tipo: "despesa", grupo: "operacional", campo: "despOperacional", negativo: true, indent: true },
