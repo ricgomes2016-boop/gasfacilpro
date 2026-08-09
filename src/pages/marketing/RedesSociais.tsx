@@ -45,6 +45,35 @@ export default function RedesSociais() {
   const [statusMap, setStatusMap] = useState<Record<string, { status: string; message: string; expires_in_days: number | null }>>({});
   const [testingId, setTestingId] = useState<string | "all" | null>(null);
 
+  // Retorno do OAuth da Meta (fluxo por redirecionamento no celular)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resultado = params.get("meta_oauth");
+    if (!resultado) return;
+
+    const motivo = params.get("motivo");
+    const msg = params.get("msg");
+
+    if (resultado === "ok") {
+      toast({ title: "Conta conectada com sucesso! 🎉", description: msg || undefined });
+      queryClient.invalidateQueries({ queryKey: ["social-accounts"] });
+    } else {
+      toast({
+        title: "Não foi possível conectar",
+        description: msg || motivo || "A Meta recusou a conexão.",
+        variant: "destructive",
+      });
+    }
+
+    params.delete("meta_oauth");
+    params.delete("motivo");
+    params.delete("msg");
+    const query = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (query ? `?${query}` : ""));
+  }, [queryClient]);
+
+
+
   const testConnection = async (accountId?: string) => {
     if (!empresaId) return;
     setTestingId(accountId || "all");
