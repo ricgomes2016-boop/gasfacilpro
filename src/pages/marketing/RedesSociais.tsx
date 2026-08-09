@@ -134,6 +134,13 @@ export default function RedesSociais() {
       <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
         <MetaAppStatusBanner />
 
+        <StatusConexaoRedes
+          empresaId={empresaId}
+          contas={accounts as any}
+          onConectar={() => setConectarModalOpen(true)}
+        />
+
+
         {/* Hero — botão único de conexão */}
         <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/0">
           <CardContent className="p-5 md:p-6">
