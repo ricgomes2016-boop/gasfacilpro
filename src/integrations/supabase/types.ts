@@ -12416,6 +12416,10 @@ export type Database = {
           telefone: string
         }[]
       }
+      avatar_object_belongs_to_empresa: {
+        Args: { _object_name: string }
+        Returns: boolean
+      }
       buscar_clientes_paginado: {
         Args: {
           _apenas_ativos?: boolean
