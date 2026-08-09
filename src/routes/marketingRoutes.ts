@@ -6,6 +6,7 @@ const AgendamentoPosts = lazy(() => import("@/pages/marketing/AgendamentoPosts")
 const ConfigMarketing = lazy(() => import("@/pages/marketing/ConfigMarketing"));
 const MarketingMetricas = lazy(() => import("@/pages/marketing/MarketingMetricas"));
 const CampanhasWhatsApp = lazy(() => import("@/pages/marketing/CampanhasWhatsApp"));
+const RedesSociais = lazy(() => import("@/pages/marketing/RedesSociais"));
 
 // DashboardMarketing kept for backward compat but removed from menu
 const DashboardMarketing = lazy(() => import("@/pages/marketing/DashboardMarketing"));
