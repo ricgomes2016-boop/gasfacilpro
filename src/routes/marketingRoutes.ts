@@ -16,6 +16,7 @@ export const marketingRoutes: RouteConfig[] = [
   { path: "/marketing/conteudos", component: BibliotecaConteudos, roles: ["admin", "gestor"] },
   { path: "/whatsapp/templates", component: BibliotecaConteudos, roles: ["admin", "gestor"] },
   { path: "/marketing/agendamentos", component: AgendamentoPosts, roles: ["admin", "gestor"] },
+  { path: "/marketing/redes-sociais", component: RedesSociais, roles: ["admin", "gestor"] },
   { path: "/marketing/metricas", component: MarketingMetricas, roles: ["admin", "gestor"] },
   { path: "/marketing/campanhas-whatsapp", component: CampanhasWhatsApp, roles: ["admin", "gestor"] },
   { path: "/whatsapp/campanhas", component: CampanhasWhatsApp, roles: ["admin", "gestor"] },
