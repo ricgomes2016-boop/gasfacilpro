@@ -205,6 +205,9 @@ export default function RedesSociais() {
               const plat = plataformas.find((p) => p.value === acc.plataforma);
               const Icon = plat?.icon || Share2;
               const isOAuth = acc.conectado_via === "oauth";
+              const substituida = !isOAuth && accounts.some(
+                (o: any) => o.conectado_via === "oauth" && o.plataforma === acc.plataforma,
+              );
               return (
                 <Card key={acc.id} className="border-border/50">
                   <CardContent className="p-4 flex items-center gap-3">
