@@ -24,6 +24,7 @@ import { CriarPaginaWizard } from "@/components/marketing/CriarPaginaWizard";
 import { MetaAppStatusBanner } from "@/components/marketing/MetaAppStatusBanner";
 import { ConectarRedesModal } from "@/components/marketing/ConectarRedesModal";
 import { StatusConexaoRedes } from "@/components/marketing/StatusConexaoRedes";
+import { DiagnosticoMetaOAuth } from "@/components/marketing/DiagnosticoMetaOAuth";
 
 const plataformas = [
   { value: "instagram", label: "Instagram", icon: Instagram, color: "text-primary" },
