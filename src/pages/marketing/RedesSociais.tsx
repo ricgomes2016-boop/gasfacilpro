@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { CriarPaginaWizard } from "@/components/marketing/CriarPaginaWizard";
 import { MetaAppStatusBanner } from "@/components/marketing/MetaAppStatusBanner";
 import { ConectarRedesModal } from "@/components/marketing/ConectarRedesModal";
+import { StatusConexaoRedes } from "@/components/marketing/StatusConexaoRedes";
 
 const plataformas = [
   { value: "instagram", label: "Instagram", icon: Instagram, color: "text-primary" },
@@ -132,6 +133,13 @@ export default function RedesSociais() {
       <Header title="Redes Sociais" subtitle="Conecte e gerencie suas contas por unidade" />
       <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
         <MetaAppStatusBanner />
+
+        <StatusConexaoRedes
+          empresaId={empresaId}
+          contas={accounts as any}
+          onConectar={() => setConectarModalOpen(true)}
+        />
+
 
         {/* Hero — botão único de conexão */}
         <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/0">
