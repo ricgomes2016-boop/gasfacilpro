@@ -248,6 +248,11 @@ export default function RedesSociais() {
                         <Badge variant={acc.ativo ? "default" : "outline"} className="text-[10px]">
                           {acc.ativo ? "Ativa" : "Inativa"}
                         </Badge>
+                        {substituida && (
+                          <Badge className="gap-1 bg-warning/15 text-warning border border-warning/30 text-[10px]">
+                            <AlertTriangle className="h-3 w-3" /> Substituída pela conexão oficial — pode remover
+                          </Badge>
+                        )}
                         {isOAuth && statusMap[acc.id] && (
                           <>
                             {statusMap[acc.id].status === "connected" && (
