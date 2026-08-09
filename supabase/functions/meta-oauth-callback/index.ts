@@ -47,8 +47,8 @@ ${errorCode ? `<div class="code">${escHtml(errorCode)}</div>` : ""}
       errorParam === "access_denied" || errorReason === "user_denied" ||
       errorDescription?.toLowerCase().includes("permission");
     const msg = isPermissionError
-      ? "Seu Facebook ainda não está autorizado como testador no nosso app Meta. Envie seu Facebook ID para o suporte do GásFácilPro adicionar você."
-      : `Erro retornado pela Meta: ${errorDescription || errorParam}`;
+      ? "O app Meta do GásFácilPro ainda está em modo desenvolvimento. Para conectar agora: 1) descubra seu Facebook ID em facebook.com/settings (Informações pessoais); 2) envie esse ID ao suporte do GásFácilPro para ser adicionado como Testador; 3) aceite o convite em facebook.com/settings → Desenvolvedor; 4) volte aqui e clique em Conectar novamente."
+      : `Erro retornado pela Meta: ${errorDescription || errorParam}. Confira se você é administrador da Página do Facebook e se o Instagram está como conta Profissional vinculada a ela.`;
     return new Response(renderHtml("Conexão cancelada", msg, false, errorParam), {
       headers: { "Content-Type": "text/html; charset=utf-8" },
     });
