@@ -100,13 +100,30 @@ export function ConectarRedesModal({ open, onOpenChange, unidadeId, contasConect
         return;
       }
 
+      const usarRedirect = isMobile;
+
       const { data, error } = await supabase.functions.invoke("meta-oauth-start", {
-        body: { unidade_id: unidadeId, return_url: window.location.href },
+        body: {
+          unidade_id: unidadeId,
+          return_url: window.location.origin + window.location.pathname,
+          mode: usarRedirect ? "redirect" : "popup",
+        },
       });
 
       if (error || !data?.url) throw new Error(error?.message || "Não foi possível iniciar OAuth");
 
+      if (usarRedirect) {
+        window.location.href = data.url;
+        return;
+      }
+
       const popup = window.open(data.url, "meta-oauth", "width=600,height=750");
+
+      if (!popup) {
+        // Pop-up bloqueado: navega na própria aba
+        window.location.href = data.url;
+        return;
+      }
 
       const onMessage = (ev: MessageEvent) => {
         if (ev.data?.type === "meta-oauth") {
