@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { CriarPaginaWizard } from "@/components/marketing/CriarPaginaWizard";
 import { MetaAppStatusBanner } from "@/components/marketing/MetaAppStatusBanner";
 import { ConectarRedesModal } from "@/components/marketing/ConectarRedesModal";
+import { StatusConexaoRedes } from "@/components/marketing/StatusConexaoRedes";
 
 const plataformas = [
   { value: "instagram", label: "Instagram", icon: Instagram, color: "text-primary" },
