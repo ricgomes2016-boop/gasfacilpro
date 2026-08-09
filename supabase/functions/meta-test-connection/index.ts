@@ -49,13 +49,25 @@ Deno.serve(async (req) => {
         .select("empresa_id")
         .eq("id", auth.userId!)
         .maybeSingle();
-      if (profile?.empresa_id !== empresaId) {
+
+      let allowed = profile?.empresa_id === empresaId;
+
+      if (!allowed) {
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", auth.userId!);
+        allowed = (roles ?? []).some((r: any) => r.role === "admin" || r.role === "gestor");
+      }
+
+      if (!allowed) {
         return new Response(JSON.stringify({ error: "Forbidden" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
     }
+
 
     let query = supabase
       .from("social_accounts")
