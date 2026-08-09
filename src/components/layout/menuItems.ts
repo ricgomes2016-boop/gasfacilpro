@@ -89,6 +89,7 @@ import {
   Download,
   MessageCircle,
   Send,
+  Share2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -196,6 +197,7 @@ export const menuItems: MenuItem[] = [
     submenu: [
       { icon: LayoutDashboard, label: "Dashboard", path: "/marketing" },
       { icon: Sparkles, label: "Criar Conteúdo", path: "/clientes/marketing" },
+      { icon: Share2, label: "Redes Sociais", path: "/marketing/redes-sociais" },
       { icon: FileText, label: "Biblioteca", path: "/marketing/conteudos" },
       { icon: CalendarDays, label: "Agendamentos", path: "/marketing/agendamentos" },
       { icon: BarChart3, label: "Métricas & Insights", path: "/marketing/metricas" },

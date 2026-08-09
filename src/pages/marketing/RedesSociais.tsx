@@ -205,6 +205,9 @@ export default function RedesSociais() {
               const plat = plataformas.find((p) => p.value === acc.plataforma);
               const Icon = plat?.icon || Share2;
               const isOAuth = acc.conectado_via === "oauth";
+              const substituida = !isOAuth && accounts.some(
+                (o: any) => o.conectado_via === "oauth" && o.plataforma === acc.plataforma,
+              );
               return (
                 <Card key={acc.id} className="border-border/50">
                   <CardContent className="p-4 flex items-center gap-3">
@@ -245,6 +248,11 @@ export default function RedesSociais() {
                         <Badge variant={acc.ativo ? "default" : "outline"} className="text-[10px]">
                           {acc.ativo ? "Ativa" : "Inativa"}
                         </Badge>
+                        {substituida && (
+                          <Badge className="gap-1 bg-warning/15 text-warning border border-warning/30 text-[10px]">
+                            <AlertTriangle className="h-3 w-3" /> Substituída pela conexão oficial — pode remover
+                          </Badge>
+                        )}
                         {isOAuth && statusMap[acc.id] && (
                           <>
                             {statusMap[acc.id].status === "connected" && (
