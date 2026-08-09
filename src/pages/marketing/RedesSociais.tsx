@@ -164,6 +164,8 @@ export default function RedesSociais() {
       <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
         <MetaAppStatusBanner />
 
+        <DiagnosticoMetaOAuth />
+
         <StatusConexaoRedes
           empresaId={empresaId}
           contas={accounts as any}
