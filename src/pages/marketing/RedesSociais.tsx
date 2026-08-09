@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +24,7 @@ import { CriarPaginaWizard } from "@/components/marketing/CriarPaginaWizard";
 import { MetaAppStatusBanner } from "@/components/marketing/MetaAppStatusBanner";
 import { ConectarRedesModal } from "@/components/marketing/ConectarRedesModal";
 import { StatusConexaoRedes } from "@/components/marketing/StatusConexaoRedes";
+import { DiagnosticoMetaOAuth } from "@/components/marketing/DiagnosticoMetaOAuth";
 
 const plataformas = [
   { value: "instagram", label: "Instagram", icon: Instagram, color: "text-primary" },
@@ -43,6 +44,35 @@ export default function RedesSociais() {
   const [form, setForm] = useState({ plataforma: "instagram", nome_conta: "", username: "" });
   const [statusMap, setStatusMap] = useState<Record<string, { status: string; message: string; expires_in_days: number | null }>>({});
   const [testingId, setTestingId] = useState<string | "all" | null>(null);
+
+  // Retorno do OAuth da Meta (fluxo por redirecionamento no celular)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resultado = params.get("meta_oauth");
+    if (!resultado) return;
+
+    const motivo = params.get("motivo");
+    const msg = params.get("msg");
+
+    if (resultado === "ok") {
+      toast({ title: "Conta conectada com sucesso! 🎉", description: msg || undefined });
+      queryClient.invalidateQueries({ queryKey: ["social-accounts"] });
+    } else {
+      toast({
+        title: "Não foi possível conectar",
+        description: msg || motivo || "A Meta recusou a conexão.",
+        variant: "destructive",
+      });
+    }
+
+    params.delete("meta_oauth");
+    params.delete("motivo");
+    params.delete("msg");
+    const query = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (query ? `?${query}` : ""));
+  }, [queryClient]);
+
+
 
   const testConnection = async (accountId?: string) => {
     if (!empresaId) return;
@@ -133,6 +163,8 @@ export default function RedesSociais() {
       <Header title="Redes Sociais" subtitle="Conecte e gerencie suas contas por unidade" />
       <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
         <MetaAppStatusBanner />
+
+        <DiagnosticoMetaOAuth />
 
         <StatusConexaoRedes
           empresaId={empresaId}

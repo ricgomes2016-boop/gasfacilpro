@@ -15,17 +15,8 @@ function escHtml(s: string | null | undefined): string {
     .replace(/'/g, "&#39;");
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-
-  const url = new URL(req.url);
-  const code = url.searchParams.get("code");
-  const stateRaw = url.searchParams.get("state");
-  const errorParam = url.searchParams.get("error");
-  const errorReason = url.searchParams.get("error_reason");
-  const errorDescription = url.searchParams.get("error_description");
-
-  const renderHtml = (title: string, message: string, ok: boolean, errorCode?: string) => `<!doctype html>
+function renderHtml(title: string, message: string, ok: boolean, errorCode?: string) {
+  return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><title>${escHtml(title)}</title>
 <style>
 body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#f1f5f9;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;text-align:center}
@@ -41,6 +32,71 @@ ${errorCode ? `<div class="code">${escHtml(errorCode)}</div>` : ""}
 </div>
 <script>setTimeout(()=>{try{window.opener&&window.opener.postMessage({type:'meta-oauth',ok:${ok},error:${JSON.stringify(errorCode || null)}},'*');}catch(e){}}, 100);</script>
 </body></html>`;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const url = new URL(req.url);
+  const code = url.searchParams.get("code");
+  const stateRaw = url.searchParams.get("state");
+  const errorParam = url.searchParams.get("error");
+  const errorReason = url.searchParams.get("error_reason");
+  const errorDescription = url.searchParams.get("error_description");
+
+  // Decodifica o state o quanto antes para saber o modo de retorno
+  let mode: "popup" | "redirect" = "popup";
+  let nonce: string | null = null;
+  let ts: number | null = null;
+  try {
+    if (stateRaw) {
+      const parsed = JSON.parse(atob(stateRaw));
+      nonce = parsed.n ?? null;
+      ts = parsed.ts ?? null;
+      if (parsed.m === "redirect") mode = "redirect";
+    }
+  } catch (_) {
+    // state ilegível — segue como popup
+  }
+
+  console.log("meta-oauth-callback entrada", JSON.stringify({
+    mode,
+    has_code: !!code,
+    has_state: !!stateRaw,
+    error: errorParam,
+    error_reason: errorReason,
+  }));
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+  // Carrega o state para obter return_url / empresa / unidade
+  let stateRow: any = null;
+  if (nonce) {
+    const { data } = await admin.from("oauth_states").select("*").eq("nonce", nonce).maybeSingle();
+    stateRow = data ?? null;
+  }
+
+  const finish = (ok: boolean, title: string, message: string, motivo?: string) => {
+    if (ok) console.log("meta-oauth-callback sucesso", JSON.stringify({ motivo, mode }));
+    else console.error("meta-oauth-callback falha", JSON.stringify({ motivo, message, mode }));
+
+    const returnUrl: string | null = stateRow?.return_url || null;
+    if (mode === "redirect" && returnUrl) {
+      try {
+        const dest = new URL(returnUrl);
+        dest.searchParams.set("meta_oauth", ok ? "ok" : "erro");
+        if (motivo) dest.searchParams.set("motivo", motivo);
+        dest.searchParams.set("msg", message.slice(0, 300));
+        return new Response(null, { status: 302, headers: { Location: dest.toString() } });
+      } catch (_) {
+        // return_url inválida — cai no HTML
+      }
+    }
+    return new Response(renderHtml(title, message, ok, motivo), {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  };
 
   if (errorParam) {
     const isPermissionError =
@@ -49,43 +105,24 @@ ${errorCode ? `<div class="code">${escHtml(errorCode)}</div>` : ""}
     const msg = isPermissionError
       ? "O app Meta do GásFácilPro ainda está em modo desenvolvimento. Para conectar agora: 1) descubra seu Facebook ID em facebook.com/settings (Informações pessoais); 2) envie esse ID ao suporte do GásFácilPro para ser adicionado como Testador; 3) aceite o convite em facebook.com/settings → Desenvolvedor; 4) volte aqui e clique em Conectar novamente."
       : `Erro retornado pela Meta: ${errorDescription || errorParam}. Confira se você é administrador da Página do Facebook e se o Instagram está como conta Profissional vinculada a ela.`;
-    return new Response(renderHtml("Conexão cancelada", msg, false, errorParam), {
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-    });
+    return finish(false, "Conexão cancelada", msg, errorParam);
   }
 
   if (!code || !stateRaw) {
-    return new Response(renderHtml("Parâmetros inválidos", "Faltam code/state.", false), {
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-    });
+    return finish(false, "Parâmetros inválidos", "Faltam code/state no retorno da Meta.", "sem_code_state");
   }
 
   try {
-    const state = JSON.parse(atob(stateRaw));
-    const nonce = state.n;
-    const ts = state.ts;
-
     if (!nonce || !ts) throw new Error("State malformado");
     if (Date.now() - ts > 15 * 60 * 1000) throw new Error("State expirado (>15 min)");
 
     const META_APP_ID = Deno.env.get("META_APP_ID")!;
     const META_APP_SECRET = Deno.env.get("META_APP_SECRET")!;
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const redirectUri = `${supabaseUrl}/functions/v1/meta-oauth-callback`;
 
-    const supabase = createClient(
-      supabaseUrl,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const supabase = admin;
 
-    // Validar nonce: existe, não usado, não expirado
-    const { data: stateRow, error: stateErr } = await supabase
-      .from("oauth_states")
-      .select("*")
-      .eq("nonce", nonce)
-      .maybeSingle();
-
-    if (stateErr || !stateRow) throw new Error("State inválido ou desconhecido");
+    if (!stateRow) throw new Error("State inválido ou desconhecido");
     if (stateRow.used_at) throw new Error("State já utilizado (replay bloqueado)");
     if (new Date(stateRow.expires_at).getTime() < Date.now())
       throw new Error("State expirado");
@@ -189,19 +226,22 @@ ${errorCode ? `<div class="code">${escHtml(errorCode)}</div>` : ""}
       }
     }
 
-    return new Response(
-      renderHtml(
-        "Conectado com sucesso!",
-        `${savedCount} conta(s) Meta vinculada(s). Você já pode fechar esta janela e voltar para o sistema.`,
-        true,
-      ),
-      { headers: { "Content-Type": "text/html; charset=utf-8" } },
+    if (savedCount === 0) {
+      return finish(
+        false,
+        "Nenhuma página encontrada",
+        "O login funcionou, mas nenhuma Página do Facebook foi liberada. Refaça a conexão e marque a Página da empresa na tela de permissões da Meta.",
+        "sem_paginas",
+      );
+    }
+
+    return finish(
+      true,
+      "Conectado com sucesso!",
+      `${savedCount} conta(s) Meta vinculada(s).`,
     );
   } catch (e) {
     console.error("meta-oauth-callback error:", e);
-    return new Response(
-      renderHtml("Falha na conexão", String((e as Error).message ?? e), false),
-      { headers: { "Content-Type": "text/html; charset=utf-8" } },
-    );
+    return finish(false, "Falha na conexão", String((e as Error).message ?? e), "erro_interno");
   }
 });

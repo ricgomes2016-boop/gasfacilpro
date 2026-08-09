@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Facebook, Instagram } from "lucide-react";
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Props {
   unidadeId?: string | null;
@@ -11,6 +12,7 @@ interface Props {
 
 export function ConectarRedeSocialButton({ unidadeId, onConnected }: Props) {
   const [loading, setLoading] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleConnect = async () => {
     setLoading(true);
@@ -22,14 +24,29 @@ export function ConectarRedeSocialButton({ unidadeId, onConnected }: Props) {
       }
 
       const { data, error } = await supabase.functions.invoke("meta-oauth-start", {
-        body: { unidade_id: unidadeId, return_url: window.location.href },
+        body: {
+          unidade_id: unidadeId,
+          return_url: window.location.origin + window.location.pathname,
+          mode: isMobile ? "redirect" : "popup",
+        },
       });
 
       if (error || !data?.url) {
         throw new Error(error?.message || "Não foi possível iniciar OAuth");
       }
 
+      if (isMobile) {
+        window.location.href = data.url;
+        return;
+      }
+
       const popup = window.open(data.url, "meta-oauth", "width=600,height=750");
+
+      if (!popup) {
+        window.location.href = data.url;
+        return;
+      }
+
 
       const onMessage = (ev: MessageEvent) => {
         if (ev.data?.type === "meta-oauth") {

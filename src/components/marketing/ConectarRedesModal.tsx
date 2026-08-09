@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Plataforma = {
   id: string;
@@ -78,6 +79,8 @@ interface Props {
 
 export function ConectarRedesModal({ open, onOpenChange, unidadeId, contasConectadas, onConnected }: Props) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+
 
   const isConectada = (id: string) =>
     contasConectadas.some((c) => c.plataforma === id && c.conectado_via === "oauth");
@@ -100,13 +103,30 @@ export function ConectarRedesModal({ open, onOpenChange, unidadeId, contasConect
         return;
       }
 
+      const usarRedirect = isMobile;
+
       const { data, error } = await supabase.functions.invoke("meta-oauth-start", {
-        body: { unidade_id: unidadeId, return_url: window.location.href },
+        body: {
+          unidade_id: unidadeId,
+          return_url: window.location.origin + window.location.pathname,
+          mode: usarRedirect ? "redirect" : "popup",
+        },
       });
 
       if (error || !data?.url) throw new Error(error?.message || "Não foi possível iniciar OAuth");
 
+      if (usarRedirect) {
+        window.location.href = data.url;
+        return;
+      }
+
       const popup = window.open(data.url, "meta-oauth", "width=600,height=750");
+
+      if (!popup) {
+        // Pop-up bloqueado: navega na própria aba
+        window.location.href = data.url;
+        return;
+      }
 
       const onMessage = (ev: MessageEvent) => {
         if (ev.data?.type === "meta-oauth") {
