@@ -200,6 +200,7 @@ export const menuItems: MenuItem[] = [
       { icon: Share2, label: "Redes Sociais", path: "/marketing/redes-sociais" },
       { icon: FileText, label: "Biblioteca", path: "/marketing/conteudos" },
       { icon: CalendarDays, label: "Agendamentos", path: "/marketing/agendamentos" },
+      { icon: Share2, label: "Redes Sociais", path: "/marketing/redes-sociais" },
       { icon: BarChart3, label: "Métricas & Insights", path: "/marketing/metricas" },
       { icon: MessageCircle, label: "Campanhas WhatsApp", path: "/marketing/campanhas-whatsapp" },
       { icon: Megaphone, label: "Campanhas", path: "/marketing/campanhas" },

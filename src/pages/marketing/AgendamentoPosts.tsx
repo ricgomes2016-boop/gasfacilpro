@@ -98,14 +98,17 @@ export default function AgendamentoPosts() {
     queryKey: ["mkt-social-accounts", empresaId],
     queryFn: async () => {
       const { data } = await supabase
-        .from("social_accounts").select("id, plataforma, conectado_via, ativo")
+        .from("social_accounts").select("id, plataforma, conectado_via, ativo, unidade_id, nome_conta")
         .eq("empresa_id", empresaId!).eq("ativo", true);
       return data || [];
     },
     enabled: !!empresaId,
   });
 
-  const contaPlataforma = socialAccounts.find((s: any) => s.plataforma === form.plataforma);
+  const contaPlataforma = socialAccounts.find(
+    (s: any) => s.plataforma === form.plataforma && unidadeAtual?.id && s.unidade_id === unidadeAtual.id,
+  ) || socialAccounts.find((s: any) => s.plataforma === form.plataforma && !s.unidade_id)
+    || socialAccounts.find((s: any) => s.plataforma === form.plataforma);
   const isOAuthAccount = contaPlataforma?.conectado_via === "oauth";
 
   const addMut = useMutation({
@@ -116,6 +119,7 @@ export default function AgendamentoPosts() {
         plataforma: form.plataforma, texto: form.texto, data_agendamento: dataHora, status: "agendado",
       };
       if (form.midia_url) payload.midia_url = form.midia_url;
+      if (isOAuthAccount && contaPlataforma?.id) payload.social_account_id = contaPlataforma.id;
       const { error } = await supabase.from("marketing_agendamentos").insert(payload);
       if (error) throw error;
     },

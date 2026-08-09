@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
       const { data: profile } = await supabase
         .from("profiles")
         .select("empresa_id")
-        .eq("id", auth.userId!)
+        .eq("user_id", auth.userId!)
         .maybeSingle();
 
       let allowed = profile?.empresa_id === empresaId;
