@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const unidadeId = body.unidade_id ?? null;
     const returnUrl = body.return_url ?? "";
+    const mode = body.mode === "redirect" ? "redirect" : "popup";
 
     const META_APP_ID = Deno.env.get("META_APP_ID");
     if (!META_APP_ID) {
@@ -82,8 +83,8 @@ Deno.serve(async (req) => {
 
     const redirectUri = `${supabaseUrl}/functions/v1/meta-oauth-callback`;
 
-    // State agora carrega só o nonce (anti-replay) + ts
-    const statePayload = { n: nonce, ts: Date.now() };
+    // State carrega nonce (anti-replay) + ts + modo de retorno
+    const statePayload = { n: nonce, ts: Date.now(), m: mode };
     const state = btoa(JSON.stringify(statePayload));
 
     const authUrl = new URL("https://www.facebook.com/v21.0/dialog/oauth");
@@ -93,9 +94,18 @@ Deno.serve(async (req) => {
     authUrl.searchParams.set("state", state);
     authUrl.searchParams.set("response_type", "code");
 
-    return new Response(JSON.stringify({ url: authUrl.toString() }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.log("meta-oauth-start", JSON.stringify({
+      user_id: userId,
+      empresa_id: profile.empresa_id,
+      mode,
+      redirect_uri: redirectUri,
+      return_url: returnUrl,
+    }));
+
+    return new Response(
+      JSON.stringify({ url: authUrl.toString(), redirect_uri: redirectUri, mode }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     console.error("meta-oauth-start error:", e);
     return new Response(JSON.stringify({ error: String(e) }), {
