@@ -78,6 +78,8 @@ interface Props {
 
 export function ConectarRedesModal({ open, onOpenChange, unidadeId, contasConectadas, onConnected }: Props) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+
 
   const isConectada = (id: string) =>
     contasConectadas.some((c) => c.plataforma === id && c.conectado_via === "oauth");
