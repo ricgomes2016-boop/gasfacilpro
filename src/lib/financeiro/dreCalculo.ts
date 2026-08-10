@@ -5,6 +5,7 @@ import {
   classificarDespesaDRE,
   criarMapaCategoriasFiscais,
 } from "./dreFinanceiro";
+import { isDespesaOperacionalResultado } from "./despesasResultado";
 
 /**
  * Regras da DRE (regime de competência) — fonte única de verdade.
@@ -382,6 +383,7 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
 
   brutos.forEach((d) => {
     if (!d.valor) return;
+    if (!isDespesaOperacionalResultado({ categoria: d.categoria, descricao: d.descricao, referenciaTipo: d.referenciaTipo })) return;
     if (isTransferenciaInterna(d.categoria, d.descricao)) return;
     if (isCompraMercadoria(d.categoria, d.descricao)) return;
     // saída bancária que apenas quita título já reconhecido

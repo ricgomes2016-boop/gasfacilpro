@@ -57,6 +57,7 @@ import { ptBR } from "date-fns/locale";
 import ResultadoOperacional from "./ResultadoOperacional";
 import DRE from "./DRE";
 import PontoEquilibrio from "./PontoEquilibrio";
+import { isDespesaOperacionalResultado } from "@/lib/financeiro/despesasResultado";
 
 interface OverviewData {
   receitaMesAtual: number;
@@ -91,6 +92,7 @@ type ContaPagarRow = {
   valor: number;
   categoria: string | null;
   descricao: string;
+  compra_id?: string | null;
 };
 
 type CaixaRow = {
@@ -176,7 +178,7 @@ export default function AnaliseResultados() {
     const pagasPorPagamento = applyUnidade(
       supabase
         .from("contas_pagar")
-        .select("id, valor, categoria, descricao")
+        .select("id, valor, categoria, descricao, compra_id")
         .eq("status", "pago")
         .gte("data_pagamento", period.startDate)
         .lte("data_pagamento", period.endDate),
@@ -185,7 +187,7 @@ export default function AnaliseResultados() {
     const pagasSemDataPagamento = applyUnidade(
       supabase
         .from("contas_pagar")
-        .select("id, valor, categoria, descricao")
+        .select("id, valor, categoria, descricao, compra_id")
         .eq("status", "pago")
         .is("data_pagamento", null)
         .gte("vencimento", period.startDate)
@@ -200,7 +202,9 @@ export default function AnaliseResultados() {
 
     const contas = new Map<string, ContaPagarRow>();
     [...(porPagamento || []), ...(semPagamento || [])].forEach((conta) => contas.set(conta.id, conta as ContaPagarRow));
-    return Array.from(contas.values());
+    return Array.from(contas.values()).filter((conta) =>
+      isDespesaOperacionalResultado({ categoria: conta.categoria, descricao: conta.descricao, compraId: conta.compra_id })
+    );
   };
 
   const fetchDespesasAvulsasCaixa = async (period: Period) => {
@@ -217,7 +221,9 @@ export default function AnaliseResultados() {
     );
     const { data, error: queryError } = await query;
     if (queryError) throw queryError;
-    return ((data || []) as CaixaRow[]).filter((despesa) => !isTransferenciaInterna(despesa.categoria, despesa.descricao));
+    return ((data || []) as CaixaRow[]).filter((despesa) =>
+      isDespesaOperacionalResultado({ categoria: despesa.categoria, descricao: despesa.descricao })
+    );
   };
 
   const buildPeriodData = async (period: Period) => {

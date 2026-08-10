@@ -14,6 +14,7 @@ import { CustosDetalhamentoDialog } from "@/components/ro/CustosDetalhamentoDial
 import { exportROtoPdf, handlePrint } from "@/services/reportPdfService";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { isDespesaOperacionalResultado } from "@/lib/financeiro/despesasResultado";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -134,7 +135,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
         })(),
         (() => {
           let q = supabase.from("contas_pagar")
-            .select("valor, categoria, descricao, status")
+            .select("valor, categoria, descricao, status, compra_id")
             .eq("status", "pago")
             .gte("vencimento", inicioDate).lte("vencimento", fimDate);
           if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
@@ -157,8 +158,12 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
       ]);
 
       const pedidos = pedidosRes.data || [];
-      const contasPagar = contasPagarRes.data || [];
-      const despesasCaixa = (despesasCaixaRes.data || []).filter((d: any) => !isTransferenciaInterna(d.categoria, d.descricao));
+      const contasPagar = (contasPagarRes.data || []).filter((d: any) =>
+        isDespesaOperacionalResultado({ categoria: d.categoria, descricao: d.descricao, compraId: d.compra_id })
+      );
+      const despesasCaixa = (despesasCaixaRes.data || []).filter((d: any) =>
+        isDespesaOperacionalResultado({ categoria: d.categoria, descricao: d.descricao, compraId: d.compra_id })
+      );
 
       const cpPorCategoria: Record<string, number> = {};
       contasPagar.forEach(cp => {

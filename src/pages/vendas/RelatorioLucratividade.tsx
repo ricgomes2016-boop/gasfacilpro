@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { cn } from "@/lib/utils";
+import { isDespesaOperacionalResultado } from "@/lib/financeiro/despesasResultado";
 
 type Granularidade = "diario" | "mensal";
 
@@ -98,13 +99,14 @@ export default function RelatorioLucratividade() {
       // Contas a pagar pagas
       const cp = await supabase
         .from("contas_pagar")
-        .select("valor, data_pagamento, vencimento, status")
+        .select("valor, data_pagamento, vencimento, status, categoria, descricao, compra_id")
         .eq("unidade_id", unidadeId!)
         .eq("status", "paga")
         .gte("data_pagamento", inicio)
         .lte("data_pagamento", fim);
       let totalCP = 0;
       (cp.data ?? []).forEach((r: any) => {
+        if (!isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao, compraId: r.compra_id })) return;
         const v = Number(r.valor) || 0;
         const d = (r.data_pagamento || r.vencimento || "").slice(0, 10);
         totalCP += v;
@@ -114,14 +116,14 @@ export default function RelatorioLucratividade() {
       // Movimentações de caixa - saídas (excluir as vinculadas a compra_id para evitar dupla contagem com contas_pagar)
       const mc = await supabase
         .from("movimentacoes_caixa")
-        .select("valor, created_at, tipo, compra_id, categoria")
+        .select("valor, created_at, tipo, compra_id, categoria, descricao")
         .eq("unidade_id", unidadeId!)
         .eq("tipo", "saida")
         .gte("created_at", inicioISO)
         .lte("created_at", fimISO);
       let totalMC = 0;
       (mc.data ?? []).forEach((r: any) => {
-        if (r.compra_id) return; // já contabilizado em contas_pagar
+        if (!isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao, compraId: r.compra_id })) return;
         const v = Number(r.valor) || 0;
         const d = (r.created_at || "").slice(0, 10);
         totalMC += v;
@@ -131,12 +133,13 @@ export default function RelatorioLucratividade() {
       // Despesas contábeis
       const dc = await supabase
         .from("despesas_contabeis")
-        .select("valor, data_despesa")
+        .select("valor, data_despesa, categoria, descricao")
         .eq("unidade_id", unidadeId!)
         .gte("data_despesa", inicio)
         .lte("data_despesa", fim);
       let totalDC = 0;
       (dc.data ?? []).forEach((r: any) => {
+        if (!isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao })) return;
         const v = Number(r.valor) || 0;
         const d = (r.data_despesa || "").slice(0, 10);
         totalDC += v;
@@ -319,12 +322,14 @@ export default function RelatorioLucratividade() {
       if (incluirCP) {
         const { data } = await supabase
           .from("contas_pagar")
-          .select("valor, data_pagamento, descricao, fornecedor")
+          .select("valor, data_pagamento, descricao, fornecedor, categoria, compra_id")
           .eq("unidade_id", unidadeId!)
           .eq("status", "paga")
           .gte("data_pagamento", ini)
           .lte("data_pagamento", fim2);
-        (data ?? []).forEach((r: any) =>
+        (data ?? []).filter((r: any) =>
+          isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao || r.fornecedor, compraId: r.compra_id })
+        ).forEach((r: any) =>
           items.push({
             fonte: "Contas a pagar",
             data: (r.data_pagamento || "").slice(0, 10),
@@ -342,7 +347,7 @@ export default function RelatorioLucratividade() {
           .gte("created_at", `${ini}T00:00:00`)
           .lte("created_at", `${fim2}T23:59:59`);
         (data ?? []).forEach((r: any) => {
-          if (r.compra_id) return;
+          if (!isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao, compraId: r.compra_id })) return;
           items.push({
             fonte: "Sangria/Caixa",
             data: (r.created_at || "").slice(0, 10),
@@ -358,7 +363,9 @@ export default function RelatorioLucratividade() {
           .eq("unidade_id", unidadeId!)
           .gte("data_despesa", ini)
           .lte("data_despesa", fim2);
-        (data ?? []).forEach((r: any) =>
+        (data ?? []).filter((r: any) =>
+          isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao })
+        ).forEach((r: any) =>
           items.push({
             fonte: "Contábil",
             data: (r.data_despesa || "").slice(0, 10),

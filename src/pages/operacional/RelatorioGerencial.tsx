@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDate } from "@/lib/utils";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { isDespesaOperacionalResultado } from "@/lib/financeiro/despesasResultado";
 import {
   Area,
   AreaChart,
@@ -60,6 +61,8 @@ type DespesaRow = {
   id: string;
   valor: number | string | null;
   categoria: string | null;
+  descricao?: string | null;
+  compra_id?: string | null;
   status: string | null;
   vencimento: string | null;
 };
@@ -207,7 +210,7 @@ export default function RelatorioGerencial() {
       // Consolidar 3 fontes de despesa para refletir o total real do período.
       let cpQ = supabase
         .from("contas_pagar")
-        .select("id, valor, categoria, status, vencimento, data_pagamento")
+        .select("id, valor, categoria, descricao, compra_id, status, vencimento, data_pagamento")
         .eq("status", "paga")
         .gte("data_pagamento", inicio)
         .lte("data_pagamento", fim);
@@ -215,7 +218,7 @@ export default function RelatorioGerencial() {
 
       let mcQ = supabase
         .from("movimentacoes_caixa")
-        .select("id, valor, categoria, tipo, compra_id, created_at")
+        .select("id, valor, categoria, descricao, tipo, compra_id, created_at")
         .eq("tipo", "saida")
         .gte("created_at", inicioISO)
         .lte("created_at", fimISO);
@@ -223,7 +226,7 @@ export default function RelatorioGerencial() {
 
       let dcQ = supabase
         .from("despesas_contabeis")
-        .select("id, valor, categoria, data_despesa")
+        .select("id, valor, categoria, descricao, data_despesa")
         .gte("data_despesa", inicio)
         .lte("data_despesa", fim);
       if (unidadeAtual?.id) dcQ = dcQ.eq("unidade_id", unidadeAtual.id);
@@ -243,26 +246,35 @@ export default function RelatorioGerencial() {
       ]);
 
       const despesasMerged: DespesaRow[] = [
-        ...((cpRes.data || []) as any[]).map((r) => ({
+        ...((cpRes.data || []) as any[])
+          .filter((r) => isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao, compraId: r.compra_id }))
+          .map((r) => ({
           id: `cp-${r.id}`,
           valor: r.valor,
           categoria: r.categoria || "Sem categoria",
+          descricao: r.descricao,
+          compra_id: r.compra_id,
           status: "paga",
           vencimento: r.data_pagamento || r.vencimento,
         })),
         ...((mcRes.data || []) as any[])
-          .filter((r) => !r.compra_id) // evita dupla contagem com contas_pagar
+          .filter((r) => isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao, compraId: r.compra_id }))
           .map((r) => ({
             id: `mc-${r.id}`,
             valor: r.valor,
             categoria: r.categoria || "Caixa/Sangria",
+            descricao: r.descricao,
+            compra_id: r.compra_id,
             status: "paga",
             vencimento: (r.created_at || "").slice(0, 10),
           })),
-        ...((dcRes.data || []) as any[]).map((r) => ({
+        ...((dcRes.data || []) as any[])
+          .filter((r) => isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao }))
+          .map((r) => ({
           id: `dc-${r.id}`,
           valor: r.valor,
           categoria: r.categoria || "Contábil",
+          descricao: r.descricao,
           status: "paga",
           vencimento: r.data_despesa,
         })),
