@@ -30,6 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
+import { resolveCategoriaDespesaNome, useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 
 interface Despesa {
   id: string;
@@ -53,19 +54,6 @@ const categoriaColors: Record<string, string> = {
   "Alimentação": "bg-success/10 text-success",
   "Manutenção": "bg-info/10 text-info",
   "Outros": "bg-muted text-muted-foreground",
-};
-
-// Map edge function categories to form categories
-const mapCategoria = (cat: string): string => {
-  const map: Record<string, string> = {
-    "Frota": "Combustível",
-    "Utilidades": "Manutenção",
-    "Infraestrutura": "Manutenção",
-    "Fornecedores": "Outros",
-    "RH": "Outros",
-    "Compras": "Outros",
-  };
-  return map[cat] || cat;
 };
 
 const compressImage = (file: File, maxWidth = 1600, quality = 0.8): Promise<string> => {
@@ -98,32 +86,10 @@ export default function Despesas() {
   const [scanning, setScanning] = useState(false);
   const [dataSelecionada, setDataSelecionada] = useState<Date>(getBrasiliaDate());
   const { unidadeAtual } = useUnidade();
+  const { categorias: categoriasCadastradas } = useCategoriasDespesa();
   const [form, setForm] = useState({ descricao: "", categoria: "", valor: "", responsavel: "", observacoes: "" });
-  const [categoriasCadastradas, setCategoriasCadastradas] = useState<{ nome: string; tipo: string | null }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    (async () => {
-      let q = supabase.from("categorias_despesa").select("nome, tipo").eq("ativo", true);
-      if (unidadeAtual?.id) q = q.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
-      const { data } = await q;
-      // dedupe by nome
-      const seen = new Set<string>();
-      const unique = (data || []).filter((c: any) => {
-        const k = (c.nome || "").trim();
-        if (!k || seen.has(k.toLowerCase())) return false;
-        seen.add(k.toLowerCase());
-        return true;
-      }) as { nome: string; tipo: string | null }[];
-      unique.sort((a, b) => {
-        const ta = (a.tipo || "zzz"), tb = (b.tipo || "zzz");
-        if (ta !== tb) return ta.localeCompare(tb);
-        return a.nome.localeCompare(b.nome, "pt-BR");
-      });
-      setCategoriasCadastradas(unique);
-    })();
-  }, [unidadeAtual]);
 
   const fetchDespesas = async () => {
     setLoading(true);
@@ -160,7 +126,7 @@ export default function Despesas() {
         const d = result.despesas[0];
         setForm({
           descricao: d.descricao || "",
-          categoria: mapCategoria(d.categoria || ""),
+          categoria: resolveCategoriaDespesaNome(d.categoria, categoriasCadastradas),
           valor: d.valor ? String(d.valor) : "",
           responsavel: d.fornecedor || "",
           observacoes: d.observacoes || "",
@@ -185,6 +151,8 @@ export default function Despesas() {
 
   const handleSubmit = async () => {
     if (!form.descricao || !form.valor) { toast.error("Preencha os campos"); return; }
+    const categoriaCadastro = resolveCategoriaDespesaNome(form.categoria, categoriasCadastradas);
+    if (!categoriaCadastro) { toast.error("Selecione uma categoria de despesa cadastrada"); return; }
     const valor = parseFloat(form.valor);
     
     // Verificar se ultrapassa limite
@@ -192,7 +160,7 @@ export default function Despesas() {
     
     const { error } = await supabase.from("movimentacoes_caixa").insert({
       tipo: "saida", descricao: form.descricao,
-      valor, categoria: form.categoria || null,
+      valor, categoria: categoriaCadastro,
       responsavel: form.responsavel || null, status: statusDespesa,
       observacoes: form.observacoes || null,
       unidade_id: unidadeAtual?.id || null,
@@ -282,21 +250,13 @@ export default function Despesas() {
                     <Select value={form.categoria} onValueChange={v => setForm({ ...form, categoria: v })}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent className="max-h-72">
-                        {form.categoria && !categoriasCadastradas.some(c => c.nome === form.categoria) && (
-                          <SelectItem value={form.categoria}>{form.categoria}</SelectItem>
-                        )}
                         {categoriasCadastradas.map(c => (
                           <SelectItem key={c.nome} value={c.nome}>
                             {c.nome}{c.tipo ? ` · ${c.tipo}` : ""}
                           </SelectItem>
                         ))}
                         {categoriasCadastradas.length === 0 && (
-                          <>
-                            <SelectItem value="Combustível">Combustível</SelectItem>
-                            <SelectItem value="Alimentação">Alimentação</SelectItem>
-                            <SelectItem value="Manutenção">Manutenção</SelectItem>
-                            <SelectItem value="Outros">Outros</SelectItem>
-                          </>
+                          <SelectItem value="__sem_categoria__" disabled>Cadastre categorias em Configurações</SelectItem>
                         )}
                       </SelectContent>
                     </Select>

@@ -19,17 +19,6 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const CATEGORIAS_EXTRATO = [
-  "Alimentação",
-  "Combustível",
-  "Salário",
-  "Fornecedores",
-  "Impostos",
-  "Tarifas Bancárias",
-  "Transferência",
-  "Outros",
-] as const;
-
 export type ExtratoLinha = {
   id: string;
   data: string;
@@ -44,6 +33,7 @@ export type ExtratoLinha = {
 
 interface Props {
   linhas: ExtratoLinha[];
+  categorias: string[];
   onCategoriaChange?: (id: string, categoria: string | null) => void;
 }
 
@@ -53,7 +43,7 @@ type SortDir = "asc" | "desc";
 const brl = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
-export function PlanilhaExtratos({ linhas, onCategoriaChange }: Props) {
+export function PlanilhaExtratos({ linhas, categorias, onCategoriaChange }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("data");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [pageSize, setPageSize] = useState<number>(100);
@@ -230,7 +220,9 @@ export function PlanilhaExtratos({ linhas, onCategoriaChange }: Props) {
                       </SelectTrigger>
                       <SelectContent className="bg-[hsl(220,22%,11%)] border-[hsl(220,15%,20%)]">
                         <SelectItem value="__none__">—</SelectItem>
-                        {CATEGORIAS_EXTRATO.map((c) => (
+                        {categorias.length === 0 ? (
+                          <SelectItem value="__sem_categoria__" disabled>Cadastre categorias em Configurações</SelectItem>
+                        ) : categorias.map((c) => (
                           <SelectItem key={c} value={c}>
                             {c}
                           </SelectItem>

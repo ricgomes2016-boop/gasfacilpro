@@ -56,7 +56,11 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
         abastRes,
         caixaRes,
       ] = await Promise.all([
-        supabase.from("categorias_despesa").select("*").eq("ativo", true).eq("tipo", "fixo").order("ordem"),
+        (() => {
+          let q = supabase.from("categorias_despesa").select("*").eq("ativo", true).eq("tipo", "fixo").order("ordem");
+          if (unidadeAtual?.id) q = q.or(`unidade_id.is.null,unidade_id.eq.${unidadeAtual.id}`);
+          return q;
+        })(),
         supabase.from("produtos").select("id, nome, preco"),
         (() => {
           let q = supabase.from("pedidos")
@@ -124,20 +128,7 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
         if (categoriasCaixaUsadas.has(categoria) || valor <= 0) return;
         custosAuto.push({ id: `caixa-${categoria}`, descricao: `Despesa caixa: ${categoria}`, valor, auto: true });
       });
-
-      // If no categories configured, use sensible defaults
-      if (custosAuto.length === 0) {
-        setCustosFixos([
-          { id: "1", descricao: "Aluguel", valor: 3500, auto: false },
-          { id: "2", descricao: "Salários e encargos", valor: totalSalarios || 12000, auto: totalSalarios > 0 },
-          { id: "3", descricao: "Energia elétrica", valor: 800, auto: false },
-          { id: "4", descricao: "Telefone / Internet", valor: 250, auto: false },
-          { id: "5", descricao: "Contador", valor: 600, auto: false },
-          { id: "6", descricao: "Combustível", valor: totalCombustivel || 1200, auto: totalCombustivel > 0 },
-        ]);
-      } else {
-        setCustosFixos(custosAuto);
-      }
+      setCustosFixos(custosAuto);
 
       // Calculate avg price from real sales
       const produtoMap = new Map(produtos.map(p => [p.id, Number(p.preco) || 0]));

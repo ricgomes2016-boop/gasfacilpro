@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { resolveCategoriaDespesaNome, useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -24,13 +25,6 @@ export interface ContaPagar {
   boleto_linha_digitavel: string | null;
 }
 
-export interface CategoriaDesp {
-  id: string;
-  nome: string;
-  grupo: string;
-  ativo: boolean;
-}
-
 export interface FornecedorCadastro {
   id: string;
   razao_social: string;
@@ -41,19 +35,18 @@ export interface FornecedorCadastro {
 }
 
 export const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque"];
-export const CATEGORIAS_FALLBACK = ["Fornecedores", "Frota", "Infraestrutura", "Utilidades", "RH", "Compras", "Outros"];
 
 const EMPTY_FORM = { fornecedor: "", descricao: "", valor: "", vencimento: "", categoria: "", observacoes: "" };
 
 export function useContasPagar() {
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
+  const { categorias: categoriasDB, nomes: categoriasNomes } = useCategoriasDespesa();
   const hoje = getBrasiliaDateString();
 
   // ------- Core data -------
   const [contas, setContas] = useState<ContaPagar[]>([]);
   const [loading, setLoading] = useState(true);
-  const [categoriasDB, setCategoriasDB] = useState<CategoriaDesp[]>([]);
   const [fornecedoresCadastro, setFornecedoresCadastro] = useState<FornecedorCadastro[]>([]);
 
   // ------- UI / dialog state -------
@@ -131,11 +124,6 @@ export function useContasPagar() {
     setLoading(false);
   };
 
-  const fetchCategorias = async () => {
-    const { data } = await supabase.from("categorias_despesa").select("id,nome,grupo,ativo").eq("ativo", true).order("ordem");
-    if (data) setCategoriasDB(data as CategoriaDesp[]);
-  };
-
   const fetchContasBancarias = async () => {
     let q = supabase.from("contas_bancarias").select("id, nome, banco, saldo_atual").eq("ativo", true).order("nome");
     if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
@@ -156,14 +144,10 @@ export function useContasPagar() {
     setFornecedoresCadastro((data as FornecedorCadastro[]) || []);
   };
 
-  useEffect(() => { fetchContas(); fetchCategorias(); fetchContasBancarias(); fetchFornecedores(); }, [unidadeAtual]);
+  useEffect(() => { fetchContas(); fetchContasBancarias(); fetchFornecedores(); }, [unidadeAtual]);
 
 
   // ===================== COMPUTED (derived state) =====================
-
-  const categoriasNomes = categoriasDB.length > 0
-    ? categoriasDB.filter(c => c.ativo).map(c => c.nome)
-    : CATEGORIAS_FALLBACK;
 
   const fornecedoresUnicos = [...new Set([
     ...fornecedoresCadastro.map(f => f.razao_social),
@@ -249,10 +233,14 @@ export function useContasPagar() {
     if (!form.fornecedor || !form.descricao || !form.valor || !form.vencimento) {
       toast.error("Preencha os campos obrigatórios"); return;
     }
+    const categoriaCadastro = resolveCategoriaDespesaNome(form.categoria, categoriasDB);
+    if (!categoriaCadastro) {
+      toast.error("Selecione uma categoria de despesa cadastrada"); return;
+    }
     const payload = {
       fornecedor: form.fornecedor, descricao: form.descricao,
       valor: parseFloat(form.valor), vencimento: form.vencimento,
-      categoria: form.categoria || null, observacoes: form.observacoes || null,
+      categoria: categoriaCadastro, observacoes: form.observacoes || null,
       unidade_id: unidadeAtual?.id || null,
     };
     if (editId) {
@@ -476,7 +464,7 @@ export function useContasPagar() {
           fornecedor: data.fornecedor || "", descricao: data.descricao || "",
           valor: data.valor || 0, vencimento: data.vencimento || "",
           codigo_barras: data.codigo_barras || "", linha_digitavel: data.linha_digitavel || "",
-          categoria: data.categoria || "Outros", observacoes: data.observacoes || "",
+          categoria: resolveCategoriaDespesaNome(data.categoria, categoriasDB), observacoes: data.observacoes || "",
         });
         toast.success("Boleto lido com sucesso!");
       } catch { toast.error("Erro ao ler o boleto. Tente novamente."); }
@@ -488,6 +476,8 @@ export function useContasPagar() {
 
   const handleSaveBoleto = async () => {
     if (!boletoData?.fornecedor || !boletoData?.valor) { toast.error("Fornecedor e valor são obrigatórios"); return; }
+    const categoriaBoleto = resolveCategoriaDespesaNome(boletoData.categoria, categoriasDB);
+    if (!categoriaBoleto) { toast.error("Selecione uma categoria de despesa cadastrada para o boleto"); return; }
     let boletoUrl: string | null = null;
     if (boletoFile) {
       if (!empresa?.id) { toast.error("Empresa não identificada para salvar o boleto"); return; }
@@ -501,7 +491,7 @@ export function useContasPagar() {
     const { error } = await supabase.from("contas_pagar").insert({
       fornecedor: boletoData.fornecedor, descricao: boletoData.descricao,
       valor: boletoData.valor, vencimento: boletoData.vencimento || getBrasiliaDateString(),
-      categoria: boletoData.categoria || null, observacoes: boletoData.observacoes || null,
+      categoria: categoriaBoleto, observacoes: boletoData.observacoes || null,
       boleto_url: boletoUrl, boleto_codigo_barras: boletoData.codigo_barras || null,
       boleto_linha_digitavel: boletoData.linha_digitavel || null,
       unidade_id: unidadeAtual?.id || null,
@@ -543,7 +533,7 @@ export function useContasPagar() {
         setExtractedExpenses(despesas.map((d: any) => ({
           fornecedor: d.fornecedor || "", descricao: d.descricao || "",
           valor: d.valor || 0, vencimento: d.vencimento || "",
-          categoria: d.categoria || "Outros", observacoes: d.observacoes || null,
+          categoria: resolveCategoriaDespesaNome(d.categoria, categoriasDB), observacoes: d.observacoes || null,
         })));
         setReviewMode(true);
         toast.success(`${despesas.length} despesa(s) identificada(s)!`);
@@ -555,11 +545,11 @@ export function useContasPagar() {
   };
 
   const handleSaveExtracted = async () => {
-    const valid = extractedExpenses.filter(d => d.fornecedor && d.valor > 0);
+    const valid = extractedExpenses.filter(d => d.fornecedor && d.valor > 0 && resolveCategoriaDespesaNome(d.categoria, categoriasDB));
     if (valid.length === 0) { toast.error("Nenhuma despesa válida para salvar"); return; }
     const { error } = await supabase.from("contas_pagar").insert(valid.map(d => ({
       fornecedor: d.fornecedor, descricao: d.descricao, valor: d.valor,
-      vencimento: d.vencimento || getBrasiliaDateString(), categoria: d.categoria || null,
+      vencimento: d.vencimento || getBrasiliaDateString(), categoria: resolveCategoriaDespesaNome(d.categoria, categoriasDB),
       observacoes: d.observacoes || null, unidade_id: unidadeAtual?.id || null,
     })));
     if (error) { toast.error("Erro ao salvar despesas"); return; }
@@ -614,7 +604,7 @@ export function useContasPagar() {
       setExtractedExpenses(despesas.map((d: any) => ({
         fornecedor: d.fornecedor || "", descricao: d.descricao || "",
         valor: d.valor || 0, vencimento: d.vencimento || "",
-        categoria: d.categoria || "Outros", observacoes: d.observacoes || null,
+        categoria: resolveCategoriaDespesaNome(d.categoria, categoriasDB), observacoes: d.observacoes || null,
       })));
       setReviewMode(true); setVoiceDialogOpen(false); setPhotoDialogOpen(true);
       toast.success(`${despesas.length} despesa(s) identificada(s) por voz!`);

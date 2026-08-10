@@ -100,6 +100,10 @@ export function ParcelamentoDialog({ open, onOpenChange, unidadeId, categorias, 
 
   const handleSave = async () => {
     if (parcelas.length === 0) { toast.error("Calcule as parcelas primeiro"); return; }
+    if (!form.categoria || !categorias.includes(form.categoria)) {
+      toast.error("Selecione uma categoria de despesa cadastrada");
+      return;
+    }
     setSaving(true);
 
     try {
@@ -243,7 +247,13 @@ export function ParcelamentoDialog({ open, onOpenChange, unidadeId, categorias, 
             <div><Label>Categoria</Label>
               <Select value={form.categoria} onValueChange={v => setForm({ ...form, categoria: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>{categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {categorias.length === 0 ? (
+                    <SelectItem value="__sem_categoria__" disabled>Cadastre categorias em Configurações</SelectItem>
+                  ) : (
+                    categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)
+                  )}
+                </SelectContent>
               </Select>
             </div>
             <div><Label>Observações</Label><Textarea value={form.observacoes} onChange={e => setForm({ ...form, observacoes: e.target.value })} rows={1} /></div>

@@ -31,7 +31,6 @@ import { DialogImportarOFX, type ImportOFXResult } from "@/components/contador/D
 import { fmt } from "@/services/contadorExportService";
 import {
   PlanilhaExtratos,
-  CATEGORIAS_EXTRATO,
   type ExtratoLinha,
 } from "@/components/contador/PlanilhaExtratos";
 
@@ -74,6 +73,7 @@ export default function ContadorFinanceiro() {
   const { empresaAtiva, unidadeAtiva, unidades } = useContador();
   const { range, setCustom } = usePeriodo();
   const [extratos, setExtratos] = useState<ExtratoRow[]>([]);
+  const [categoriasDespesa, setCategoriasDespesa] = useState<string[]>([]);
   const [contasBancarias, setContasBancarias] = useState<ContaBancariaInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -165,6 +165,34 @@ export default function ContadorFinanceiro() {
     }
   };
 
+  const fetchCategoriasDespesa = async () => {
+    const unidadeIds = unidadeAtiva ? [unidadeAtiva.id] : unidades.map((u) => u.id);
+    let query = supabase
+      .from("categorias_despesa")
+      .select("nome,ordem,grupo,unidade_id")
+      .eq("ativo", true)
+      .order("grupo", { ascending: true })
+      .order("ordem", { ascending: true })
+      .order("nome", { ascending: true });
+
+    if (unidadeIds.length > 0) query = query.or(`unidade_id.is.null,unidade_id.in.(${unidadeIds.join(",")})`);
+
+    const { data, error } = await query;
+    if (error) {
+      console.error("[ContadorFinanceiro] erro ao carregar categorias de despesa:", error);
+      setCategoriasDespesa([]);
+      return;
+    }
+
+    const seen = new Set<string>();
+    setCategoriasDespesa((data || []).map((c: any) => String(c.nome || "").trim()).filter((nome) => {
+      const key = nome.toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }));
+  };
+
   const ampliarPeriodo = () => {
     if (!foraDoPeriodo) return;
     const inicio = new Date(foraDoPeriodo.min + "T00:00:00");
@@ -215,6 +243,7 @@ export default function ContadorFinanceiro() {
 
   useEffect(() => {
     fetchExtratos();
+    fetchCategoriasDespesa();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empresaAtiva, unidadeAtiva, range.inicioISO, range.fimISO]);
 
@@ -573,7 +602,7 @@ export default function ContadorFinanceiro() {
                       <SelectContent className="bg-[hsl(220,22%,11%)] border-[hsl(220,15%,20%)]">
                         <SelectItem value="__all__">Todas categorias</SelectItem>
                         <SelectItem value="—">(sem categoria)</SelectItem>
-                        {CATEGORIAS_EXTRATO.map((c) => (
+                        {categoriasDespesa.map((c) => (
                           <SelectItem key={c} value={c}>
                             {c}
                           </SelectItem>
@@ -713,6 +742,7 @@ export default function ContadorFinanceiro() {
                     <TabsContent value={tabAtiva} className="mt-0">
                       <PlanilhaExtratos
                         linhas={linhasDaTabAtiva}
+                        categorias={categoriasDespesa}
                         onCategoriaChange={handleCategoriaChange}
                       />
                     </TabsContent>

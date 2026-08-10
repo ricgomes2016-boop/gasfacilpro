@@ -223,7 +223,13 @@ export default function ContasPagar() {
                         <Label>Conta despesa</Label>
                         <Select value={cp.form.categoria} onValueChange={v => cp.setForm({ ...cp.form, categoria: v })}>
                           <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                          <SelectContent>{cp.categoriasNomes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                          <SelectContent>
+                            {cp.categoriasNomes.length === 0 ? (
+                              <SelectItem value="__sem_categoria__" disabled>Cadastre categorias em Configurações</SelectItem>
+                            ) : (
+                              cp.categoriasNomes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)
+                            )}
+                          </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-2">
@@ -782,7 +788,13 @@ export default function ContasPagar() {
                         <div><Label className="text-xs">Categoria</Label>
                           <Select value={expense.categoria} onValueChange={v => cp.updateExtractedField(idx, "categoria", v)}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>{cp.categoriasNomes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                            <SelectContent>
+                              {cp.categoriasNomes.length === 0 ? (
+                                <SelectItem value="__sem_categoria__" disabled>Cadastre categorias em Configurações</SelectItem>
+                              ) : (
+                                cp.categoriasNomes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)
+                              )}
+                            </SelectContent>
                           </Select>
                         </div>
                       </div>
@@ -828,7 +840,7 @@ export default function ContasPagar() {
         </Dialog>
 
         {/* Parcelamento */}
-        <ParcelamentoDialog open={cp.parcelamentoOpen} onOpenChange={cp.setParcelamentoOpen} categorias={[]} onSuccess={cp.fetchContas} />
+        <ParcelamentoDialog open={cp.parcelamentoOpen} onOpenChange={cp.setParcelamentoOpen} categorias={cp.categoriasNomes} onSuccess={cp.fetchContas} />
       </div>
     </MainLayout>
   );

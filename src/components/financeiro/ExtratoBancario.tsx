@@ -21,6 +21,7 @@ import { getBrasiliaDateString } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { resolveCategoriaDespesaNome, useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 
 interface ContaBancaria {
   id: string;
@@ -38,6 +39,7 @@ interface Props {
 
 export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
   const { user } = useAuth();
+  const { categorias: categoriasDespesa } = useCategoriasDespesa();
   const queryClient = useQueryClient();
   const [contaSelecionada, setContaSelecionada] = useState<string>(contas[0]?.id || "");
   const [periodo, setPeriodo] = useState("30");
@@ -46,7 +48,7 @@ export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
     tipo: "entrada" as "entrada" | "saida",
     descricao: "",
     valor: "",
-    categoria: "manual",
+    categoria: "",
     data: getBrasiliaDateString(),
     observacoes: "",
   });
@@ -82,6 +84,13 @@ export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
     if (!contaSelecionada) {
       toast.error("Selecione uma conta"); return;
     }
+    const categoriaCadastro = form.tipo === "saida"
+      ? resolveCategoriaDespesaNome(form.categoria, categoriasDespesa)
+      : form.categoria;
+    if (!categoriaCadastro) {
+      toast.error(form.tipo === "saida" ? "Selecione uma categoria de despesa cadastrada" : "Selecione uma categoria");
+      return;
+    }
 
     const saldoAtual = conta?.saldo_atual || 0;
     const novoSaldo = form.tipo === "entrada"
@@ -92,7 +101,7 @@ export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
       conta_bancaria_id: contaSelecionada,
       data: form.data,
       tipo: form.tipo,
-      categoria: form.categoria,
+      categoria: categoriaCadastro,
       descricao: form.descricao,
       valor: form.tipo === "entrada" ? valor : -valor,
       saldo_apos: novoSaldo,
@@ -106,7 +115,7 @@ export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
 
     toast.success(`${form.tipo === "entrada" ? "Entrada" : "Saída"} registrada!`);
     setDialogOpen(false);
-    setForm({ tipo: "entrada", descricao: "", valor: "", categoria: "manual", data: getBrasiliaDateString(), observacoes: "" });
+    setForm({ tipo: "entrada", descricao: "", valor: "", categoria: "", data: getBrasiliaDateString(), observacoes: "" });
     queryClient.invalidateQueries({ queryKey: ["movimentacoes-bancarias"] });
     queryClient.invalidateQueries({ queryKey: ["contas-bancarias"] });
   };
@@ -131,16 +140,13 @@ export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
     return Object.entries(grouped).sort((a, b) => b[0].localeCompare(a[0]));
   }, [movimentacoes]);
 
-  const categorias = [
+  const categoriasEntrada = [
     { value: "manual", label: "Manual" },
     { value: "venda", label: "Venda" },
-    { value: "despesa", label: "Despesa" },
     { value: "transferencia", label: "Transferência" },
     { value: "deposito", label: "Depósito" },
     { value: "saque", label: "Saque" },
-    { value: "pagamento_fornecedor", label: "Pag. Fornecedor" },
     { value: "recebimento_cliente", label: "Receb. Cliente" },
-    { value: "taxa_bancaria", label: "Taxa Bancária" },
     { value: "outro", label: "Outro" },
   ];
 
@@ -296,7 +302,7 @@ export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Tipo *</Label>
-                <Select value={form.tipo} onValueChange={(v: "entrada" | "saida") => setForm({ ...form, tipo: v })}>
+                <Select value={form.tipo} onValueChange={(v: "entrada" | "saida") => setForm({ ...form, tipo: v, categoria: "" })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="entrada">↑ Entrada</SelectItem>
@@ -309,7 +315,15 @@ export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
                 <Select value={form.categoria} onValueChange={v => setForm({ ...form, categoria: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {categorias.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                    {form.tipo === "saida" ? (
+                      categoriasDespesa.length === 0 ? (
+                        <SelectItem value="__sem_categoria__" disabled>Cadastre categorias em Configurações</SelectItem>
+                      ) : (
+                        categoriasDespesa.map(c => <SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>)
+                      )
+                    ) : (
+                      categoriasEntrada.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)
+                    )}
                   </SelectContent>
                 </Select>
               </div>
