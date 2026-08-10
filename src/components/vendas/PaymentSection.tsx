@@ -18,6 +18,7 @@ import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSe
 import { getOperadoraPadrao } from "@/lib/financeiro/padroesFinanceiros";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { VendaSectionHeader } from "./VendaSectionHeader";
+import { validarValeGasNoBanco } from "@/hooks/useValeGasValidation";
 
 export interface Pagamento {
   id: string;
@@ -36,6 +37,11 @@ export interface Pagamento {
   parcelas?: number;
   taxa_desconto_percentual?: number;
   taxa_total_percentual?: number;
+  vale_gas_id?: string;
+  vale_gas_parceiro_id?: string;
+  vale_gas_parceiro_nome?: string;
+  vale_gas_numero?: number;
+  vale_gas_codigo?: string;
   // Cobrança extra associada (ex.: taxa de entrega do Gás do Povo)
   // Quando presente, aumenta o total efetivo da venda em `taxa_extra` e
   // um pagamento adicional deve ser lançado para cobrir esse valor.
@@ -92,6 +98,8 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   const [pendingParcelas, setPendingParcelas] = useState<number | undefined>(undefined);
   const [pendingTaxaDescontoPercentual, setPendingTaxaDescontoPercentual] = useState(0);
   const [pendingTaxaTotalPercentual, setPendingTaxaTotalPercentual] = useState(0);
+  const [valeGasNumero, setValeGasNumero] = useState("");
+  const [validandoValeGas, setValidandoValeGas] = useState(false);
 
   const { unidadeAtual } = useUnidade();
   const effectiveUnidadeNome = unidadeId ? undefined : unidadeAtual?.nome;
@@ -209,9 +217,10 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     setPendingParcelas(undefined);
     setPendingTaxaDescontoPercentual(0);
     setPendingTaxaTotalPercentual(0);
+    setValeGasNumero("");
   };
 
-  const addPagamento = () => {
+  const addPagamento = async () => {
     const valorNum = parseCurrency(valorDisplay);
     if (!forma || valorNum <= 0) return;
 
@@ -231,6 +240,27 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
       }
     }
 
+
+    let valeGasValidado: Awaited<ReturnType<typeof validarValeGasNoBanco>> | null = null;
+    if (forma === "vale_gas") {
+      const numeroVale = valeGasNumero.trim();
+      if (!numeroVale) {
+        toast.error("Informe o número do Vale Gás");
+        return;
+      }
+
+      setValidandoValeGas(true);
+      try {
+        valeGasValidado = await validarValeGasNoBanco(numeroVale);
+      } finally {
+        setValidandoValeGas(false);
+      }
+
+      if (!valeGasValidado.valido || !valeGasValidado.valeId) {
+        toast.error(valeGasValidado.erro || "Vale Gás não encontrado ou indisponível");
+        return;
+      }
+    }
 
     const novoPagamento: Pagamento = {
       id: crypto.randomUUID(),
@@ -264,6 +294,13 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
       if (pendingTaxaTotalPercentual > 0) {
         novoPagamento.taxa_total_percentual = pendingTaxaTotalPercentual;
       }
+    }
+    if (valeGasValidado) {
+      novoPagamento.vale_gas_id = valeGasValidado.valeId;
+      novoPagamento.vale_gas_parceiro_id = valeGasValidado.parceiroId;
+      novoPagamento.vale_gas_parceiro_nome = valeGasValidado.parceiro;
+      novoPagamento.vale_gas_numero = valeGasValidado.numero;
+      novoPagamento.vale_gas_codigo = valeGasValidado.codigo;
     }
 
     const taxaNum = forma === "gas_do_povo" ? parseCurrency(taxaEntregaGasPovo) : 0;
@@ -486,8 +523,8 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
                   data-venda-enter-next
                 />
               </div>
-              <Button onClick={addPagamento} size="icon" className="h-11 w-11 shrink-0 bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30">
-                <Plus className="h-4 w-4" />
+              <Button onClick={addPagamento} size="icon" className="h-11 w-11 shrink-0 bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30" disabled={validandoValeGas}>
+                {validandoValeGas ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               </Button>
             </div>
 
@@ -524,6 +561,31 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
                   {chequeFotoUrl && <img src={chequeFotoUrl} alt="Cheque" className="h-8 w-12 rounded border object-cover" />}
                   <input ref={chequePhotoRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleChequeFoto(f); e.target.value = ""; }} />
                   <input ref={chequeCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleChequeFoto(f); e.target.value = ""; }} />
+                </div>
+              </div>
+            )}
+
+            {/* Vale Gas extra fields */}
+            {forma === "vale_gas" && (
+              <div className="venda-modern-surface rounded-lg border border-dashed p-3 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dados do Vale Gás</p>
+                <div>
+                  <Label className="text-xs">Número ou código do Vale Gás *</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={valeGasNumero}
+                      onChange={(e) => setValeGasNumero(e.target.value)}
+                      placeholder="Ex: 529 ou VG-2026-00529"
+                      className="h-9 text-sm"
+                      data-venda-enter-next
+                    />
+                    <Button type="button" variant="outline" className="h-9 shrink-0" onClick={addPagamento} disabled={validandoValeGas}>
+                      {validandoValeGas ? <Loader2 className="h-4 w-4 animate-spin" /> : "Validar"}
+                    </Button>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    O vale será conferido no banco antes de entrar no pedido.
+                  </p>
                 </div>
               </div>
             )}

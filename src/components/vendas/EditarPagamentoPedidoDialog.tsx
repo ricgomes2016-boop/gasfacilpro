@@ -116,6 +116,13 @@ export function EditarPagamentoPedidoDialog({ open, onOpenChange, pedido, onSave
           operadora_id: p.operadora_id,
           conta_bancaria_id: p.conta_bancaria_id,
           parcelas: p.parcelas,
+          taxa_desconto_percentual: p.taxa_desconto_percentual,
+          taxa_total_percentual: p.taxa_total_percentual,
+          vale_gas_id: p.vale_gas_id,
+          vale_gas_parceiro_id: p.vale_gas_parceiro_id,
+          vale_gas_parceiro_nome: p.vale_gas_parceiro_nome,
+          vale_gas_numero: p.vale_gas_numero,
+          vale_gas_codigo: p.vale_gas_codigo,
         })),
         unidadeId: unidadeAtual?.id ?? null,
         entregadorId: pedido.entregador_id ?? null,
@@ -141,7 +148,7 @@ export function EditarPagamentoPedidoDialog({ open, onOpenChange, pedido, onSave
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[92dvh] overflow-y-auto rounded-lg p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" />
@@ -163,11 +170,11 @@ export function EditarPagamentoPedidoDialog({ open, onOpenChange, pedido, onSave
           />
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={handleSalvar} disabled={saving || !okValor || pagamentos.length === 0}>
+          <Button className="w-full sm:w-auto" onClick={handleSalvar} disabled={saving || !okValor || pagamentos.length === 0}>
             {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             Salvar pagamento
           </Button>
