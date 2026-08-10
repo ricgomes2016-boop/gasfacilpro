@@ -1729,7 +1729,7 @@ export default function Pedidos() {
                         </TableCell>
                         <TableCell className="text-xs">
                           {podeEditarCanalPedido(pedido) ?
-                          <Popover open={editandoCanalId === `d-${pedido.id}`} onOpenChange={(open) => setEditandoCanalId(open ? `d-${pedido.id}` : null)}>
+                          <Popover open={editandoCanalId === `legacy-d-${pedido.id}`} onOpenChange={(open) => setEditandoCanalId(open ? `legacy-d-${pedido.id}` : null)}>
                             <PopoverTrigger asChild>
                               <span
                                 role="button"
