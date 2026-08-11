@@ -7080,6 +7080,42 @@ export type Database = {
           },
         ]
       }
+      meta_webhook_eventos: {
+        Row: {
+          created_at: string
+          empresa_id: string | null
+          external_id: string | null
+          field: string | null
+          id: string
+          object_type: string
+          payload: Json
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id?: string | null
+          external_id?: string | null
+          field?: string | null
+          id?: string
+          object_type: string
+          payload: Json
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string | null
+          external_id?: string | null
+          field?: string | null
+          id?: string
+          object_type?: string
+          payload?: Json
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       metas: {
         Row: {
           created_at: string
