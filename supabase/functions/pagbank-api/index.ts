@@ -85,27 +85,35 @@ Deno.serve(async (req) => {
 
     if (!unidade_id) return json({ error: "unidade_id obrigatório" }, 400);
 
-    // Ownership check: unidade must belong to caller's empresa (unless super_admin)
-    const { data: isSuperAdmin } = await supabase.rpc("has_role", {
-      _user_id: user.id,
-      _role: "super_admin",
-    });
-    if (!isSuperAdmin) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("empresa_id")
-        .eq("user_id", user.id)
+    // Ownership: resolve a empresa do CHAMADOR no servidor e valide a unidade contra ela.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("empresa_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!profile?.empresa_id) return json({ error: "Perfil sem empresa vinculada" }, 403);
+
+    const { data: unidade } = await supabase
+      .from("unidades")
+      .select("empresa_id")
+      .eq("id", unidade_id)
+      .maybeSingle();
+    if (!unidade || unidade.empresa_id !== profile.empresa_id) {
+      return json({ error: "Acesso negado a esta unidade" }, 403);
+    }
+
+    // Conta bancária (quando informada) precisa pertencer à mesma unidade do chamador
+    if (conta_bancaria_id) {
+      const { data: conta } = await supabase
+        .from("contas_bancarias")
+        .select("unidade_id")
+        .eq("id", conta_bancaria_id)
         .maybeSingle();
-      if (!profile?.empresa_id) return json({ error: "Perfil sem empresa vinculada" }, 403);
-      const { data: unidade } = await supabase
-        .from("unidades")
-        .select("empresa_id")
-        .eq("id", unidade_id)
-        .maybeSingle();
-      if (!unidade || unidade.empresa_id !== profile.empresa_id) {
-        return json({ error: "Acesso negado a esta unidade" }, 403);
+      if (!conta || conta.unidade_id !== unidade_id) {
+        return json({ error: "Conta bancária inválida para esta unidade" }, 403);
       }
     }
+
 
     const { data: integ } = await supabase
       .from("integracoes_config")
