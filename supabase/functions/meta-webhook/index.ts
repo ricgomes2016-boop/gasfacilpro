@@ -68,18 +68,24 @@ serve(async (req) => {
     const challenge = url.searchParams.get("hub.challenge");
 
     if (mode === "subscribe") {
-      // Try to verify against stored token
       const supabase = createSupabase();
       const unidadeId = url.searchParams.get("unidade_id");
 
-      let verifyToken = "gasfacil_meta_verify";
-      if (unidadeId) {
-        const { data } = await supabase.from("integracoes_whatsapp")
-          .select("meta_verify_token").eq("unidade_id", unidadeId).eq("provedor", "meta").eq("ativo", true).maybeSingle();
-        if (data?.meta_verify_token) verifyToken = data.meta_verify_token;
+      if (!unidadeId) {
+        console.warn("Meta webhook verify sem unidade_id");
+        return new Response("Forbidden", { status: 403 });
       }
 
-      if (token === verifyToken) {
+      const { data } = await supabase.from("integracoes_whatsapp")
+        .select("meta_verify_token").eq("unidade_id", unidadeId).eq("provedor", "meta").maybeSingle();
+      const verifyToken = data?.meta_verify_token || null;
+
+      if (!verifyToken) {
+        console.warn("Meta webhook verify: unidade sem verify token configurado", unidadeId);
+        return new Response("Forbidden", { status: 403 });
+      }
+
+      if (token && token.length === verifyToken.length && token === verifyToken) {
         console.log("Meta webhook verified for unidade:", unidadeId);
         return new Response(challenge, { status: 200 });
       }
