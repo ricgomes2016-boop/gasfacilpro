@@ -68,18 +68,24 @@ serve(async (req) => {
     const challenge = url.searchParams.get("hub.challenge");
 
     if (mode === "subscribe") {
-      // Try to verify against stored token
       const supabase = createSupabase();
       const unidadeId = url.searchParams.get("unidade_id");
 
-      let verifyToken = "gasfacil_meta_verify";
-      if (unidadeId) {
-        const { data } = await supabase.from("integracoes_whatsapp")
-          .select("meta_verify_token").eq("unidade_id", unidadeId).eq("provedor", "meta").eq("ativo", true).maybeSingle();
-        if (data?.meta_verify_token) verifyToken = data.meta_verify_token;
+      if (!unidadeId) {
+        console.warn("Meta webhook verify sem unidade_id");
+        return new Response("Forbidden", { status: 403 });
       }
 
-      if (token === verifyToken) {
+      const { data } = await supabase.from("integracoes_whatsapp")
+        .select("meta_verify_token").eq("unidade_id", unidadeId).eq("provedor", "meta").maybeSingle();
+      const verifyToken = data?.meta_verify_token || null;
+
+      if (!verifyToken) {
+        console.warn("Meta webhook verify: unidade sem verify token configurado", unidadeId);
+        return new Response("Forbidden", { status: 403 });
+      }
+
+      if (token && token.length === verifyToken.length && token === verifyToken) {
         console.log("Meta webhook verified for unidade:", unidadeId);
         return new Response(challenge, { status: 200 });
       }
@@ -134,11 +140,54 @@ serve(async (req) => {
     const body = JSON.parse(rawBody);
     console.log("Meta webhook:", JSON.stringify(body).substring(0, 500));
 
+    const url = new URL(req.url);
+    const queryUnidadeId = url.searchParams.get("unidade_id");
+
+    // ===== Instagram / Página do Facebook: registra evento bruto =====
+    if (body.object === "instagram" || body.object === "page") {
+      let empresaId: string | null = null;
+      if (queryUnidadeId) {
+        const { data: uni } = await supabase
+          .from("unidades").select("empresa_id").eq("id", queryUnidadeId).maybeSingle();
+        empresaId = uni?.empresa_id ?? null;
+      }
+      const registros: any[] = [];
+      for (const entry of body.entry || []) {
+        const changes = entry.changes || [];
+        const messagings = entry.messaging || [];
+        if (changes.length) {
+          for (const change of changes) {
+            registros.push({
+              empresa_id: empresaId,
+              unidade_id: queryUnidadeId,
+              object_type: body.object,
+              field: change.field ?? null,
+              external_id: String(entry.id ?? ""),
+              payload: change,
+            });
+          }
+        }
+        for (const msg of messagings) {
+          registros.push({
+            empresa_id: empresaId,
+            unidade_id: queryUnidadeId,
+            object_type: body.object,
+            field: "messaging",
+            external_id: String(entry.id ?? ""),
+            payload: msg,
+          });
+        }
+      }
+      if (registros.length) {
+        const { error } = await supabase.from("meta_webhook_eventos").insert(registros);
+        if (error) console.error("meta_webhook_eventos insert error:", error.message);
+      }
+      return OK({ ok: true, registrados: registros.length });
+    }
+
     // Meta sends { object: "whatsapp_business_account", entry: [...] }
     if (body.object !== "whatsapp_business_account") return OK({ ok: true, skipped: "not_whatsapp" });
 
-    const url = new URL(req.url);
-    const queryUnidadeId = url.searchParams.get("unidade_id");
 
     for (const entry of body.entry || []) {
       for (const change of entry.changes || []) {
