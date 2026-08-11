@@ -57,7 +57,6 @@ Deno.serve(async (req) => {
       .from("integracoes_whatsapp")
       .select("id, meta_verify_token")
       .eq("unidade_id", unidadeId)
-      .eq("provedor", "meta")
       .maybeSingle();
 
     let verifyToken = integ?.meta_verify_token || null;

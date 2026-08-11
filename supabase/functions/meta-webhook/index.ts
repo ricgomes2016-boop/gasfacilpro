@@ -77,7 +77,8 @@ serve(async (req) => {
       }
 
       const { data } = await supabase.from("integracoes_whatsapp")
-        .select("meta_verify_token").eq("unidade_id", unidadeId).eq("provedor", "meta").maybeSingle();
+        .select("meta_verify_token").eq("unidade_id", unidadeId)
+        .not("meta_verify_token", "is", null).limit(1).maybeSingle();
       const verifyToken = data?.meta_verify_token || null;
 
       if (!verifyToken) {
