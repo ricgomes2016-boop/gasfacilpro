@@ -3,6 +3,7 @@ export type DespesaResultadoInput = {
   descricao?: string | null;
   referenciaTipo?: string | null;
   compraId?: string | number | null;
+  status?: string | null;
 };
 
 export const normalizeFinanceText = (value?: string | null) =>
@@ -10,7 +11,12 @@ export const normalizeFinanceText = (value?: string | null) =>
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[-_/]+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
+
+export const isDespesaRejeitadaResultado = (input: DespesaResultadoInput) =>
+  normalizeFinanceText(input.status) === "rejeitada";
 
 export const isTransferenciaInternaResultado = (input: DespesaResultadoInput) => {
   const text = `${normalizeFinanceText(input.categoria)} ${normalizeFinanceText(input.descricao)}`;
@@ -41,8 +47,11 @@ export const isLiquidacaoTituloResultado = (input: DespesaResultadoInput) => {
   return (
     ref.includes("conta_pagar") ||
     ref.includes("contas_pagar") ||
+    ref.includes("conta pagar") ||
+    ref.includes("contas pagar") ||
     ref.includes("compra") ||
     text.includes("contas_pagar") ||
+    text.includes("contas pagar") ||
     text.includes("contas a pagar") ||
     text.startsWith("pagto") ||
     text.includes("pagto ") ||
@@ -51,6 +60,7 @@ export const isLiquidacaoTituloResultado = (input: DespesaResultadoInput) => {
 };
 
 export const isDespesaOperacionalResultado = (input: DespesaResultadoInput) =>
+  !isDespesaRejeitadaResultado(input) &&
   !isTransferenciaInternaResultado(input) &&
   !isCompraMercadoriaResultado(input) &&
   !isLiquidacaoTituloResultado(input);

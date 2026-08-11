@@ -18,6 +18,7 @@ export const normalizeCategoriaDespesa = (value?: string | null) =>
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[-_/]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 

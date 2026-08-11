@@ -182,7 +182,7 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
     .from("movimentacoes_caixa")
     .select("valor, categoria, descricao, status, created_at")
     .eq("tipo", "saida")
-    .neq("status", "rejeitada")
+    .or("status.is.null,status.neq.rejeitada")
     .is("compra_id", null)
     .is("pedido_id", null)
     .gte("created_at", inicioISO)
@@ -342,13 +342,14 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
   }
 
   // ---------- Despesas (cada gasto uma única vez) ----------
-  type Bruto = { data: string; descricao: string; categoria?: string | null; valor: number; origem: string; referenciaTipo?: string | null; ehLiquidacao?: boolean };
+  type Bruto = { data: string; descricao: string; categoria?: string | null; status?: string | null; valor: number; origem: string; referenciaTipo?: string | null; ehLiquidacao?: boolean };
 
   const brutos: Bruto[] = [
     ...(caixa || []).map((d: any) => ({
       data: String(d.created_at).slice(0, 10),
       descricao: d.descricao || d.categoria || "Despesa de caixa",
       categoria: d.categoria,
+      status: d.status,
       valor: Number(d.valor || 0),
       origem: "Caixa",
     })),
@@ -383,7 +384,7 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
 
   brutos.forEach((d) => {
     if (!d.valor) return;
-    if (!isDespesaOperacionalResultado({ categoria: d.categoria, descricao: d.descricao, referenciaTipo: d.referenciaTipo })) return;
+    if (!isDespesaOperacionalResultado({ categoria: d.categoria, descricao: d.descricao, referenciaTipo: d.referenciaTipo, status: d.status })) return;
     if (isTransferenciaInterna(d.categoria, d.descricao)) return;
     if (isCompraMercadoria(d.categoria, d.descricao)) return;
     // saída bancária que apenas quita título já reconhecido

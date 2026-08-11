@@ -145,7 +145,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
           let q = supabase.from("movimentacoes_caixa")
             .select("valor, categoria, descricao, status, compra_id")
             .eq("tipo", "saida")
-            .neq("status", "rejeitada")
+            .or("status.is.null,status.neq.rejeitada")
             .is("pedido_id", null)
             .is("compra_id", null)
             .gte("created_at", inicio)
@@ -162,7 +162,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
         isDespesaOperacionalResultado({ categoria: d.categoria, descricao: d.descricao, compraId: d.compra_id })
       );
       const despesasCaixa = (despesasCaixaRes.data || []).filter((d: any) =>
-        isDespesaOperacionalResultado({ categoria: d.categoria, descricao: d.descricao, compraId: d.compra_id })
+        isDespesaOperacionalResultado({ categoria: d.categoria, descricao: d.descricao, compraId: d.compra_id, status: d.status })
       );
 
       const cpPorCategoria: Record<string, number> = {};

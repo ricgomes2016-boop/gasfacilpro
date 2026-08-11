@@ -43,4 +43,12 @@ describe("dreFinanceiro", () => {
     expect(classificarDespesaDRE("Compra GLP", mapa)).toBe("mercadorias");
     expect(classificarDespesaDRE("Aluguel", mapa)).toBe("operacional");
   });
+
+  it("classifica pro labore com ou sem hifen como pessoal", () => {
+    const mapa = criarMapaCategoriasFiscais([{ nome: "Pro-Labore", grupo: "pessoal" }]);
+
+    expect(classificarDespesaDRE("Pro-Labore", mapa)).toBe("pessoal");
+    expect(classificarDespesaDRE("Pro Labore", mapa)).toBe("pessoal");
+    expect(classificarDespesaDRE("pro labore socios", new Map())).toBe("pessoal");
+  });
 });

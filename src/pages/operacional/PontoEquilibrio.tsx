@@ -15,6 +15,7 @@ import { exportPEtoPdf, handlePrint } from "@/services/reportPdfService";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { startOfMonth, endOfMonth } from "date-fns";
+import { isDespesaOperacionalResultado } from "@/lib/financeiro/despesasResultado";
 
 interface CustoFixo {
   id: string;
@@ -81,9 +82,9 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
         })(),
         (() => {
           let q = supabase.from("movimentacoes_caixa")
-            .select("valor, categoria, descricao, status")
+            .select("valor, categoria, descricao, status, compra_id")
             .eq("tipo", "saida")
-            .neq("status", "rejeitada")
+            .or("status.is.null,status.neq.rejeitada")
             .is("compra_id", null)
             .is("pedido_id", null)
             .gte("created_at", inicio)
@@ -97,7 +98,10 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
       const pedidos = pedidosRes.data || [];
       const funcionarios = funcRes.data || [];
       const abastecimentos = abastRes.data || [];
-      const despesasCaixa = (caixaRes.data || []).filter((d: any) => !isTransferenciaInterna(d.categoria, d.descricao));
+      const despesasCaixa = (caixaRes.data || []).filter((d: any) =>
+        isDespesaOperacionalResultado({ categoria: d.categoria, descricao: d.descricao, compraId: d.compra_id, status: d.status }) &&
+        !isTransferenciaInterna(d.categoria, d.descricao)
+      );
 
       // Auto custos fixos from categorias + real system data
       const totalSalarios = funcionarios.reduce((s, f) => s + (Number(f.salario) || 0), 0);

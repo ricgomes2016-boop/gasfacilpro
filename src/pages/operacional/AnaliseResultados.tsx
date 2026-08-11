@@ -99,6 +99,7 @@ type CaixaRow = {
   valor: number;
   categoria: string | null;
   descricao: string;
+  status?: string | null;
 };
 
 const STATUS_RECEITA = ["entregue", "finalizado", "pago_cartao"];
@@ -211,9 +212,9 @@ export default function AnaliseResultados() {
     const query = applyUnidade(
       supabase
         .from("movimentacoes_caixa")
-        .select("valor, categoria, descricao")
+        .select("valor, categoria, descricao, status")
         .eq("tipo", "saida")
-        .neq("status", "rejeitada")
+        .or("status.is.null,status.neq.rejeitada")
         .is("compra_id", null)
         .is("pedido_id", null)
         .gte("created_at", period.startIso)
@@ -222,7 +223,7 @@ export default function AnaliseResultados() {
     const { data, error: queryError } = await query;
     if (queryError) throw queryError;
     return ((data || []) as CaixaRow[]).filter((despesa) =>
-      isDespesaOperacionalResultado({ categoria: despesa.categoria, descricao: despesa.descricao })
+      isDespesaOperacionalResultado({ categoria: despesa.categoria, descricao: despesa.descricao, status: despesa.status })
     );
   };
 

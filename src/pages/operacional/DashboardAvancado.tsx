@@ -12,6 +12,7 @@ import { PremiumKpiCard } from "@/components/dashboard/premium/PremiumKpiCard";
 import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
 import { KpiCardSkeleton, ChartCardSkeleton } from "@/components/dashboard/premium/skeletons";
 import { chartGridProps, chartAxisTick, CHART_SEMANTIC, fmtBRL, fmtBRLcompact } from "@/components/dashboard/premium/chartTheme";
+import { isDespesaOperacionalResultado } from "@/lib/financeiro/despesasResultado";
 
 export default function DashboardAvancado() {
   const { unidadeAtual } = useUnidade();
@@ -38,12 +39,14 @@ export default function DashboardAvancado() {
         if (unidadeAtual?.id) pq = pq.eq("unidade_id", unidadeAtual.id);
         const { data: pedidos } = await pq;
 
-        let dq = supabase.from("movimentacoes_caixa").select("valor").eq("tipo", "saida").gte("created_at", inicio).lt("created_at", fim);
+        let dq = supabase.from("movimentacoes_caixa").select("valor, categoria, descricao, compra_id, status").eq("tipo", "saida").gte("created_at", inicio).lt("created_at", fim);
         if (unidadeAtual?.id) dq = dq.eq("unidade_id", unidadeAtual.id);
         const { data: despesas } = await dq;
 
         const vendas = pedidos?.reduce((s, p) => s + (p.valor_total || 0), 0) || 0;
-        const desp = despesas?.reduce((s, d) => s + (d.valor || 0), 0) || 0;
+        const desp = despesas
+          ?.filter((d: any) => isDespesaOperacionalResultado({ categoria: d.categoria, descricao: d.descricao, compraId: d.compra_id, status: d.status }))
+          .reduce((s, d) => s + (d.valor || 0), 0) || 0;
         dados.push({ mes: meses[d.getMonth()], vendas, despesas: desp, lucro: vendas - desp });
       }
       setDadosMensais(dados);

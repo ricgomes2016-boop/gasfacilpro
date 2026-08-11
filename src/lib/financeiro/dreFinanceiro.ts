@@ -122,7 +122,7 @@ export function classificarDespesaDRE(
   const grupo = grupoFiscal || texto;
 
   if (grupo.includes("compras_mercadorias") || grupo.includes("mercadoria") || grupo.includes("estoque")) return "mercadorias";
-  if (grupo.includes("pessoal") || grupo.includes("salario") || grupo.includes("folha") || grupo.includes("comiss")) return "pessoal";
+  if (grupo.includes("pessoal") || grupo.includes("salario") || grupo.includes("folha") || grupo.includes("comiss") || grupo.includes("labore")) return "pessoal";
   if (grupo.includes("financeiro") || grupo.includes("juros") || grupo.includes("tarifa") || grupo.includes("taxa")) return "financeiro";
   if (grupo.includes("imposto") || grupo.includes("tribut")) return "impostos";
   if (grupo.includes("administrativo") || grupo.includes("ocupacao") || grupo.includes("estrutura") || grupo.includes("contab")) return "administrativo";

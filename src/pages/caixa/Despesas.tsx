@@ -155,8 +155,8 @@ export default function Despesas() {
     if (!categoriaCadastro) { toast.error("Selecione uma categoria de despesa cadastrada"); return; }
     const valor = parseFloat(form.valor);
     
-    // Verificar se ultrapassa limite
-    const statusDespesa = valor > LIMITE_SANGRIA ? "pendente" : "pendente";
+    // Despesas normais entram aprovadas; valores altos ficam pendentes para conferência.
+    const statusDespesa = valor > LIMITE_SANGRIA ? "pendente" : "aprovada";
     
     const { error } = await supabase.from("movimentacoes_caixa").insert({
       tipo: "saida", descricao: form.descricao,
@@ -188,13 +188,14 @@ export default function Despesas() {
     else { toast.success("Despesa rejeitada!"); fetchDespesas(); }
   };
 
-  const totalDespesas = despesas.reduce((a, d) => a + Number(d.valor), 0);
+  const despesasValidas = despesas.filter(d => d.status !== "rejeitada");
+  const totalDespesas = despesasValidas.reduce((a, d) => a + Number(d.valor), 0);
   const totalAprovadas = despesas.filter(d => d.status === "aprovada").reduce((a, d) => a + Number(d.valor), 0);
   const totalPendentes = despesas.filter(d => d.status === "pendente").reduce((a, d) => a + Number(d.valor), 0);
 
   // Resumo por categoria
   const categoriaMap = new Map<string, { total: number; count: number }>();
-  despesas.forEach(d => {
+  despesasValidas.forEach(d => {
     const cat = d.categoria || "Sem categoria";
     const existing = categoriaMap.get(cat) || { total: 0, count: 0 };
     categoriaMap.set(cat, { total: existing.total + Number(d.valor), count: existing.count + 1 });

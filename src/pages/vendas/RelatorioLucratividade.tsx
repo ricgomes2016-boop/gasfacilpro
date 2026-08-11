@@ -116,14 +116,14 @@ export default function RelatorioLucratividade() {
       // Movimentações de caixa - saídas (excluir as vinculadas a compra_id para evitar dupla contagem com contas_pagar)
       const mc = await supabase
         .from("movimentacoes_caixa")
-        .select("valor, created_at, tipo, compra_id, categoria, descricao")
+        .select("valor, created_at, tipo, compra_id, categoria, descricao, status")
         .eq("unidade_id", unidadeId!)
         .eq("tipo", "saida")
         .gte("created_at", inicioISO)
         .lte("created_at", fimISO);
       let totalMC = 0;
       (mc.data ?? []).forEach((r: any) => {
-        if (!isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao, compraId: r.compra_id })) return;
+        if (!isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao, compraId: r.compra_id, status: r.status })) return;
         const v = Number(r.valor) || 0;
         const d = (r.created_at || "").slice(0, 10);
         totalMC += v;
@@ -341,13 +341,13 @@ export default function RelatorioLucratividade() {
       if (incluirMC) {
         const { data } = await supabase
           .from("movimentacoes_caixa")
-          .select("valor, created_at, categoria, descricao, compra_id")
+          .select("valor, created_at, categoria, descricao, compra_id, status")
           .eq("unidade_id", unidadeId!)
           .eq("tipo", "saida")
           .gte("created_at", `${ini}T00:00:00`)
           .lte("created_at", `${fim2}T23:59:59`);
         (data ?? []).forEach((r: any) => {
-          if (!isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao, compraId: r.compra_id })) return;
+          if (!isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao, compraId: r.compra_id, status: r.status })) return;
           items.push({
             fonte: "Sangria/Caixa",
             data: (r.created_at || "").slice(0, 10),

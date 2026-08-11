@@ -218,7 +218,7 @@ export default function RelatorioGerencial() {
 
       let mcQ = supabase
         .from("movimentacoes_caixa")
-        .select("id, valor, categoria, descricao, tipo, compra_id, created_at")
+        .select("id, valor, categoria, descricao, tipo, compra_id, created_at, status")
         .eq("tipo", "saida")
         .gte("created_at", inicioISO)
         .lte("created_at", fimISO);
@@ -258,7 +258,7 @@ export default function RelatorioGerencial() {
           vencimento: r.data_pagamento || r.vencimento,
         })),
         ...((mcRes.data || []) as any[])
-          .filter((r) => isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao, compraId: r.compra_id }))
+          .filter((r) => isDespesaOperacionalResultado({ categoria: r.categoria, descricao: r.descricao, compraId: r.compra_id, status: r.status }))
           .map((r) => ({
             id: `mc-${r.id}`,
             valor: r.valor,

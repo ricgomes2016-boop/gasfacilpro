@@ -8,6 +8,7 @@ import { PageSectionLoader } from "@/components/ui/page-loader";
 import { Calendar, DollarSign, TrendingUp, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { isDespesaOperacionalResultado } from "@/lib/financeiro/despesasResultado";
 
 interface Categoria {
   nome: string;
@@ -37,12 +38,14 @@ export default function PlanejamentoMensal({ embedded = false }: { embedded?: bo
       const receita = pedidos?.reduce((s, p) => s + (p.valor_total || 0), 0) || 0;
 
       // Despesas por categoria
-      let dq = supabase.from("movimentacoes_caixa").select("valor, categoria").eq("tipo", "saida").gte("created_at", mesInicio).lt("created_at", mesFim);
+      let dq = supabase.from("movimentacoes_caixa").select("valor, categoria, descricao, compra_id, status").eq("tipo", "saida").gte("created_at", mesInicio).lt("created_at", mesFim);
       if (unidadeAtual?.id) dq = dq.eq("unidade_id", unidadeAtual.id);
       const { data: despesas } = await dq;
 
       const catMap: Record<string, number> = {};
-      despesas?.forEach(d => {
+      despesas?.filter((d: any) =>
+        isDespesaOperacionalResultado({ categoria: d.categoria, descricao: d.descricao, compraId: d.compra_id, status: d.status })
+      ).forEach(d => {
         const cat = d.categoria || "Outros";
         catMap[cat] = (catMap[cat] || 0) + Number(d.valor || 0);
       });
