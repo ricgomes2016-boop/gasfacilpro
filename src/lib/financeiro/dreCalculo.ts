@@ -10,7 +10,7 @@ import { isDespesaOperacionalResultado } from "./despesasResultado";
 /**
  * Regras da DRE (regime de competência) — fonte única de verdade.
  *
- * 1. Receita: apenas pedidos entregues/finalizados/pagos, pela data de entrega.
+ * 1. Receita: apenas pedidos entregues/finalizados/pagos, pela data operacional.
  *    Pedidos cancelados nunca entram.
  * 2. CMV: quantidade vendida de cada produto x preco medio ponderado de compra.
  *    Compras do mês NÃO viram custo — viram estoque.
@@ -20,7 +20,10 @@ import { isDespesaOperacionalResultado } from "./despesasResultado";
  * 5. Período: sempre pela data do fato, nunca pela data do pagamento.
  */
 
-export const STATUS_RECEITA_DRE = ["entregue", "finalizado", "pago_cartao"];
+export const STATUS_RECEITA_DRE = ["entregue", "finalizado", "pago", "pago_cartao"];
+
+const getDataOperacionalPedido = (pedido: { data_entrega?: string | null; created_at?: string | null }) =>
+  (pedido.data_entrega || pedido.created_at || "").slice(0, 10);
 
 export type DreGrupo =
   | "receita"
@@ -164,10 +167,9 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
 
   let pq = supabase
     .from("pedidos")
-    .select("id, valor_total, data_entrega, status, numero_pedido")
+    .select("id, valor_total, data_entrega, created_at, status, numero_pedido")
     .in("status", STATUS_RECEITA_DRE)
-    .gte("data_entrega", inicioISO)
-    .lte("data_entrega", fimISO);
+    .or(`and(data_entrega.gte.${inicioDate},data_entrega.lte.${fimDate}),and(data_entrega.is.null,created_at.gte.${inicioISO},created_at.lte.${fimISO})`);
   if (unidadeId) pq = pq.eq("unidade_id", unidadeId);
 
   let cancQ = supabase
@@ -245,7 +247,7 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
   const receitaBruta = listaPedidos.reduce((s, p: any) => s + Number(p.valor_total || 0), 0);
   listaPedidos.forEach((p: any) => {
     detalhes.receita.push({
-      data: p.data_entrega,
+      data: getDataOperacionalPedido(p),
       descricao: `Pedido #${p.numero_pedido ?? "—"}`,
       origem: "Pedidos",
       valor: Number(p.valor_total || 0),
@@ -474,7 +476,7 @@ export interface DreLinhaConfig {
 }
 
 export const DRE_LINHAS: DreLinhaConfig[] = [
-  { categoria: "Receita Bruta de Vendas", tipo: "receita", grupo: "receita", campo: "receitaBruta", ajuda: "Pedidos entregues/finalizados no mês. Cancelados não entram." },
+  { categoria: "Receita Bruta de Vendas", tipo: "receita", grupo: "receita", campo: "receitaBruta", ajuda: "Pedidos entregues/finalizados/pagos no mês, pela data de entrega ou criação. Cancelados não entram." },
   { categoria: "(-) Impostos e deduções", tipo: "deducao", grupo: "impostos", campo: "impostos", negativo: true, indent: true, ajuda: "Somente impostos efetivamente lançados. Sem percentual estimado." },
   { categoria: "RECEITA LÍQUIDA", tipo: "subtotal", campo: "receitaLiquida" },
   { categoria: "(-) CMV — custo dos produtos vendidos", tipo: "custo", grupo: "cmv", campo: "cmv", negativo: true, indent: true, ajuda: "Quantidade vendida x preco medio ponderado de compra do produto. Compras do mes viram estoque, nao custo integral." },

@@ -442,7 +442,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
         <CardContent className="py-4">
           <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Como esta DRE é calculada</p>
           <ul className="grid gap-1.5 text-[12px] leading-snug text-muted-foreground sm:grid-cols-2">
-            <li>• Receita: pedidos entregues/finalizados, pela data de entrega. Cancelados nunca entram.</li>
+            <li>• Receita: pedidos entregues/finalizados/pagos, pela data de entrega ou criação. Cancelados nunca entram.</li>
             <li>• CMV: quantidade vendida x preço de custo do produto. Compras do mês viram estoque, não custo.</li>
             <li>• Cada gasto entra uma única vez: pagamentos de compras e de contas a pagar são liquidação, não despesa.</li>
             <li>• Impostos: apenas os efetivamente lançados — não há percentual estimado.</li>
