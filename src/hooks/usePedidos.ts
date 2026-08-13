@@ -142,14 +142,27 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
       const { data: pedidosData, error: pedidosError } = await query;
       if (pedidosError) throw pedidosError;
 
+      // Busca todos os itens em lote (evita N+1: 1 request por pedido)
+      const pedidoIds = (pedidosData || []).map((p) => p.id);
+      const itensPorPedido = new Map<string, any[]>();
+      const CHUNK = 200;
+      for (let i = 0; i < pedidoIds.length; i += CHUNK) {
+        const chunk = pedidoIds.slice(i, i + CHUNK);
+        const { data: itensChunk } = await supabase
+          .from("pedido_itens")
+          .select(`*, produtos (id, nome)`)
+          .in("pedido_id", chunk);
+        (itensChunk || []).forEach((item) => {
+          const arr = itensPorPedido.get(item.pedido_id) || [];
+          arr.push(item);
+          itensPorPedido.set(item.pedido_id, arr);
+        });
+      }
+
       const pedidosFormatados: PedidoFormatado[] = await Promise.all(
         (pedidosData || []).map(async (pedido) => {
-          const { data: itensData } = await supabase
-            .from("pedido_itens")
-            .select(`*, produtos (id, nome)`)
-            .eq("pedido_id", pedido.id);
+          const itens = itensPorPedido.get(pedido.id) || [];
 
-          const itens = itensData || [];
           const produtosStr = itens
             .map((item) => `${item.quantidade}x ${item.produtos?.nome || "Produto"}`)
             .join(", ") || "Sem itens";
