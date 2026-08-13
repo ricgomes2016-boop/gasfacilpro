@@ -24,6 +24,7 @@ import { Users, Plus, Search, Edit, Trash2, Phone, MapPin, FileText, Loader2, Ca
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PrecosNegociadosTab } from "@/components/clientes/PrecosNegociadosTab";
 import { HistoricoComprasDialog } from "@/components/clientes/HistoricoComprasDialog";
+import { ClientesList } from "@/components/clientes/ClientesList";
 import {
   DropdownMenu,
   DropdownMenuContent,
