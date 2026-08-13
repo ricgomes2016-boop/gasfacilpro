@@ -12526,6 +12526,10 @@ export type Database = {
         Returns: number
       }
       can_manage_transporte: { Args: { _user_id: string }; Returns: boolean }
+      can_view_inteligencia_mercado: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       consumir_vale_empenho: {
         Args: {
           _cliente_final_id: string
