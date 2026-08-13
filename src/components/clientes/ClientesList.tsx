@@ -262,15 +262,7 @@ export function ClientesList({
                 <TableHead className="w-10">
                   <Checkbox
                     checked={allSelected}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        clientes.forEach((c) => selectedMergeIds.add(c.id));
-                      } else {
-                        clientes.forEach((c) => selectedMergeIds.delete(c.id));
-                      }
-                      // Force re-render by creating a new Set from the mutated one
-                      onToggleMerge("");
-                    }}
+                    onCheckedChange={(checked) => onSelectAll?.(!!checked)}
                     aria-label="Selecionar todos"
                   />
                 </TableHead>
