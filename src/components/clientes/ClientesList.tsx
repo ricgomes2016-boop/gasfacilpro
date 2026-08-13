@@ -97,6 +97,7 @@ export function ClientesList({
   onVenda,
   onHistorico,
   onUnidades,
+  onSelectAll,
 }: ClientesListProps) {
   const allSelected = clientes.length > 0 && clientes.every((c) => selectedMergeIds.has(c.id));
 
