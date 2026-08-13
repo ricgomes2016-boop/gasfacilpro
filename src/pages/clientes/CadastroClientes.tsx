@@ -1290,237 +1290,34 @@ export default function CadastroClientesCad() {
               </div>
             ) : (
               <>
-                {/* Mobile Cards */}
-                <div className="space-y-3 md:hidden">
-                  {filteredClientes.map((cliente) => (
-                    <div key={cliente.id} className="semantic-mobile-card">
-                      <div className="flex items-start gap-2">
-                        <Checkbox
-                          checked={selectedMergeIds.has(cliente.id)}
-                          onCheckedChange={() => toggleMergeId(cliente.id)}
-                          className="mt-1"
-                          aria-label="Selecionar para mesclar"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex min-w-0 items-start gap-2">
-                            {cliente.codigo_cliente && (
-                              <span className="shrink-0 rounded-full border border-border/60 bg-muted/45 px-1.5 py-0.5 font-mono text-[10px] leading-none text-muted-foreground">
-                                #{cliente.codigo_cliente}
-                              </span>
-                            )}
-                            <p className="line-clamp-2 min-w-0 break-words text-base font-semibold leading-snug text-foreground">{cliente.nome}</p>
-                          </div>
-                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                            <Badge variant={cliente.ativo ? "default" : "destructive"} className="h-5 rounded-full px-2 text-[10px] font-medium leading-none">
-                              {cliente.ativo ? "Ativo" : "Inativo"}
-                            </Badge>
-                            {cliente.tipo && <Badge variant="outline" className="h-5 rounded-full px-2 text-[10px] font-medium leading-none capitalize">{cliente.tipo}</Badge>}
-                            {cliente.bairro && <Badge variant="secondary" className="h-5 rounded-full px-2 text-[10px] font-medium leading-none">{cliente.bairro}</Badge>}
-                            {cliente.cadastro_app && (
-                              <Badge variant="secondary" className="h-5 rounded-full px-2 text-[10px] font-medium leading-none gap-1">
-                                <Smartphone className="h-3 w-3" />
-                                App
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <div className="hidden">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Lançar venda" onClick={() => navigate(`/vendas/nova?cliente_id=${cliente.id}`)}>
-                            <ShoppingCart className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Histórico" onClick={() => { setHistoricoCliente({ id: cliente.id, nome: cliente.nome }); setHistoricoOpen(true); }}>
-                            <History className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Unidades" onClick={() => { setUnidadesClienteId(cliente.id); setUnidadesClienteNome(cliente.nome); setUnidadesDialogOpen(true); }}>
-                            <Building2 className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditModal(cliente)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleToggleStatus(cliente)}>
-                            {cliente.ativo ? <X className="h-4 w-4 text-destructive" /> : <Check className="h-4 w-4 text-success" />}
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 gap-1.5 text-sm text-muted-foreground">
-                        {cliente.telefone && (
-                          <div className="flex items-center gap-2">
-                            <Phone className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">{cliente.telefone}</span>
-                          </div>
-                        )}
-                        {(cliente.endereco || cliente.bairro) && (
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-3.5 w-3.5 shrink-0" />
-                            <span className="line-clamp-2 min-w-0 break-words">
-                              {[cliente.endereco, cliente.numero, cliente.bairro].filter(Boolean).join(", ")}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="mt-2 grid grid-cols-5 gap-1 border-t border-border/45 pt-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-full"
-                          title="Lançar venda"
-                          aria-label={`Lançar venda para ${cliente.nome}`}
-                          onClick={() => navigate(`/vendas/nova?cliente_id=${cliente.id}`)}
-                        >
-                          <ShoppingCart className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-full"
-                          title="Histórico"
-                          aria-label={`Abrir histórico de ${cliente.nome}`}
-                          onClick={() => { setHistoricoCliente({ id: cliente.id, nome: cliente.nome }); setHistoricoOpen(true); }}
-                        >
-                          <History className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-full"
-                          title="Unidades"
-                          aria-label={`Abrir unidades de ${cliente.nome}`}
-                          onClick={() => { setUnidadesClienteId(cliente.id); setUnidadesClienteNome(cliente.nome); setUnidadesDialogOpen(true); }}
-                        >
-                          <Building2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-full"
-                          title="Editar"
-                          aria-label={`Editar ${cliente.nome}`}
-                          onClick={() => openEditModal(cliente)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-full"
-                          title={cliente.ativo ? "Inativar" : "Ativar"}
-                          aria-label={`${cliente.ativo ? "Inativar" : "Ativar"} ${cliente.nome}`}
-                          onClick={() => handleToggleStatus(cliente)}
-                        >
-                          {cliente.ativo ? <X className="h-4 w-4 text-destructive" /> : <Check className="h-4 w-4 text-success" />}
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Desktop Table */}
-                <div className="hidden md:block overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-10">
-                          <Checkbox
-                            checked={filteredClientes.length > 0 && filteredClientes.every(c => selectedMergeIds.has(c.id))}
-                            onCheckedChange={(v) => {
-                              setSelectedMergeIds(prev => {
-                                const next = new Set(prev);
-                                if (v) filteredClientes.forEach(c => next.add(c.id));
-                                else filteredClientes.forEach(c => next.delete(c.id));
-                                return next;
-                              });
-                            }}
-                            aria-label="Selecionar todos"
-                          />
-                        </TableHead>
-                        <TableHead className="w-20">Código</TableHead>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Telefone</TableHead>
-                        <TableHead>Endereço</TableHead>
-                        <TableHead className="w-16">Nº</TableHead>
-                        <TableHead>Bairro</TableHead>
-                        <TableHead className="hidden lg:table-cell">Tipo</TableHead>
-                        <TableHead className="text-center">App</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredClientes.map((cliente) => {
-                        const num = cliente.numero || "";
-                        const rua = cliente.endereco || "";
-                        return (
-                          <TableRow key={cliente.id} data-state={selectedMergeIds.has(cliente.id) ? "selected" : undefined}>
-                            <TableCell className="w-10">
-                              <Checkbox
-                                checked={selectedMergeIds.has(cliente.id)}
-                                onCheckedChange={() => toggleMergeId(cliente.id)}
-                                aria-label={`Selecionar ${cliente.nome}`}
-                              />
-                            </TableCell>
-                            <TableCell className="font-mono text-xs text-muted-foreground">
-                              {cliente.codigo_cliente ? `#${cliente.codigo_cliente}` : "-"}
-                            </TableCell>
-                            <TableCell className="font-medium">{cliente.nome}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1.5">
-                                <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                <span className="text-sm">{cliente.telefone || "-"}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1.5 max-w-[180px]">
-                                <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                <span className="text-sm truncate">{rua || "-"}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm font-mono">{num || "-"}</TableCell>
-                            <TableCell>
-                              {cliente.bairro ? <Badge variant="secondary">{cliente.bairro}</Badge> : <span className="text-sm text-muted-foreground">-</span>}
-                            </TableCell>
-                            <TableCell className="hidden lg:table-cell">
-                              <Badge variant="outline">{cliente.tipo || "N/E"}</Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {cliente.cadastro_app ? (
-                                <Badge variant="secondary" className="gap-1 text-xs">
-                                  <Smartphone className="h-3 w-3" />
-                                  Sim
-                                </Badge>
-                              ) : (
-                                <span className="text-sm text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={cliente.ativo ? "default" : "destructive"}>
-                                {cliente.ativo ? "Ativo" : "Inativo"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-1">
-                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Lançar venda" onClick={() => navigate(`/vendas/nova?cliente_id=${cliente.id}`)}>
-                                  <ShoppingCart className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Histórico" onClick={() => { setHistoricoCliente({ id: cliente.id, nome: cliente.nome }); setHistoricoOpen(true); }}>
-                                  <History className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Unidades" onClick={() => { setUnidadesClienteId(cliente.id); setUnidadesClienteNome(cliente.nome); setUnidadesDialogOpen(true); }}>
-                                  <Building2 className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditModal(cliente)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleToggleStatus(cliente)}>
-                                  {cliente.ativo ? <X className="h-4 w-4 text-destructive" /> : <Check className="h-4 w-4 text-success" />}
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+                <ClientesList
+                  clientes={filteredClientes}
+                  selectedMergeIds={selectedMergeIds}
+                  onToggleMerge={toggleMergeId}
+                  onSelectAll={(selected) => {
+                    setSelectedMergeIds((prev) => {
+                      const next = new Set(prev);
+                      if (selected) {
+                        filteredClientes.forEach((c) => next.add(c.id));
+                      } else {
+                        filteredClientes.forEach((c) => next.delete(c.id));
+                      }
+                      return next;
+                    });
+                  }}
+                  onEdit={openEditModal}
+                  onToggleStatus={handleToggleStatus}
+                  onVenda={(cliente) => navigate(`/vendas/nova?cliente_id=${cliente.id}`)}
+                  onHistorico={(cliente) => {
+                    setHistoricoCliente({ id: cliente.id, nome: cliente.nome });
+                    setHistoricoOpen(true);
+                  }}
+                  onUnidades={(cliente) => {
+                    setUnidadesClienteId(cliente.id);
+                    setUnidadesClienteNome(cliente.nome);
+                    setUnidadesDialogOpen(true);
+                  }}
+                />
               </>
             )}
 
