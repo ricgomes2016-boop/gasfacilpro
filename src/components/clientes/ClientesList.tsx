@@ -56,6 +56,7 @@ interface ClientesListProps {
   onVenda: (cliente: Cliente) => void;
   onHistorico: (cliente: Cliente) => void;
   onUnidades: (cliente: Cliente) => void;
+  onSelectAll?: (selected: boolean) => void;
 }
 
 function tipoLabel(tipo: string | null) {
