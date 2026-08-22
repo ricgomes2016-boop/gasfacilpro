@@ -11,6 +11,18 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+/**
+ * Primeiro e último dia do mês atual (fuso de Brasília), em "YYYY-MM-DD".
+ * Usa Date UTC apenas para aritmética de calendário, garantindo virada
+ * de dezembro→janeiro e meses de 28/29/30/31 dias corretos.
+ */
+export function getMesAtualRange(): { inicio: string; fim: string } {
+  const [y, m] = getBrasiliaDateString().split("-").map(Number);
+  const ultimoDia = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const mm = String(m).padStart(2, "0");
+  return { inicio: `${y}-${mm}-01`, fim: `${y}-${mm}-${String(ultimoDia).padStart(2, "0")}` };
+}
+
 export interface ContaPagar {
   id: string;
   fornecedor: string;
