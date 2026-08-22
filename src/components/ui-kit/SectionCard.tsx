@@ -57,7 +57,7 @@ export function SectionCard({
           {actions && <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div>}
         </header>
       )}
-      <div className={cn(flush ? "" : "p-3 sm:p-4", "min-w-0", bodyClassName)}>{children}</div>
+      <div className={cn(isFlush ? "" : "p-3 sm:p-4", "min-w-0", bodyClassName, contentClassName)}>{children}</div>
     </section>
   );
 }
