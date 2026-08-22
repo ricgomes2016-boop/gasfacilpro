@@ -248,7 +248,7 @@ export function useContasPagar() {
   const totalAberto = totalPendente + totalVencido;
 
 
-  const hasActiveFilters = !!(dataInicial || dataFinal || filtroStatus !== "abertas" || filtroFornecedor !== "todos" || filtroCategoria !== "todos");
+  const hasActiveFilters = !!(!isMesAtual || filtroStatus !== "abertas" || filtroFornecedor !== "todos" || filtroCategoria !== "todos");
 
   const resumoPorFornecedor = (() => {
     const pendentes = contas.filter(c => !isContaPaga(c));
@@ -463,7 +463,7 @@ export function useContasPagar() {
   // ===================== FILTERS =====================
 
   const clearAllFilters = () => {
-    setDataInicial(""); setDataFinal(""); setFiltroStatus("abertas");
+    aplicarMesAtual(); setFiltroStatus("abertas");
     setFiltroFornecedor("todos"); setFiltroCategoria("todos");
   };
 
@@ -731,6 +731,7 @@ export function useContasPagar() {
     search, setSearch, dataInicial, setDataInicial, dataFinal, setDataFinal,
     filtroStatus, setFiltroStatus, filtroFornecedor, setFiltroFornecedor,
     filtroCategoria, setFiltroCategoria, clearAllFilters, agrupar, setAgrupar,
+    aplicarMesAtual, isMesAtual,
     // CRUD form
     dialogOpen, setDialogOpen, editId, setEditId, form, setForm, resetForm,
     handleSubmit, handleEdit, deleteId, setDeleteId, handleDelete,
