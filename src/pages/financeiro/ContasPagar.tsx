@@ -27,7 +27,7 @@ import {
 import {
   CreditCard, Search, Plus, AlertCircle, CheckCircle2, Clock, MoreHorizontal,
   Pencil, Trash2, DollarSign, Download, Camera, Loader2, Layers,
-  Building2, Filter, X, Mic, MicOff, AudioLines, FileText, Eye, FileUp, CalendarRange,
+  Building2, Filter, X, Mic, MicOff, AudioLines, FileText, Eye, FileUp, CalendarRange, ArrowUpDown,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ParcelamentoDialog } from "@/components/financeiro/ParcelamentoDialog";
