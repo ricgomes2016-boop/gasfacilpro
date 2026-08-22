@@ -100,12 +100,35 @@ export interface SubMenuItem {
   externalUrl?: string;
 }
 
+/** Áreas da nova arquitetura de informação (jornadas). */
+export type MenuArea =
+  | "inicio"
+  | "vender"
+  | "entregar"
+  | "estocar"
+  | "receber-pagar"
+  | "analisar"
+  | "configurar";
+
+export const MENU_AREAS: { id: MenuArea; label: string }[] = [
+  { id: "inicio", label: "Início" },
+  { id: "vender", label: "Vender" },
+  { id: "entregar", label: "Entregar" },
+  { id: "estocar", label: "Estocar" },
+  { id: "receber-pagar", label: "Receber & Pagar" },
+  { id: "analisar", label: "Analisar" },
+  { id: "configurar", label: "Configurar" },
+];
+
 export interface MenuItem {
   icon: LucideIcon;
   label: string;
   path?: string;
+  /** Jornada a que o grupo pertence — usado para agrupar a navegação. */
+  area?: MenuArea;
   submenu?: SubMenuItem[];
 }
+
 
 export const menuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
