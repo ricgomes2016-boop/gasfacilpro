@@ -95,11 +95,20 @@ export function useContasPagar() {
   const [parcelamentoOpen, setParcelamentoOpen] = useState(false);
 
   // ------- Filters -------
-  const [dataInicial, setDataInicial] = useState("");
-  const [dataFinal, setDataFinal] = useState("");
+  const mesAtual = getMesAtualRange();
+  const [dataInicial, setDataInicial] = useState(mesAtual.inicio);
+  const [dataFinal, setDataFinal] = useState(mesAtual.fim);
   const [filtroStatus, setFiltroStatus] = useState("abertas");
   const [filtroFornecedor, setFiltroFornecedor] = useState("todos");
   const [filtroCategoria, setFiltroCategoria] = useState("todos");
+
+  /** Restaura o período de competência (vencimento) para o mês atual. */
+  const aplicarMesAtual = () => {
+    const r = getMesAtualRange();
+    setDataInicial(r.inicio);
+    setDataFinal(r.fim);
+  };
+  const isMesAtual = dataInicial === mesAtual.inicio && dataFinal === mesAtual.fim;
 
   // ------- Forms -------
   const [form, setForm] = useState(EMPTY_FORM);
