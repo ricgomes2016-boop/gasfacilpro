@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
+  Download,
   FileDown,
   HelpCircle,
   Info,
@@ -11,8 +12,10 @@ import {
   Search,
   TrendingUp,
   Wallet,
+  X,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { Header } from "@/components/layout/Header";
 import { AppPage, KpiCard, KpiRow, SectionCard, EmptyState, KpiSkeletonRow, UiKitSkeleton } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,14 +42,16 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { calcularDRE, DRE_LINHAS, type DreGrupo, type DreLancamento, type DreMes } from "@/lib/financeiro/dreCalculo";
 import {
   agregarProdutos,
+  agruparPorOrigem,
   construirPonte,
   consolidarDre,
+  lancamentosParaCsv,
   margemLiquida,
   percentualReceita,
   variacaoPercentual,
   type DreTotais,
 } from "@/lib/financeiro/dreView";
-import { DRELinhaDetalheDialog } from "@/components/operacional/DRELinhaDetalheDialog";
+
 
 interface DRELine {
   categoria: string;
