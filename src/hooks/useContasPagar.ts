@@ -230,7 +230,7 @@ export function useContasPagar() {
   const hasActiveFilters = !!(dataInicial || dataFinal || filtroStatus !== "abertas" || filtroFornecedor !== "todos" || filtroCategoria !== "todos");
 
   const resumoPorFornecedor = (() => {
-    const pendentes = contas.filter(c => c.status !== "paga");
+    const pendentes = contas.filter(c => !isContaPaga(c));
     const grouped: Record<string, { total: number; count: number; vencidas: number }> = {};
     pendentes.forEach(c => {
       if (!grouped[c.fornecedor]) grouped[c.fornecedor] = { total: 0, count: 0, vencidas: 0 };
@@ -273,7 +273,7 @@ export function useContasPagar() {
 
   const contasSelecionadasPagamento = contas.filter(c => selecionadasPagamentoIds.has(c.id));
   const totalSelecionadoPagamento = contasSelecionadasPagamento.reduce((s, c) => s + Number(c.valor), 0);
-  const contasPagaveisFiltradas = filtered.filter(c => c.status !== "paga");
+  const contasPagaveisFiltradas = filtered.filter(c => !isContaPaga(c));
   const todasPagaveisSelecionadas = contasPagaveisFiltradas.length > 0 && contasPagaveisFiltradas.every(c => selecionadasPagamentoIds.has(c.id));
 
   // ===================== CRUD =====================
@@ -353,7 +353,7 @@ export function useContasPagar() {
 
   const openPagarSelecionadasDialog = () => {
     if (contasSelecionadasPagamento.length === 0) { toast.error("Selecione ao menos uma conta pendente"); return; }
-    const selecionadasAbertas = contasSelecionadasPagamento.filter(c => c.status !== "paga");
+    const selecionadasAbertas = contasSelecionadasPagamento.filter(c => !isContaPaga(c));
     if (selecionadasAbertas.length === 0) { toast.error("As contas selecionadas já estão pagas"); return; }
     const total = selecionadasAbertas.reduce((s, c) => s + Number(c.valor), 0);
     setPagamentoEmLoteIds(new Set(selecionadasAbertas.map(c => c.id)));
@@ -670,7 +670,7 @@ export function useContasPagar() {
       Fornecedor: c.fornecedor, Descrição: c.descricao, Categoria: c.categoria || "—",
       Vencimento: format(new Date(c.vencimento + "T12:00:00"), "dd/MM/yyyy"),
       Valor: `R$ ${Number(c.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-      Status: c.status === "paga" ? "Paga" : (c.status === "pendente" || c.status === "vencida") && c.vencimento < hoje ? "Vencida" : "Pendente",
+      Status: { paga: "Paga", vencida: "Vencida", pendente: "Pendente" }[getStatusContaPagar(c, hoje)],
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -689,7 +689,7 @@ export function useContasPagar() {
         c.fornecedor, c.descricao, c.categoria || "—",
         format(new Date(c.vencimento + "T12:00:00"), "dd/MM/yyyy"),
         `R$ ${Number(c.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-        c.status === "paga" ? "Paga" : (c.status === "pendente" || c.status === "vencida") && c.vencimento < hoje ? "Vencida" : "Pendente",
+        { paga: "Paga", vencida: "Vencida", pendente: "Pendente" }[getStatusContaPagar(c, hoje)],
       ]),
       startY: 30, styles: { fontSize: 9, cellPadding: 3 },
       headStyles: { fillColor: [51, 65, 85], textColor: 255 },
@@ -701,9 +701,9 @@ export function useContasPagar() {
 
   return {
     // data
-    contas, loading, categoriasNomes, fornecedoresCadastro, hoje,
+    contas, loading, loadError, categoriasNomes, fornecedoresCadastro, hoje,
     // computed
-    filtered, totalPendente, totalVencido, totalPago, totalAberto,
+    filtered, scopeFiltered, matchesStatusFiltro, totalPendente, totalVencido, totalPago, totalAberto,
     resumoPorFornecedor, fornecedoresComMultiplas, groupedFiltered,
     fornecedoresUnicos, categoriasUnicas, hasActiveFilters,
     // filters
