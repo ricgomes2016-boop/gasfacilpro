@@ -183,7 +183,7 @@ export default function ContasPagar() {
                   subtitle={`${card.contas.length} conta${card.contas.length === 1 ? "" : "s"} · ${card.subtitle}`}
                   icon={card.icon}
                   color={card.color}
-                  onClick={() => setSelectedSummaryKey(card.key)}
+                  onClick={() => abrirVisaoCard(card.filtro)}
                 />
               ))}
             </div>
