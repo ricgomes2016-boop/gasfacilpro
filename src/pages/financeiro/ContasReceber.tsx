@@ -1618,7 +1618,7 @@ export default function ContasReceber() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </div>
+      </AppPage>
 
       <ImportReviewDialog
         open={importDialogOpen}

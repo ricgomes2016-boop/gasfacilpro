@@ -2067,7 +2067,7 @@ export default function Pedidos() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+      </AppPage>
       <ImportReviewDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}

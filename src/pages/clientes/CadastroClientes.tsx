@@ -1348,7 +1348,7 @@ export default function CadastroClientesCad() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </AppPage>
 
       {/* Modal para criar/editar cliente */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
