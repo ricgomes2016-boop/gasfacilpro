@@ -763,6 +763,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
         {qualidade}
         {pontePonto}
         {tabelaDre}
+        {detalheInline}
         {margemProduto}
         {evolucao}
       </div>
@@ -774,13 +775,6 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       {filtros}
       {embedded && acoes}
       {corpo}
-      <DRELinhaDetalheDialog
-        open={!!detalhe}
-        onOpenChange={(o) => !o && setDetalhe(null)}
-        titulo={detalhe?.titulo || ""}
-        descricao={detalhe?.descricao}
-        lancamentos={detalhe?.lancamentos || []}
-      />
     </div>
   );
 
@@ -788,13 +782,9 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <MainLayout>
-      <AppPage
-        title="DRE Gerencial"
-        description="Resultado por competência, com receita, CMV e despesas reais auditáveis até o lançamento de origem."
-        actions={acoes}
-      >
-        {content}
-      </AppPage>
+      <Header title="DRE Gerencial" subtitle="Demonstrativo de resultados por competência" />
+      <AppPage actions={acoes}>{content}</AppPage>
     </MainLayout>
   );
 }
+
