@@ -189,7 +189,7 @@ export function Sidebar() {
 
   // Filtra menu items pelas regras de plano (fail-open: se nada cadastrado, mostra tudo)
   const visibleMenuItems = useMemo(() => {
-    return menuItems
+    const filtered = menuItems
       .map((item) => {
         if (item.submenu) {
           const sub = item.submenu.filter((s) => !s.path || canAccessPath(s.path));
@@ -199,7 +199,33 @@ export function Sidebar() {
         return canAccessPath(item.path) ? item : null;
       })
       .filter(Boolean) as typeof menuItems;
+
+    // Ordena por jornada (área) preservando a ordem original dentro de cada área
+    const order = MENU_AREAS.map((a) => a.id);
+    return filtered
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => {
+        const ai = order.indexOf((a.item.area ?? "configurar") as never);
+        const bi = order.indexOf((b.item.area ?? "configurar") as never);
+        return ai === bi ? a.index - b.index : ai - bi;
+      })
+      .map((entry) => entry.item);
   }, [canAccessPath]);
+
+  // Rótulo da área exibido antes do primeiro item de cada jornada
+  const areaHeadings = useMemo(() => {
+    const map: Record<string, string> = {};
+    let previous: string | undefined;
+    visibleMenuItems.forEach((item) => {
+      const area = item.area ?? "configurar";
+      if (area !== previous) {
+        map[item.label] = MENU_AREAS.find((a) => a.id === area)?.label ?? "";
+        previous = area;
+      }
+    });
+    return map;
+  }, [visibleMenuItems]);
+
 
   // Auto-open active submenu
   useEffect(() => {
