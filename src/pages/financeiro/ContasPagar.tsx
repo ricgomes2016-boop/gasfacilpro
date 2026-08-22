@@ -424,7 +424,8 @@ export default function ContasPagar() {
                     <Label>Atalhos de periodo</Label>
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" variant="outline" size="sm" onClick={() => { cp.setDataInicial(cp.hoje); cp.setDataFinal(cp.hoje); }}>Hoje</Button>
-                      <Button type="button" variant="outline" size="sm" onClick={() => applyDateShortcut(7)}>Proximos 7 dias</Button>
+                     <Button type="button" variant={cp.isMesAtual ? "default" : "outline"} size="sm" onClick={cp.aplicarMesAtual}>Mês atual</Button>
+                     <Button type="button" variant="outline" size="sm" onClick={() => applyDateShortcut(7)}>Proximos 7 dias</Button>
                       <Button type="button" variant="outline" size="sm" onClick={() => applyDateShortcut(15)}>Proximos 15 dias</Button>
                       <Button type="button" variant="outline" size="sm" onClick={() => applyDateShortcut(30)}>Proximos 30 dias</Button>
                     </div>
@@ -504,7 +505,7 @@ export default function ContasPagar() {
                     <Filter className="h-3 w-3" /><span>{visibleContas.length} de {cp.contas.length} contas</span>
                     {cp.filtroFornecedor !== "todos" && <Badge variant="secondary" className="gap-1 py-0 text-xs">{cp.filtroFornecedor}<button onClick={() => cp.setFiltroFornecedor("todos")}><X className="h-3 w-3" /></button></Badge>}
                     {cp.filtroCategoria !== "todos" && <Badge variant="secondary" className="gap-1 py-0 text-xs">{cp.filtroCategoria}<button onClick={() => cp.setFiltroCategoria("todos")}><X className="h-3 w-3" /></button></Badge>}
-                    {(cp.dataInicial || cp.dataFinal) && <Badge variant="secondary" className="gap-1 py-0 text-xs">{fmtData(cp.dataInicial)} → {fmtData(cp.dataFinal)}<button onClick={() => { cp.setDataInicial(""); cp.setDataFinal(""); }}><X className="h-3 w-3" /></button></Badge>}
+                    {!cp.isMesAtual && (cp.dataInicial || cp.dataFinal) && <Badge variant="secondary" className="gap-1 py-0 text-xs">{fmtData(cp.dataInicial)} → {fmtData(cp.dataFinal)}<button onClick={cp.aplicarMesAtual} aria-label="Voltar ao mês atual"><X className="h-3 w-3" /></button></Badge>}
                     {valorMinimo && <Badge variant="secondary" className="gap-1 py-0 text-xs">Min: R$ {valorMinimo}<button onClick={() => setValorMinimo("")}><X className="h-3 w-3" /></button></Badge>}
                     {valorMaximo && <Badge variant="secondary" className="gap-1 py-0 text-xs">Max: R$ {valorMaximo}<button onClick={() => setValorMaximo("")}><X className="h-3 w-3" /></button></Badge>}
                     <Button variant="ghost" onClick={limparTudo} className="h-7 gap-1 px-2 text-xs"><X className="h-3 w-3" />Limpar tudo</Button>
