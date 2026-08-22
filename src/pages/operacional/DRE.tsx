@@ -261,6 +261,14 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
 
   const mostrarMensal = modo === "mensal" && dados.length > 1;
 
+  const intervaloLabel =
+    dados.length > 0
+      ? `${dados[0].inicio.split("-").reverse().join("/")} a ${dados[dados.length - 1].fim.split("-").reverse().join("/")}`
+      : "—";
+  const escopoLabel = unidadeAtual?.nome ? `unidade ${unidadeAtual.nome}` : "todas as unidades (consolidado)";
+  const notaEscopo = `${totais.qtdPedidos} pedidos considerados · ${intervaloLabel} · ${escopoLabel}.`;
+
+
   /* ------------------------------- Blocos ------------------------------- */
 
   const comoCalcula = (
