@@ -33,9 +33,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ParcelamentoDialog } from "@/components/financeiro/ParcelamentoDialog";
 import { CompromissosFuturos } from "@/components/financeiro/CompromissosFuturos";
 import { format } from "date-fns";
-import { useContasPagar, FORMAS_PAGAMENTO } from "@/hooks/useContasPagar";
+import { useContasPagar, FORMAS_PAGAMENTO, getStatusContaPagar, isContaPaga, type ContaPagar } from "@/hooks/useContasPagar";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 
 type SortKey = "vencimento" | "fornecedor" | "status" | "valor";
