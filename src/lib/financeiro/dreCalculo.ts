@@ -278,10 +278,9 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
   const listaPedidos = pedidos || [];
   const receitaBruta = listaPedidos.reduce((s, p: any) => s + Number(p.valor_total || 0), 0);
   listaPedidos.forEach((p: any) => {
-    const identificador = p.id ? `Pedido #${String(p.id).slice(0, 8)}` : "Pedido";
     detalhes.receita.push({
       data: getDataOperacionalPedido(p),
-      descricao: identificador,
+      descricao: formatarIdentificadorPedido(p.id),
       origem: "Pedidos",
       valor: Number(p.valor_total || 0),
     });
