@@ -415,7 +415,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
   const tabelaDre = (
     <SectionCard
       title="DRE Gerencial"
-      description="Competência gerencial por mês. Clique numa linha auditável para ver os lançamentos de origem."
+      description={`${notaEscopo} Clique numa linha auditável para ver os lançamentos de origem.`}
       flush
       actions={
         <Tabs value={mostrarMensal ? "mensal" : "consolidado"} onValueChange={(v) => setModo(v as "consolidado" | "mensal")}>
