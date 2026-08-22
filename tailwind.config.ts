@@ -70,12 +70,27 @@ export default {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
         },
+        positive: "hsl(var(--positive))",
+        negative: "hsl(var(--negative))",
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          raised: "hsl(var(--surface-raised))",
+          sunken: "hsl(var(--surface-sunken))",
+        },
+        fg: {
+          DEFAULT: "hsl(var(--fg))",
+          muted: "hsl(var(--fg-muted))",
+          subtle: "hsl(var(--fg-subtle))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        card: "var(--radius-card)",
+        control: "var(--radius-control)",
       },
+
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
