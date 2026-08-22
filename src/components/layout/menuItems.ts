@@ -231,7 +231,7 @@ export const menuItems: MenuItem[] = [
   {
     icon: Megaphone,
     label: "Gestão de Marketing",
-    area: "configurar",
+    area: "vender",
     submenu: [
       { icon: LayoutDashboard, label: "Dashboard", path: "/marketing" },
       { icon: Sparkles, label: "Criar Conteúdo", path: "/clientes/marketing" },
