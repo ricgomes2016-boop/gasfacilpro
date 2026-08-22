@@ -5,7 +5,12 @@ import {
   classificarDespesaDRE,
   criarMapaCategoriasFiscais,
 } from "./dreFinanceiro";
-import { STATUS_RECEITA_DRE, filtroPeriodoPedidos, mesRangeDre } from "./dreRange";
+import {
+  STATUS_RECEITA_DRE,
+  filtroPeriodoPedidos,
+  formatarIdentificadorPedido,
+  mesRangeDre,
+} from "./dreRange";
 import { isDespesaOperacionalResultado } from "./despesasResultado";
 
 
@@ -167,7 +172,7 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
 
   let pq = supabase
     .from("pedidos")
-    .select("id, valor_total, data_entrega, created_at, status, numero_pedido")
+    .select("id, valor_total, data_entrega, created_at, status")
     .in("status", [...STATUS_RECEITA_DRE])
     .or(filtroPeriodoPedidos(range));
   if (unidadeId) pq = pq.eq("unidade_id", unidadeId);
@@ -275,7 +280,7 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
   listaPedidos.forEach((p: any) => {
     detalhes.receita.push({
       data: getDataOperacionalPedido(p),
-      descricao: `Pedido #${p.numero_pedido ?? "—"}`,
+      descricao: formatarIdentificadorPedido(p.id),
       origem: "Pedidos",
       valor: Number(p.valor_total || 0),
     });

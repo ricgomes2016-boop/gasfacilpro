@@ -56,3 +56,9 @@ export function filtroPeriodoPedidos(range: DreMesRange): string {
     `and(data_entrega.is.null,created_at.gte.${range.inicioISO},created_at.lt.${range.proximoInicioISO})`,
   ].join(",");
 }
+
+/** Formata o identificador de um pedido no detalhamento da DRE sem depender de colunas inexistentes. */
+export function formatarIdentificadorPedido(id?: string | null): string {
+  if (!id) return "Pedido";
+  return `Pedido #${String(id).slice(0, 8)}`;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { STATUS_RECEITA_DRE, filtroPeriodoPedidos, mesRangeDre } from "./dreRange";
+import { STATUS_RECEITA_DRE, filtroPeriodoPedidos, formatarIdentificadorPedido, mesRangeDre } from "./dreRange";
 
 describe("mesRangeDre", () => {
   it("cobre o mês inteiro com fim exclusivo no próximo mês", () => {
@@ -47,5 +47,17 @@ describe("STATUS_RECEITA_DRE", () => {
     ["cancelado", "pendente", "em_rota", "agendado"].forEach((s) =>
       expect(STATUS_RECEITA_DRE as readonly string[]).not.toContain(s),
     );
+  });
+});
+
+describe("formatarIdentificadorPedido", () => {
+  it("usa os primeiros 8 caracteres do id sem depender de numero_pedido", () => {
+    expect(formatarIdentificadorPedido("477b2c2b-9345-4241-8526-b7d490cd2707")).toBe("Pedido #477b2c2b");
+  });
+
+  it("retorna 'Pedido' quando id está ausente", () => {
+    expect(formatarIdentificadorPedido(null)).toBe("Pedido");
+    expect(formatarIdentificadorPedido(undefined)).toBe("Pedido");
+    expect(formatarIdentificadorPedido("")).toBe("Pedido");
   });
 });
