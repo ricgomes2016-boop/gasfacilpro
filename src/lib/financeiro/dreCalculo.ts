@@ -167,7 +167,7 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
 
   let pq = supabase
     .from("pedidos")
-    .select("id, valor_total, data_entrega, created_at, status, numero_pedido")
+    .select("id, valor_total, data_entrega, created_at, status")
     .in("status", [...STATUS_RECEITA_DRE])
     .or(filtroPeriodoPedidos(range));
   if (unidadeId) pq = pq.eq("unidade_id", unidadeId);
