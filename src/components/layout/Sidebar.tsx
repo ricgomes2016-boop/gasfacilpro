@@ -429,13 +429,11 @@ export function Sidebar() {
               </div>
             </div>
           )}
-          {!collapsed && (
-            <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
-              Navegação
-            </p>
-          )}
           <div className="space-y-1">
             {visibleMenuItems.map((item, idx) => {
+              const heading = collapsed ? undefined : areaHeadings[item.label];
+              const rendered = (() => {
+
               const hasSubmenu = !!item.submenu;
               const isOpen = isSubmenuOpen(item.label);
               const isItemActive = isActive(item.path);
