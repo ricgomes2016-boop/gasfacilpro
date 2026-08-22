@@ -525,6 +525,99 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
     </SectionCard>
   );
 
+  const detalheInline = detalhe && (
+    <div ref={detalheRef} tabIndex={-1} className="scroll-mt-24 outline-none">
+      <SectionCard
+        title={`Detalhamento — ${detalhe.titulo}`}
+        description={detalhe.descricao}
+        actions={
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={buscaDetalhe}
+                onChange={(e) => setBuscaDetalhe(e.target.value)}
+                placeholder="Buscar descrição ou origem"
+                aria-label="Buscar lançamentos desta linha"
+                className="h-9 pl-8 text-base sm:text-sm"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9"
+              onClick={exportarDetalheCsv}
+              disabled={detalheFiltrado.length === 0}
+              aria-label="Exportar lançamentos em CSV"
+            >
+              <Download className="mr-1.5 h-4 w-4" /> CSV
+            </Button>
+            <Button type="button" variant="ghost" size="sm" className="h-9" onClick={() => setDetalhe(null)}>
+              <X className="mr-1.5 h-4 w-4" /> Fechar detalhe
+            </Button>
+          </div>
+        }
+      >
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius)] border border-border/60 bg-muted/35 px-3 py-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {detalheFiltrado.length} lançamento(s)
+            {detalheFiltrado.length !== detalhe.lancamentos.length ? ` de ${detalhe.lancamentos.length}` : ""}
+          </span>
+          <span className="text-sm font-bold tabular-nums">{formatCurrency(detalheTotal)}</span>
+        </div>
+
+        {detalheOrigens.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {detalheOrigens.map((o) => (
+              <Badge key={o.origem} variant="outline" className="gap-1 text-[11px] font-medium">
+                {o.origem}
+                <span className="text-muted-foreground">· {o.quantidade} · {formatCurrency(o.total)}</span>
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        <div className="max-h-[60vh] w-full overflow-auto rounded-[var(--radius)] border border-border/60">
+          {detalheFiltrado.length === 0 ? (
+            <p className="p-6 text-center text-sm text-muted-foreground">
+              {detalhe.lancamentos.length === 0
+                ? "Nenhum lançamento nesta linha no período."
+                : "Nenhum lançamento corresponde à busca."}
+            </p>
+          ) : (
+            <table className="w-full min-w-[520px] text-[13px]">
+              <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur">
+                <tr>
+                  <th scope="col" className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Data</th>
+                  <th scope="col" className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Descrição</th>
+                  <th scope="col" className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Origem</th>
+                  <th scope="col" className="px-3 py-2 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detalheFiltrado.map((l, i) => (
+                  <tr key={`${l.data}-${i}`} className="border-t border-border/50 odd:bg-muted/15">
+                    <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                      {l.data ? l.data.split("-").reverse().join("/") : "—"}
+                    </td>
+                    <td className="px-3 py-2 leading-snug">{l.descricao}</td>
+                    <td className="px-3 py-2">
+                      <Badge variant="outline" className="text-[10px]">{l.origem}</Badge>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums">{formatCurrency(l.valor)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </SectionCard>
+    </div>
+  );
+
+
+
   const margemProduto = (
     <SectionCard
       title="Margem por produto"
