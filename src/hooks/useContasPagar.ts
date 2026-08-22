@@ -11,6 +11,18 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+/**
+ * Primeiro e último dia do mês atual (fuso de Brasília), em "YYYY-MM-DD".
+ * Usa Date UTC apenas para aritmética de calendário, garantindo virada
+ * de dezembro→janeiro e meses de 28/29/30/31 dias corretos.
+ */
+export function getMesAtualRange(): { inicio: string; fim: string } {
+  const [y, m] = getBrasiliaDateString().split("-").map(Number);
+  const ultimoDia = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const mm = String(m).padStart(2, "0");
+  return { inicio: `${y}-${mm}-01`, fim: `${y}-${mm}-${String(ultimoDia).padStart(2, "0")}` };
+}
+
 export interface ContaPagar {
   id: string;
   fornecedor: string;
@@ -95,11 +107,20 @@ export function useContasPagar() {
   const [parcelamentoOpen, setParcelamentoOpen] = useState(false);
 
   // ------- Filters -------
-  const [dataInicial, setDataInicial] = useState("");
-  const [dataFinal, setDataFinal] = useState("");
+  const mesAtual = getMesAtualRange();
+  const [dataInicial, setDataInicial] = useState(mesAtual.inicio);
+  const [dataFinal, setDataFinal] = useState(mesAtual.fim);
   const [filtroStatus, setFiltroStatus] = useState("abertas");
   const [filtroFornecedor, setFiltroFornecedor] = useState("todos");
   const [filtroCategoria, setFiltroCategoria] = useState("todos");
+
+  /** Restaura o período de competência (vencimento) para o mês atual. */
+  const aplicarMesAtual = () => {
+    const r = getMesAtualRange();
+    setDataInicial(r.inicio);
+    setDataFinal(r.fim);
+  };
+  const isMesAtual = dataInicial === mesAtual.inicio && dataFinal === mesAtual.fim;
 
   // ------- Forms -------
   const [form, setForm] = useState(EMPTY_FORM);
@@ -227,7 +248,7 @@ export function useContasPagar() {
   const totalAberto = totalPendente + totalVencido;
 
 
-  const hasActiveFilters = !!(dataInicial || dataFinal || filtroStatus !== "abertas" || filtroFornecedor !== "todos" || filtroCategoria !== "todos");
+  const hasActiveFilters = !!(!isMesAtual || filtroStatus !== "abertas" || filtroFornecedor !== "todos" || filtroCategoria !== "todos");
 
   const resumoPorFornecedor = (() => {
     const pendentes = contas.filter(c => !isContaPaga(c));
@@ -442,7 +463,7 @@ export function useContasPagar() {
   // ===================== FILTERS =====================
 
   const clearAllFilters = () => {
-    setDataInicial(""); setDataFinal(""); setFiltroStatus("abertas");
+    aplicarMesAtual(); setFiltroStatus("abertas");
     setFiltroFornecedor("todos"); setFiltroCategoria("todos");
   };
 
@@ -710,6 +731,7 @@ export function useContasPagar() {
     search, setSearch, dataInicial, setDataInicial, dataFinal, setDataFinal,
     filtroStatus, setFiltroStatus, filtroFornecedor, setFiltroFornecedor,
     filtroCategoria, setFiltroCategoria, clearAllFilters, agrupar, setAgrupar,
+    aplicarMesAtual, isMesAtual,
     // CRUD form
     dialogOpen, setDialogOpen, editId, setEditId, form, setForm, resetForm,
     handleSubmit, handleEdit, deleteId, setDeleteId, handleDelete,
