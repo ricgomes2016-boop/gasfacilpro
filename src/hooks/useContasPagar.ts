@@ -77,6 +77,7 @@ export function useContasPagar() {
   // ------- Core data -------
   const [contas, setContas] = useState<ContaPagar[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [fornecedoresCadastro, setFornecedoresCadastro] = useState<FornecedorCadastro[]>([]);
 
   // ------- UI / dialog state -------
