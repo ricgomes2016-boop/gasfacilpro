@@ -149,10 +149,17 @@ export function useContasPagar() {
     let query = supabase.from("contas_pagar").select("*").order("vencimento", { ascending: true });
     if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
     const { data, error } = await query;
-    if (error) { toast.error("Erro ao carregar contas"); console.error(error); }
-    else setContas((data as ContaPagar[]) || []);
+    if (error) {
+      toast.error("Erro ao carregar contas");
+      console.error(error);
+      setLoadError(error.message || "Falha ao carregar contas a pagar");
+    } else {
+      setLoadError(null);
+      setContas((data as ContaPagar[]) || []);
+    }
     setLoading(false);
   };
+
 
   const fetchContasBancarias = async () => {
     let q = supabase.from("contas_bancarias").select("id, nome, banco, saldo_atual").eq("ativo", true).order("nome");
