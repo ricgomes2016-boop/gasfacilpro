@@ -38,6 +38,17 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 
+type SortKey = "vencimento" | "fornecedor" | "status" | "valor";
+
+const STATUS_META: Record<string, { label: string; className: string; ordem: number }> = {
+  vencida: { label: "Vencida", className: "border-destructive/30 bg-destructive/10 text-destructive", ordem: 0 },
+  pendente: { label: "Pendente", className: "border-warning/30 bg-warning/10 text-warning", ordem: 1 },
+  paga: { label: "Paga", className: "border-success/30 bg-success/10 text-success", ordem: 2 },
+};
+
+const brl = (v: number) => `R$ ${Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtData = (d?: string | null) => (d ? format(new Date(`${d.slice(0, 10)}T12:00:00`), "dd/MM/yyyy") : "—");
+
 export default function ContasPagar() {
   const cp = useContasPagar();
   const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
@@ -45,71 +56,97 @@ export default function ContasPagar() {
   const [futureRange, setFutureRange] = useState("30");
   const [valorMinimo, setValorMinimo] = useState("");
   const [valorMaximo, setValorMaximo] = useState("");
-  const [selectedSummaryKey, setSelectedSummaryKey] = useState<string | null>(null);
-  const visibleContas = cp.filtered.filter(c => {
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" } | null>(null);
+
+  const matchValor = (c: { valor: number }) => {
     const valor = Number(c.valor);
     const min = valorMinimo ? Number(valorMinimo) : null;
     const max = valorMaximo ? Number(valorMaximo) : null;
     return (min === null || valor >= min) && (max === null || valor <= max);
-  });
-  const totalPendenteVisivel = visibleContas.filter(c => c.status === "pendente" && c.vencimento >= cp.hoje).reduce((a, c) => a + Number(c.valor), 0);
-  const totalVencidoVisivel = visibleContas.filter(c => (c.status === "pendente" || c.status === "vencida") && c.vencimento < cp.hoje).reduce((a, c) => a + Number(c.valor), 0);
-  const totalPagoVisivel = visibleContas.filter(c => c.status === "paga").reduce((a, c) => a + Number(c.valor), 0);
-  const totalAbertoVisivel = totalPendenteVisivel + totalVencidoVisivel;
-  const contasVencemHoje = visibleContas.filter(c => c.status !== "paga" && c.vencimento === cp.hoje);
-  const summaryCards: Array<{
-    key: string; title: string; subtitle: string; total: number;
-    contas: typeof visibleContas; icon: any; color: HeroColor;
-    cardClass?: string; iconClass?: string; valueClass?: string;
-  }> = [
-    {
-      key: "abertas",
-      title: "Total a pagar",
-      subtitle: "Contas pendentes e vencidas",
-      total: totalAbertoVisivel,
-      contas: visibleContas.filter(c => c.status !== "paga"),
-      icon: CreditCard,
-      color: "primary",
-    },
-    {
-      key: "a-vencer",
-      title: "A vencer",
-      subtitle: contasVencemHoje.length > 0 ? `${contasVencemHoje.length} vence${contasVencemHoje.length === 1 ? "" : "m"} hoje` : "Ainda dentro do prazo",
-      total: totalPendenteVisivel,
-      contas: visibleContas.filter(c => c.status === "pendente" && c.vencimento >= cp.hoje),
-      icon: Clock,
-      color: "warning",
-    },
-    {
-      key: "vencidas",
-      title: "Vencidas",
-      subtitle: "Exigem prioridade",
-      total: totalVencidoVisivel,
-      contas: visibleContas.filter(c => (c.status === "pendente" || c.status === "vencida") && c.vencimento < cp.hoje),
-      icon: AlertCircle,
-      color: "danger",
-    },
-    {
-      key: "pagas",
-      title: "Pagas",
-      subtitle: "Quitadas no filtro atual",
-      total: totalPagoVisivel,
-      contas: visibleContas.filter(c => c.status === "paga"),
-      icon: CheckCircle2,
-      color: "success",
-    },
-  ];
-  const selectedSummary = summaryCards.find(card => card.key === selectedSummaryKey);
-  const groupedVisible = (() => {
-    if (!cp.agrupar) return null;
-    const groups: Record<string, typeof visibleContas> = {};
-    visibleContas.forEach(c => {
-      if (!groups[c.fornecedor]) groups[c.fornecedor] = [];
-      groups[c.fornecedor].push(c);
+  };
+
+  /** Escopo independente do filtro de status — base dos KPIs. */
+  const escopoContas = useMemo(
+    () => cp.scopeFiltered.filter(matchValor),
+    [cp.scopeFiltered, valorMinimo, valorMaximo],
+  );
+
+  const statusDe = (c: ContaPagar) => getStatusContaPagar(c, cp.hoje);
+
+  const buckets = useMemo(() => {
+    const abertas: ContaPagar[] = [];
+    const aVencer: ContaPagar[] = [];
+    const vencidas: ContaPagar[] = [];
+    const pagas: ContaPagar[] = [];
+    escopoContas.forEach(c => {
+      const s = statusDe(c);
+      if (s === "paga") pagas.push(c);
+      else {
+        abertas.push(c);
+        (s === "vencida" ? vencidas : aVencer).push(c);
+      }
     });
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  })();
+    return { abertas, aVencer, vencidas, pagas };
+  }, [escopoContas, cp.hoje]);
+
+  const soma = (list: ContaPagar[]) => list.reduce((a, c) => a + Number(c.valor), 0);
+  const totalAbertoVisivel = soma(buckets.abertas);
+  const contasVencemHoje = buckets.abertas.filter(c => c.vencimento === cp.hoje);
+
+  const summaryCards: Array<{
+    key: string; filtro: string; title: string; subtitle: string;
+    total: number; contas: ContaPagar[]; icon: any; color: HeroColor;
+  }> = [
+    { key: "abertas", filtro: "abertas", title: "Total a pagar", subtitle: "Pendentes e vencidas", total: totalAbertoVisivel, contas: buckets.abertas, icon: CreditCard, color: "primary" },
+    { key: "a-vencer", filtro: "pendente", title: "A vencer", subtitle: contasVencemHoje.length > 0 ? `${contasVencemHoje.length} vence${contasVencemHoje.length === 1 ? "" : "m"} hoje` : "Dentro do prazo", total: soma(buckets.aVencer), contas: buckets.aVencer, icon: Clock, color: "warning" },
+    { key: "vencidas", filtro: "vencida", title: "Vencidas", subtitle: "Exigem prioridade", total: soma(buckets.vencidas), contas: buckets.vencidas, icon: AlertCircle, color: "danger" },
+    { key: "pagas", filtro: "paga", title: "Pagas", subtitle: "Quitadas no escopo atual", total: soma(buckets.pagas), contas: buckets.pagas, icon: CheckCircle2, color: "success" },
+  ];
+
+  const quickFilters = [
+    { value: "todos", label: "Todos", count: escopoContas.length },
+    { value: "abertas", label: "Abertas", count: buckets.abertas.length },
+    { value: "vencida", label: "Vencidas", count: buckets.vencidas.length },
+    { value: "paga", label: "Pagas", count: buckets.pagas.length },
+  ];
+
+  const visibleContas = useMemo(() => {
+    const rows = escopoContas.filter(cp.matchesStatusFiltro);
+    const dir = sort?.dir === "desc" ? -1 : 1;
+    return [...rows].sort((a, b) => {
+      if (sort) {
+        switch (sort.key) {
+          case "fornecedor": return dir * a.fornecedor.localeCompare(b.fornecedor, "pt-BR");
+          case "valor": return dir * (Number(a.valor) - Number(b.valor));
+          case "status": return dir * (STATUS_META[statusDe(a)].ordem - STATUS_META[statusDe(b)].ordem);
+          default: return dir * a.vencimento.localeCompare(b.vencimento);
+        }
+      }
+      // Padrão: vencidas primeiro, depois vencimento mais próximo; pagas por pagamento recente
+      const sa = statusDe(a); const sb = statusDe(b);
+      if (sa !== sb) return STATUS_META[sa].ordem - STATUS_META[sb].ordem;
+      if (sa === "paga") return (b.data_pagamento || b.vencimento).localeCompare(a.data_pagamento || a.vencimento);
+      return a.vencimento.localeCompare(b.vencimento);
+    });
+  }, [escopoContas, cp.filtroStatus, cp.hoje, sort]);
+
+  const totalVisivel = soma(visibleContas);
+  const selecionadasVisiveis = visibleContas.filter(c => cp.selecionadasPagamentoIds.has(c.id));
+
+  const toggleSort = (key: SortKey) =>
+    setSort(prev => (prev?.key === key ? (prev.dir === "asc" ? { key, dir: "desc" } : null) : { key, dir: "asc" }));
+
+  const groupedVisible = useMemo(() => {
+    if (!cp.agrupar) return null;
+    const groups: Record<string, ContaPagar[]> = {};
+    visibleContas.forEach(c => {
+      (groups[c.fornecedor] ||= []).push(c);
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b, "pt-BR"));
+  }, [cp.agrupar, visibleContas]);
+
   const hasVisibleFilters = cp.hasActiveFilters || !!cp.search || !!valorMinimo || !!valorMaximo;
+  const limparTudo = () => { cp.clearAllFilters(); cp.setSearch(""); setValorMinimo(""); setValorMaximo(""); };
 
   const applyDateShortcut = (days: number) => {
     const start = new Date(`${cp.hoje}T12:00:00`);
@@ -119,26 +156,11 @@ export default function ContasPagar() {
     cp.setDataFinal(end.toISOString().split("T")[0]);
   };
 
-  // Helper: determine display status label / variant
-  const getStatus = (conta: ReturnType<typeof useContasPagar>["contas"][0]) => {
-    const isVencida = (conta.status === "pendente" || conta.status === "vencida") && conta.vencimento < cp.hoje;
-    const label = conta.status === "paga" ? "Paga" : isVencida ? "Vencida" : "Pendente";
-    const variant: "default" | "destructive" | "secondary" = label === "Paga" ? "default" : label === "Vencida" ? "destructive" : "secondary";
-    return { label, variant };
+  const abrirVisaoCard = (filtro: string) => {
+    cp.setFiltroStatus(filtro);
+    setSort(null);
   };
 
-  const getRowClass = (label: string) => {
-    const base = "group border-0 transition-all duration-200 hover:-translate-y-0.5 [&>td]:border-y [&>td]:border-border/60 [&>td]:bg-card [&>td]:py-3 [&>td]:shadow-sm [&>td]:shadow-foreground/5 [&>td:first-child]:rounded-l-lg [&>td:first-child]:border-l [&>td:first-child]:border-l-4 [&>td:last-child]:rounded-r-lg [&>td:last-child]:border-r hover:[&>td]:shadow-md hover:[&>td]:shadow-foreground/10";
-    if (label === "Paga") return `${base} [&>td:first-child]:border-l-success hover:[&>td]:bg-success/5`;
-    if (label === "Vencida") return `${base} [&>td:first-child]:border-l-destructive hover:[&>td]:bg-destructive/5`;
-    return `${base} [&>td:first-child]:border-l-warning hover:[&>td]:bg-warning/5`;
-  };
-
-  const runSummaryAction = (action: () => void) => {
-    setSelectedSummaryKey(null);
-    action();
-  };
-  const SelectedSummaryIcon = selectedSummary?.icon;
 
   return (
     <MainLayout>
