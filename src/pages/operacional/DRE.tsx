@@ -198,12 +198,56 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
 
   const abrirDetalhe = (linha: DRELine) => {
     if (!linha.grupo) return;
+    setBuscaDetalhe("");
     setDetalhe({
+      chave: linha.categoria,
       titulo: linha.categoria.replace("(-) ", ""),
       descricao: `${periodoLabel} · ${linha.ajuda || "Lançamentos que compõem esta linha."}`,
       lancamentos: dados.flatMap((m) => m.detalhes[linha.grupo!] || []),
     });
+    requestAnimationFrame(() => {
+      const el = detalheRef.current;
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      el.focus({ preventScroll: true });
+    });
   };
+
+  // Trocar período/unidade invalida o detalhe carregado.
+  useEffect(() => {
+    setDetalhe(null);
+    setBuscaDetalhe("");
+  }, [periodo, unidadeAtual?.id]);
+
+  const normalizarTexto = (v: string) => v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const detalheFiltrado = useMemo(() => {
+    if (!detalhe) return [];
+    const termo = normalizarTexto(buscaDetalhe.trim());
+    if (!termo) return detalhe.lancamentos;
+    return detalhe.lancamentos.filter(
+      (l) => normalizarTexto(l.descricao || "").includes(termo) || normalizarTexto(l.origem || "").includes(termo),
+    );
+  }, [detalhe, buscaDetalhe]);
+
+  const detalheTotal = useMemo(
+    () => detalheFiltrado.reduce((s, l) => s + Number(l.valor || 0), 0),
+    [detalheFiltrado],
+  );
+  const detalheOrigens = useMemo(() => agruparPorOrigem(detalheFiltrado), [detalheFiltrado]);
+
+  const exportarDetalheCsv = () => {
+    if (!detalhe) return;
+    const csv = lancamentosParaCsv(detalheFiltrado);
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dre-${normalizarTexto(detalhe.titulo).replace(/[^a-z0-9]+/g, "-")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
 
   const kpiTrend = (campo: keyof DreTotais, invertido = false) => {
     if (!totaisAnterior) return undefined;
