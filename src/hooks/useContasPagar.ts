@@ -193,26 +193,39 @@ export function useContasPagar() {
   ])].sort();
   const categoriasUnicas = [...new Set(contas.map(c => c.categoria).filter(Boolean))].sort() as string[];
 
-  const filtered = contas.filter(c => {
-    const matchSearch = c.fornecedor.toLowerCase().includes(search.toLowerCase()) ||
-      c.descricao.toLowerCase().includes(search.toLowerCase());
+  /**
+   * Escopo da visão SEM o filtro de status — base correta para KPIs.
+   * Assim o card "Pagas" nunca zera só porque a tabela está em "Abertas".
+   */
+  const scopeFiltered = contas.filter(c => {
+    const termo = search.trim().toLowerCase();
+    const matchSearch = !termo ||
+      c.fornecedor.toLowerCase().includes(termo) ||
+      c.descricao.toLowerCase().includes(termo) ||
+      (c.observacoes || "").toLowerCase().includes(termo);
     const matchDataIni = !dataInicial || c.vencimento >= dataInicial;
     const matchDataFim = !dataFinal || c.vencimento <= dataFinal;
-    const isVencida = (c.status === "pendente" || c.status === "vencida") && c.vencimento < hoje;
-    const statusAtual = c.status === "paga" ? "paga" : isVencida ? "vencida" : c.status;
-    const matchStatus =
-      filtroStatus === "todos" ||
-      (filtroStatus === "abertas" && statusAtual !== "paga") ||
-      statusAtual === filtroStatus;
     const matchFornecedor = filtroFornecedor === "todos" || c.fornecedor === filtroFornecedor;
     const matchCategoria = filtroCategoria === "todos" || (c.categoria || "") === filtroCategoria;
-    return matchSearch && matchDataIni && matchDataFim && matchStatus && matchFornecedor && matchCategoria;
+    return matchSearch && matchDataIni && matchDataFim && matchFornecedor && matchCategoria;
   });
 
-  const totalPendente = filtered.filter(c => c.status === "pendente" && c.vencimento >= hoje).reduce((a, c) => a + Number(c.valor), 0);
-  const totalVencido = filtered.filter(c => (c.status === "pendente" || c.status === "vencida") && c.vencimento < hoje).reduce((a, c) => a + Number(c.valor), 0);
-  const totalPago = filtered.filter(c => c.status === "paga").reduce((a, c) => a + Number(c.valor), 0);
+  const matchesStatusFiltro = (c: ContaPagar) => {
+    const statusAtual = getStatusContaPagar(c, hoje);
+    return (
+      filtroStatus === "todos" ||
+      (filtroStatus === "abertas" && statusAtual !== "paga") ||
+      statusAtual === filtroStatus
+    );
+  };
+
+  const filtered = scopeFiltered.filter(matchesStatusFiltro);
+
+  const totalPendente = scopeFiltered.filter(c => getStatusContaPagar(c, hoje) === "pendente").reduce((a, c) => a + Number(c.valor), 0);
+  const totalVencido = scopeFiltered.filter(c => getStatusContaPagar(c, hoje) === "vencida").reduce((a, c) => a + Number(c.valor), 0);
+  const totalPago = scopeFiltered.filter(c => isContaPaga(c)).reduce((a, c) => a + Number(c.valor), 0);
   const totalAberto = totalPendente + totalVencido;
+
 
   const hasActiveFilters = !!(dataInicial || dataFinal || filtroStatus !== "abertas" || filtroFornecedor !== "todos" || filtroCategoria !== "todos");
 
