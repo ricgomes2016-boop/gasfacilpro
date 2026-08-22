@@ -612,7 +612,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
   const content = (
     <div className="w-full min-w-0 max-w-full space-y-4">
       {filtros}
-      {!embedded ? null : acoes}
+      {embedded && acoes}
       {corpo}
       <DRELinhaDetalheDialog
         open={!!detalhe}
