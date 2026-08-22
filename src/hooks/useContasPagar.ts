@@ -23,7 +23,35 @@ export interface ContaPagar {
   boleto_url: string | null;
   boleto_codigo_barras: string | null;
   boleto_linha_digitavel: string | null;
+  /** Campos reais da tabela usados na listagem */
+  data_pagamento?: string | null;
+  forma_pagamento?: string | null;
+  origem?: string | null;
+  parcela_numero?: number | null;
+  parcela_total?: number | null;
+  grupo_parcela_id?: string | null;
+  compra_id?: string | null;
+  conta_bancaria_id?: string | null;
+  unidade_id?: string | null;
 }
+
+export type StatusContaPagar = "paga" | "vencida" | "pendente";
+
+/** Status normalizado (reconhece "paga"/"pago") + vencimento vs. hoje. */
+export function getStatusContaPagar(
+  conta: Pick<ContaPagar, "status" | "vencimento">,
+  hoje: string,
+): StatusContaPagar {
+  const s = normalizeFinanceText(conta.status);
+  if (s === "paga" || s === "pago" || s === "quitada" || s === "quitado") return "paga";
+  if (conta.vencimento && conta.vencimento < hoje) return "vencida";
+  return "pendente";
+}
+
+export const isContaPaga = (conta: Pick<ContaPagar, "status">) => {
+  const s = normalizeFinanceText(conta.status);
+  return s === "paga" || s === "pago" || s === "quitada" || s === "quitado";
+};
 
 export interface FornecedorCadastro {
   id: string;
@@ -37,6 +65,7 @@ export interface FornecedorCadastro {
 export const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque"];
 
 const EMPTY_FORM = { fornecedor: "", descricao: "", valor: "", vencimento: "", categoria: "", observacoes: "" };
+
 
 export function useContasPagar() {
   const { unidadeAtual } = useUnidade();
