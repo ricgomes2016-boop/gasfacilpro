@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { AppPage } from "@/components/ui-kit";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1067,7 +1068,7 @@ export default function ContasReceber() {
   return (
     <MainLayout>
       <Header title="Contas a Receber" subtitle="Recebíveis unificados por categoria" />
-      <div className="p-3 md:p-6 space-y-4 md:space-y-6">
+      <AppPage className="overflow-x-hidden">
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <FinancialHeroCard
