@@ -161,6 +161,64 @@ export default function ContasPagar() {
     setSort(null);
   };
 
+  const sortIcon = (key: SortKey) =>
+    sort?.key === key ? <ArrowUpDown className={`h-3 w-3 ${sort.dir === "desc" ? "rotate-180" : ""}`} /> : <ArrowUpDown className="h-3 w-3 opacity-30" />;
+
+  const rowActions = (conta: ContaPagar) => (
+    <>
+      {!isContaPaga(conta) && <DropdownMenuItem onClick={() => cp.openPagarDialog(conta)}><DollarSign className="mr-2 h-4 w-4" />Pagar</DropdownMenuItem>}
+      <DropdownMenuItem onClick={() => cp.handleEdit(conta)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+      {(conta.boleto_url || conta.boleto_linha_digitavel) && <DropdownMenuItem onClick={() => cp.handleViewBoleto(conta)}><Eye className="mr-2 h-4 w-4" />Ver boleto</DropdownMenuItem>}
+      <DropdownMenuItem className="text-destructive" onClick={() => cp.setDeleteId(conta.id)}><Trash2 className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>
+    </>
+  );
+
+  const renderRow = (conta: ContaPagar, agrupado = false) => {
+    const st = statusDe(conta);
+    const meta = STATUS_META[st];
+    const parcela = conta.parcela_numero && conta.parcela_total ? `${conta.parcela_numero}/${conta.parcela_total}` : null;
+    return (
+      <TableRow
+        key={conta.id}
+        className={`border-b transition-colors odd:bg-muted/20 hover:bg-muted/50 ${st === "vencida" ? "bg-destructive/[0.04]" : ""} ${st === "paga" ? "text-muted-foreground" : ""}`}
+      >
+        <TableCell className="py-2 pl-4">
+          <Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={isContaPaga(conta)} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} />
+        </TableCell>
+        <TableCell className="whitespace-nowrap py-2 tabular-nums">{fmtData(conta.vencimento)}</TableCell>
+        <TableCell className={`py-2 ${agrupado ? "pl-8" : ""}`}>
+          <div className="min-w-0">
+            <p className="truncate font-medium text-foreground">{conta.fornecedor}</p>
+            <p className="truncate text-xs text-muted-foreground">{conta.descricao}</p>
+          </div>
+        </TableCell>
+        <TableCell className="hidden py-2 xl:table-cell">
+          <span className="text-xs text-muted-foreground">{conta.categoria || "—"}</span>
+        </TableCell>
+        <TableCell className="hidden py-2 text-xs text-muted-foreground xl:table-cell">
+          {parcela ? `Parcela ${parcela}` : conta.origem || "—"}
+        </TableCell>
+        <TableCell className="hidden py-2 text-xs text-muted-foreground 2xl:table-cell">{fmtData(conta.created_at?.slice(0, 10))}</TableCell>
+        <TableCell className="hidden py-2 text-xs lg:table-cell">
+          {st === "paga"
+            ? <span className="text-muted-foreground">{fmtData(conta.data_pagamento)}{conta.forma_pagamento ? ` · ${conta.forma_pagamento}` : ""}</span>
+            : <span className="text-muted-foreground">—</span>}
+        </TableCell>
+        <TableCell className="py-2">
+          <Badge variant="outline" className={`text-[10px] font-semibold ${meta.className}`}>{meta.label}</Badge>
+        </TableCell>
+        <TableCell className="py-2 text-right font-semibold tabular-nums text-foreground">{brl(Number(conta.valor))}</TableCell>
+        <TableCell className="py-2 pr-4 text-right">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end">{rowActions(conta)}</DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
+
 
   return (
     <MainLayout>
