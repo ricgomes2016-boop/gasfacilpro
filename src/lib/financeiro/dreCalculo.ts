@@ -162,16 +162,14 @@ const vazioDetalhes = (): Record<DreGrupo, DreLancamento[]> => ({
 });
 
 async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes> {
-  const inicioDate = format(startOfMonth(referencia), "yyyy-MM-dd");
-  const fimDate = format(endOfMonth(referencia), "yyyy-MM-dd");
-  const inicioISO = startOfMonth(referencia).toISOString();
-  const fimISO = endOfMonth(referencia).toISOString();
+  const range = mesRangeDre(referencia);
+  const { inicioDate, fimDate, inicioISO, proximoInicioISO } = range;
 
   let pq = supabase
     .from("pedidos")
     .select("id, valor_total, data_entrega, created_at, status, numero_pedido")
-    .in("status", STATUS_RECEITA_DRE)
-    .or(`and(data_entrega.gte.${inicioDate},data_entrega.lte.${fimDate}),and(data_entrega.is.null,created_at.gte.${inicioISO},created_at.lte.${fimISO})`);
+    .in("status", [...STATUS_RECEITA_DRE])
+    .or(filtroPeriodoPedidos(range));
   if (unidadeId) pq = pq.eq("unidade_id", unidadeId);
 
   let cancQ = supabase
@@ -179,7 +177,7 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
     .select("id", { count: "exact", head: true })
     .eq("status", "cancelado")
     .gte("created_at", inicioISO)
-    .lte("created_at", fimISO);
+    .lt("created_at", proximoInicioISO);
   if (unidadeId) cancQ = cancQ.eq("unidade_id", unidadeId);
 
   let caixaQ = supabase
@@ -190,8 +188,9 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
     .is("compra_id", null)
     .is("pedido_id", null)
     .gte("created_at", inicioISO)
-    .lte("created_at", fimISO);
+    .lt("created_at", proximoInicioISO);
   if (unidadeId) caixaQ = caixaQ.eq("unidade_id", unidadeId);
+
 
   let bancoQ = supabase
     .from("movimentacoes_bancarias")
