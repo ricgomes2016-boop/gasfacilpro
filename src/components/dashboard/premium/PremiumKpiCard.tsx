@@ -77,7 +77,7 @@ export function PremiumKpiCard({
             {label}
           </p>
           <p title={value}
-            className="mt-1 truncate whitespace-nowrap text-[1.05rem] font-semibold leading-tight tracking-tight tabular-nums text-foreground sm:mt-1.5 sm:text-[1.45rem] xl:text-[1.25rem] 2xl:text-[1.55rem]">
+            className="mt-1 whitespace-nowrap text-[1.05rem] font-semibold leading-tight tracking-tight tabular-nums text-foreground sm:mt-1.5 sm:text-[1.45rem]">
             {value}
           </p>
           {subtitle && (
