@@ -622,7 +622,19 @@ export function Sidebar() {
                   </AnimatePresence>
                 </motion.div>
               );
+              })();
+
+              if (!heading) return rendered;
+              return (
+                <div key={`area-${item.label}`} className="space-y-1">
+                  <p className="mb-1 mt-3 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
+                    {heading}
+                  </p>
+                  {rendered}
+                </div>
+              );
             })}
+
           </div>
         </nav>
 
