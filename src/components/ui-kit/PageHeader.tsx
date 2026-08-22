@@ -19,7 +19,7 @@ export function PageHeader({ title, description, actions, meta, className }: Pag
   return (
     <div className={cn("flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between", className)}>
       <div className="min-w-0 flex-1">
-        <h2 className="truncate text-lg font-semibold tracking-tight text-foreground sm:text-xl">{title}</h2>
+        {title && <h2 className="truncate text-lg font-semibold tracking-tight text-foreground sm:text-xl">{title}</h2>}
         {description && (
           <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{description}</p>
         )}
