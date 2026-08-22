@@ -92,7 +92,12 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
   const [modo, setModo] = useState<"consolidado" | "mensal">("consolidado");
   const [buscaProduto, setBuscaProduto] = useState("");
   const [verTodosProdutos, setVerTodosProdutos] = useState(false);
-  const [detalhe, setDetalhe] = useState<{ titulo: string; descricao?: string; lancamentos: DreLancamento[] } | null>(null);
+  const [detalhe, setDetalhe] = useState<
+    { chave: string; titulo: string; descricao?: string; lancamentos: DreLancamento[] } | null
+  >(null);
+  const [buscaDetalhe, setBuscaDetalhe] = useState("");
+  const detalheRef = useRef<HTMLDivElement | null>(null);
+
 
   const cfg = PERIODOS.find((p) => p.value === periodo) ?? PERIODOS[0];
 
