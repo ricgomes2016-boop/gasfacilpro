@@ -135,13 +135,11 @@ export const menuItems: MenuItem[] = [
     icon: LayoutDashboard,
     label: "Dashboard",
     area: "inicio",
-    area: "inicio",
     path: "/dashboard",
   },
   {
     icon: Brain,
     label: "Assistente IA",
-    area: "inicio",
     area: "inicio",
     path: "/assistente-ia",
   },
