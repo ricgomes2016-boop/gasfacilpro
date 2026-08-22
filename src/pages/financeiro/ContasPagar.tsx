@@ -27,16 +27,27 @@ import {
 import {
   CreditCard, Search, Plus, AlertCircle, CheckCircle2, Clock, MoreHorizontal,
   Pencil, Trash2, DollarSign, Download, Camera, Loader2, Layers,
-  Building2, Filter, X, Mic, MicOff, AudioLines, FileText, Eye, FileUp, CalendarRange,
+  Building2, Filter, X, Mic, MicOff, AudioLines, FileText, Eye, FileUp, CalendarRange, ArrowUpDown,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ParcelamentoDialog } from "@/components/financeiro/ParcelamentoDialog";
 import { CompromissosFuturos } from "@/components/financeiro/CompromissosFuturos";
 import { format } from "date-fns";
-import { useContasPagar, FORMAS_PAGAMENTO } from "@/hooks/useContasPagar";
+import { useContasPagar, FORMAS_PAGAMENTO, getStatusContaPagar, isContaPaga, type ContaPagar } from "@/hooks/useContasPagar";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Switch } from "@/components/ui/switch";
+
+type SortKey = "vencimento" | "fornecedor" | "status" | "valor";
+
+const STATUS_META: Record<string, { label: string; className: string; ordem: number }> = {
+  vencida: { label: "Vencida", className: "border-destructive/30 bg-destructive/10 text-destructive", ordem: 0 },
+  pendente: { label: "Pendente", className: "border-warning/30 bg-warning/10 text-warning", ordem: 1 },
+  paga: { label: "Paga", className: "border-success/30 bg-success/10 text-success", ordem: 2 },
+};
+
+const brl = (v: number) => `R$ ${Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtData = (d?: string | null) => (d ? format(new Date(`${d.slice(0, 10)}T12:00:00`), "dd/MM/yyyy") : "—");
 
 export default function ContasPagar() {
   const cp = useContasPagar();
@@ -45,71 +56,97 @@ export default function ContasPagar() {
   const [futureRange, setFutureRange] = useState("30");
   const [valorMinimo, setValorMinimo] = useState("");
   const [valorMaximo, setValorMaximo] = useState("");
-  const [selectedSummaryKey, setSelectedSummaryKey] = useState<string | null>(null);
-  const visibleContas = cp.filtered.filter(c => {
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" } | null>(null);
+
+  const matchValor = (c: { valor: number }) => {
     const valor = Number(c.valor);
     const min = valorMinimo ? Number(valorMinimo) : null;
     const max = valorMaximo ? Number(valorMaximo) : null;
     return (min === null || valor >= min) && (max === null || valor <= max);
-  });
-  const totalPendenteVisivel = visibleContas.filter(c => c.status === "pendente" && c.vencimento >= cp.hoje).reduce((a, c) => a + Number(c.valor), 0);
-  const totalVencidoVisivel = visibleContas.filter(c => (c.status === "pendente" || c.status === "vencida") && c.vencimento < cp.hoje).reduce((a, c) => a + Number(c.valor), 0);
-  const totalPagoVisivel = visibleContas.filter(c => c.status === "paga").reduce((a, c) => a + Number(c.valor), 0);
-  const totalAbertoVisivel = totalPendenteVisivel + totalVencidoVisivel;
-  const contasVencemHoje = visibleContas.filter(c => c.status !== "paga" && c.vencimento === cp.hoje);
-  const summaryCards: Array<{
-    key: string; title: string; subtitle: string; total: number;
-    contas: typeof visibleContas; icon: any; color: HeroColor;
-    cardClass?: string; iconClass?: string; valueClass?: string;
-  }> = [
-    {
-      key: "abertas",
-      title: "Total a pagar",
-      subtitle: "Contas pendentes e vencidas",
-      total: totalAbertoVisivel,
-      contas: visibleContas.filter(c => c.status !== "paga"),
-      icon: CreditCard,
-      color: "primary",
-    },
-    {
-      key: "a-vencer",
-      title: "A vencer",
-      subtitle: contasVencemHoje.length > 0 ? `${contasVencemHoje.length} vence${contasVencemHoje.length === 1 ? "" : "m"} hoje` : "Ainda dentro do prazo",
-      total: totalPendenteVisivel,
-      contas: visibleContas.filter(c => c.status === "pendente" && c.vencimento >= cp.hoje),
-      icon: Clock,
-      color: "warning",
-    },
-    {
-      key: "vencidas",
-      title: "Vencidas",
-      subtitle: "Exigem prioridade",
-      total: totalVencidoVisivel,
-      contas: visibleContas.filter(c => (c.status === "pendente" || c.status === "vencida") && c.vencimento < cp.hoje),
-      icon: AlertCircle,
-      color: "danger",
-    },
-    {
-      key: "pagas",
-      title: "Pagas",
-      subtitle: "Quitadas no filtro atual",
-      total: totalPagoVisivel,
-      contas: visibleContas.filter(c => c.status === "paga"),
-      icon: CheckCircle2,
-      color: "success",
-    },
-  ];
-  const selectedSummary = summaryCards.find(card => card.key === selectedSummaryKey);
-  const groupedVisible = (() => {
-    if (!cp.agrupar) return null;
-    const groups: Record<string, typeof visibleContas> = {};
-    visibleContas.forEach(c => {
-      if (!groups[c.fornecedor]) groups[c.fornecedor] = [];
-      groups[c.fornecedor].push(c);
+  };
+
+  /** Escopo independente do filtro de status — base dos KPIs. */
+  const escopoContas = useMemo(
+    () => cp.scopeFiltered.filter(matchValor),
+    [cp.scopeFiltered, valorMinimo, valorMaximo],
+  );
+
+  const statusDe = (c: ContaPagar) => getStatusContaPagar(c, cp.hoje);
+
+  const buckets = useMemo(() => {
+    const abertas: ContaPagar[] = [];
+    const aVencer: ContaPagar[] = [];
+    const vencidas: ContaPagar[] = [];
+    const pagas: ContaPagar[] = [];
+    escopoContas.forEach(c => {
+      const s = statusDe(c);
+      if (s === "paga") pagas.push(c);
+      else {
+        abertas.push(c);
+        (s === "vencida" ? vencidas : aVencer).push(c);
+      }
     });
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  })();
+    return { abertas, aVencer, vencidas, pagas };
+  }, [escopoContas, cp.hoje]);
+
+  const soma = (list: ContaPagar[]) => list.reduce((a, c) => a + Number(c.valor), 0);
+  const totalAbertoVisivel = soma(buckets.abertas);
+  const contasVencemHoje = buckets.abertas.filter(c => c.vencimento === cp.hoje);
+
+  const summaryCards: Array<{
+    key: string; filtro: string; title: string; subtitle: string;
+    total: number; contas: ContaPagar[]; icon: any; color: HeroColor;
+  }> = [
+    { key: "abertas", filtro: "abertas", title: "Total a pagar", subtitle: "Pendentes e vencidas", total: totalAbertoVisivel, contas: buckets.abertas, icon: CreditCard, color: "primary" },
+    { key: "a-vencer", filtro: "pendente", title: "A vencer", subtitle: contasVencemHoje.length > 0 ? `${contasVencemHoje.length} vence${contasVencemHoje.length === 1 ? "" : "m"} hoje` : "Dentro do prazo", total: soma(buckets.aVencer), contas: buckets.aVencer, icon: Clock, color: "warning" },
+    { key: "vencidas", filtro: "vencida", title: "Vencidas", subtitle: "Exigem prioridade", total: soma(buckets.vencidas), contas: buckets.vencidas, icon: AlertCircle, color: "danger" },
+    { key: "pagas", filtro: "paga", title: "Pagas", subtitle: "Quitadas no escopo atual", total: soma(buckets.pagas), contas: buckets.pagas, icon: CheckCircle2, color: "success" },
+  ];
+
+  const quickFilters = [
+    { value: "todos", label: "Todos", count: escopoContas.length },
+    { value: "abertas", label: "Abertas", count: buckets.abertas.length },
+    { value: "vencida", label: "Vencidas", count: buckets.vencidas.length },
+    { value: "paga", label: "Pagas", count: buckets.pagas.length },
+  ];
+
+  const visibleContas = useMemo(() => {
+    const rows = escopoContas.filter(cp.matchesStatusFiltro);
+    const dir = sort?.dir === "desc" ? -1 : 1;
+    return [...rows].sort((a, b) => {
+      if (sort) {
+        switch (sort.key) {
+          case "fornecedor": return dir * a.fornecedor.localeCompare(b.fornecedor, "pt-BR");
+          case "valor": return dir * (Number(a.valor) - Number(b.valor));
+          case "status": return dir * (STATUS_META[statusDe(a)].ordem - STATUS_META[statusDe(b)].ordem);
+          default: return dir * a.vencimento.localeCompare(b.vencimento);
+        }
+      }
+      // Padrão: vencidas primeiro, depois vencimento mais próximo; pagas por pagamento recente
+      const sa = statusDe(a); const sb = statusDe(b);
+      if (sa !== sb) return STATUS_META[sa].ordem - STATUS_META[sb].ordem;
+      if (sa === "paga") return (b.data_pagamento || b.vencimento).localeCompare(a.data_pagamento || a.vencimento);
+      return a.vencimento.localeCompare(b.vencimento);
+    });
+  }, [escopoContas, cp.filtroStatus, cp.hoje, sort]);
+
+  const totalVisivel = soma(visibleContas);
+  const selecionadasVisiveis = visibleContas.filter(c => cp.selecionadasPagamentoIds.has(c.id));
+
+  const toggleSort = (key: SortKey) =>
+    setSort(prev => (prev?.key === key ? (prev.dir === "asc" ? { key, dir: "desc" } : null) : { key, dir: "asc" }));
+
+  const groupedVisible = useMemo(() => {
+    if (!cp.agrupar) return null;
+    const groups: Record<string, ContaPagar[]> = {};
+    visibleContas.forEach(c => {
+      (groups[c.fornecedor] ||= []).push(c);
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b, "pt-BR"));
+  }, [cp.agrupar, visibleContas]);
+
   const hasVisibleFilters = cp.hasActiveFilters || !!cp.search || !!valorMinimo || !!valorMaximo;
+  const limparTudo = () => { cp.clearAllFilters(); cp.setSearch(""); setValorMinimo(""); setValorMaximo(""); };
 
   const applyDateShortcut = (days: number) => {
     const start = new Date(`${cp.hoje}T12:00:00`);
@@ -119,26 +156,69 @@ export default function ContasPagar() {
     cp.setDataFinal(end.toISOString().split("T")[0]);
   };
 
-  // Helper: determine display status label / variant
-  const getStatus = (conta: ReturnType<typeof useContasPagar>["contas"][0]) => {
-    const isVencida = (conta.status === "pendente" || conta.status === "vencida") && conta.vencimento < cp.hoje;
-    const label = conta.status === "paga" ? "Paga" : isVencida ? "Vencida" : "Pendente";
-    const variant: "default" | "destructive" | "secondary" = label === "Paga" ? "default" : label === "Vencida" ? "destructive" : "secondary";
-    return { label, variant };
+  const abrirVisaoCard = (filtro: string) => {
+    cp.setFiltroStatus(filtro);
+    setSort(null);
   };
 
-  const getRowClass = (label: string) => {
-    const base = "group border-0 transition-all duration-200 hover:-translate-y-0.5 [&>td]:border-y [&>td]:border-border/60 [&>td]:bg-card [&>td]:py-3 [&>td]:shadow-sm [&>td]:shadow-foreground/5 [&>td:first-child]:rounded-l-lg [&>td:first-child]:border-l [&>td:first-child]:border-l-4 [&>td:last-child]:rounded-r-lg [&>td:last-child]:border-r hover:[&>td]:shadow-md hover:[&>td]:shadow-foreground/10";
-    if (label === "Paga") return `${base} [&>td:first-child]:border-l-success hover:[&>td]:bg-success/5`;
-    if (label === "Vencida") return `${base} [&>td:first-child]:border-l-destructive hover:[&>td]:bg-destructive/5`;
-    return `${base} [&>td:first-child]:border-l-warning hover:[&>td]:bg-warning/5`;
+  const sortIcon = (key: SortKey) =>
+    sort?.key === key ? <ArrowUpDown className={`h-3 w-3 ${sort.dir === "desc" ? "rotate-180" : ""}`} /> : <ArrowUpDown className="h-3 w-3 opacity-30" />;
+
+  const rowActions = (conta: ContaPagar) => (
+    <>
+      {!isContaPaga(conta) && <DropdownMenuItem onClick={() => cp.openPagarDialog(conta)}><DollarSign className="mr-2 h-4 w-4" />Pagar</DropdownMenuItem>}
+      <DropdownMenuItem onClick={() => cp.handleEdit(conta)}><Pencil className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
+      {(conta.boleto_url || conta.boleto_linha_digitavel) && <DropdownMenuItem onClick={() => cp.handleViewBoleto(conta)}><Eye className="mr-2 h-4 w-4" />Ver boleto</DropdownMenuItem>}
+      <DropdownMenuItem className="text-destructive" onClick={() => cp.setDeleteId(conta.id)}><Trash2 className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>
+    </>
+  );
+
+  const renderRow = (conta: ContaPagar, agrupado = false) => {
+    const st = statusDe(conta);
+    const meta = STATUS_META[st];
+    const parcela = conta.parcela_numero && conta.parcela_total ? `${conta.parcela_numero}/${conta.parcela_total}` : null;
+    return (
+      <TableRow
+        key={conta.id}
+        className={`border-b transition-colors odd:bg-muted/20 hover:bg-muted/50 ${st === "vencida" ? "bg-destructive/[0.04]" : ""} ${st === "paga" ? "text-muted-foreground" : ""}`}
+      >
+        <TableCell className="py-2 pl-4">
+          <Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={isContaPaga(conta)} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} />
+        </TableCell>
+        <TableCell className="whitespace-nowrap py-2 tabular-nums">{fmtData(conta.vencimento)}</TableCell>
+        <TableCell className={`py-2 ${agrupado ? "pl-8" : ""}`}>
+          <div className="min-w-0">
+            <p className="truncate font-medium text-foreground">{conta.fornecedor}</p>
+            <p className="truncate text-xs text-muted-foreground">{conta.descricao}</p>
+          </div>
+        </TableCell>
+        <TableCell className="hidden py-2 xl:table-cell">
+          <span className="text-xs text-muted-foreground">{conta.categoria || "—"}</span>
+        </TableCell>
+        <TableCell className="hidden py-2 text-xs text-muted-foreground xl:table-cell">
+          {parcela ? `Parcela ${parcela}` : conta.origem || "—"}
+        </TableCell>
+        <TableCell className="hidden py-2 text-xs text-muted-foreground 2xl:table-cell">{fmtData(conta.created_at?.slice(0, 10))}</TableCell>
+        <TableCell className="hidden py-2 text-xs lg:table-cell">
+          {st === "paga"
+            ? <span className="text-muted-foreground">{fmtData(conta.data_pagamento)}{conta.forma_pagamento ? ` · ${conta.forma_pagamento}` : ""}</span>
+            : <span className="text-muted-foreground">—</span>}
+        </TableCell>
+        <TableCell className="py-2">
+          <Badge variant="outline" className={`text-[10px] font-semibold ${meta.className}`}>{meta.label}</Badge>
+        </TableCell>
+        <TableCell className="py-2 text-right font-semibold tabular-nums text-foreground">{brl(Number(conta.valor))}</TableCell>
+        <TableCell className="py-2 pr-4 text-right">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end">{rowActions(conta)}</DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      </TableRow>
+    );
   };
 
-  const runSummaryAction = (action: () => void) => {
-    setSelectedSummaryKey(null);
-    action();
-  };
-  const SelectedSummaryIcon = selectedSummary?.icon;
+
 
   return (
     <MainLayout>
@@ -161,7 +241,7 @@ export default function ContasPagar() {
                   subtitle={`${card.contas.length} conta${card.contas.length === 1 ? "" : "s"} · ${card.subtitle}`}
                   icon={card.icon}
                   color={card.color}
-                  onClick={() => setSelectedSummaryKey(card.key)}
+                  onClick={() => abrirVisaoCard(card.filtro)}
                 />
               ))}
             </div>
@@ -383,266 +463,189 @@ export default function ContasPagar() {
               </DialogContent>
             </Dialog>
 
-            <Dialog open={!!selectedSummary} onOpenChange={(open) => !open && setSelectedSummaryKey(null)}>
-              <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
-                {selectedSummary && SelectedSummaryIcon && (
-                  <>
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <SelectedSummaryIcon className="h-5 w-5 text-primary" />
-                        {selectedSummary.title}
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 pt-2">
-                      <div className="grid gap-3 sm:grid-cols-3">
-                        <Card className={`kpi-card ${selectedSummary.cardClass}`}>
-                          <CardContent className="p-4">
-                            <p className="text-xs font-medium uppercase text-muted-foreground">Total</p>
-                            <p className={`mt-1 text-2xl font-bold ${selectedSummary.valueClass}`}>
-                              R$ {selectedSummary.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            </p>
-                          </CardContent>
-                        </Card>
-                        <Card className="kpi-card">
-                          <CardContent className="p-4">
-                            <p className="text-xs font-medium uppercase text-muted-foreground">Quantidade</p>
-                            <p className="mt-1 text-2xl font-bold">{selectedSummary.contas.length}</p>
-                          </CardContent>
-                        </Card>
-                        <Card className="kpi-card">
-                          <CardContent className="p-4">
-                            <p className="text-xs font-medium uppercase text-muted-foreground">Contexto</p>
-                            <p className="mt-2 text-sm text-muted-foreground">{selectedSummary.subtitle}</p>
-                          </CardContent>
-                        </Card>
-                      </div>
-
-                      {selectedSummary.contas.length === 0 ? (
-                        <EmptyState
-                          icon={selectedSummary.icon}
-                          title="Nenhuma conta neste resumo"
-                          description="Quando houver contas neste status, elas aparecem aqui com informacoes e acoes rapidas."
-                        />
-                      ) : (
-                        <div className="space-y-2">
-                          {selectedSummary.contas.map(conta => {
-                            const { label, variant } = getStatus(conta);
-                            return (
-                              <div key={conta.id} className="rounded-xl border bg-card p-3 shadow-sm">
-                                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                                  <div className="min-w-0 space-y-2">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <Badge variant={variant}>{label}</Badge>
-                                      {conta.categoria && <Badge variant="outline">{conta.categoria}</Badge>}
-                                      <span className="text-xs text-muted-foreground">
-                                        Venc. {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <p className="font-semibold leading-snug">{conta.descricao}</p>
-                                      <p className="text-sm text-muted-foreground">{conta.fornecedor}</p>
-                                    </div>
-                                    {conta.observacoes && (
-                                      <p className="rounded-lg bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-                                        {conta.observacoes}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-col gap-3 lg:items-end">
-                                    <p className="text-xl font-bold">
-                                      R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                      {conta.status !== "paga" && (
-                                        <Button size="sm" className="gap-2" onClick={() => runSummaryAction(() => cp.openPagarDialog(conta))}>
-                                          <DollarSign className="h-4 w-4" />Pagar
-                                        </Button>
-                                      )}
-                                      <Button size="sm" variant="outline" className="gap-2" onClick={() => runSummaryAction(() => cp.handleEdit(conta))}>
-                                        <Pencil className="h-4 w-4" />Editar
-                                      </Button>
-                                      {(conta.boleto_url || conta.boleto_linha_digitavel) && (
-                                        <Button size="sm" variant="outline" className="gap-2" onClick={() => runSummaryAction(() => cp.handleViewBoleto(conta))}>
-                                          <Eye className="h-4 w-4" />Boleto
-                                        </Button>
-                                      )}
-                                      <Button size="sm" variant="outline" className="gap-2 text-destructive hover:text-destructive" onClick={() => runSummaryAction(() => cp.setDeleteId(conta.id))}>
-                                        <Trash2 className="h-4 w-4" />Excluir
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </DialogContent>
-            </Dialog>
-
             {/* Main table/card list */}
-              <Card className="modern-panel">
-              <CardHeader className="px-3 sm:px-6">
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-2 border-b pb-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                    <span>{visibleContas.length} conta{visibleContas.length === 1 ? "" : "s"} no filtro atual</span>
-                    <span className="font-semibold text-foreground">
-                      Total em aberto: R$ {totalAbertoVisivel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </span>
+            <Card className="modern-panel overflow-hidden">
+              <CardHeader className="gap-3 px-3 pb-3 sm:px-6">
+                {/* Busca visível + filtros rápidos */}
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="relative w-full lg:max-w-sm">
+                    <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={cp.search}
+                      onChange={e => cp.setSearch(e.target.value)}
+                      placeholder="Buscar fornecedor, descrição ou observação..."
+                      className="h-10 pl-8 pr-8 text-base sm:text-sm"
+                    />
+                    {cp.search && (
+                      <button type="button" aria-label="Limpar busca" onClick={() => cp.setSearch("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
-                  {hasVisibleFilters && (
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <Filter className="h-3 w-3" /><span>{visibleContas.length} de {cp.contas.length} contas</span>
-                      {cp.filtroFornecedor !== "todos" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroFornecedor}<button onClick={() => cp.setFiltroFornecedor("todos")}><X className="h-3 w-3" /></button></Badge>}
-                      {cp.filtroCategoria !== "todos" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroCategoria}<button onClick={() => cp.setFiltroCategoria("todos")}><X className="h-3 w-3" /></button></Badge>}
-                      {cp.filtroStatus !== "abertas" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroStatus}<button onClick={() => cp.setFiltroStatus("abertas")}><X className="h-3 w-3" /></button></Badge>}
-                      {cp.search && <Badge variant="secondary" className="text-xs gap-1 py-0">Busca: {cp.search}<button onClick={() => cp.setSearch("")}><X className="h-3 w-3" /></button></Badge>}
-                      {valorMinimo && <Badge variant="secondary" className="text-xs gap-1 py-0">Min: R$ {valorMinimo}<button onClick={() => setValorMinimo("")}><X className="h-3 w-3" /></button></Badge>}
-                      {valorMaximo && <Badge variant="secondary" className="text-xs gap-1 py-0">Max: R$ {valorMaximo}<button onClick={() => setValorMaximo("")}><X className="h-3 w-3" /></button></Badge>}
-                    </div>
-                  )}
-                  {cp.selecionadasPagamentoIds.size > 0 && (
-                    <div className="flex flex-col gap-2 rounded-lg border border-success/30 bg-success/10 p-3 text-success sm:flex-row sm:items-center sm:justify-between">
-                      <div className="text-sm font-semibold">
-                        {cp.selecionadasPagamentoIds.size} conta{cp.selecionadasPagamentoIds.size > 1 ? "s" : ""} selecionada{cp.selecionadasPagamentoIds.size > 1 ? "s" : ""} · R$ {cp.totalSelecionadoPagamento.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={cp.clearPagamentoSelection}>Limpar</Button>
-                        <Button size="sm" className="gap-2" onClick={cp.openPagarSelecionadasDialog}><DollarSign className="h-4 w-4" />Pagar selecionadas</Button>
-                      </div>
-                    </div>
-                  )}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {quickFilters.map(f => (
+                      <Button
+                        key={f.value}
+                        size="sm"
+                        variant={cp.filtroStatus === f.value ? "default" : "outline"}
+                        className="h-8 gap-1.5 rounded-full px-3 text-xs"
+                        onClick={() => cp.setFiltroStatus(f.value)}
+                      >
+                        {f.label}
+                        <span className="rounded-full bg-background/25 px-1.5 text-[10px] font-semibold">{f.count}</span>
+                      </Button>
+                    ))}
+                  </div>
                 </div>
+
+                {hasVisibleFilters && (
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <Filter className="h-3 w-3" /><span>{visibleContas.length} de {cp.contas.length} contas</span>
+                    {cp.filtroFornecedor !== "todos" && <Badge variant="secondary" className="gap-1 py-0 text-xs">{cp.filtroFornecedor}<button onClick={() => cp.setFiltroFornecedor("todos")}><X className="h-3 w-3" /></button></Badge>}
+                    {cp.filtroCategoria !== "todos" && <Badge variant="secondary" className="gap-1 py-0 text-xs">{cp.filtroCategoria}<button onClick={() => cp.setFiltroCategoria("todos")}><X className="h-3 w-3" /></button></Badge>}
+                    {(cp.dataInicial || cp.dataFinal) && <Badge variant="secondary" className="gap-1 py-0 text-xs">{fmtData(cp.dataInicial)} → {fmtData(cp.dataFinal)}<button onClick={() => { cp.setDataInicial(""); cp.setDataFinal(""); }}><X className="h-3 w-3" /></button></Badge>}
+                    {valorMinimo && <Badge variant="secondary" className="gap-1 py-0 text-xs">Min: R$ {valorMinimo}<button onClick={() => setValorMinimo("")}><X className="h-3 w-3" /></button></Badge>}
+                    {valorMaximo && <Badge variant="secondary" className="gap-1 py-0 text-xs">Max: R$ {valorMaximo}<button onClick={() => setValorMaximo("")}><X className="h-3 w-3" /></button></Badge>}
+                    <Button variant="ghost" onClick={limparTudo} className="h-7 gap-1 px-2 text-xs"><X className="h-3 w-3" />Limpar tudo</Button>
+                  </div>
+                )}
+
+                {cp.selecionadasPagamentoIds.size > 0 && (
+                  <div className="flex flex-col gap-2 rounded-lg border border-success/30 bg-success/10 p-3 text-success sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-sm font-semibold">
+                      {cp.selecionadasPagamentoIds.size} conta{cp.selecionadasPagamentoIds.size > 1 ? "s" : ""} selecionada{cp.selecionadasPagamentoIds.size > 1 ? "s" : ""} · {brl(cp.totalSelecionadoPagamento)}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={cp.clearPagamentoSelection}>Limpar</Button>
+                      <Button size="sm" className="gap-2" onClick={cp.openPagarSelecionadasDialog}><DollarSign className="h-4 w-4" />Pagar selecionadas</Button>
+                    </div>
+                  </div>
+                )}
               </CardHeader>
-              <CardContent className="px-3 sm:px-6">
-                {cp.loading ? (
-                  <p className="text-center py-8 text-muted-foreground">Carregando...</p>
+
+              <CardContent className="px-0 pb-0 sm:px-0">
+                {cp.loadError ? (
+                  <div className="px-4 py-10">
+                    <EmptyState
+                      icon={AlertCircle}
+                      title="Não foi possível carregar as contas"
+                      description={cp.loadError}
+                      action={{ label: "Tentar novamente", onClick: cp.fetchContas, icon: Loader2 }}
+                    />
+                  </div>
+                ) : cp.loading ? (
+                  <div className="space-y-2 p-4">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="h-11 w-full animate-pulse rounded-lg bg-muted" />
+                    ))}
+                  </div>
                 ) : visibleContas.length === 0 ? (
-                  <EmptyState
-                    icon={CreditCard}
-                    title="Nenhuma conta encontrada"
-                    description="Ajuste os filtros ou registre uma nova conta a pagar para controlar seus compromissos."
-                    action={{ label: "Nova conta", onClick: () => cp.setDialogOpen(true), icon: Plus }}
-                  />
+                  <div className="px-4 py-10">
+                    <EmptyState
+                      icon={CreditCard}
+                      title={hasVisibleFilters || cp.filtroStatus !== "abertas" ? "Nenhuma conta para estes filtros" : "Nenhuma conta a pagar"}
+                      description={hasVisibleFilters || cp.filtroStatus !== "abertas"
+                        ? "Ajuste a busca, o período ou o status para encontrar os lançamentos."
+                        : "Registre a primeira conta a pagar para controlar seus compromissos."}
+                      action={hasVisibleFilters
+                        ? { label: "Limpar filtros", onClick: limparTudo, icon: X }
+                        : { label: "Nova conta", onClick: () => cp.setDialogOpen(true), icon: Plus }}
+                    />
+                  </div>
                 ) : (
                   <>
                     {/* Desktop table */}
-                    <div className="hidden table-card-shell sm:block">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="rounded-xl border-0 bg-muted/75 hover:bg-muted/75 [&_th]:h-11 [&_th]:border-0 [&_th]:text-[11px] [&_th]:font-extrabold [&_th]:uppercase [&_th]:tracking-[0.02em] [&_th]:text-foreground">
-                            <TableHead className="w-10 rounded-l-xl"><Checkbox checked={cp.todasPagaveisSelecionadas} onCheckedChange={cp.toggleAllPagamentoSelection} aria-label="Selecionar contas" /></TableHead><TableHead>Fornecedor</TableHead><TableHead>Descrição</TableHead>
-                            <TableHead>Categoria</TableHead><TableHead>Vencimento</TableHead>
-                            <TableHead>Valor</TableHead><TableHead>Status</TableHead>
-                            <TableHead className="rounded-r-xl text-right">Ações</TableHead>
+                    <div className="hidden max-h-[70vh] overflow-auto sm:block">
+                      <Table className="text-sm">
+                        <TableHeader className="sticky top-0 z-10 bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
+                          <TableRow className="border-b hover:bg-transparent [&_th]:h-10 [&_th]:whitespace-nowrap [&_th]:py-0 [&_th]:text-[11px] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
+                            <TableHead className="w-10 pl-4">
+                              <Checkbox checked={cp.todasPagaveisSelecionadas} onCheckedChange={cp.toggleAllPagamentoSelection} aria-label="Selecionar contas" />
+                            </TableHead>
+                            <TableHead className="w-[110px]">
+                              <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("vencimento")}>Vencimento{sortIcon("vencimento")}</button>
+                            </TableHead>
+                            <TableHead className="min-w-[220px]">
+                              <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("fornecedor")}>Fornecedor{sortIcon("fornecedor")}</button>
+                            </TableHead>
+                            <TableHead className="hidden xl:table-cell">Categoria</TableHead>
+                            <TableHead className="hidden xl:table-cell">Parcela / Origem</TableHead>
+                            <TableHead className="hidden 2xl:table-cell w-[110px]">Lançamento</TableHead>
+                            <TableHead className="hidden lg:table-cell w-[150px]">Pagamento</TableHead>
+                            <TableHead className="w-[110px]">
+                              <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("status")}>Status{sortIcon("status")}</button>
+                            </TableHead>
+                            <TableHead className="w-[130px] text-right">
+                              <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("valor")}>Valor{sortIcon("valor")}</button>
+                            </TableHead>
+                            <TableHead className="w-12 pr-4 text-right">Ações</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {(cp.agrupar && groupedVisible ? groupedVisible.flatMap(([fornecedor, items]) => {
-                            const groupTotal = items.reduce((s, c) => s + Number(c.valor), 0);
-                            return [
-                              <TableRow key={`grp-${fornecedor}`} className="border-0 [&>td]:border-y [&>td]:border-success/25 [&>td]:bg-success/10 [&>td:first-child]:rounded-l-lg [&>td:first-child]:border-l [&>td:last-child]:rounded-r-lg [&>td:last-child]:border-r">
-                                <TableCell colSpan={5} className="font-semibold text-success"><div className="flex items-center gap-2"><Building2 className="h-4 w-4" />{fornecedor}<Badge variant="outline" className="border-success/30 bg-success/10 text-xs text-success">{items.length}</Badge></div></TableCell>
-                                <TableCell className="font-bold">R$ {groupTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                                <TableCell colSpan={2} />
-                              </TableRow>,
-                              ...items.map(conta => {
-                                const { label, variant } = getStatus(conta);
-                                return (
-                                  <TableRow key={conta.id} className={getRowClass(label)}>
-                                    <TableCell><Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={conta.status === "paga"} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} /></TableCell>
-                                    <TableCell className="pl-10 text-muted-foreground text-sm">{conta.fornecedor}</TableCell>
-                                    <TableCell>{conta.descricao}</TableCell>
-                                    <TableCell><Badge variant="outline">{conta.categoria || "—"}</Badge></TableCell>
-                                    <TableCell>{format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
-                                    <TableCell className="font-medium">R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                                    <TableCell><Badge variant={variant}>{label}</Badge></TableCell>
-                                    <TableCell className="text-right">
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                          {conta.status !== "paga" && <DropdownMenuItem onClick={() => cp.openPagarDialog(conta)}><DollarSign className="h-4 w-4 mr-2" />Pagar</DropdownMenuItem>}
-                                          <DropdownMenuItem onClick={() => cp.handleEdit(conta)}><Pencil className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
-                                          {(conta.boleto_url || conta.boleto_linha_digitavel) && <DropdownMenuItem onClick={() => cp.handleViewBoleto(conta)}><Eye className="h-4 w-4 mr-2" />Ver Boleto</DropdownMenuItem>}
-                                          <DropdownMenuItem className="text-destructive" onClick={() => cp.setDeleteId(conta.id)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })
-                            ];
-                          }) : visibleContas).map((conta: any) => {
-                            if (!conta.id) return conta; // group header row already rendered
-                            const { label, variant } = getStatus(conta);
-                            return (
-                              <TableRow key={conta.id} className={getRowClass(label)}>
-                                <TableCell><Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={conta.status === "paga"} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} /></TableCell>
-                                <TableCell className="font-medium">{conta.fornecedor}</TableCell>
-                                <TableCell>{conta.descricao}</TableCell>
-                                <TableCell><Badge variant="outline">{conta.categoria || "—"}</Badge></TableCell>
-                                <TableCell>{format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</TableCell>
-                                <TableCell className="font-medium">R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                                <TableCell><Badge variant={variant}>{label}</Badge></TableCell>
-                                <TableCell className="text-right">
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      {conta.status !== "paga" && <DropdownMenuItem onClick={() => cp.openPagarDialog(conta)}><DollarSign className="h-4 w-4 mr-2" />Pagar</DropdownMenuItem>}
-                                      <DropdownMenuItem onClick={() => cp.handleEdit(conta)}><Pencil className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
-                                      {(conta.boleto_url || conta.boleto_linha_digitavel) && <DropdownMenuItem onClick={() => cp.handleViewBoleto(conta)}><Eye className="h-4 w-4 mr-2" />Ver Boleto</DropdownMenuItem>}
-                                      <DropdownMenuItem className="text-destructive" onClick={() => cp.setDeleteId(conta.id)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
+                          {cp.agrupar && groupedVisible
+                            ? groupedVisible.flatMap(([fornecedor, items]) => [
+                                <TableRow key={`grp-${fornecedor}`} className="bg-muted/40 hover:bg-muted/40">
+                                  <TableCell colSpan={8} className="py-2 pl-4 text-xs font-semibold">
+                                    <span className="inline-flex items-center gap-2"><Building2 className="h-3.5 w-3.5" />{fornecedor}
+                                      <Badge variant="outline" className="text-[10px]">{items.length}</Badge>
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="py-2 text-right text-xs font-bold tabular-nums">{brl(items.reduce((s, c) => s + Number(c.valor), 0))}</TableCell>
+                                  <TableCell className="py-2" />
+                                </TableRow>,
+                                ...items.map(conta => renderRow(conta, true)),
+                              ])
+                            : visibleContas.map(conta => renderRow(conta))}
                         </TableBody>
                       </Table>
                     </div>
 
                     {/* Mobile cards */}
-                    <div className="space-y-3 sm:hidden">
+                    <div className="space-y-2 p-3 sm:hidden">
                       {visibleContas.map(conta => {
-                        const { label, variant } = getStatus(conta);
+                        const st = statusDe(conta);
+                        const meta = STATUS_META[st];
                         return (
-                          <div key={conta.id} className="mobile-record-card">
-                            <div className="mobile-record-card-header">
-                              <Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={conta.status === "paga"} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} className="mt-1 shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="mobile-record-card-title line-clamp-2">{conta.descricao}</p>
-                                <p className="mobile-record-card-meta truncate">{conta.fornecedor}</p>
+                          <div key={conta.id} className="rounded-xl border bg-card p-3">
+                            <div className="flex items-start gap-2">
+                              <Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={isContaPaga(conta)} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} className="mt-1 shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold">{conta.fornecedor}</p>
+                                <p className="line-clamp-2 text-xs text-muted-foreground">{conta.descricao}</p>
                               </div>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  {conta.status !== "paga" && <DropdownMenuItem onClick={() => cp.openPagarDialog(conta)}><DollarSign className="h-4 w-4 mr-2" />Pagar</DropdownMenuItem>}
-                                  <DropdownMenuItem onClick={() => cp.handleEdit(conta)}><Pencil className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
-                                  {(conta.boleto_url || conta.boleto_linha_digitavel) && <DropdownMenuItem onClick={() => cp.handleViewBoleto(conta)}><Eye className="h-4 w-4 mr-2" />Ver Boleto</DropdownMenuItem>}
-                                  <DropdownMenuItem className="text-destructive" onClick={() => cp.setDeleteId(conta.id)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
-                                </DropdownMenuContent>
+                                <DropdownMenuContent align="end">{rowActions(conta)}</DropdownMenuContent>
                               </DropdownMenu>
                             </div>
-                            <div className="mt-3 flex flex-wrap items-center gap-2">
-                                <Badge variant={variant} className="text-xs">{label}</Badge>
-                                {conta.categoria && <Badge variant="outline" className="text-xs">{conta.categoria}</Badge>}
-                            </div>
-                            <div className="mobile-record-card-footer">
-                              <p className="text-xs text-muted-foreground">Venc: {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</p>
-                              <span className="font-bold text-sm">R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                            <div className="mt-2.5 flex items-center justify-between gap-2">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <Badge variant="outline" className={`text-[10px] ${meta.className}`}>{meta.label}</Badge>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {st === "paga" ? `Pago ${fmtData(conta.data_pagamento)}` : `Venc. ${fmtData(conta.vencimento)}`}
+                                </span>
+                              </div>
+                              <span className="text-sm font-bold tabular-nums">{brl(Number(conta.valor))}</span>
                             </div>
                           </div>
                         );
                       })}
                     </div>
+
+                    {/* Rodapé/resumo */}
+                    <div className="flex flex-col gap-1 border-t bg-muted/30 px-4 py-2.5 text-xs sm:flex-row sm:items-center sm:justify-between">
+                      <span className="text-muted-foreground">
+                        {visibleContas.length} registro{visibleContas.length === 1 ? "" : "s"} nesta visão
+                        {selecionadasVisiveis.length > 0 && ` · ${selecionadasVisiveis.length} selecionado(s): ${brl(soma(selecionadasVisiveis))}`}
+                      </span>
+                      <span className="font-semibold tabular-nums text-foreground">Total visível: {brl(totalVisivel)}</span>
+                    </div>
                   </>
                 )}
               </CardContent>
             </Card>
+
         </div>
 
         {/* ===== DIALOGS ===== */}

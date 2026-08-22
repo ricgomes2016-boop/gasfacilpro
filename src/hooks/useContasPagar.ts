@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { resolveCategoriaDespesaNome, useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
+import { normalizeFinanceText } from "@/lib/financeiro/financeiroClassificacao";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -23,7 +24,35 @@ export interface ContaPagar {
   boleto_url: string | null;
   boleto_codigo_barras: string | null;
   boleto_linha_digitavel: string | null;
+  /** Campos reais da tabela usados na listagem */
+  data_pagamento?: string | null;
+  forma_pagamento?: string | null;
+  origem?: string | null;
+  parcela_numero?: number | null;
+  parcela_total?: number | null;
+  grupo_parcela_id?: string | null;
+  compra_id?: string | null;
+  conta_bancaria_id?: string | null;
+  unidade_id?: string | null;
 }
+
+export type StatusContaPagar = "paga" | "vencida" | "pendente";
+
+/** Status normalizado (reconhece "paga"/"pago") + vencimento vs. hoje. */
+export function getStatusContaPagar(
+  conta: Pick<ContaPagar, "status" | "vencimento">,
+  hoje: string,
+): StatusContaPagar {
+  const s = normalizeFinanceText(conta.status);
+  if (s === "paga" || s === "pago" || s === "quitada" || s === "quitado") return "paga";
+  if (conta.vencimento && conta.vencimento < hoje) return "vencida";
+  return "pendente";
+}
+
+export const isContaPaga = (conta: Pick<ContaPagar, "status">) => {
+  const s = normalizeFinanceText(conta.status);
+  return s === "paga" || s === "pago" || s === "quitada" || s === "quitado";
+};
 
 export interface FornecedorCadastro {
   id: string;
@@ -38,6 +67,7 @@ export const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", 
 
 const EMPTY_FORM = { fornecedor: "", descricao: "", valor: "", vencimento: "", categoria: "", observacoes: "" };
 
+
 export function useContasPagar() {
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
@@ -47,6 +77,7 @@ export function useContasPagar() {
   // ------- Core data -------
   const [contas, setContas] = useState<ContaPagar[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [fornecedoresCadastro, setFornecedoresCadastro] = useState<FornecedorCadastro[]>([]);
 
   // ------- UI / dialog state -------
@@ -119,10 +150,17 @@ export function useContasPagar() {
     let query = supabase.from("contas_pagar").select("*").order("vencimento", { ascending: true });
     if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
     const { data, error } = await query;
-    if (error) { toast.error("Erro ao carregar contas"); console.error(error); }
-    else setContas((data as ContaPagar[]) || []);
+    if (error) {
+      toast.error("Erro ao carregar contas");
+      console.error(error);
+      setLoadError(error.message || "Falha ao carregar contas a pagar");
+    } else {
+      setLoadError(null);
+      setContas((data as ContaPagar[]) || []);
+    }
     setLoading(false);
   };
+
 
   const fetchContasBancarias = async () => {
     let q = supabase.from("contas_bancarias").select("id, nome, banco, saldo_atual").eq("ativo", true).order("nome");
@@ -155,31 +193,44 @@ export function useContasPagar() {
   ])].sort();
   const categoriasUnicas = [...new Set(contas.map(c => c.categoria).filter(Boolean))].sort() as string[];
 
-  const filtered = contas.filter(c => {
-    const matchSearch = c.fornecedor.toLowerCase().includes(search.toLowerCase()) ||
-      c.descricao.toLowerCase().includes(search.toLowerCase());
+  /**
+   * Escopo da visão SEM o filtro de status — base correta para KPIs.
+   * Assim o card "Pagas" nunca zera só porque a tabela está em "Abertas".
+   */
+  const scopeFiltered = contas.filter(c => {
+    const termo = search.trim().toLowerCase();
+    const matchSearch = !termo ||
+      c.fornecedor.toLowerCase().includes(termo) ||
+      c.descricao.toLowerCase().includes(termo) ||
+      (c.observacoes || "").toLowerCase().includes(termo);
     const matchDataIni = !dataInicial || c.vencimento >= dataInicial;
     const matchDataFim = !dataFinal || c.vencimento <= dataFinal;
-    const isVencida = (c.status === "pendente" || c.status === "vencida") && c.vencimento < hoje;
-    const statusAtual = c.status === "paga" ? "paga" : isVencida ? "vencida" : c.status;
-    const matchStatus =
-      filtroStatus === "todos" ||
-      (filtroStatus === "abertas" && statusAtual !== "paga") ||
-      statusAtual === filtroStatus;
     const matchFornecedor = filtroFornecedor === "todos" || c.fornecedor === filtroFornecedor;
     const matchCategoria = filtroCategoria === "todos" || (c.categoria || "") === filtroCategoria;
-    return matchSearch && matchDataIni && matchDataFim && matchStatus && matchFornecedor && matchCategoria;
+    return matchSearch && matchDataIni && matchDataFim && matchFornecedor && matchCategoria;
   });
 
-  const totalPendente = filtered.filter(c => c.status === "pendente" && c.vencimento >= hoje).reduce((a, c) => a + Number(c.valor), 0);
-  const totalVencido = filtered.filter(c => (c.status === "pendente" || c.status === "vencida") && c.vencimento < hoje).reduce((a, c) => a + Number(c.valor), 0);
-  const totalPago = filtered.filter(c => c.status === "paga").reduce((a, c) => a + Number(c.valor), 0);
+  const matchesStatusFiltro = (c: ContaPagar) => {
+    const statusAtual = getStatusContaPagar(c, hoje);
+    return (
+      filtroStatus === "todos" ||
+      (filtroStatus === "abertas" && statusAtual !== "paga") ||
+      statusAtual === filtroStatus
+    );
+  };
+
+  const filtered = scopeFiltered.filter(matchesStatusFiltro);
+
+  const totalPendente = scopeFiltered.filter(c => getStatusContaPagar(c, hoje) === "pendente").reduce((a, c) => a + Number(c.valor), 0);
+  const totalVencido = scopeFiltered.filter(c => getStatusContaPagar(c, hoje) === "vencida").reduce((a, c) => a + Number(c.valor), 0);
+  const totalPago = scopeFiltered.filter(c => isContaPaga(c)).reduce((a, c) => a + Number(c.valor), 0);
   const totalAberto = totalPendente + totalVencido;
+
 
   const hasActiveFilters = !!(dataInicial || dataFinal || filtroStatus !== "abertas" || filtroFornecedor !== "todos" || filtroCategoria !== "todos");
 
   const resumoPorFornecedor = (() => {
-    const pendentes = contas.filter(c => c.status !== "paga");
+    const pendentes = contas.filter(c => !isContaPaga(c));
     const grouped: Record<string, { total: number; count: number; vencidas: number }> = {};
     pendentes.forEach(c => {
       if (!grouped[c.fornecedor]) grouped[c.fornecedor] = { total: 0, count: 0, vencidas: 0 };
@@ -222,7 +273,7 @@ export function useContasPagar() {
 
   const contasSelecionadasPagamento = contas.filter(c => selecionadasPagamentoIds.has(c.id));
   const totalSelecionadoPagamento = contasSelecionadasPagamento.reduce((s, c) => s + Number(c.valor), 0);
-  const contasPagaveisFiltradas = filtered.filter(c => c.status !== "paga");
+  const contasPagaveisFiltradas = filtered.filter(c => !isContaPaga(c));
   const todasPagaveisSelecionadas = contasPagaveisFiltradas.length > 0 && contasPagaveisFiltradas.every(c => selecionadasPagamentoIds.has(c.id));
 
   // ===================== CRUD =====================
@@ -302,7 +353,7 @@ export function useContasPagar() {
 
   const openPagarSelecionadasDialog = () => {
     if (contasSelecionadasPagamento.length === 0) { toast.error("Selecione ao menos uma conta pendente"); return; }
-    const selecionadasAbertas = contasSelecionadasPagamento.filter(c => c.status !== "paga");
+    const selecionadasAbertas = contasSelecionadasPagamento.filter(c => !isContaPaga(c));
     if (selecionadasAbertas.length === 0) { toast.error("As contas selecionadas já estão pagas"); return; }
     const total = selecionadasAbertas.reduce((s, c) => s + Number(c.valor), 0);
     setPagamentoEmLoteIds(new Set(selecionadasAbertas.map(c => c.id)));
@@ -619,7 +670,7 @@ export function useContasPagar() {
       Fornecedor: c.fornecedor, Descrição: c.descricao, Categoria: c.categoria || "—",
       Vencimento: format(new Date(c.vencimento + "T12:00:00"), "dd/MM/yyyy"),
       Valor: `R$ ${Number(c.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-      Status: c.status === "paga" ? "Paga" : (c.status === "pendente" || c.status === "vencida") && c.vencimento < hoje ? "Vencida" : "Pendente",
+      Status: { paga: "Paga", vencida: "Vencida", pendente: "Pendente" }[getStatusContaPagar(c, hoje)],
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -638,7 +689,7 @@ export function useContasPagar() {
         c.fornecedor, c.descricao, c.categoria || "—",
         format(new Date(c.vencimento + "T12:00:00"), "dd/MM/yyyy"),
         `R$ ${Number(c.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-        c.status === "paga" ? "Paga" : (c.status === "pendente" || c.status === "vencida") && c.vencimento < hoje ? "Vencida" : "Pendente",
+        { paga: "Paga", vencida: "Vencida", pendente: "Pendente" }[getStatusContaPagar(c, hoje)],
       ]),
       startY: 30, styles: { fontSize: 9, cellPadding: 3 },
       headStyles: { fillColor: [51, 65, 85], textColor: 255 },
@@ -650,9 +701,9 @@ export function useContasPagar() {
 
   return {
     // data
-    contas, loading, categoriasNomes, fornecedoresCadastro, hoje,
+    contas, loading, loadError, categoriasNomes, fornecedoresCadastro, hoje,
     // computed
-    filtered, totalPendente, totalVencido, totalPago, totalAberto,
+    filtered, scopeFiltered, matchesStatusFiltro, totalPendente, totalVencido, totalPago, totalAberto,
     resumoPorFornecedor, fornecedoresComMultiplas, groupedFiltered,
     fornecedoresUnicos, categoriasUnicas, hasActiveFilters,
     // filters
