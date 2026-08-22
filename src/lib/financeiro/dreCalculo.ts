@@ -258,6 +258,17 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
   const detalhes = vazioDetalhes();
   const avisos: string[] = [];
 
+  ([
+    ["movimentações de caixa", caixaRes.error],
+    ["movimentações bancárias", bancoRes.error],
+    ["contas a pagar", cpRes.error],
+    ["despesas contábeis", dcRes.error],
+    ["compras em aberto", compRes.error],
+  ] as const).forEach(([nome, err]) => {
+    if (err) avisos.push(`Não foi possível carregar ${nome} (${err.message}) — as despesas do período podem estar incompletas.`);
+  });
+
+
   // ---------- Receita ----------
   const listaPedidos = pedidos || [];
   const receitaBruta = listaPedidos.reduce((s, p: any) => s + Number(p.valor_total || 0), 0);
