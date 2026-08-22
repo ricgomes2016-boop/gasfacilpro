@@ -5,7 +5,12 @@ import {
   classificarDespesaDRE,
   criarMapaCategoriasFiscais,
 } from "./dreFinanceiro";
-import { STATUS_RECEITA_DRE, filtroPeriodoPedidos, mesRangeDre } from "./dreRange";
+import {
+  STATUS_RECEITA_DRE,
+  filtroPeriodoPedidos,
+  formatarIdentificadorPedido,
+  mesRangeDre,
+} from "./dreRange";
 import { isDespesaOperacionalResultado } from "./despesasResultado";
 
 
