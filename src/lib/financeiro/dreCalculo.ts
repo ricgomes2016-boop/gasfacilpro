@@ -20,7 +20,7 @@ import { isDespesaOperacionalResultado } from "./despesasResultado";
  * 5. Período: sempre pela data do fato, nunca pela data do pagamento.
  */
 
-export const STATUS_RECEITA_DRE = ["entregue", "finalizado", "pago", "pago_cartao"];
+export { STATUS_RECEITA_DRE, mesRangeDre, filtroPeriodoPedidos } from "./dreRange";
 
 const getDataOperacionalPedido = (pedido: { data_entrega?: string | null; created_at?: string | null }) =>
   (pedido.data_entrega || pedido.created_at || "").slice(0, 10);
