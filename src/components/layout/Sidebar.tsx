@@ -24,7 +24,7 @@ import {
 import { useSidebarContext } from "@/contexts/SidebarContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { menuItems } from "./menuItems";
+import { menuItems, MENU_AREAS } from "./menuItems";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import { usePlanoAccess } from "@/hooks/usePlanoAccess";
@@ -189,7 +189,7 @@ export function Sidebar() {
 
   // Filtra menu items pelas regras de plano (fail-open: se nada cadastrado, mostra tudo)
   const visibleMenuItems = useMemo(() => {
-    return menuItems
+    const filtered = menuItems
       .map((item) => {
         if (item.submenu) {
           const sub = item.submenu.filter((s) => !s.path || canAccessPath(s.path));
@@ -199,7 +199,33 @@ export function Sidebar() {
         return canAccessPath(item.path) ? item : null;
       })
       .filter(Boolean) as typeof menuItems;
+
+    // Ordena por jornada (área) preservando a ordem original dentro de cada área
+    const order = MENU_AREAS.map((a) => a.id);
+    return filtered
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => {
+        const ai = order.indexOf((a.item.area ?? "configurar") as never);
+        const bi = order.indexOf((b.item.area ?? "configurar") as never);
+        return ai === bi ? a.index - b.index : ai - bi;
+      })
+      .map((entry) => entry.item);
   }, [canAccessPath]);
+
+  // Rótulo da área exibido antes do primeiro item de cada jornada
+  const areaHeadings = useMemo(() => {
+    const map: Record<string, string> = {};
+    let previous: string | undefined;
+    visibleMenuItems.forEach((item) => {
+      const area = item.area ?? "configurar";
+      if (area !== previous) {
+        map[item.label] = MENU_AREAS.find((a) => a.id === area)?.label ?? "";
+        previous = area;
+      }
+    });
+    return map;
+  }, [visibleMenuItems]);
+
 
   // Auto-open active submenu
   useEffect(() => {
@@ -403,13 +429,11 @@ export function Sidebar() {
               </div>
             </div>
           )}
-          {!collapsed && (
-            <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
-              Navegação
-            </p>
-          )}
           <div className="space-y-1">
             {visibleMenuItems.map((item, idx) => {
+              const heading = collapsed ? undefined : areaHeadings[item.label];
+              const rendered = (() => {
+
               const hasSubmenu = !!item.submenu;
               const isOpen = isSubmenuOpen(item.label);
               const isItemActive = isActive(item.path);
@@ -598,7 +622,19 @@ export function Sidebar() {
                   </AnimatePresence>
                 </motion.div>
               );
+              })();
+
+              if (!heading) return rendered;
+              return (
+                <div key={`area-${item.label}`} className="space-y-1">
+                  <p className="mb-1 mt-3 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
+                    {heading}
+                  </p>
+                  {rendered}
+                </div>
+              );
             })}
+
           </div>
         </nav>
 

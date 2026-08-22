@@ -88,7 +88,6 @@ import {
   Mail,
   Download,
   MessageCircle,
-  Send,
   Share2,
   type LucideIcon,
 } from "lucide-react";
@@ -100,19 +99,53 @@ export interface SubMenuItem {
   externalUrl?: string;
 }
 
+/** Áreas da nova arquitetura de informação (jornadas). */
+export type MenuArea =
+  | "inicio"
+  | "vender"
+  | "entregar"
+  | "estocar"
+  | "receber-pagar"
+  | "analisar"
+  | "configurar";
+
+export const MENU_AREAS: { id: MenuArea; label: string }[] = [
+  { id: "inicio", label: "Início" },
+  { id: "vender", label: "Vender" },
+  { id: "entregar", label: "Entregar" },
+  { id: "estocar", label: "Estocar" },
+  { id: "receber-pagar", label: "Receber & Pagar" },
+  { id: "analisar", label: "Analisar" },
+  { id: "configurar", label: "Configurar" },
+];
+
 export interface MenuItem {
   icon: LucideIcon;
   label: string;
   path?: string;
+  /** Jornada a que o grupo pertence — usado para agrupar a navegação. */
+  area?: MenuArea;
   submenu?: SubMenuItem[];
 }
 
+
 export const menuItems: MenuItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Brain, label: "Assistente IA", path: "/assistente-ia" },
+  {
+    icon: LayoutDashboard,
+    label: "Dashboard",
+    area: "inicio",
+    path: "/dashboard",
+  },
+  {
+    icon: Brain,
+    label: "Assistente IA",
+    area: "inicio",
+    path: "/assistente-ia",
+  },
   {
     icon: Phone,
     label: "Atendimento",
+    area: "vender",
     submenu: [
       { icon: ClipboardList, label: "Registro", path: "/atendimento/registro" },
       { icon: PhoneCall, label: "LigaÃ§Ã£o IA", path: "/atendimento/ligacao-ia" },
@@ -122,6 +155,7 @@ export const menuItems: MenuItem[] = [
   {
     icon: MessageCircle,
     label: "WhatsApp",
+    area: "vender",
     submenu: [
       { icon: Smartphone, label: "Conversas", path: "/whatsapp/conversas" },
       { icon: Users, label: "Contatos", path: "/whatsapp/contatos" },
@@ -133,6 +167,7 @@ export const menuItems: MenuItem[] = [
   {
     icon: ShoppingCart,
     label: "Vendas",
+    area: "vender",
     submenu: [
       { icon: Monitor, label: "PDV", path: "/vendas/pdv" },
       { icon: PlusCircle, label: "Nova Venda", path: "/vendas/nova" },
@@ -146,6 +181,7 @@ export const menuItems: MenuItem[] = [
   {
     icon: Wallet,
     label: "Caixa",
+    area: "receber-pagar",
     submenu: [
       { icon: UserCheck, label: "Acerto Diário Entregador", path: "/caixa/acerto" },
       { icon: Calendar, label: "Caixa do Dia", path: "/caixa/dia" },
@@ -155,11 +191,11 @@ export const menuItems: MenuItem[] = [
   {
     icon: Settings2,
     label: "Gestão Operacional",
+    area: "analisar",
     submenu: [
       { icon: Sparkles, label: "Central de Inteligência", path: "/operacional/ia" },
       { icon: Map, label: "Mapa Operacional", path: "/operacional/centro" },
       { icon: Route, label: "Rotas de Entrega", path: "/operacional/rotas" },
-      { icon: Factory, label: "Fornecedores", path: "/operacional/fornecedores" },
       { icon: FileSpreadsheet, label: "Análise de Resultados", path: "/operacional/analise-resultados" },
       { icon: TrendingUp, label: "Resultado Operacional", path: "/operacional/resultado" },
       { icon: FileText, label: "DRE", path: "/operacional/dre" },
@@ -179,6 +215,7 @@ export const menuItems: MenuItem[] = [
   {
     icon: Users,
     label: "Gestão de Clientes",
+    area: "vender",
     submenu: [
       { icon: UserPlus, label: "Clientes", path: "/clientes/cadastro" },
       { icon: RefreshCw, label: "Contratos Recorrentes", path: "/clientes/contratos" },
@@ -194,13 +231,13 @@ export const menuItems: MenuItem[] = [
   {
     icon: Megaphone,
     label: "Gestão de Marketing",
+    area: "vender",
     submenu: [
       { icon: LayoutDashboard, label: "Dashboard", path: "/marketing" },
       { icon: Sparkles, label: "Criar Conteúdo", path: "/clientes/marketing" },
       { icon: Share2, label: "Redes Sociais", path: "/marketing/redes-sociais" },
       { icon: FileText, label: "Biblioteca", path: "/marketing/conteudos" },
       { icon: CalendarDays, label: "Agendamentos", path: "/marketing/agendamentos" },
-      { icon: Share2, label: "Redes Sociais", path: "/marketing/redes-sociais" },
       { icon: BarChart3, label: "Métricas & Insights", path: "/marketing/metricas" },
       { icon: MessageCircle, label: "Campanhas WhatsApp", path: "/marketing/campanhas-whatsapp" },
       { icon: Megaphone, label: "Campanhas", path: "/marketing/campanhas" },
@@ -210,6 +247,7 @@ export const menuItems: MenuItem[] = [
   {
     icon: Package,
     label: "Gestão de Estoque",
+    area: "estocar",
     submenu: [
       { icon: Gauge, label: "Dashboard", path: "/estoque/dashboard" },
       { icon: PackageOpen, label: "Estoque do Dia", path: "/estoque" },
@@ -227,6 +265,7 @@ export const menuItems: MenuItem[] = [
   {
     icon: CreditCard,
     label: "Gestão Financeira",
+    area: "receber-pagar",
     submenu: [
       { icon: Gauge, label: "Dashboard", path: "/financeiro" },
       { icon: ArrowUpDown, label: "Fluxo de Caixa", path: "/financeiro/fluxo" },
@@ -252,6 +291,7 @@ export const menuItems: MenuItem[] = [
   {
     icon: Truck,
     label: "Gestão de Frota",
+    area: "entregar",
     submenu: [
       { icon: Gauge, label: "Dashboard", path: "/frota" },
       { icon: Brain, label: "Análise de Frota IA", path: "/frota/analise-ia" },
@@ -267,6 +307,7 @@ export const menuItems: MenuItem[] = [
   {
     icon: HardHat,
     label: "Gestão de RH",
+    area: "configurar",
     submenu: [
       { icon: BarChart2, label: "Dashboard RH", path: "/rh/dashboard" },
       { icon: UserCog, label: "Funcionários", path: "/cadastros/funcionarios" },
@@ -286,12 +327,12 @@ export const menuItems: MenuItem[] = [
       { icon: UserCheckIcon, label: "Onboarding / Offboarding", path: "/rh/onboarding" },
       { icon: ShieldAlert, label: "Prevenção Trabalhista - IA", path: "/rh/prevencao-ia" },
       { icon: Zap, label: "Produtividade - IA", path: "/rh/produtividade-ia" },
-      { icon: Download, label: "APK Entregador", externalUrl: "https://github.com/ricgomes2016-boop/gasfacilpro/releases/download/apk-20260412-135219/GasFacilPro_Entregador.apk" },
     ],
   },
   {
     icon: FileText,
     label: "Gestão Fiscal",
+    area: "configurar",
     submenu: [
       { icon: Gauge, label: "Dashboard", path: "/fiscal" },
       { icon: Receipt, label: "NF-e", path: "/fiscal/nfe" },
@@ -305,6 +346,7 @@ export const menuItems: MenuItem[] = [
   {
     icon: Settings,
     label: "Configurações",
+    area: "configurar",
     submenu: [
       { icon: Cog, label: "Geral / Regras", path: "/configuracoes" },
       { icon: Users2, label: "Usuários", path: "/config/usuarios" },
@@ -319,10 +361,7 @@ export const menuItems: MenuItem[] = [
       { icon: Brain, label: "Regras da Bia", path: "/config/regras-bia" },
       { icon: Megaphone, label: "Site Institucional", path: "/config/site-institucional" },
       { icon: Plug, label: "Integrações / Hub", path: "/integracoes" },
-      { icon: MessageCircle, label: "WhatsApp Web", path: "/whatsapp/web/login" },
       { icon: Smartphone, label: "Config WhatsApp", path: "/integracoes?open=whatsapp" },
-      { icon: MessageCircle, label: "Credenciais Meta", path: "/whatsapp/credenciais" },
-      { icon: Send, label: "Teste de Envio", path: "/whatsapp/teste-envio" },
     ],
   },
 ];

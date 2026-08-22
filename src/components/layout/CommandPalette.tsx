@@ -161,14 +161,16 @@ export function CommandPalette() {
       {/* Trigger button */}
       <button
         onClick={() => setOpen(true)}
-        className="hidden xl:flex items-center gap-2 h-9 w-44 2xl:w-64 min-w-0 rounded-lg border border-border bg-muted/50 px-3 text-sm text-muted-foreground hover:bg-muted transition-colors"
+        aria-label="Buscar no sistema"
+        className="flex h-9 w-9 items-center justify-center gap-2 rounded-control border border-border bg-muted/50 text-sm text-muted-foreground transition-colors hover:bg-muted xl:w-44 xl:justify-start xl:px-3 2xl:w-64"
       >
         <Search className="h-4 w-4 shrink-0" />
-        <span className="flex-1 min-w-0 truncate text-left">Buscar...</span>
-        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-background px-1.5 font-mono text-[10px] font-medium opacity-60 sm:flex">
+        <span className="hidden min-w-0 flex-1 truncate text-left xl:block">Buscar...</span>
+        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-background px-1.5 font-mono text-[10px] font-medium opacity-60 xl:flex">
           <span className="text-xs">⌘</span>K
         </kbd>
       </button>
+
 
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput

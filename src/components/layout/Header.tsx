@@ -212,7 +212,7 @@ export function Header({ title, subtitle }: HeaderProps) {
             </div>
           )}
 
-          <div className={cn("shrink-0", isCleanTheme ? "block" : "hidden xl:block")}>
+          <div className="block shrink-0">
             <CommandPalette />
           </div>
 

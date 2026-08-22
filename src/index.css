@@ -49,9 +49,25 @@
 
     --radius: 0.75rem;
 
+    /* ---- UI Kit canonical tokens (Fase 1) ---- */
+    /* Superfícies */
+    --surface-raised: 0 0% 100%;
+    --surface-sunken: 220 20% 96%;
+    /* Texto */
+    --fg: 222 30% 11%;
+    --fg-muted: 225 14% 38%;
+    --fg-subtle: 225 12% 55%;
+    /* Semânticos financeiros */
+    --positive: 142 71% 38%;
+    --negative: 0 74% 48%;
+    /* Raios canônicos */
+    --radius-card: 16px;
+    --radius-control: 10px;
+
     /* Hero palette (used by FinancialHeroCard & premium cards) */
     --surface: 0 0% 100%;
     --surface-muted: 220 20% 98%;
+
     --hero-blue: 227 100% 59%;
     --hero-blue-dark: 227 70% 49%;
     --hero-green: 142 78% 44%;
@@ -115,6 +131,16 @@
   .dark {
     --background: 220 25% 4%;
     --foreground: 220 18% 98%;
+
+    /* ---- UI Kit canonical tokens (Fase 1) ---- */
+    --surface-raised: 220 22% 9%;
+    --surface-sunken: 220 25% 5%;
+    --fg: 220 18% 98%;
+    --fg-muted: 220 12% 72%;
+    --fg-subtle: 220 10% 58%;
+    --positive: 142 65% 45%;
+    --negative: 0 72% 58%;
+
 
     --card: 220 22% 7%;
     --card-foreground: 220 18% 98%;
