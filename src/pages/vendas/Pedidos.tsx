@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, type ElementType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { AppPage } from "@/components/ui-kit";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -945,7 +946,7 @@ export default function Pedidos() {
     <MainLayout>
       {/* #2 - removed duplicate title, kept only Header */}
       <Header title="Pedidos" subtitle="Gerenciar pedidos de venda" />
-      <div className="p-3 md:p-6 space-y-4 md:space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
+      <AppPage className="overflow-x-hidden">
 
         {/* Top actions - grade 2x2 mobile / 4 col desktop, premium */}
         {(() => {
@@ -2066,7 +2067,7 @@ export default function Pedidos() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+      </AppPage>
       <ImportReviewDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}

@@ -1,2 +1,2 @@
-export { EstoqueKpiCard as KpiCard } from "@/components/estoque/EstoqueKpiCard";
-export type { EstoqueKpiTone as KpiTone } from "@/components/estoque/EstoqueKpiCard";
+export { KpiCard, KpiRow } from "@/components/ui-kit/KpiCard";
+export type { KpiTone, KpiCardProps } from "@/components/ui-kit/KpiCard";

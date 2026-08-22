@@ -3,7 +3,8 @@ import { cn } from "@/lib/utils";
 import { PageHeader } from "./PageHeader";
 
 export interface AppPageProps {
-  title: string;
+  /** Opcional: quando ausente, a página não renderiza cabeçalho próprio (o Header global já o exibe). */
+  title?: string;
   description?: string;
   actions?: ReactNode;
   meta?: ReactNode;
@@ -34,7 +35,9 @@ export function AppPage({
         className,
       )}
     >
-      <PageHeader title={title} description={description} actions={actions} meta={meta} />
+      {(title || description || actions || meta) && (
+        <PageHeader title={title ?? ""} description={description} actions={actions} meta={meta} />
+      )}
       <div className="w-full min-w-0 space-y-4">{children}</div>
     </div>
   );

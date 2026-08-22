@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { AppPage } from "@/components/ui-kit";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1067,7 +1068,7 @@ export default function CadastroClientesCad() {
   return (
     <MainLayout>
       <Header title="Cadastro de Clientes" subtitle="Gerencie os clientes da revenda" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+      <AppPage className="overflow-x-hidden">
         <div className="modern-panel flex flex-wrap items-center justify-between gap-2 p-3">
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <input
@@ -1347,7 +1348,7 @@ export default function CadastroClientesCad() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </AppPage>
 
       {/* Modal para criar/editar cliente */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

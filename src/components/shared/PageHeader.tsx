@@ -1,1 +1,2 @@
-export { EstoquePageHeader as PageHeader } from "@/components/estoque/EstoquePageHeader";
+export { PageHeader } from "@/components/ui-kit/PageHeader";
+export type { PageHeaderProps } from "@/components/ui-kit/PageHeader";
