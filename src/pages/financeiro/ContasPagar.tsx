@@ -468,6 +468,17 @@ export default function ContasPagar() {
             <Card className="modern-panel overflow-hidden">
               <CardHeader className="gap-3 px-3 pb-3 sm:px-6">
                 {/* Busca visível + filtros rápidos */}
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-xs">
+                  <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-muted-foreground">Período (por vencimento):</span>
+                  <span className="font-semibold text-foreground">{fmtData(cp.dataInicial)} → {fmtData(cp.dataFinal)}</span>
+                  {cp.isMesAtual ? (
+                    <Badge variant="secondary" className="py-0 text-[10px]">Mês atual</Badge>
+                  ) : (
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={cp.aplicarMesAtual}>Voltar ao mês atual</Button>
+                  )}
+                </div>
+
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div className="relative w-full lg:max-w-sm">
                     <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
