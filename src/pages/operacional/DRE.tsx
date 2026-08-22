@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
+  Download,
   FileDown,
   HelpCircle,
   Info,
@@ -11,8 +12,10 @@ import {
   Search,
   TrendingUp,
   Wallet,
+  X,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { Header } from "@/components/layout/Header";
 import { AppPage, KpiCard, KpiRow, SectionCard, EmptyState, KpiSkeletonRow, UiKitSkeleton } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,14 +42,16 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { calcularDRE, DRE_LINHAS, type DreGrupo, type DreLancamento, type DreMes } from "@/lib/financeiro/dreCalculo";
 import {
   agregarProdutos,
+  agruparPorOrigem,
   construirPonte,
   consolidarDre,
+  lancamentosParaCsv,
   margemLiquida,
   percentualReceita,
   variacaoPercentual,
   type DreTotais,
 } from "@/lib/financeiro/dreView";
-import { DRELinhaDetalheDialog } from "@/components/operacional/DRELinhaDetalheDialog";
+
 
 interface DRELine {
   categoria: string;
@@ -87,7 +92,12 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
   const [modo, setModo] = useState<"consolidado" | "mensal">("consolidado");
   const [buscaProduto, setBuscaProduto] = useState("");
   const [verTodosProdutos, setVerTodosProdutos] = useState(false);
-  const [detalhe, setDetalhe] = useState<{ titulo: string; descricao?: string; lancamentos: DreLancamento[] } | null>(null);
+  const [detalhe, setDetalhe] = useState<
+    { chave: string; titulo: string; descricao?: string; lancamentos: DreLancamento[] } | null
+  >(null);
+  const [buscaDetalhe, setBuscaDetalhe] = useState("");
+  const detalheRef = useRef<HTMLDivElement | null>(null);
+
 
   const cfg = PERIODOS.find((p) => p.value === periodo) ?? PERIODOS[0];
 
@@ -188,12 +198,56 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
 
   const abrirDetalhe = (linha: DRELine) => {
     if (!linha.grupo) return;
+    setBuscaDetalhe("");
     setDetalhe({
+      chave: linha.categoria,
       titulo: linha.categoria.replace("(-) ", ""),
       descricao: `${periodoLabel} · ${linha.ajuda || "Lançamentos que compõem esta linha."}`,
       lancamentos: dados.flatMap((m) => m.detalhes[linha.grupo!] || []),
     });
+    requestAnimationFrame(() => {
+      const el = detalheRef.current;
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      el.focus({ preventScroll: true });
+    });
   };
+
+  // Trocar período/unidade invalida o detalhe carregado.
+  useEffect(() => {
+    setDetalhe(null);
+    setBuscaDetalhe("");
+  }, [periodo, unidadeAtual?.id]);
+
+  const normalizarTexto = (v: string) => v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const detalheFiltrado = useMemo(() => {
+    if (!detalhe) return [];
+    const termo = normalizarTexto(buscaDetalhe.trim());
+    if (!termo) return detalhe.lancamentos;
+    return detalhe.lancamentos.filter(
+      (l) => normalizarTexto(l.descricao || "").includes(termo) || normalizarTexto(l.origem || "").includes(termo),
+    );
+  }, [detalhe, buscaDetalhe]);
+
+  const detalheTotal = useMemo(
+    () => detalheFiltrado.reduce((s, l) => s + Number(l.valor || 0), 0),
+    [detalheFiltrado],
+  );
+  const detalheOrigens = useMemo(() => agruparPorOrigem(detalheFiltrado), [detalheFiltrado]);
+
+  const exportarDetalheCsv = () => {
+    if (!detalhe) return;
+    const csv = lancamentosParaCsv(detalheFiltrado);
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dre-${normalizarTexto(detalhe.titulo).replace(/[^a-z0-9]+/g, "-")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
 
   const kpiTrend = (campo: keyof DreTotais, invertido = false) => {
     if (!totaisAnterior) return undefined;
@@ -206,6 +260,14 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
   const margemAnterior = totaisAnterior ? margemLiquida(totaisAnterior) : null;
 
   const mostrarMensal = modo === "mensal" && dados.length > 1;
+
+  const intervaloLabel =
+    dados.length > 0
+      ? `${dados[0].inicio.split("-").reverse().join("/")} a ${dados[dados.length - 1].fim.split("-").reverse().join("/")}`
+      : "—";
+  const escopoLabel = unidadeAtual?.nome ? `unidade ${unidadeAtual.nome}` : "todas as unidades (consolidado)";
+  const notaEscopo = `${totais.qtdPedidos} pedidos considerados · ${intervaloLabel} · ${escopoLabel}.`;
+
 
   /* ------------------------------- Blocos ------------------------------- */
 
@@ -361,7 +423,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
   const tabelaDre = (
     <SectionCard
       title="DRE Gerencial"
-      description="Competência gerencial por mês. Clique numa linha auditável para ver os lançamentos de origem."
+      description={`${notaEscopo} Clique numa linha auditável para ver os lançamentos de origem.`}
       flush
       actions={
         <Tabs value={mostrarMensal ? "mensal" : "consolidado"} onValueChange={(v) => setModo(v as "consolidado" | "mensal")}>
@@ -399,8 +461,15 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
               const av = percentualReceita(total, totais.receitaLiquida);
               const isSubtotal = item.tipo === "subtotal";
               const isResultado = item.tipo === "resultado";
-              const rowBg = isResultado ? "bg-primary/10" : isSubtotal ? "bg-muted/40" : "bg-card";
               const clicavel = !!item.grupo;
+              const selecionada = clicavel && detalhe?.chave === item.categoria;
+              const rowBg = selecionada
+                ? "bg-primary/15"
+                : isResultado
+                  ? "bg-primary/10"
+                  : isSubtotal
+                    ? "bg-muted/40"
+                    : "bg-card";
 
               return (
                 <tr
@@ -414,12 +483,14 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                   }}
                   tabIndex={clicavel ? 0 : undefined}
                   role={clicavel ? "button" : undefined}
+                  aria-selected={clicavel ? selecionada : undefined}
+                  aria-current={selecionada ? "true" : undefined}
                   aria-label={clicavel ? `Ver lançamentos de ${item.categoria}` : undefined}
                   className={`${rowBg} transition-colors ${clicavel ? "cursor-pointer hover:bg-muted/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary" : ""}`}
                 >
                   <th
                     scope="row"
-                    className={`sticky left-0 z-10 border-b border-border/50 px-3 py-2.5 text-left font-normal shadow-[1px_0_0_hsl(var(--border))] ${rowBg}`}
+                    className={`sticky left-0 z-10 border-b border-border/50 px-3 py-2.5 text-left font-normal shadow-[1px_0_0_hsl(var(--border))] ${rowBg} ${selecionada ? "border-l-2 border-l-primary" : ""}`}
                   >
                     <span
                       className={`flex items-center gap-1.5 leading-snug ${item.indent && !isSubtotal ? "pl-3 text-muted-foreground" : ""} ${
@@ -428,8 +499,12 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                     >
                       {item.categoria}
                       {clicavel && <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" aria-hidden />}
+                      {selecionada && (
+                        <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px] font-semibold">detalhando</Badge>
+                      )}
                     </span>
                   </th>
+
                   {mostrarMensal &&
                     item.valores.map((v, i) => (
                       <td
@@ -457,6 +532,99 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       </div>
     </SectionCard>
   );
+
+  const detalheInline = detalhe && (
+    <div ref={detalheRef} tabIndex={-1} className="scroll-mt-24 outline-none">
+      <SectionCard
+        title={`Detalhamento — ${detalhe.titulo}`}
+        description={detalhe.descricao}
+        actions={
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={buscaDetalhe}
+                onChange={(e) => setBuscaDetalhe(e.target.value)}
+                placeholder="Buscar descrição ou origem"
+                aria-label="Buscar lançamentos desta linha"
+                className="h-9 pl-8 text-base sm:text-sm"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9"
+              onClick={exportarDetalheCsv}
+              disabled={detalheFiltrado.length === 0}
+              aria-label="Exportar lançamentos em CSV"
+            >
+              <Download className="mr-1.5 h-4 w-4" /> CSV
+            </Button>
+            <Button type="button" variant="ghost" size="sm" className="h-9" onClick={() => setDetalhe(null)}>
+              <X className="mr-1.5 h-4 w-4" /> Fechar detalhe
+            </Button>
+          </div>
+        }
+      >
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius)] border border-border/60 bg-muted/35 px-3 py-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {detalheFiltrado.length} lançamento(s)
+            {detalheFiltrado.length !== detalhe.lancamentos.length ? ` de ${detalhe.lancamentos.length}` : ""}
+          </span>
+          <span className="text-sm font-bold tabular-nums">{formatCurrency(detalheTotal)}</span>
+        </div>
+
+        {detalheOrigens.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {detalheOrigens.map((o) => (
+              <Badge key={o.origem} variant="outline" className="gap-1 text-[11px] font-medium">
+                {o.origem}
+                <span className="text-muted-foreground">· {o.quantidade} · {formatCurrency(o.total)}</span>
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        <div className="max-h-[60vh] w-full overflow-auto rounded-[var(--radius)] border border-border/60">
+          {detalheFiltrado.length === 0 ? (
+            <p className="p-6 text-center text-sm text-muted-foreground">
+              {detalhe.lancamentos.length === 0
+                ? "Nenhum lançamento nesta linha no período."
+                : "Nenhum lançamento corresponde à busca."}
+            </p>
+          ) : (
+            <table className="w-full min-w-[520px] text-[13px]">
+              <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur">
+                <tr>
+                  <th scope="col" className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Data</th>
+                  <th scope="col" className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Descrição</th>
+                  <th scope="col" className="px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Origem</th>
+                  <th scope="col" className="px-3 py-2 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detalheFiltrado.map((l, i) => (
+                  <tr key={`${l.data}-${i}`} className="border-t border-border/50 odd:bg-muted/15">
+                    <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                      {l.data ? l.data.split("-").reverse().join("/") : "—"}
+                    </td>
+                    <td className="px-3 py-2 leading-snug">{l.descricao}</td>
+                    <td className="px-3 py-2">
+                      <Badge variant="outline" className="text-[10px]">{l.origem}</Badge>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums">{formatCurrency(l.valor)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </SectionCard>
+    </div>
+  );
+
+
 
   const margemProduto = (
     <SectionCard
@@ -603,6 +771,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
         {qualidade}
         {pontePonto}
         {tabelaDre}
+        {detalheInline}
         {margemProduto}
         {evolucao}
       </div>
@@ -614,13 +783,6 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       {filtros}
       {embedded && acoes}
       {corpo}
-      <DRELinhaDetalheDialog
-        open={!!detalhe}
-        onOpenChange={(o) => !o && setDetalhe(null)}
-        titulo={detalhe?.titulo || ""}
-        descricao={detalhe?.descricao}
-        lancamentos={detalhe?.lancamentos || []}
-      />
     </div>
   );
 
@@ -628,13 +790,9 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <MainLayout>
-      <AppPage
-        title="DRE Gerencial"
-        description="Resultado por competência, com receita, CMV e despesas reais auditáveis até o lançamento de origem."
-        actions={acoes}
-      >
-        {content}
-      </AppPage>
+      <Header title="DRE Gerencial" subtitle="Demonstrativo de resultados por competência" />
+      <AppPage actions={acoes}>{content}</AppPage>
     </MainLayout>
   );
 }
+

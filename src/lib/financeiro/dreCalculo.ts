@@ -1,11 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
-import { endOfMonth, format, startOfMonth } from "date-fns";
+import { format } from "date-fns";
 import {
   calcularPrecoMedioCompraPorProduto,
   classificarDespesaDRE,
   criarMapaCategoriasFiscais,
 } from "./dreFinanceiro";
+import { STATUS_RECEITA_DRE, filtroPeriodoPedidos, mesRangeDre } from "./dreRange";
 import { isDespesaOperacionalResultado } from "./despesasResultado";
+
 
 /**
  * Regras da DRE (regime de competência) — fonte única de verdade.
@@ -20,7 +22,7 @@ import { isDespesaOperacionalResultado } from "./despesasResultado";
  * 5. Período: sempre pela data do fato, nunca pela data do pagamento.
  */
 
-export const STATUS_RECEITA_DRE = ["entregue", "finalizado", "pago", "pago_cartao"];
+export { STATUS_RECEITA_DRE, mesRangeDre, filtroPeriodoPedidos } from "./dreRange";
 
 const getDataOperacionalPedido = (pedido: { data_entrega?: string | null; created_at?: string | null }) =>
   (pedido.data_entrega || pedido.created_at || "").slice(0, 10);
@@ -160,16 +162,14 @@ const vazioDetalhes = (): Record<DreGrupo, DreLancamento[]> => ({
 });
 
 async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes> {
-  const inicioDate = format(startOfMonth(referencia), "yyyy-MM-dd");
-  const fimDate = format(endOfMonth(referencia), "yyyy-MM-dd");
-  const inicioISO = startOfMonth(referencia).toISOString();
-  const fimISO = endOfMonth(referencia).toISOString();
+  const range = mesRangeDre(referencia);
+  const { inicioDate, fimDate, inicioISO, proximoInicioISO } = range;
 
   let pq = supabase
     .from("pedidos")
     .select("id, valor_total, data_entrega, created_at, status, numero_pedido")
-    .in("status", STATUS_RECEITA_DRE)
-    .or(`and(data_entrega.gte.${inicioDate},data_entrega.lte.${fimDate}),and(data_entrega.is.null,created_at.gte.${inicioISO},created_at.lte.${fimISO})`);
+    .in("status", [...STATUS_RECEITA_DRE])
+    .or(filtroPeriodoPedidos(range));
   if (unidadeId) pq = pq.eq("unidade_id", unidadeId);
 
   let cancQ = supabase
@@ -177,7 +177,7 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
     .select("id", { count: "exact", head: true })
     .eq("status", "cancelado")
     .gte("created_at", inicioISO)
-    .lte("created_at", fimISO);
+    .lt("created_at", proximoInicioISO);
   if (unidadeId) cancQ = cancQ.eq("unidade_id", unidadeId);
 
   let caixaQ = supabase
@@ -188,8 +188,9 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
     .is("compra_id", null)
     .is("pedido_id", null)
     .gte("created_at", inicioISO)
-    .lte("created_at", fimISO);
+    .lt("created_at", proximoInicioISO);
   if (unidadeId) caixaQ = caixaQ.eq("unidade_id", unidadeId);
+
 
   let bancoQ = supabase
     .from("movimentacoes_bancarias")
@@ -228,19 +229,45 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
   if (unidadeId) categoriasQ = categoriasQ.or(`unidade_id.is.null,unidade_id.eq.${unidadeId}`);
 
   const [
-    { data: pedidos },
-    { count: qtdCancelados },
-    { data: caixa },
-    { data: banco },
-    { data: contasPagar },
-    { data: despesasContabeis },
-    { data: comprasAbertas },
-    { data: categoriasFiscais },
+    pedidosRes,
+    cancRes,
+    caixaRes,
+    bancoRes,
+    cpRes,
+    dcRes,
+    compRes,
+    categoriasRes,
   ] = await Promise.all([pq, cancQ, caixaQ, bancoQ, cpQ, dcQ, compQ, categoriasQ]);
+
+  // A receita não pode falhar em silêncio: erro na consulta de pedidos aborta o mês.
+  if (pedidosRes.error) {
+    throw new Error(`Falha ao carregar pedidos da DRE: ${pedidosRes.error.message}`);
+  }
+
+  const pedidos = pedidosRes.data;
+  const qtdCancelados = cancRes.count;
+  const caixa = caixaRes.data;
+  const banco = bancoRes.data;
+  const contasPagar = cpRes.data;
+  const despesasContabeis = dcRes.data;
+  const comprasAbertas = compRes.data;
+  const categoriasFiscais = categoriasRes.data;
   const mapaCategoriasFiscais = criarMapaCategoriasFiscais(categoriasFiscais || []);
+
 
   const detalhes = vazioDetalhes();
   const avisos: string[] = [];
+
+  ([
+    ["movimentações de caixa", caixaRes.error],
+    ["movimentações bancárias", bancoRes.error],
+    ["contas a pagar", cpRes.error],
+    ["despesas contábeis", dcRes.error],
+    ["compras em aberto", compRes.error],
+  ] as const).forEach(([nome, err]) => {
+    if (err) avisos.push(`Não foi possível carregar ${nome} (${err.message}) — as despesas do período podem estar incompletas.`);
+  });
+
 
   // ---------- Receita ----------
   const listaPedidos = pedidos || [];
