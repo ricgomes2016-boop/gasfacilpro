@@ -229,16 +229,31 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
   if (unidadeId) categoriasQ = categoriasQ.or(`unidade_id.is.null,unidade_id.eq.${unidadeId}`);
 
   const [
-    { data: pedidos },
-    { count: qtdCancelados },
-    { data: caixa },
-    { data: banco },
-    { data: contasPagar },
-    { data: despesasContabeis },
-    { data: comprasAbertas },
-    { data: categoriasFiscais },
+    pedidosRes,
+    cancRes,
+    caixaRes,
+    bancoRes,
+    cpRes,
+    dcRes,
+    compRes,
+    categoriasRes,
   ] = await Promise.all([pq, cancQ, caixaQ, bancoQ, cpQ, dcQ, compQ, categoriasQ]);
+
+  // A receita não pode falhar em silêncio: erro na consulta de pedidos aborta o mês.
+  if (pedidosRes.error) {
+    throw new Error(`Falha ao carregar pedidos da DRE: ${pedidosRes.error.message}`);
+  }
+
+  const pedidos = pedidosRes.data;
+  const qtdCancelados = cancRes.count;
+  const caixa = caixaRes.data;
+  const banco = bancoRes.data;
+  const contasPagar = cpRes.data;
+  const despesasContabeis = dcRes.data;
+  const comprasAbertas = compRes.data;
+  const categoriasFiscais = categoriasRes.data;
   const mapaCategoriasFiscais = criarMapaCategoriasFiscais(categoriasFiscais || []);
+
 
   const detalhes = vazioDetalhes();
   const avisos: string[] = [];
