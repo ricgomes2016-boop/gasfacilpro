@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { STATUS_RECEITA_DRE, filtroPeriodoPedidos, mesRangeDre } from "./dreRange";
+import { STATUS_RECEITA_DRE, filtroPeriodoPedidos, formatarIdentificadorPedido, mesRangeDre } from "./dreRange";
 
 describe("mesRangeDre", () => {
   it("cobre o mês inteiro com fim exclusivo no próximo mês", () => {
