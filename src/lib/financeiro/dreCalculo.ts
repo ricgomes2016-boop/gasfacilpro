@@ -1,11 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
-import { endOfMonth, format, startOfMonth } from "date-fns";
+import { format } from "date-fns";
 import {
   calcularPrecoMedioCompraPorProduto,
   classificarDespesaDRE,
   criarMapaCategoriasFiscais,
 } from "./dreFinanceiro";
+import { STATUS_RECEITA_DRE, filtroPeriodoPedidos, mesRangeDre } from "./dreRange";
 import { isDespesaOperacionalResultado } from "./despesasResultado";
+
 
 /**
  * Regras da DRE (regime de competência) — fonte única de verdade.
