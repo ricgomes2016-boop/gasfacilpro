@@ -1,4 +1,4 @@
-export { KpiCard, type KpiTone } from "./KpiCard";
+export { KpiCard, KpiRow, type KpiTone } from "./KpiCard";
 export { PageHeader } from "./PageHeader";
 export { EmptyState } from "./EmptyState";
 export { SectionCard } from "./SectionCard";
