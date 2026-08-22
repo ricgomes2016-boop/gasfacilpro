@@ -453,8 +453,15 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
               const av = percentualReceita(total, totais.receitaLiquida);
               const isSubtotal = item.tipo === "subtotal";
               const isResultado = item.tipo === "resultado";
-              const rowBg = isResultado ? "bg-primary/10" : isSubtotal ? "bg-muted/40" : "bg-card";
               const clicavel = !!item.grupo;
+              const selecionada = clicavel && detalhe?.chave === item.categoria;
+              const rowBg = selecionada
+                ? "bg-primary/15"
+                : isResultado
+                  ? "bg-primary/10"
+                  : isSubtotal
+                    ? "bg-muted/40"
+                    : "bg-card";
 
               return (
                 <tr
@@ -468,12 +475,14 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                   }}
                   tabIndex={clicavel ? 0 : undefined}
                   role={clicavel ? "button" : undefined}
+                  aria-selected={clicavel ? selecionada : undefined}
+                  aria-current={selecionada ? "true" : undefined}
                   aria-label={clicavel ? `Ver lançamentos de ${item.categoria}` : undefined}
                   className={`${rowBg} transition-colors ${clicavel ? "cursor-pointer hover:bg-muted/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary" : ""}`}
                 >
                   <th
                     scope="row"
-                    className={`sticky left-0 z-10 border-b border-border/50 px-3 py-2.5 text-left font-normal shadow-[1px_0_0_hsl(var(--border))] ${rowBg}`}
+                    className={`sticky left-0 z-10 border-b border-border/50 px-3 py-2.5 text-left font-normal shadow-[1px_0_0_hsl(var(--border))] ${rowBg} ${selecionada ? "border-l-2 border-l-primary" : ""}`}
                   >
                     <span
                       className={`flex items-center gap-1.5 leading-snug ${item.indent && !isSubtotal ? "pl-3 text-muted-foreground" : ""} ${
@@ -482,8 +491,12 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                     >
                       {item.categoria}
                       {clicavel && <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" aria-hidden />}
+                      {selecionada && (
+                        <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px] font-semibold">detalhando</Badge>
+                      )}
                     </span>
                   </th>
+
                   {mostrarMensal &&
                     item.valores.map((v, i) => (
                       <td
