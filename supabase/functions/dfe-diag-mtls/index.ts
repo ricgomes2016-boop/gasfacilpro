@@ -83,19 +83,22 @@ Deno.serve(async (req) => {
 <distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01"><tpAmb>1</tpAmb><cUFAutor>${carga.cUF || "41"}</cUFAutor>
 <CNPJ>${carga.cnpj}</CNPJ><distNSU><ultNSU>000000000000000</ultNSU></distNSU></distDFeInt>
 </nfeDadosMsg></nfeDistDFeInteresse></soap12:Body></soap12:Envelope>`;
-  let raw = "?";
-  let rawCStat: string | null = null;
-  try {
-    const r = await postHttp1Tls(
-      "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx",
-      soap,
-      { "Content-Type": "application/soap+xml; charset=utf-8", "Accept": "application/soap+xml, text/xml" },
-      cert,
-    );
-    raw = `HTTP ${r.status} bytes=${r.body.length}`;
-    rawCStat = r.body.match(/<cStat>(\d+)<\/cStat>/)?.[1] ?? null;
-  } catch (e) {
-    raw = classificarErroRede(e).detalhe;
+  const rawProbes: Record<string, string> = {};
+  for (const alpn of [undefined, ["h2"], ["http/1.1"], ["h2", "http/1.1"]] as (string[] | undefined)[]) {
+    const nome = alpn ? alpn.join("+") : "sem_alpn";
+    try {
+      const r = await postHttp1Tls(
+        "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx",
+        soap,
+        { "Content-Type": "application/soap+xml; charset=utf-8", "Accept": "application/soap+xml, text/xml" },
+        cert,
+        20000,
+        alpn,
+      );
+      rawProbes[nome] = `HTTP ${r.status} bytes=${r.body.length} cStat=${r.body.match(/<cStat>(\d+)<\/cStat>/)?.[1] ?? "-"}`;
+    } catch (e) {
+      rawProbes[nome] = classificarErroRede(e).detalhe;
+    }
   }
 
   const resp = await soapPost("https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx", soap, cert, 1);
@@ -108,8 +111,7 @@ Deno.serve(async (req) => {
     criacao,
     egress,
     probes,
-    raw,
-    rawCStat,
+    rawProbes,
     soap: resp.ok ? { status: "resposta_recebida", bytes: resp.texto.length, cStat } : { categoria: resp.categoria, erro: resp.erro },
   });
 });

@@ -31,6 +31,7 @@ export async function postHttp1Tls(
   headers: Record<string, string>,
   cert: { certPem: string; keyPem: string },
   timeoutMs = 25000,
+  alpn?: string[],
 ): Promise<RespostaHttp1> {
   const u = new URL(url);
   const porta = Number(u.port || 443);
@@ -39,6 +40,7 @@ export async function postHttp1Tls(
     port: porta,
     cert: cert.certPem,
     key: cert.keyPem,
+    ...(alpn ? { alpnProtocols: alpn } : {}),
     // Sem alpnProtocols: servidores legados da SEFAZ resetam quando o cliente
     // anuncia "http/1.1" via ALPN, mas aceitam a conexão sem extensão ALPN.
   });
