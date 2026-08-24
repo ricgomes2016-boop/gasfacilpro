@@ -84,6 +84,26 @@ Deno.serve(async (req) => {
 <CNPJ>${carga.cnpj}</CNPJ><distNSU><ultNSU>000000000000000</ultNSU></distNSU></distDFeInt>
 </nfeDadosMsg></nfeDistDFeInteresse></soap12:Body></soap12:Envelope>`;
   const rawProbes: Record<string, string> = {};
+  // Handshake TLS puro (sem enviar nada) para isolar handshake x requisição
+  for (const host of ["www1.nfe.fazenda.gov.br", "hom1.nfe.fazenda.gov.br", "www.nfe.fazenda.gov.br"]) {
+    try {
+      const c: any = await (Deno as any).connectTls({ hostname: host, port: 443, cert: cert.certPem, key: cert.keyPem });
+      try { await c.handshake?.(); } catch (_e) { /* noop */ }
+      rawProbes[`handshake_${host}`] = "handshake_ok";
+      try {
+        await c.write(new TextEncoder().encode(`GET / HTTP/1.1\r\nHost: ${host}\r\nConnection: close\r\n\r\n`));
+        const b = new Uint8Array(1024);
+        const n = await c.read(b);
+        rawProbes[`get_${host}`] = new TextDecoder().decode(b.subarray(0, Math.min(n ?? 0, 24)));
+      } catch (e2) {
+        rawProbes[`get_${host}`] = classificarErroRede(e2).detalhe;
+      }
+      try { c.close(); } catch (_e) { /* noop */ }
+    } catch (e) {
+      rawProbes[`handshake_${host}`] = classificarErroRede(e).detalhe;
+    }
+  }
+
   // Controle: TLS bruto + HTTP/1.1 para um host neutro (sem cert de cliente)
   try {
     const c: any = await (Deno as any).connectTls({ hostname: "example.com", port: 443 });
