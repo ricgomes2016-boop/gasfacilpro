@@ -42,10 +42,23 @@ export function abrirPfx(pfxBytes: Uint8Array, senha: string): CertificadoAberto
   ] || []).concat(p12.getBags({ bagType: forge.pki.oids.keyBag })[forge.pki.oids.keyBag] || []);
   if (!keyBags.length || !keyBags[0].key) throw new Error("pfx_sem_chave");
 
-  const cert = certBags[0].cert;
+  // O bag do titular é o certificado folha (não-CA). Rustls (Deno) exige a
+  // cadeia com a folha PRIMEIRO; a ordem dos bags do PKCS#12 não é garantida.
+  const isCa = (c: any) => {
+    try {
+      const bc = c.getExtension("basicConstraints");
+      return !!(bc && bc.cA);
+    } catch (_e) { return false; }
+  };
+  const folhaBag = certBags.find((b: any) => b.cert && !isCa(b.cert)) || certBags[0];
+  const cert = folhaBag.cert;
   const cn = cert.subject.getField("CN")?.value || "";
-  const pemChain = certBags.map((b: any) => forge.pki.certificateToPem(b.cert)).join("\n");
-  const pemKey = forge.pki.privateKeyToPem(keyBags[0].key);
+  const ordenados = [folhaBag, ...certBags.filter((b: any) => b !== folhaBag && b.cert)];
+  const pemChain = ordenados.map((b: any) => forge.pki.certificateToPem(b.cert).trim()).join("\n") + "\n";
+  // Rustls só aceita chave em PKCS#8 ("BEGIN PRIVATE KEY"); node-forge emite
+  // PKCS#1 ("BEGIN RSA PRIVATE KEY") por padrão, o que o Deno rejeita.
+  const rsaKey = keyBags[0].key;
+  const pemKey = forge.pki.privateKeyInfoToPem(forge.pki.wrapRsaPrivateKey(forge.pki.privateKeyToAsn1(rsaKey)));
   const der = forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes();
   const cnpjMatch = String(cn).match(/(\d{14})/);
 
@@ -53,13 +66,14 @@ export function abrirPfx(pfxBytes: Uint8Array, senha: string): CertificadoAberto
     certPem: pemChain,
     keyPem: pemKey,
     certBase64: forge.util.encode64(der),
-    privateKey: keyBags[0].key,
+    privateKey: rsaKey,
     titular: String(cn).replace(/:\d{14}$/, "").trim(),
     cnpj: cnpjMatch ? cnpjMatch[1] : null,
     vencido: cert.validity.notAfter < new Date(),
     validade: cert.validity.notAfter?.toISOString?.() ?? null,
   };
 }
+
 
 export type CarregarCertificadoResultado =
   | { ok: true; cert: CertificadoAberto; cnpj: string; cUF: string; unidade: Record<string, unknown> }
