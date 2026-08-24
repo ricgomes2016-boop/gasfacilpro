@@ -1,6 +1,8 @@
+import fs from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import forge from "node-forge";
 import { carregarConfig } from "./config.js";
+
 
 /**
  * O PFX é buscado sob demanda no storage privado e mantido APENAS em memória
@@ -143,4 +145,61 @@ export function descartarCertificado(cert: CertificadoUnidade | null | undefined
     /* noop */
   }
   (cert as { senha: string }).senha = "";
+}
+
+/**
+ * Modo local: lê o .pfx diretamente do disco do PC do escritório.
+ * Nada é buscado no banco e o arquivo nunca sai da máquina do usuário.
+ */
+export function carregarCertificadoLocal(): CargaCertificado {
+  const cfg = carregarConfig();
+  const local = cfg.local;
+  if (!local) return { ok: false, motivo: "modo_invalido", mensagem: "Agente local não configurado." };
+
+  let pfx: Buffer;
+  try {
+    pfx = fs.readFileSync(local.pfxPath);
+  } catch {
+    return { ok: false, motivo: "pfx_nao_encontrado", mensagem: "Arquivo do certificado A1 não encontrado no PC." };
+  }
+
+  let aberto: ReturnType<typeof abrirPfx>;
+  try {
+    aberto = abrirPfx(pfx, local.senha);
+  } catch (e) {
+    const msg = String((e as Error)?.message ?? "");
+    const senhaRuim = /MAC|password|invalid|integrity/i.test(msg);
+    return {
+      ok: false,
+      motivo: senhaRuim ? "senha_invalida" : "pfx_invalido",
+      mensagem: senhaRuim ? "Senha do certificado inválida." : "Não foi possível abrir o certificado A1.",
+    };
+  }
+
+  if (aberto.validade < new Date()) {
+    return { ok: false, motivo: "cert_vencido", mensagem: "Certificado A1 vencido." };
+  }
+  if (aberto.cnpjCertificado && aberto.cnpjCertificado !== local.cnpj) {
+    return {
+      ok: false,
+      motivo: "cnpj_divergente",
+      mensagem: "O CNPJ do certificado não corresponde ao CNPJ configurado no agente.",
+    };
+  }
+
+  return {
+    ok: true,
+    cert: {
+      pfx,
+      senha: local.senha,
+      cnpjUnidade: local.cnpj,
+      cnpjCertificado: aberto.cnpjCertificado,
+      estado: local.uf,
+      empresaId: null,
+      titular: aberto.titular,
+      validade: aberto.validade,
+      privateKey: aberto.privateKey,
+      certBase64: aberto.certBase64,
+    },
+  };
 }
