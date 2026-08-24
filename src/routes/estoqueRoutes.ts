@@ -17,6 +17,7 @@ export const estoqueRoutes: RouteConfig[] = [
   { path: "/estoque/dashboard", component: DashboardEstoque, roles: ["admin", "gestor", "operacional"] },
   { path: "/estoque", component: Estoque, roles: ["admin", "gestor", "operacional"] },
   { path: "/estoque/compras", component: Compras, roles: ["admin", "gestor", "operacional"] },
+  { path: "/estoque/dfe", component: DFeRecebidos, roles: ["admin", "gestor", "operacional"] },
   { path: "/estoque/conferencia", component: ConferenciaEstoque, roles: ["admin", "gestor", "operacional"] },
   { path: "/estoque/comodatos", component: Comodatos, roles: ["admin", "gestor", "operacional"] },
   { path: "/estoque/mcmm", component: MCMM, roles: ["admin", "gestor"] },

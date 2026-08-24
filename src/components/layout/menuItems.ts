@@ -254,6 +254,7 @@ export const menuItems: MenuItem[] = [
       { icon: ClipboardCheck, label: "Conferência de Estoque", path: "/estoque/conferencia" },
       { icon: ShoppingBag, label: "Produtos", path: "/cadastros/produtos" },
       { icon: ShoppingBasket, label: "Compras", path: "/estoque/compras" },
+      { icon: Inbox, label: "DF-e Recebidos", path: "/estoque/dfe" },
       { icon: Factory, label: "Fornecedores", path: "/cadastros/fornecedores" },
       { icon: Handshake, label: "Comodatos", path: "/estoque/comodatos" },
       { icon: ArrowUpDown, label: "Transferência entre Filiais", path: "/estoque/transferencia" },
