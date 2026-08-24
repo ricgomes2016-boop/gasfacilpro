@@ -1,6 +1,7 @@
 // TEMPORÁRIO: diagnóstico de transporte mTLS com a SEFAZ.
 // Não expõe certificado, chave, senha, CNPJ ou XML — apenas categoria/erro sanitizado.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { postHttp1Tls } from "../_shared/http1-tls.ts";
 import { adminClient, carregarCertificadoUnidade, soapPost, classificarErroRede } from "../_shared/nfe-cert.ts";
 
 const json = (b: unknown, s = 200) =>
@@ -82,6 +83,21 @@ Deno.serve(async (req) => {
 <distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01"><tpAmb>1</tpAmb><cUFAutor>${carga.cUF || "41"}</cUFAutor>
 <CNPJ>${carga.cnpj}</CNPJ><distNSU><ultNSU>000000000000000</ultNSU></distNSU></distDFeInt>
 </nfeDadosMsg></nfeDistDFeInteresse></soap12:Body></soap12:Envelope>`;
+  let raw = "?";
+  let rawCStat: string | null = null;
+  try {
+    const r = await postHttp1Tls(
+      "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx",
+      soap,
+      { "Content-Type": "application/soap+xml; charset=utf-8", "Accept": "application/soap+xml, text/xml" },
+      cert,
+    );
+    raw = `HTTP ${r.status} bytes=${r.body.length}`;
+    rawCStat = r.body.match(/<cStat>(\d+)<\/cStat>/)?.[1] ?? null;
+  } catch (e) {
+    raw = classificarErroRede(e).detalhe;
+  }
+
   const resp = await soapPost("https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx", soap, cert, 1);
   const cStat = resp.ok ? (resp.texto.match(/<cStat>(\d+)<\/cStat>/)?.[1] ?? null) : null;
 
@@ -92,6 +108,8 @@ Deno.serve(async (req) => {
     criacao,
     egress,
     probes,
+    raw,
+    rawCStat,
     soap: resp.ok ? { status: "resposta_recebida", bytes: resp.texto.length, cStat } : { categoria: resp.categoria, erro: resp.erro },
   });
 });
