@@ -243,7 +243,31 @@ export async function soapPost(
       try { (client as any)?.close?.(); } catch (_e) { /* noop */ }
     }
   }
+  // Fallback: fala HTTP/1.1 direto sobre TLS (o fetch do runtime negocia HTTP/2,
+  // que a SEFAZ recusa, e ao forçar http1 o hyper é resetado pelo servidor).
+  try {
+    console.log(`[soapPost] fallback http1-tls host=${host}`);
+    const r = await postHttp1Tls(url, soap, {
+      "Content-Type": "application/soap+xml; charset=utf-8",
+      "Accept": "application/soap+xml, text/xml",
+    }, cert);
+    if (r.body) {
+      console.log(`[soapPost] fallback ok status=${r.status} bytes=${r.body.length}`);
+      return { ok: true, texto: r.body };
+    }
+    ultimoErro = `HTTP ${r.status} sem corpo (fallback)`;
+    ultimaCategoria = "resposta_vazia";
+  } catch (e) {
+    const { categoria, detalhe } = classificarErroRede(e);
+    console.error(`[soapPost] fallback falhou host=${host} categoria=${categoria} erro=${detalhe}`);
+    // Reset imediato no caminho do webservice = o servidor exige renegociação
+    // TLS 1.2 para autenticação por certificado, não suportada pelo runtime.
+    ultimaCategoria = categoria === "conexao_interrompida" ? "tls_mtls_nao_suportado" : categoria;
+    ultimoErro = detalhe;
+  }
+
   return { ok: false, texto: "", erro: ultimoErro, categoria: ultimaCategoria };
+
 }
 
 
