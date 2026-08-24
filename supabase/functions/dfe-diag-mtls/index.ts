@@ -66,6 +66,10 @@ Deno.serve(async (req) => {
   };
   const WSDL = "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx?wsdl";
   await probe("sem_client", null, WSDL);
+  await probe("controle_http1_example", { http1: true, http2: false }, "https://example.com/");
+  await probe("so_http1_true", { http1: true }, WSDL);
+  await probe("so_http2_false", { http2: false }, WSDL);
+  await probe("http1_com_cert_e_http2false", { cert: cert.certPem, key: cert.keyPem, http1: true, http2: false }, WSDL);
   await probe("client_http1_sem_cert", { http1: true, http2: false }, WSDL);
   await probe("client_http1_com_cert", { cert: cert.certPem, key: cert.keyPem, http1: true, http2: false }, WSDL);
   await probe("client_com_cert_default", { cert: cert.certPem, key: cert.keyPem }, WSDL);
