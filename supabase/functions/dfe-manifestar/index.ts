@@ -2,13 +2,12 @@
 // Registra o evento de Manifestação do Destinatário na SEFAZ (Ambiente Nacional):
 //  210200 Confirmação da Operação | 210210 Ciência da Emissão
 //  210220 Desconhecimento da Operação | 210240 Operação não Realizada
-// Assina o evento com o certificado A1 (e-CNPJ) da unidade (RSA-SHA1 / XMLDSig enveloped).
+// A assinatura XMLDSig e o transporte mTLS são executados pelo serviço externo
+// `fiscal-bridge`, que usa o certificado A1 (e-CNPJ) da unidade sob demanda.
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import forge from "npm:node-forge@1.3.1";
-import { adminClient, autorizarUnidade, carregarCertificadoUnidade, soapPost, pick } from "../_shared/nfe-cert.ts";
-
-const URL_EVENTO = "https://www1.nfe.fazenda.gov.br/NFeRecepcaoEvento4/NFeRecepcaoEvento4.asmx";
+import { adminClient, autorizarUnidade, carregarCertificadoUnidade } from "../_shared/nfe-cert.ts";
+import { bridgeConfigurado, chamarBridge, MENSAGEM_BRIDGE_AUSENTE } from "../_shared/fiscal-bridge.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -24,43 +23,6 @@ const DESCRICAO: Record<Tipo, string> = {
 };
 const CONCLUSIVAS: Tipo[] = ["confirmada", "desconhecida", "nao_realizada"];
 const EXIGE_JUSTIFICATIVA: Tipo[] = ["desconhecida", "nao_realizada"];
-
-function escapar(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function dataEventoISO(): string {
-  // Formato AAAA-MM-DDThh:mm:ss-03:00 (horário de Brasília)
-  const agora = new Date(Date.now() - 3 * 3600 * 1000);
-  return `${agora.toISOString().slice(0, 19)}-03:00`;
-}
-
-function assinarEvento(infEventoXml: string, idEvento: string, certBase64: string, privateKey: unknown): string {
-  const md = forge.md.sha1.create();
-  md.update(infEventoXml, "utf8");
-  const digest = forge.util.encode64(md.digest().getBytes());
-
-  const signedInfo =
-    `<SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#">` +
-    `<CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>` +
-    `<SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>` +
-    `<Reference URI="#${idEvento}">` +
-    `<Transforms>` +
-    `<Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>` +
-    `<Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>` +
-    `</Transforms>` +
-    `<DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>` +
-    `<DigestValue>${digest}</DigestValue>` +
-    `</Reference></SignedInfo>`;
-
-  const mdSig = forge.md.sha1.create();
-  mdSig.update(signedInfo, "utf8");
-  const assinatura = forge.util.encode64((privateKey as any).sign(mdSig));
-
-  return `<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">${signedInfo}` +
-    `<SignatureValue>${assinatura}</SignatureValue>` +
-    `<KeyInfo><X509Data><X509Certificate>${certBase64}</X509Certificate></X509Data></KeyInfo></Signature>`;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -99,58 +61,42 @@ Deno.serve(async (req) => {
       return json({ ok: false, motivo: "ja_manifestada", mensagem: "A Ciência da Emissão já foi registrada." });
     }
 
+    // Valida unidade, certificado A1 e CNPJ antes de delegar.
     const carga = await carregarCertificadoUnidade(admin, unidadeId);
     if (!carga.ok) return json({ ok: false, motivo: carga.motivo, mensagem: carga.mensagem });
-    const { cert, cnpj } = carga;
     const empresaId = (documento?.empresa_id as string | null) ?? (carga.unidade.empresa_id as string | null) ?? null;
 
-    // Sequência do evento: incrementa a cada tentativa registrada com sucesso do mesmo tipo
+    if (!bridgeConfigurado()) {
+      return json({ ok: false, motivo: "bridge_nao_configurado", mensagem: MENSAGEM_BRIDGE_AUSENTE });
+    }
+
+    // Sequência do evento: incrementa a cada registro bem-sucedido do mesmo tipo
     const { count } = await admin
       .from("dfe_eventos").select("id", { count: "exact", head: true })
       .eq("unidade_id", unidadeId).eq("chave", chave).eq("tipo_evento", CODIGO[tipo]).eq("sucesso", true);
     const seq = Number(count ?? 0) + 1;
 
-    const idEvento = `ID${CODIGO[tipo]}${chave}${String(seq).padStart(2, "0")}`;
-    const detEvento =
-      `<detEvento versao="1.00"><descEvento>${DESCRICAO[tipo]}</descEvento>` +
-      (EXIGE_JUSTIFICATIVA.includes(tipo) ? `<xJust>${escapar(justificativa)}</xJust>` : "") +
-      `</detEvento>`;
+    const resp = await chamarBridge<{
+      cStat?: string | null; xMotivo?: string | null; protocolo?: string | null; detalheTecnico?: string;
+    }>("/dfe/manifestar", {
+      unidadeId, cnpj: carga.cnpj, chave, tipo,
+      justificativa: EXIGE_JUSTIFICATIVA.includes(tipo) ? justificativa : "",
+      sequencia: seq,
+    });
 
-    const infEvento =
-      `<infEvento xmlns="http://www.portalfiscal.inf.br/nfe" Id="${idEvento}">` +
-      `<cOrgao>91</cOrgao><tpAmb>1</tpAmb><CNPJ>${cnpj}</CNPJ><chNFe>${chave}</chNFe>` +
-      `<dhEvento>${dataEventoISO()}</dhEvento><tpEvento>${CODIGO[tipo]}</tpEvento>` +
-      `<nSeqEvento>${seq}</nSeqEvento><verEvento>1.00</verEvento>${detEvento}</infEvento>`;
+    const dados = resp.dados ?? {};
+    const cStat = dados.cStat ?? null;
+    const xMotivo = dados.xMotivo ?? null;
+    const protocolo = dados.protocolo ?? null;
+    const sucesso = resp.ok === true;
 
-    const signature = assinarEvento(infEvento, idEvento, cert.certBase64, cert.privateKey);
-    const eventoXml = `<evento xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.00">${infEvento}${signature}</evento>`;
-    const envEvento = `<envEvento xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.00"><idLote>${Date.now()}</idLote>${eventoXml}</envEvento>`;
-
-    const soap = `<?xml version="1.0" encoding="utf-8"?>
-<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
-<soap12:Body><nfeRecepcaoEvento xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/NFeRecepcaoEvento4"><nfeDadosMsg>${envEvento}</nfeDadosMsg></nfeRecepcaoEvento></soap12:Body></soap12:Envelope>`;
-
-    const resp = await soapPost(URL_EVENTO, soap, cert);
-    if (!resp.ok) {
-      return json({
-        ok: false, motivo: "sefaz_indisponivel", podeRepetir: true,
-        mensagem: "Não foi possível falar com a SEFAZ agora. Tente novamente em alguns instantes.",
-      });
-    }
-
-    const retEvento = resp.texto.match(/<retEvento[\s\S]*?<\/retEvento>/i)?.[0] ?? resp.texto;
-    const cStat = pick(retEvento, "cStat");
-    const xMotivo = pick(retEvento, "xMotivo");
-    const protocolo = pick(retEvento, "nProt");
-    const sucesso = ["135", "136", "573"].includes(String(cStat ?? ""));
-
-    if (documento) {
+    if (documento && (sucesso || cStat)) {
       await admin.from("dfe_eventos").insert({
         documento_id: documento.id, unidade_id: unidadeId, empresa_id: empresaId, chave,
         tipo_evento: CODIGO[tipo], descricao: DESCRICAO[tipo], sequencia: seq,
         protocolo, cstat: cStat, xmotivo: xMotivo,
         justificativa: EXIGE_JUSTIFICATIVA.includes(tipo) ? justificativa : null,
-        sucesso, criado_por: auth.userId, payload: { origem: "manifestacao_manual" },
+        sucesso, criado_por: auth.userId, payload: { origem: "manifestacao_manual", via: "fiscal-bridge" },
       });
       if (sucesso) {
         await admin.from("dfe_documentos")
@@ -163,8 +109,9 @@ Deno.serve(async (req) => {
       ok: sucesso, cStat, xMotivo, protocolo, tipo, sequencia: seq,
       mensagem: sucesso
         ? `${DESCRICAO[tipo]} registrada na SEFAZ${protocolo ? ` (protocolo ${protocolo})` : ""}.`
-        : `SEFAZ ${cStat ?? ""}: ${xMotivo ?? "evento não registrado"}`,
-      motivo: sucesso ? undefined : "evento_rejeitado",
+        : (resp.mensagem || `SEFAZ ${cStat ?? ""}: ${xMotivo ?? "evento não registrado"}`),
+      motivo: sucesso ? undefined : (resp.motivo || "evento_rejeitado"),
+      detalheTecnico: dados.detalheTecnico ?? null,
     });
   } catch (err) {
     console.error("[dfe-manifestar]", err);

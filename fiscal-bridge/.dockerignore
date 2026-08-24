@@ -1,0 +1,11 @@
+node_modules
+dist
+test
+.env
+.env.*
+*.pfx
+*.p12
+*.pem
+*.key
+npm-debug.log
+.DS_Store

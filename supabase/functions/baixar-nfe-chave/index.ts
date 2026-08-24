@@ -1,95 +1,19 @@
 // Edge Function: baixar-nfe-chave
-// Baixa o XML de uma NF-e a partir da chave de acesso (44 dígitos) usando o
-// certificado digital A1 cadastrado na unidade (mTLS com a SEFAZ Nacional —
-// serviço NFeDistribuicaoDFe / consChNFe).
-// Sempre retorna 200 OK; em erro retorna { ok: false, motivo, mensagem }.
+// Busca o XML de uma NF-e pela chave de acesso (44 dígitos) via serviço
+// NFeDistribuicaoDFe / consChNFe. O transporte mTLS é delegado ao serviço
+// externo `fiscal-bridge`. Sempre retorna 200 OK; em erro { ok:false, motivo }.
 
-import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import forge from "npm:node-forge@1.3.1";
+import { adminClient, autorizarUnidade, carregarCertificadoUnidade } from "../_shared/nfe-cert.ts";
+import { bridgeConfigurado, chamarBridge, MENSAGEM_BRIDGE_AUSENTE } from "../_shared/fiscal-bridge.ts";
 
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-
-const UF_CODIGO: Record<string, string> = {
-  RO: "11", AC: "12", AM: "13", RR: "14", PA: "15", AP: "16", TO: "17",
-  MA: "21", PI: "22", CE: "23", RN: "24", PB: "25", PE: "26", AL: "27", SE: "28", BA: "29",
-  MG: "31", ES: "32", RJ: "33", SP: "35",
-  PR: "41", SC: "42", RS: "43",
-  MS: "50", MT: "51", GO: "52", DF: "53",
-};
-
-function abrirPfx(pfxBytes: Uint8Array, senha: string) {
-  let bin = "";
-  const chunk = 0x8000;
-  for (let i = 0; i < pfxBytes.length; i += chunk) {
-    bin += String.fromCharCode.apply(null, pfxBytes.subarray(i, i + chunk) as any);
-  }
-  const asn1 = forge.asn1.fromDer(bin);
-  const p12 = forge.pkcs12.pkcs12FromAsn1(asn1, senha);
-
-  const certBags = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag] || [];
-  if (!certBags.length || !certBags[0].cert) throw new Error("pfx_sem_certificado");
-
-  const keyBags =
-    (p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[forge.pki.oids.pkcs8ShroudedKeyBag] || [])
-      .concat(p12.getBags({ bagType: forge.pki.oids.keyBag })[forge.pki.oids.keyBag] || []);
-  if (!keyBags.length || !keyBags[0].key) throw new Error("pfx_sem_chave");
-
-  // Monta a cadeia completa (certificado do titular primeiro)
-  const cn = certBags[0].cert.subject.getField("CN")?.value || "";
-  const pemChain = certBags.map((b: any) => forge.pki.certificateToPem(b.cert)).join("\n");
-  const pemKey = forge.pki.privateKeyToPem(keyBags[0].key);
-
-  const notAfter: Date = certBags[0].cert.validity.notAfter;
-  const cnpjMatch = String(cn).match(/(\d{14})/);
-
-  return {
-    certPem: pemChain,
-    keyPem: pemKey,
-    titular: String(cn).replace(/:\d{14}$/, "").trim(),
-    cnpj: cnpjMatch ? cnpjMatch[1] : null,
-    vencido: notAfter < new Date(),
-  };
-}
-
-async function gunzipBase64(b64: string): Promise<string> {
-  const bin = atob(b64.replace(/\s/g, ""));
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
-  return await new Response(stream).text();
-}
-
-function pick(xml: string, tag: string): string | null {
-  const m = xml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i"));
-  return m ? m[1].trim() : null;
-}
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization") || "";
-    if (!authHeader.startsWith("Bearer ")) {
-      return json({ ok: false, motivo: "unauthorized", mensagem: "Não autenticado." }, 401);
-    }
-    const supabaseUser = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const { data: claimsData, error: claimsErr } = await supabaseUser.auth.getClaims(
-      authHeader.replace("Bearer ", ""),
-    );
-    if (claimsErr || !claimsData?.claims) {
-      return json({ ok: false, motivo: "unauthorized", mensagem: "Sessão inválida." }, 401);
-    }
-    const userId = claimsData.claims.sub as string;
-
     const body = await req.json().catch(() => ({}));
     const unidadeId: string | undefined = body?.unidadeId;
     const chave: string = String(body?.chave || "").replace(/\D/g, "");
@@ -99,180 +23,37 @@ Deno.serve(async (req) => {
       return json({ ok: false, motivo: "chave_invalida", mensagem: "A chave da NF-e deve ter 44 dígitos." });
     }
 
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const auth = await autorizarUnidade(req, unidadeId);
+    if (!auth.ok) return json({ ok: false, motivo: auth.motivo, mensagem: auth.mensagem }, auth.status);
 
-    const { data: hasAcc } = await admin.rpc("user_has_unidade", {
-      _user_id: userId,
-      _unidade_id: unidadeId,
-    });
-    if (!hasAcc) return json({ ok: false, motivo: "forbidden", mensagem: "Sem acesso a esta unidade." });
+    const admin = adminClient();
+    const carga = await carregarCertificadoUnidade(admin, unidadeId);
+    if (!carga.ok) return json({ ok: false, motivo: carga.motivo, mensagem: carga.mensagem });
 
-    const { data: unidade } = await admin
-      .from("unidades")
-      .select("certificado_a1_path, certificado_a1_senha, cnpj, estado")
-      .eq("id", unidadeId)
-      .maybeSingle();
+    if (!bridgeConfigurado()) {
+      return json({ ok: false, motivo: "bridge_nao_configurado", mensagem: MENSAGEM_BRIDGE_AUSENTE });
+    }
 
-    if (!unidade) return json({ ok: false, motivo: "unidade_nao_encontrada", mensagem: "Unidade não encontrada." });
+    const resp = await chamarBridge<{
+      xml?: string; completo?: boolean; cStat?: string | null; xMotivo?: string | null;
+      titular?: string; podeRepetir?: boolean; detalheTecnico?: string;
+    }>("/dfe/consulta-chave", { unidadeId, cnpj: carga.cnpj, chave });
 
-    const pfxPath = unidade.certificado_a1_path as string | null;
-    const pfxSenha = unidade.certificado_a1_senha as string | null;
-    if (!pfxPath || !pfxSenha) {
+    if (!resp.ok) {
+      const d = resp.dados ?? {};
       return json({
         ok: false,
-        motivo: "cert_nao_cadastrado",
-        mensagem: "Certificado A1 não cadastrado nesta unidade. Configure em Configurações › Unidades.",
+        motivo: resp.motivo || "sefaz_indisponivel",
+        cStat: d.cStat ?? null,
+        podeRepetir: d.podeRepetir ?? false,
+        detalhe: d.detalheTecnico ?? d.xMotivo ?? null,
+        mensagem: resp.mensagem
+          || "A SEFAZ não retornou o XML desta chave. Normalmente é preciso fazer a Manifestação do Destinatário (Ciência da Operação) ou a nota não é destinada a este CNPJ.",
       });
     }
 
-    const { data: pfxBlob, error: dlErr } = await admin.storage
-      .from("certificados-fiscais")
-      .download(pfxPath);
-    if (dlErr || !pfxBlob) {
-      return json({ ok: false, motivo: "pfx_nao_encontrado", mensagem: "Arquivo do certificado não encontrado." });
-    }
-
-    let cert;
-    try {
-      cert = abrirPfx(new Uint8Array(await pfxBlob.arrayBuffer()), pfxSenha);
-    } catch (e: any) {
-      const msg = String(e?.message || e);
-      const motivo = /MAC|password|invalid|integrity/i.test(msg) ? "senha_invalida" : "pfx_invalido";
-      return json({
-        ok: false,
-        motivo,
-        mensagem: motivo === "senha_invalida"
-          ? "Senha do certificado inválida. Atualize em Configurações › Unidades."
-          : "Não foi possível abrir o certificado A1.",
-      });
-    }
-    if (cert.vencido) {
-      return json({ ok: false, motivo: "cert_vencido", mensagem: "Certificado A1 vencido." });
-    }
-
-    const cnpjAutor = (unidade.cnpj || "").replace(/\D/g, "") || cert.cnpj || "";
-    if (cnpjAutor.length !== 14) {
-      return json({
-        ok: false,
-        motivo: "cnpj_ausente",
-        mensagem: "CNPJ da unidade não cadastrado — necessário para consultar a SEFAZ.",
-      });
-    }
-    const cUF = UF_CODIGO[String(unidade.estado || "").toUpperCase()] || chave.slice(0, 2);
-
-    const soap = `<?xml version="1.0" encoding="utf-8"?>
-<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
-<soap12:Body>
-<nfeDistDFeInteresse xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe">
-<nfeDadosMsg>
-<distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">
-<tpAmb>1</tpAmb>
-<cUFAutor>${cUF}</cUFAutor>
-<CNPJ>${cnpjAutor}</CNPJ>
-<consChNFe><chNFe>${chave}</chNFe></consChNFe>
-</distDFeInt>
-</nfeDadosMsg>
-</nfeDistDFeInteresse>
-</soap12:Body>
-</soap12:Envelope>`;
-
-    // A SEFAZ exige HTTP/1.1 (o Deno negocia HTTP/2 por padrão e a conexão cai).
-    // Tentamos algumas vezes: falhas de rede/TLS costumam ser intermitentes.
-    const criarClient = () => {
-      const opts: Record<string, unknown> = { cert: cert.certPem, key: cert.keyPem, http1: true, http2: false };
-      try {
-        return (Deno as any).createHttpClient(opts);
-      } catch (_e) {
-        // Runtime sem suporte às flags http1/http2
-        return (Deno as any).createHttpClient({ cert: cert.certPem, key: cert.keyPem });
-      }
-    };
-
-    const MAX_TENTATIVAS = 3;
-    let respText = "";
-    let ultimoErro = "";
-    let sucessoRede = false;
-
-    for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
-      let client: any;
-      try {
-        client = criarClient();
-        const ac = new AbortController();
-        const timer = setTimeout(() => ac.abort(), 20000);
-        const resp = await fetch(
-          "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx",
-          {
-            method: "POST",
-            // @ts-expect-error client é específico do Deno
-            client,
-            headers: {
-              "Content-Type": "application/soap+xml; charset=utf-8",
-              "Connection": "close",
-              "Accept": "application/soap+xml, text/xml",
-            },
-            body: soap,
-            signal: ac.signal,
-          },
-        );
-        clearTimeout(timer);
-        respText = await resp.text();
-        if (!resp.ok && !respText) {
-          ultimoErro = `HTTP ${resp.status}`;
-          throw new Error(ultimoErro);
-        }
-        sucessoRede = true;
-        break;
-      } catch (e: any) {
-        ultimoErro = String(e?.name === "AbortError" ? "Tempo esgotado (20s) aguardando a SEFAZ" : (e?.message || e));
-        console.warn(`[baixar-nfe-chave] tentativa ${tentativa}/${MAX_TENTATIVAS} falhou:`, ultimoErro);
-        if (tentativa < MAX_TENTATIVAS) await new Promise((r) => setTimeout(r, tentativa * 1200));
-      } finally {
-        try { client?.close?.(); } catch (_e) { /* noop */ }
-      }
-    }
-
-    if (!sucessoRede) {
-      return json({
-        ok: false,
-        motivo: "sefaz_indisponivel",
-        podeRepetir: true,
-        tentativas: MAX_TENTATIVAS,
-        detalhe: ultimoErro,
-        mensagem:
-          "Não foi possível falar com a SEFAZ agora (tentamos 3 vezes). O serviço nacional costuma ficar instável em horários de pico — aguarde alguns instantes e tente de novo, ou importe o XML manualmente.",
-      });
-    }
-
-    const cStat = pick(respText, "cStat");
-    const xMotivo = pick(respText, "xMotivo") || "";
-    const docZip = respText.match(/<docZip[^>]*>([\s\S]*?)<\/docZip>/i)?.[1];
-
-    if (!docZip) {
-      const rejeicaoTemporaria = ["108", "109", "656"].includes(String(cStat || ""));
-      return json({
-        ok: false,
-        motivo: "nfe_nao_disponivel",
-        cStat,
-        podeRepetir: rejeicaoTemporaria,
-        detalhe: xMotivo || undefined,
-        mensagem: cStat === "137" || /nenhum documento/i.test(xMotivo)
-          ? "A SEFAZ não retornou o XML desta chave. Normalmente é preciso fazer a Manifestação do Destinatário (Ciência da Operação) ou a nota não é destinada a este CNPJ."
-          : `SEFAZ ${cStat || ""}: ${xMotivo || "documento indisponível"}`,
-      });
-    }
-
-
-    let xml = "";
-    try {
-      xml = await gunzipBase64(docZip);
-    } catch (_e) {
-      return json({ ok: false, motivo: "descompactacao_falhou", mensagem: "Falha ao descompactar o XML da SEFAZ." });
-    }
-
-    if (!/<infNFe/i.test(xml)) {
+    const dados = resp.dados!;
+    if (!dados.completo || !dados.xml) {
       return json({
         ok: false,
         motivo: "apenas_resumo",
@@ -280,9 +61,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    return json({ ok: true, xml, chave, titular: cert.titular });
-  } catch (err: any) {
+    return json({ ok: true, xml: dados.xml, chave, titular: dados.titular ?? carga.cert.titular });
+  } catch (err) {
     console.error("[baixar-nfe-chave]", err);
-    return json({ ok: false, motivo: "exception", mensagem: String(err?.message || err) });
+    return json({ ok: false, motivo: "exception", mensagem: String((err as Error)?.message || err) });
   }
 });
