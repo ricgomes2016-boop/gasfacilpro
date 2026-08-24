@@ -775,11 +775,17 @@ export default function Compras() {
   };
 
   const EXPLICACAO_MOTIVO: Record<string, { titulo: string; comoResolver: string; podeRepetir: boolean }> = {
+    bridge_nao_configurado: {
+      titulo: "Agente local desligado",
+      comoResolver: "Ligue o agente fiscal no computador do escritório (iniciar-agente.bat) ou importe o XML manualmente pelo botão “Importar XML”.",
+      podeRepetir: false,
+    },
     sefaz_indisponivel: {
       titulo: "SEFAZ fora do ar ou instável",
       comoResolver: "Tente novamente em alguns instantes. Se persistir, importe o XML manualmente pelo botão “Importar XML”.",
       podeRepetir: true,
     },
+
     nfe_nao_disponivel: {
       titulo: "Nota não liberada para este CNPJ",
       comoResolver: "Faça a Manifestação do Destinatário (Ciência da Operação) no portal da NF-e, ou confirme se a nota é destinada a esta unidade.",
