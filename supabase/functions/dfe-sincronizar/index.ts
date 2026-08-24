@@ -71,14 +71,31 @@ Deno.serve(async (req) => {
       lotes++;
       if (!resp.ok) {
         if (novos === 0 && atualizados === 0) {
+          const cat = resp.categoria || "sefaz_indisponivel";
+          const mensagens: Record<string, string> = {
+            timeout_sefaz: "A SEFAZ não respondeu no tempo limite. Tente novamente em alguns instantes.",
+            dns_falhou: "Não foi possível resolver o endereço da SEFAZ a partir do servidor.",
+            tls_certificado_rejeitado: "A SEFAZ rejeitou o certificado digital na conexão segura (mTLS). Verifique se o A1 é e-CNPJ válido e não revogado.",
+            cert_formato_invalido: "O certificado/chave não foi aceito pelo cliente TLS. Reenvie o arquivo .pfx do certificado A1.",
+            tls_handshake_falhou: "Falha no handshake TLS com a SEFAZ.",
+            runtime_sem_mtls: "O ambiente não conseguiu abrir uma conexão com certificado do cliente.",
+            conexao_interrompida: "A conexão com a SEFAZ foi interrompida.",
+            http_erro: "A SEFAZ respondeu com erro HTTP.",
+            resposta_vazia: "A SEFAZ respondeu sem conteúdo.",
+          };
+          console.error(`[dfe-sincronizar] transporte falhou categoria=${cat} detalhe=${resp.erro ?? ""}`);
           return json({
-            ok: false, motivo: "sefaz_indisponivel", podeRepetir: true,
-            mensagem: "Não foi possível falar com a SEFAZ agora. Tente novamente em alguns instantes.",
+            ok: false,
+            motivo: cat === "rede_desconhecida" ? "sefaz_indisponivel" : cat,
+            podeRepetir: cat !== "cert_formato_invalido" && cat !== "tls_certificado_rejeitado",
+            mensagem: mensagens[cat] || "Não foi possível falar com a SEFAZ agora. Tente novamente em alguns instantes.",
+            detalheTecnico: resp.erro || null,
             lotes,
           } as Resultado);
         }
         break;
       }
+
 
       cStat = pick(resp.texto, "cStat");
       xMotivo = pick(resp.texto, "xMotivo");
