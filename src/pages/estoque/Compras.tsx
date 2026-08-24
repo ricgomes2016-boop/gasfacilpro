@@ -158,6 +158,32 @@ export default function Compras() {
     valor_frete: "",
     observacoes: "",
   });
+  const ultimaChaveBuscada = useRef<string>("");
+  const buscarPorChaveRef = useRef<() => Promise<void>>();
+
+  // Busca automática (com debounce) assim que uma chave válida de 44 dígitos é digitada/colada.
+  useEffect(() => {
+    const chave = normalizarChave(form.chave_nfe);
+    if (!open || chave.length !== 44 || !validarChaveNfe(chave)) return;
+    if (ultimaChaveBuscada.current === chave || isBuscandoChave) return;
+    const t = setTimeout(() => {
+      ultimaChaveBuscada.current = chave;
+      void buscarPorChaveRef.current?.();
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.chave_nfe, open, isBuscandoChave]);
+
+  // Abertura vinda de DF-e Recebidos: /estoque/compras?chave=...
+  useEffect(() => {
+    const chave = normalizarChave(new URLSearchParams(window.location.search).get("chave"));
+    if (chave.length === 44) {
+      setForm((prev) => ({ ...prev, chave_nfe: chave }));
+      setOpen(true);
+    }
+  }, []);
+
+
 
   const [pagamento, setPagamento] = useState<{
     situacao: "avista" | "aprazo";
