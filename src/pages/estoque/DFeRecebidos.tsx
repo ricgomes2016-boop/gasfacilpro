@@ -120,6 +120,26 @@ export default function DFeRecebidos() {
   const [justificativa, setJustificativa] = useState("");
   const [manifestando, setManifestando] = useState(false);
 
+  // Agente local (fiscal-bridge no PC do escritório, com o certificado A1)
+  const [agenteCfg, setAgenteCfgState] = useState<AgenteConfig>(() => getAgenteConfig());
+  const [agente, setAgente] = useState<AgenteStatus>({ online: false });
+  const [checandoAgente, setChecandoAgente] = useState(true);
+  const [configAberta, setConfigAberta] = useState(false);
+  const [rascunhoCfg, setRascunhoCfg] = useState<AgenteConfig>(() => getAgenteConfig());
+  const [progresso, setProgresso] = useState("");
+  const inputXmlRef = useRef<HTMLInputElement>(null);
+
+  const checarAgente = useCallback(async (cfg?: AgenteConfig) => {
+    setChecandoAgente(true);
+    const status = await verificarAgente(cfg ?? agenteCfg);
+    setAgente(status);
+    setChecandoAgente(false);
+    return status;
+  }, [agenteCfg]);
+
+  useEffect(() => { void checarAgente(); }, [checarAgente]);
+
+
   const carregar = useCallback(async () => {
     if (!unidadeAtual?.id) { setDocumentos([]); setCarregando(false); return; }
     setCarregando(true);
