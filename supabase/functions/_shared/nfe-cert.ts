@@ -144,53 +144,108 @@ export async function carregarCertificadoUnidade(
   return { ok: true, cert, cnpj, cUF, unidade: unidade as Record<string, unknown> };
 }
 
+/** Categoriza um erro de rede/TLS sem jamais expor segredos. */
+export function classificarErroRede(e: unknown): { categoria: string; detalhe: string } {
+  const err = e as Error;
+  const nome = err?.name || "Error";
+  const bruto = String(err?.message || e || "");
+  // Sanitiza: remove qualquer bloco PEM, base64 longo ou sequência de 14 dígitos (CNPJ)
+  const detalhe = bruto
+    .replace(/-----BEGIN[\s\S]*?-----END[^-]*-----/g, "[pem]")
+    .replace(/[A-Za-z0-9+/=]{60,}/g, "[base64]")
+    .replace(/\d{11,}/g, "[num]")
+    .slice(0, 300);
+  const m = detalhe.toLowerCase();
+  let categoria = "rede_desconhecida";
+  if (nome === "AbortError" || /timed out|timeout/.test(m)) categoria = "timeout_sefaz";
+  else if (/dns|name resolution|lookup|nodename/.test(m)) categoria = "dns_falhou";
+  else if (/certificate required|bad certificate|certificate unknown|access denied|unknown ca|cert.*reject|handshakefailure|alert/.test(m)) categoria = "tls_certificado_rejeitado";
+  else if (/invalid|decode|pkcs|private key|no keys|malformed/.test(m) && /key|cert/.test(m)) categoria = "cert_formato_invalido";
+  else if (/handshake|tls|ssl|protocol/.test(m)) categoria = "tls_handshake_falhou";
+  else if (/not supported|unsupported|is not a function|unstable/.test(m)) categoria = "runtime_sem_mtls";
+  else if (/connection|refused|reset|closed|broken pipe|os error/.test(m)) categoria = "conexao_interrompida";
+  else if (/^http \d{3}/.test(m)) categoria = "http_erro";
+  return { categoria, detalhe: `${nome}: ${detalhe}` };
+}
+
+/** Cria o cliente mTLS testando as variantes de API suportadas pelo runtime. */
+function criarClienteMtls(cert: CertificadoAberto): { client: unknown; variante: string } {
+  const criar = (Deno as any).createHttpClient;
+  if (typeof criar !== "function") throw new Error("Deno.createHttpClient não disponível neste runtime");
+  const variantes: Array<[string, Record<string, unknown>]> = [
+    ["cert+key+http1", { cert: cert.certPem, key: cert.keyPem, http1: true, http2: false }],
+    ["cert+key", { cert: cert.certPem, key: cert.keyPem }],
+    ["certChain+privateKey", { certChain: cert.certPem, privateKey: cert.keyPem }],
+  ];
+  let ultimo: unknown;
+  for (const [variante, opts] of variantes) {
+    try {
+      return { client: criar(opts), variante };
+    } catch (e) { ultimo = e; }
+  }
+  throw ultimo instanceof Error ? ultimo : new Error(String(ultimo));
+}
+
 /** POST SOAP com mTLS, HTTP/1.1 e retentativas (a SEFAZ derruba HTTP/2). */
 export async function soapPost(
   url: string,
   soap: string,
   cert: CertificadoAberto,
   tentativas = 3,
-): Promise<{ ok: boolean; texto: string; erro?: string }> {
+): Promise<{ ok: boolean; texto: string; erro?: string; categoria?: string }> {
   let ultimoErro = "";
+  let ultimaCategoria = "rede_desconhecida";
+  const host = (() => { try { return new URL(url).host; } catch { return "?"; } })();
+
   for (let t = 1; t <= tentativas; t++) {
     let client: unknown;
     try {
-      try {
-        client = (Deno as any).createHttpClient({ cert: cert.certPem, key: cert.keyPem, http1: true, http2: false });
-      } catch (_e) {
-        client = (Deno as any).createHttpClient({ cert: cert.certPem, key: cert.keyPem });
-      }
+      const criado = criarClienteMtls(cert);
+      client = criado.client;
+      console.log(`[soapPost] tentativa=${t} host=${host} clienteMtls=${criado.variante}`);
       const ac = new AbortController();
       const timer = setTimeout(() => ac.abort(), 25000);
-      const resp = await fetch(url, {
-        method: "POST",
-        // @ts-expect-error client é específico do Deno
-        client,
-        headers: {
-          "Content-Type": "application/soap+xml; charset=utf-8",
-          "Connection": "close",
-          "Accept": "application/soap+xml, text/xml",
-        },
-        body: soap,
-        signal: ac.signal,
-      });
-      clearTimeout(timer);
-      const texto = await resp.text();
-      if (!texto) {
-        ultimoErro = `HTTP ${resp.status}`;
-        throw new Error(ultimoErro);
+      let resp: Response;
+      try {
+        resp = await fetch(url, {
+          method: "POST",
+          // @ts-expect-error client é específico do Deno
+          client,
+          headers: {
+            "Content-Type": "application/soap+xml; charset=utf-8",
+            "Connection": "close",
+            "Accept": "application/soap+xml, text/xml",
+          },
+          body: soap,
+          signal: ac.signal,
+        });
+      } finally {
+        clearTimeout(timer);
       }
+      const texto = await resp.text();
+      if (!resp.ok && !texto) {
+        ultimaCategoria = "http_erro";
+        throw new Error(`HTTP ${resp.status}`);
+      }
+      if (!texto) {
+        ultimaCategoria = "resposta_vazia";
+        throw new Error(`HTTP ${resp.status} sem corpo`);
+      }
+      console.log(`[soapPost] ok status=${resp.status} bytes=${texto.length} tentativa=${t}`);
       return { ok: true, texto };
     } catch (e) {
-      const err = e as Error;
-      ultimoErro = err?.name === "AbortError" ? "Tempo esgotado (25s) aguardando a SEFAZ" : String(err?.message || e);
+      const { categoria, detalhe } = classificarErroRede(e);
+      ultimaCategoria = categoria === "rede_desconhecida" ? ultimaCategoria : categoria;
+      ultimoErro = detalhe;
+      console.error(`[soapPost] falha tentativa=${t} host=${host} categoria=${ultimaCategoria} erro=${detalhe}`);
       if (t < tentativas) await new Promise((r) => setTimeout(r, t * 1200));
     } finally {
       try { (client as any)?.close?.(); } catch (_e) { /* noop */ }
     }
   }
-  return { ok: false, texto: "", erro: ultimoErro };
+  return { ok: false, texto: "", erro: ultimoErro, categoria: ultimaCategoria };
 }
+
 
 export async function gunzipBase64(b64: string): Promise<string> {
   const bin = atob(String(b64).replace(/\s/g, ""));
