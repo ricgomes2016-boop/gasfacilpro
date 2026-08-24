@@ -4123,6 +4123,214 @@ export type Database = {
           },
         ]
       }
+      dfe_documentos: {
+        Row: {
+          chave: string
+          cnpj_emitente: string | null
+          compra_id: string | null
+          created_at: string
+          data_emissao: string | null
+          digest_value: string | null
+          empresa_id: string | null
+          id: string
+          ie_emitente: string | null
+          manifestacao: string | null
+          manifestacao_em: string | null
+          nome_emitente: string | null
+          nsu: number | null
+          numero: string | null
+          resumo: Json
+          schema_dfe: string | null
+          serie: string | null
+          situacao_nfe: string | null
+          tipo_documento: string
+          unidade_id: string
+          updated_at: string
+          valor_total: number
+          xml_completo: boolean
+          xml_path: string | null
+        }
+        Insert: {
+          chave: string
+          cnpj_emitente?: string | null
+          compra_id?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          digest_value?: string | null
+          empresa_id?: string | null
+          id?: string
+          ie_emitente?: string | null
+          manifestacao?: string | null
+          manifestacao_em?: string | null
+          nome_emitente?: string | null
+          nsu?: number | null
+          numero?: string | null
+          resumo?: Json
+          schema_dfe?: string | null
+          serie?: string | null
+          situacao_nfe?: string | null
+          tipo_documento?: string
+          unidade_id: string
+          updated_at?: string
+          valor_total?: number
+          xml_completo?: boolean
+          xml_path?: string | null
+        }
+        Update: {
+          chave?: string
+          cnpj_emitente?: string | null
+          compra_id?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          digest_value?: string | null
+          empresa_id?: string | null
+          id?: string
+          ie_emitente?: string | null
+          manifestacao?: string | null
+          manifestacao_em?: string | null
+          nome_emitente?: string | null
+          nsu?: number | null
+          numero?: string | null
+          resumo?: Json
+          schema_dfe?: string | null
+          serie?: string | null
+          situacao_nfe?: string | null
+          tipo_documento?: string
+          unidade_id?: string
+          updated_at?: string
+          valor_total?: number
+          xml_completo?: boolean
+          xml_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dfe_documentos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dfe_eventos: {
+        Row: {
+          chave: string
+          created_at: string
+          criado_por: string | null
+          cstat: string | null
+          descricao: string | null
+          documento_id: string | null
+          empresa_id: string | null
+          id: string
+          justificativa: string | null
+          payload: Json
+          protocolo: string | null
+          sequencia: number
+          sucesso: boolean
+          tipo_evento: string
+          unidade_id: string
+          xmotivo: string | null
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          criado_por?: string | null
+          cstat?: string | null
+          descricao?: string | null
+          documento_id?: string | null
+          empresa_id?: string | null
+          id?: string
+          justificativa?: string | null
+          payload?: Json
+          protocolo?: string | null
+          sequencia?: number
+          sucesso?: boolean
+          tipo_evento: string
+          unidade_id: string
+          xmotivo?: string | null
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          criado_por?: string | null
+          cstat?: string | null
+          descricao?: string | null
+          documento_id?: string | null
+          empresa_id?: string | null
+          id?: string
+          justificativa?: string | null
+          payload?: Json
+          protocolo?: string | null
+          sequencia?: number
+          sucesso?: boolean
+          tipo_evento?: string
+          unidade_id?: string
+          xmotivo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dfe_eventos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "dfe_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dfe_eventos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dfe_nsu_estado: {
+        Row: {
+          created_at: string
+          documentos_recebidos: number
+          empresa_id: string | null
+          max_nsu: number
+          ultima_sincronizacao: string | null
+          ultimo_cstat: string | null
+          ultimo_nsu: number
+          ultimo_xmotivo: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          documentos_recebidos?: number
+          empresa_id?: string | null
+          max_nsu?: number
+          ultima_sincronizacao?: string | null
+          ultimo_cstat?: string | null
+          ultimo_nsu?: number
+          ultimo_xmotivo?: string | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          documentos_recebidos?: number
+          empresa_id?: string | null
+          max_nsu?: number
+          ultima_sincronizacao?: string | null
+          ultimo_cstat?: string | null
+          ultimo_nsu?: number
+          ultimo_xmotivo?: string | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dfe_nsu_estado_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: true
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       did_empresa_routing: {
         Row: {
           ativo: boolean
