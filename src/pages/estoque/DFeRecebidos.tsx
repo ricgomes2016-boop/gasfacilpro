@@ -443,6 +443,34 @@ export default function DFeRecebidos() {
 
         <Card>
           <CardContent className="space-y-3 p-3 sm:p-4">
+            <div className="flex flex-col gap-2 rounded-xl border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm">
+                {checandoAgente ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                ) : agente.online ? (
+                  <PlugZap className="h-4 w-4 text-success" />
+                ) : (
+                  <Plug className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="font-medium">
+                  {checandoAgente ? "Procurando o agente local..." : agente.online ? "Agente local conectado" : "Agente local desligado"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {agente.online
+                    ? `${agenteCfg.url}${agente.ambiente ? ` — ${agente.ambiente}` : ""}`
+                    : "Ligue o agente no computador do escritório (iniciar-agente.bat) ou importe o XML manualmente."}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => { setRascunhoCfg(agenteCfg); setConfigAberta(true); }}>
+                  <Settings2 className="h-4 w-4" /> Configurar agente
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => void checarAgente()} disabled={checandoAgente}>
+                  <RefreshCw className={`h-4 w-4 ${checandoAgente ? "animate-spin" : ""}`} /> Testar conexão
+                </Button>
+              </div>
+            </div>
+
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -453,11 +481,25 @@ export default function DFeRecebidos() {
                   onChange={(e) => setBusca(e.target.value)}
                 />
               </div>
+              <input
+                ref={inputXmlRef}
+                type="file"
+                accept=".xml,text/xml,application/xml"
+                multiple
+                className="hidden"
+                onChange={(e) => void importarXmls(e.target.files)}
+              />
+              <Button variant="outline" onClick={() => inputXmlRef.current?.click()} disabled={sincronizando} className="gap-2">
+                <Upload className="h-4 w-4" /> Importar XML
+              </Button>
               <Button onClick={sincronizar} disabled={sincronizando} className="gap-2">
                 {sincronizando ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Sincronizar agora
               </Button>
             </div>
+
+            {progresso && <p className="text-xs text-muted-foreground">{progresso}</p>}
+
 
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
               <div>
