@@ -34,6 +34,12 @@ import {
   ROTULO_MANIFESTACAO, manifestacoesPermitidas, exigeJustificativa, validarJustificativa,
   type ManifestacaoTipo,
 } from "@/lib/fiscal/manifestacao";
+import {
+  AGENTE_URL_PADRAO, agenteDistribuicao, getAgenteConfig, setAgenteConfig, verificarAgente,
+  type AgenteConfig, type AgenteStatus, type DocumentoAgente,
+} from "@/lib/fiscal/agenteLocal";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 
 interface DfeDocumento {
   id: string;
