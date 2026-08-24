@@ -84,6 +84,18 @@ Deno.serve(async (req) => {
 <CNPJ>${carga.cnpj}</CNPJ><distNSU><ultNSU>000000000000000</ultNSU></distNSU></distDFeInt>
 </nfeDadosMsg></nfeDistDFeInteresse></soap12:Body></soap12:Envelope>`;
   const rawProbes: Record<string, string> = {};
+  // Controle: TLS bruto + HTTP/1.1 para um host neutro (sem cert de cliente)
+  try {
+    const c: any = await (Deno as any).connectTls({ hostname: "example.com", port: 443 });
+    await c.write(new TextEncoder().encode("GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n"));
+    const b = new Uint8Array(2048);
+    const n = await c.read(b);
+    rawProbes["controle_raw_example"] = new TextDecoder().decode(b.subarray(0, Math.min(n ?? 0, 20)));
+    try { c.close(); } catch (_e) { /* noop */ }
+  } catch (e) {
+    rawProbes["controle_raw_example"] = classificarErroRede(e).detalhe;
+  }
+
   for (const alpn of [undefined, ["h2"], ["http/1.1"], ["h2", "http/1.1"]] as (string[] | undefined)[]) {
     const nome = alpn ? alpn.join("+") : "sem_alpn";
     try {
