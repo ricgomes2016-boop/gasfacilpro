@@ -929,6 +929,9 @@ export default function Compras() {
       setBuscaEtapa("");
     }
   };
+  buscarPorChaveRef.current = buscarPorChave;
+
+
 
 
   const processarXmlNfe = async (text: string) => {
