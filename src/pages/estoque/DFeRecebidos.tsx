@@ -781,6 +781,44 @@ export default function DFeRecebidos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={configAberta} onOpenChange={setConfigAberta}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configurar agente local</DialogTitle>
+            <DialogDescription>
+              O agente roda no computador do escritório com o certificado A1 e conversa com a SEFAZ.
+              O certificado nunca sai desse computador — só os XMLs chegam ao ERP.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Endereço do agente</Label>
+              <Input
+                value={rascunhoCfg.url}
+                placeholder={AGENTE_URL_PADRAO}
+                onChange={(e) => setRascunhoCfg((c) => ({ ...c, url: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Token de pareamento</Label>
+              <Input
+                value={rascunhoCfg.token}
+                placeholder="Token exibido na primeira execução do agente"
+                onChange={(e) => setRascunhoCfg((c) => ({ ...c, token: e.target.value }))}
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Inicie o agente com <code>iniciar-agente.bat</code> e copie o token gerado no arquivo <code>agente.json</code>.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfigAberta(false)}>Cancelar</Button>
+            <Button onClick={() => void salvarConfigAgente()}>Salvar e testar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
+
   );
 }
