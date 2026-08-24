@@ -84,6 +84,26 @@ Deno.serve(async (req) => {
 <CNPJ>${carga.cnpj}</CNPJ><distNSU><ultNSU>000000000000000</ultNSU></distNSU></distDFeInt>
 </nfeDadosMsg></nfeDistDFeInteresse></soap12:Body></soap12:Envelope>`;
   const rawProbes: Record<string, string> = {};
+  const cru = async (nome: string, req: string) => {
+    let c: any = null;
+    try {
+      c = await (Deno as any).connectTls({ hostname: "www1.nfe.fazenda.gov.br", port: 443, cert: cert.certPem, key: cert.keyPem });
+      await c.write(new TextEncoder().encode(req));
+      const b = new Uint8Array(4096);
+      const n = await c.read(b);
+      rawProbes[nome] = new TextDecoder().decode(b.subarray(0, Math.min(n ?? 0, 60))).replace(/\r\n/g, " | ");
+    } catch (e) {
+      rawProbes[nome] = classificarErroRede(e).detalhe;
+    } finally { try { c?.close?.(); } catch (_e) { /* noop */ } }
+  };
+  const H = "Host: www1.nfe.fazenda.gov.br";
+  await cru("get_asmx", `GET /NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx HTTP/1.1\r\n${H}\r\nConnection: close\r\n\r\n`);
+  const corpoTeste = soap;
+  const bytes = new TextEncoder().encode(corpoTeste).length;
+  await cru("post_asmx_close", `POST /NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx HTTP/1.1\r\n${H}\r\nContent-Type: application/soap+xml; charset=utf-8\r\nContent-Length: ${bytes}\r\nConnection: close\r\n\r\n${corpoTeste}`);
+  await cru("post_asmx_keepalive", `POST /NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx HTTP/1.1\r\n${H}\r\nContent-Type: application/soap+xml; charset=utf-8\r\nContent-Length: ${bytes}\r\n\r\n${corpoTeste}`);
+  await cru("post_raiz", `POST / HTTP/1.1\r\n${H}\r\nContent-Length: 2\r\nConnection: close\r\n\r\nab`);
+
   // Handshake TLS puro (sem enviar nada) para isolar handshake x requisição
   for (const host of ["www1.nfe.fazenda.gov.br", "hom1.nfe.fazenda.gov.br", "www.nfe.fazenda.gov.br"]) {
     try {
