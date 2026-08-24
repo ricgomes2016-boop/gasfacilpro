@@ -182,10 +182,11 @@ export default function DFeRecebidos() {
     for (let lote = 1; lote <= 5; lote++) {
       setProgresso(`Consultando a SEFAZ pelo agente local (lote ${lote})...`);
       const resp = await agenteDistribuicao({ unidadeId: unidadeAtual!.id, cnpj, ultNSU }, agenteCfg);
-      if (!resp.ok) {
-        toast({ title: "Consulta não concluída", description: resp.mensagem, variant: "destructive" });
+      if (resp.ok !== true) {
+        toast({ title: "Consulta não concluída", description: (resp as { mensagem?: string }).mensagem, variant: "destructive" });
         break;
       }
+
       const dados = resp.dados;
       if (dados.maxNSU) maxNSU = Number(dados.maxNSU);
       const docs = dados.documentos ?? [];
