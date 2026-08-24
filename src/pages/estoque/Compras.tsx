@@ -39,6 +39,8 @@ import { ConfirmarNovosProdutosDialog, NovoProdutoCandidato, DecisaoItem } from 
 import { registrarPagamentoCompra, reverterPagamentoCompra, type FormaPagamentoCompra } from "@/services/compraFinanceiroService";
 import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
 import { normalizarChave, validarChaveNfe } from "@/lib/fiscal/chaveNfe";
+import { agenteConsultaChave, verificarAgente } from "@/lib/fiscal/agenteLocal";
+
 import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 
 interface Compra {
