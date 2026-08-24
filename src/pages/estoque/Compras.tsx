@@ -804,10 +804,19 @@ export default function Compras() {
   };
 
   const buscarPorChave = async () => {
-    const chave = (form.chave_nfe || "").replace(/\D/g, "");
+    const chave = normalizarChave(form.chave_nfe);
     setBuscaSucesso(null);
     if (chave.length !== 44) {
       setBuscaErro({ titulo: "Chave incompleta", mensagem: "Informe os 44 dígitos da chave de acesso da NF-e.", podeRepetir: false });
+      return;
+    }
+    if (!validarChaveNfe(chave)) {
+      setBuscaErro({
+        titulo: "Chave inválida",
+        mensagem: "O dígito verificador da chave não confere — provavelmente há um dígito trocado.",
+        comoResolver: "Confira a chave impressa no DANFE e digite novamente.",
+        podeRepetir: false,
+      });
       return;
     }
     if (!unidadeAtual?.id) {
@@ -831,10 +840,28 @@ export default function Compras() {
         return;
       }
 
+      // 1) Repositório DF-e já sincronizado da unidade (sem consultar a SEFAZ de novo)
+      setBuscaEtapa("Procurando no repositório de DF-e já sincronizados...");
+      const { data: dfe } = await (supabase as any).from("dfe_documentos")
+        .select("chave, xml_path, xml_completo, nome_emitente")
+        .eq("unidade_id", unidadeAtual.id).eq("chave", chave).maybeSingle();
+
+      if (dfe?.xml_path && dfe?.xml_completo) {
+        const { data: file } = await supabase.storage.from("contabil-xmls").download(dfe.xml_path);
+        if (file) {
+          setBuscaEtapa("Processando o XML e preenchendo os dados...");
+          await processarXmlNfe(await file.text());
+          setBuscaSucesso(`NF-e encontrada no repositório DF-e da unidade${dfe.nome_emitente ? ` (${dfe.nome_emitente})` : ""}. Confira os dados abaixo.`);
+          return;
+        }
+      }
+
+      // 2) Consulta autorizada à SEFAZ pelo backend, com o e-CNPJ da unidade
       setBuscaEtapa("Consultando a SEFAZ com o certificado digital (pode levar até 30s)...");
       const { data, error } = await supabase.functions.invoke("baixar-nfe-chave", {
         body: { chave, unidadeId: unidadeAtual.id },
       });
+
 
       if (error) {
         setBuscaErro({
