@@ -1,15 +1,14 @@
 // Edge Function: dfe-sincronizar
-// Consulta incremental do serviço NFeDistribuicaoDFe (Ambiente Nacional) por NSU,
-// usando o certificado A1 (e-CNPJ) da unidade. Idempotente por chave + NSU.
-// Sempre responde 200 com { ok: boolean, ... } tipado.
+// Consulta incremental do serviço NFeDistribuicaoDFe (Ambiente Nacional) por NSU.
+// O transporte mTLS é delegado ao serviço externo `fiscal-bridge` (o runtime das
+// edge functions não conclui o handshake exigido pelo IIS da SEFAZ).
+// Idempotente por chave + NSU. Sempre responde 200 com { ok: boolean, ... }.
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import {
-  adminClient, autorizarUnidade, carregarCertificadoUnidade, soapPost, gunzipBase64, pick,
-} from "../_shared/nfe-cert.ts";
+import { adminClient, autorizarUnidade, carregarCertificadoUnidade } from "../_shared/nfe-cert.ts";
 import { parseDfeDocumento, deveAtualizarDocumento } from "../_shared/dfe-parse.ts";
+import { bridgeConfigurado, chamarBridge, MENSAGEM_BRIDGE_AUSENTE } from "../_shared/fiscal-bridge.ts";
 
-const URL_DIST = "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx";
 const MAX_LOTES = 5; // cada lote traz até 50 documentos — evita consumo indevido
 
 const json = (body: unknown, status = 200) =>
@@ -28,8 +27,9 @@ interface Resultado {
   xMotivo?: string | null;
   podeRepetir?: boolean;
   detalheTecnico?: string | null;
-
 }
+
+interface DocBridge { nsu: number; schema: string | null; xml: string }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -44,10 +44,17 @@ Deno.serve(async (req) => {
     if (!auth.ok) return json({ ok: false, motivo: auth.motivo, mensagem: auth.mensagem } as Resultado, auth.status);
 
     const admin = adminClient();
+    // Valida unidade, certificado A1 e CNPJ ANTES de delegar ao bridge.
     const carga = await carregarCertificadoUnidade(admin, unidadeId);
     if (!carga.ok) return json({ ok: false, motivo: carga.motivo, mensagem: carga.mensagem } as Resultado);
-    const { cert, cnpj, cUF, unidade } = carga;
+    const { cnpj, unidade } = carga;
     const empresaId = (unidade.empresa_id as string | null) ?? null;
+
+    if (!bridgeConfigurado()) {
+      return json({
+        ok: false, motivo: "bridge_nao_configurado", podeRepetir: false, mensagem: MENSAGEM_BRIDGE_AUSENTE,
+      } as Resultado);
+    }
 
     const { data: estado } = await admin
       .from("dfe_nsu_estado").select("*").eq("unidade_id", unidadeId).maybeSingle();
@@ -61,51 +68,31 @@ Deno.serve(async (req) => {
     let xMotivo: string | null = null;
 
     for (let i = 0; i < MAX_LOTES; i++) {
-      const soap = `<?xml version="1.0" encoding="utf-8"?>
-<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
-<soap12:Body><nfeDistDFeInteresse xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe"><nfeDadosMsg>
-<distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">
-<tpAmb>1</tpAmb><cUFAutor>${cUF || "41"}</cUFAutor><CNPJ>${cnpj}</CNPJ>
-<distNSU><ultNSU>${String(ultimoNSU).padStart(15, "0")}</ultNSU></distNSU>
-</distDFeInt></nfeDadosMsg></nfeDistDFeInteresse></soap12:Body></soap12:Envelope>`;
-
-      const resp = await soapPost(URL_DIST, soap, cert);
+      const resp = await chamarBridge<{
+        cStat: string | null; xMotivo: string | null; ultNSU: number; maxNSU: number;
+        documentos: DocBridge[]; detalheTecnico?: string;
+      }>("/dfe/distribuicao", { unidadeId, cnpj, ultNSU: ultimoNSU });
       lotes++;
+
       if (!resp.ok) {
         if (novos === 0 && atualizados === 0) {
-          const cat = resp.categoria || "sefaz_indisponivel";
-          const mensagens: Record<string, string> = {
-            timeout_sefaz: "A SEFAZ não respondeu no tempo limite. Tente novamente em alguns instantes.",
-            dns_falhou: "Não foi possível resolver o endereço da SEFAZ a partir do servidor.",
-            tls_certificado_rejeitado: "A SEFAZ rejeitou o certificado digital na conexão segura (mTLS). Verifique se o A1 é e-CNPJ válido e não revogado.",
-            cert_formato_invalido: "O certificado/chave não foi aceito pelo cliente TLS. Reenvie o arquivo .pfx do certificado A1.",
-            tls_handshake_falhou: "Falha no handshake TLS com a SEFAZ.",
-            runtime_sem_mtls: "O ambiente não conseguiu abrir uma conexão com certificado do cliente.",
-            conexao_interrompida: "A conexão com a SEFAZ foi interrompida.",
-            http_erro: "A SEFAZ respondeu com erro HTTP.",
-            resposta_vazia: "A SEFAZ respondeu sem conteúdo.",
-            tls_mtls_nao_suportado: "O webservice da SEFAZ encerrou a conexão ao exigir o certificado do cliente (mTLS) neste caminho. O ambiente atual não consegue concluir essa autenticação; será necessário um intermediário (proxy/servidor próprio) para a consulta DF-e.",
-          };
-          console.error(`[dfe-sincronizar] transporte falhou categoria=${cat} detalhe=${resp.erro ?? ""}`);
+          console.error(`[dfe-sincronizar] bridge falhou motivo=${resp.motivo ?? ""}`);
           return json({
             ok: false,
-            motivo: cat === "rede_desconhecida" ? "sefaz_indisponivel" : cat,
-            podeRepetir: !["cert_formato_invalido", "tls_certificado_rejeitado", "tls_mtls_nao_suportado"].includes(cat),
-
-            mensagem: mensagens[cat] || "Não foi possível falar com a SEFAZ agora. Tente novamente em alguns instantes.",
-            detalheTecnico: resp.erro || null,
+            motivo: resp.motivo || "sefaz_indisponivel",
+            podeRepetir: !["bridge_nao_configurado", "bridge_nao_autorizado", "cnpj_divergente", "cert_vencido"].includes(resp.motivo ?? ""),
+            mensagem: resp.mensagem || "Não foi possível falar com a SEFAZ agora. Tente novamente em alguns instantes.",
+            detalheTecnico: resp.dados?.detalheTecnico ?? null,
             lotes,
           } as Resultado);
         }
         break;
       }
 
-
-      cStat = pick(resp.texto, "cStat");
-      xMotivo = pick(resp.texto, "xMotivo");
-      const ultNSUResp = Number(pick(resp.texto, "ultNSU") ?? 0);
-      const maxNSUResp = Number(pick(resp.texto, "maxNSU") ?? 0);
-      if (maxNSUResp) maxNSU = maxNSUResp;
+      const dados = resp.dados!;
+      cStat = dados.cStat ?? null;
+      xMotivo = dados.xMotivo ?? null;
+      if (dados.maxNSU) maxNSU = Number(dados.maxNSU);
 
       // 656 = consumo indevido; 137 = nenhum documento localizado
       if (cStat === "656") {
@@ -116,11 +103,8 @@ Deno.serve(async (req) => {
         } as Resultado);
       }
 
-      const docs = [...resp.texto.matchAll(/<docZip[^>]*NSU="(\d+)"[^>]*>([\s\S]*?)<\/docZip>/gi)];
-      for (const [, nsuStr, b64] of docs) {
-        const nsu = Number(nsuStr);
-        let xml = "";
-        try { xml = await gunzipBase64(b64); } catch (_e) { continue; }
+      const docs = dados.documentos ?? [];
+      for (const { nsu, xml } of docs) {
         const doc = parseDfeDocumento(xml);
         if (!doc.chave) continue;
 
@@ -183,7 +167,7 @@ Deno.serve(async (req) => {
         if (nsu > ultimoNSU) ultimoNSU = nsu;
       }
 
-      if (ultNSUResp > ultimoNSU) ultimoNSU = ultNSUResp;
+      if (Number(dados.ultNSU ?? 0) > ultimoNSU) ultimoNSU = Number(dados.ultNSU);
       // Encerra quando não há mais documentos pendentes
       if (cStat === "137" || docs.length === 0 || ultimoNSU >= maxNSU) break;
     }
