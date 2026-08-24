@@ -45,18 +45,31 @@ Deno.serve(async (req) => {
     }
   }
 
-  // 2) Egress simples sem mTLS (isola DNS/firewall)
-  let egress = "?";
-  try {
-    const r = await fetch("https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx?wsdl", {
-      method: "GET",
-      signal: AbortSignal.timeout(15000),
-    });
-    egress = `HTTP ${r.status}`;
-    await r.text();
-  } catch (e) {
-    egress = classificarErroRede(e).detalhe;
-  }
+  // 2) Probes de transporte
+  const probes: Record<string, string> = {};
+  const probe = async (nome: string, opts: Record<string, unknown> | null, url: string) => {
+    let c: any = null;
+    try {
+      if (opts) c = (Deno as any).createHttpClient(opts);
+      const r = await fetch(url, {
+        method: "GET",
+        ...(c ? { client: c } : {}),
+        signal: AbortSignal.timeout(15000),
+      } as any);
+      const t = await r.text();
+      probes[nome] = `HTTP ${r.status} bytes=${t.length}`;
+    } catch (e) {
+      probes[nome] = classificarErroRede(e).detalhe;
+    } finally {
+      try { c?.close?.(); } catch (_e) { /* noop */ }
+    }
+  };
+  const WSDL = "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx?wsdl";
+  await probe("sem_client", null, WSDL);
+  await probe("client_http1_sem_cert", { http1: true, http2: false }, WSDL);
+  await probe("client_http1_com_cert", { cert: cert.certPem, key: cert.keyPem, http1: true, http2: false }, WSDL);
+  await probe("client_com_cert_default", { cert: cert.certPem, key: cert.keyPem }, WSDL);
+  const egress = probes["sem_client"];
 
   // 3) Chamada SOAP real (1 tentativa)
   const soap = `<?xml version="1.0" encoding="utf-8"?>
@@ -74,6 +87,7 @@ Deno.serve(async (req) => {
     formato,
     criacao,
     egress,
+    probes,
     soap: resp.ok ? { status: "resposta_recebida", bytes: resp.texto.length, cStat } : { categoria: resp.categoria, erro: resp.erro },
   });
 });
