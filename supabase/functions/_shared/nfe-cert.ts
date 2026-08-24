@@ -42,10 +42,23 @@ export function abrirPfx(pfxBytes: Uint8Array, senha: string): CertificadoAberto
   ] || []).concat(p12.getBags({ bagType: forge.pki.oids.keyBag })[forge.pki.oids.keyBag] || []);
   if (!keyBags.length || !keyBags[0].key) throw new Error("pfx_sem_chave");
 
-  const cert = certBags[0].cert;
+  // O bag do titular é o certificado folha (não-CA). Rustls (Deno) exige a
+  // cadeia com a folha PRIMEIRO; a ordem dos bags do PKCS#12 não é garantida.
+  const isCa = (c: any) => {
+    try {
+      const bc = c.getExtension("basicConstraints");
+      return !!(bc && bc.cA);
+    } catch (_e) { return false; }
+  };
+  const folhaBag = certBags.find((b: any) => b.cert && !isCa(b.cert)) || certBags[0];
+  const cert = folhaBag.cert;
   const cn = cert.subject.getField("CN")?.value || "";
-  const pemChain = certBags.map((b: any) => forge.pki.certificateToPem(b.cert)).join("\n");
-  const pemKey = forge.pki.privateKeyToPem(keyBags[0].key);
+  const ordenados = [folhaBag, ...certBags.filter((b: any) => b !== folhaBag && b.cert)];
+  const pemChain = ordenados.map((b: any) => forge.pki.certificateToPem(b.cert).trim()).join("\n") + "\n";
+  // Rustls só aceita chave em PKCS#8 ("BEGIN PRIVATE KEY"); node-forge emite
+  // PKCS#1 ("BEGIN RSA PRIVATE KEY") por padrão, o que o Deno rejeita.
+  const rsaKey = keyBags[0].key;
+  const pemKey = forge.pki.privateKeyInfoToPem(forge.pki.wrapRsaPrivateKey(forge.pki.privateKeyToAsn1(rsaKey)));
   const der = forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes();
   const cnpjMatch = String(cn).match(/(\d{14})/);
 
@@ -53,13 +66,14 @@ export function abrirPfx(pfxBytes: Uint8Array, senha: string): CertificadoAberto
     certPem: pemChain,
     keyPem: pemKey,
     certBase64: forge.util.encode64(der),
-    privateKey: keyBags[0].key,
+    privateKey: rsaKey,
     titular: String(cn).replace(/:\d{14}$/, "").trim(),
     cnpj: cnpjMatch ? cnpjMatch[1] : null,
     vencido: cert.validity.notAfter < new Date(),
     validade: cert.validity.notAfter?.toISOString?.() ?? null,
   };
 }
+
 
 export type CarregarCertificadoResultado =
   | { ok: true; cert: CertificadoAberto; cnpj: string; cUF: string; unidade: Record<string, unknown> }
@@ -130,53 +144,132 @@ export async function carregarCertificadoUnidade(
   return { ok: true, cert, cnpj, cUF, unidade: unidade as Record<string, unknown> };
 }
 
+/** Categoriza um erro de rede/TLS sem jamais expor segredos. */
+export function classificarErroRede(e: unknown): { categoria: string; detalhe: string } {
+  const err = e as Error;
+  const nome = err?.name || "Error";
+  const bruto = String(err?.message || e || "");
+  // Sanitiza: remove qualquer bloco PEM, base64 longo ou sequência de 14 dígitos (CNPJ)
+  const detalhe = bruto
+    .replace(/-----BEGIN[\s\S]*?-----END[^-]*-----/g, "[pem]")
+    .replace(/[A-Za-z0-9+/=]{60,}/g, "[base64]")
+    .replace(/\d{11,}/g, "[num]")
+    .slice(0, 300);
+  const m = detalhe.toLowerCase();
+  let categoria = "rede_desconhecida";
+  if (nome === "AbortError" || /timed out|timeout/.test(m)) categoria = "timeout_sefaz";
+  else if (/dns|name resolution|lookup|nodename/.test(m)) categoria = "dns_falhou";
+  else if (/certificate required|bad certificate|certificate unknown|access denied|unknown ca|cert.*reject|handshakefailure|alert/.test(m)) categoria = "tls_certificado_rejeitado";
+  else if (/invalid|decode|pkcs|private key|no keys|malformed/.test(m) && /key|cert/.test(m)) categoria = "cert_formato_invalido";
+  else if (/handshake|tls|ssl|protocol/.test(m)) categoria = "tls_handshake_falhou";
+  else if (/not supported|unsupported|is not a function|unstable/.test(m)) categoria = "runtime_sem_mtls";
+  else if (/connection|refused|reset|closed|broken pipe|os error/.test(m)) categoria = "conexao_interrompida";
+  else if (/^http \d{3}/.test(m)) categoria = "http_erro";
+  return { categoria, detalhe: `${nome}: ${detalhe}` };
+}
+
+/** Cria o cliente mTLS testando as variantes de API suportadas pelo runtime. */
+function criarClienteMtls(cert: CertificadoAberto): { client: unknown; variante: string } {
+  const criar = (Deno as any).createHttpClient;
+  if (typeof criar !== "function") throw new Error("Deno.createHttpClient não disponível neste runtime");
+  const variantes: Array<[string, Record<string, unknown>]> = [
+    ["cert+key+http1", { cert: cert.certPem, key: cert.keyPem, http1: true, http2: false }],
+    ["cert+key", { cert: cert.certPem, key: cert.keyPem }],
+    ["certChain+privateKey", { certChain: cert.certPem, privateKey: cert.keyPem }],
+  ];
+  let ultimo: unknown;
+  for (const [variante, opts] of variantes) {
+    try {
+      return { client: criar(opts), variante };
+    } catch (e) { ultimo = e; }
+  }
+  throw ultimo instanceof Error ? ultimo : new Error(String(ultimo));
+}
+
 /** POST SOAP com mTLS, HTTP/1.1 e retentativas (a SEFAZ derruba HTTP/2). */
 export async function soapPost(
   url: string,
   soap: string,
   cert: CertificadoAberto,
   tentativas = 3,
-): Promise<{ ok: boolean; texto: string; erro?: string }> {
+): Promise<{ ok: boolean; texto: string; erro?: string; categoria?: string }> {
   let ultimoErro = "";
+  let ultimaCategoria = "rede_desconhecida";
+  const host = (() => { try { return new URL(url).host; } catch { return "?"; } })();
+
   for (let t = 1; t <= tentativas; t++) {
     let client: unknown;
     try {
-      try {
-        client = (Deno as any).createHttpClient({ cert: cert.certPem, key: cert.keyPem, http1: true, http2: false });
-      } catch (_e) {
-        client = (Deno as any).createHttpClient({ cert: cert.certPem, key: cert.keyPem });
-      }
+      const criado = criarClienteMtls(cert);
+      client = criado.client;
+      console.log(`[soapPost] tentativa=${t} host=${host} clienteMtls=${criado.variante}`);
       const ac = new AbortController();
       const timer = setTimeout(() => ac.abort(), 25000);
-      const resp = await fetch(url, {
-        method: "POST",
-        // @ts-expect-error client é específico do Deno
-        client,
-        headers: {
-          "Content-Type": "application/soap+xml; charset=utf-8",
-          "Connection": "close",
-          "Accept": "application/soap+xml, text/xml",
-        },
-        body: soap,
-        signal: ac.signal,
-      });
-      clearTimeout(timer);
-      const texto = await resp.text();
-      if (!texto) {
-        ultimoErro = `HTTP ${resp.status}`;
-        throw new Error(ultimoErro);
+      let resp: Response;
+      try {
+        resp = await fetch(url, {
+          method: "POST",
+          // @ts-expect-error client é específico do Deno
+          client,
+          headers: {
+            "Content-Type": "application/soap+xml; charset=utf-8",
+            "Connection": "close",
+            "Accept": "application/soap+xml, text/xml",
+          },
+          body: soap,
+          signal: ac.signal,
+        });
+      } finally {
+        clearTimeout(timer);
       }
+      const texto = await resp.text();
+      if (!resp.ok && !texto) {
+        ultimaCategoria = "http_erro";
+        throw new Error(`HTTP ${resp.status}`);
+      }
+      if (!texto) {
+        ultimaCategoria = "resposta_vazia";
+        throw new Error(`HTTP ${resp.status} sem corpo`);
+      }
+      console.log(`[soapPost] ok status=${resp.status} bytes=${texto.length} tentativa=${t}`);
       return { ok: true, texto };
     } catch (e) {
-      const err = e as Error;
-      ultimoErro = err?.name === "AbortError" ? "Tempo esgotado (25s) aguardando a SEFAZ" : String(err?.message || e);
+      const { categoria, detalhe } = classificarErroRede(e);
+      ultimaCategoria = categoria === "rede_desconhecida" ? ultimaCategoria : categoria;
+      ultimoErro = detalhe;
+      console.error(`[soapPost] falha tentativa=${t} host=${host} categoria=${ultimaCategoria} erro=${detalhe}`);
       if (t < tentativas) await new Promise((r) => setTimeout(r, t * 1200));
     } finally {
       try { (client as any)?.close?.(); } catch (_e) { /* noop */ }
     }
   }
-  return { ok: false, texto: "", erro: ultimoErro };
+  // Fallback: fala HTTP/1.1 direto sobre TLS (o fetch do runtime negocia HTTP/2,
+  // que a SEFAZ recusa, e ao forçar http1 o hyper é resetado pelo servidor).
+  try {
+    console.log(`[soapPost] fallback http1-tls host=${host}`);
+    const r = await postHttp1Tls(url, soap, {
+      "Content-Type": "application/soap+xml; charset=utf-8",
+      "Accept": "application/soap+xml, text/xml",
+    }, cert);
+    if (r.body) {
+      console.log(`[soapPost] fallback ok status=${r.status} bytes=${r.body.length}`);
+      return { ok: true, texto: r.body };
+    }
+    ultimoErro = `HTTP ${r.status} sem corpo (fallback)`;
+    ultimaCategoria = "resposta_vazia";
+  } catch (e) {
+    const { categoria, detalhe } = classificarErroRede(e);
+    console.error(`[soapPost] fallback falhou host=${host} categoria=${categoria} erro=${detalhe}`);
+    // Reset imediato no caminho do webservice = o servidor exige renegociação
+    // TLS 1.2 para autenticação por certificado, não suportada pelo runtime.
+    ultimaCategoria = categoria === "conexao_interrompida" ? "tls_mtls_nao_suportado" : categoria;
+    ultimoErro = detalhe;
+  }
+
+  return { ok: false, texto: "", erro: ultimoErro, categoria: ultimaCategoria };
+
 }
+
 
 export async function gunzipBase64(b64: string): Promise<string> {
   const bin = atob(String(b64).replace(/\s/g, ""));
