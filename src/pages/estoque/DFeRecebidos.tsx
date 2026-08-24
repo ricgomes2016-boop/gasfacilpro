@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  AlertTriangle, CheckCircle2, Download, Eye, FileText, Inbox, Loader2,
-  RefreshCw, Search, ShieldQuestion, ShoppingBasket, XCircle,
+  AlertTriangle, CheckCircle2, Download, Eye, FileText, Inbox, Loader2, Plug, PlugZap,
+  RefreshCw, Search, Settings2, ShieldQuestion, ShoppingBasket, Upload, XCircle,
 } from "lucide-react";
+
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { AppPage } from "@/components/ui-kit/AppPage";
