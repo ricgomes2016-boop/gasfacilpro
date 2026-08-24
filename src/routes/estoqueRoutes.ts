@@ -11,6 +11,7 @@ const MCMM = lazy(() => import("@/pages/estoque/MCMM"));
 const TransferenciaEstoque = lazy(() => import("@/pages/estoque/TransferenciaEstoque"));
 const LotesRastreabilidade = lazy(() => import("@/pages/estoque/LotesRastreabilidade"));
 const ConferenciaEstoque = lazy(() => import("@/pages/estoque/ConferenciaEstoque"));
+const DFeRecebidos = lazy(() => import("@/pages/estoque/DFeRecebidos"));
 
 export const estoqueRoutes: RouteConfig[] = [
   { path: "/estoque/dashboard", component: DashboardEstoque, roles: ["admin", "gestor", "operacional"] },
