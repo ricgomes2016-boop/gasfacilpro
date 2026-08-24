@@ -1554,25 +1554,36 @@ export default function Compras() {
                     <Input
                       className="flex-1"
                       value={form.chave_nfe}
-                      onChange={e => setForm({ ...form, chave_nfe: e.target.value.replace(/\D/g, "").slice(0, 44) })}
+                      onChange={e => {
+                        const v = normalizarChave(e.target.value);
+                        if (v.length < 44) { ultimaChaveBuscada.current = ""; setBuscaErro(null); setBuscaSucesso(null); }
+                        setForm({ ...form, chave_nfe: v });
+                      }}
                       placeholder="0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"
                       maxLength={44}
+                      inputMode="numeric"
+                      aria-invalid={form.chave_nfe.length === 44 && !validarChaveNfe(form.chave_nfe)}
                     />
                     <Button
                       type="button"
                       variant="secondary"
                       className="h-11 shrink-0 gap-2"
-                      onClick={buscarPorChave}
+                      onClick={() => { ultimaChaveBuscada.current = normalizarChave(form.chave_nfe); void buscarPorChave(); }}
                       disabled={isBuscandoChave || (form.chave_nfe || "").length !== 44}
-                      title="Buscar dados da NF-e na SEFAZ com o certificado digital"
+                      title="Buscar dados da NF-e no repositório DF-e e, se necessário, na SEFAZ"
                     >
                       {isBuscandoChave ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                       <span className="hidden sm:inline">{isBuscandoChave ? "Buscando..." : "Buscar NF-e"}</span>
                     </Button>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    Usa o certificado A1 da unidade para baixar a nota na SEFAZ e preencher fornecedor, itens e valores.
+                    {form.chave_nfe.length > 0 && form.chave_nfe.length < 44
+                      ? `${form.chave_nfe.length}/44 dígitos — a busca inicia sozinha ao completar a chave.`
+                      : form.chave_nfe.length === 44 && !validarChaveNfe(form.chave_nfe)
+                        ? "Dígito verificador inválido — confira a chave impressa no DANFE."
+                        : "Busca primeiro no repositório DF-e sincronizado da unidade; se não houver, consulta a SEFAZ com o certificado A1 (e-CNPJ) guardado no servidor."}
                   </p>
+
 
                   {isBuscandoChave && (
                     <div className="mt-2 flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground" aria-live="polite">
