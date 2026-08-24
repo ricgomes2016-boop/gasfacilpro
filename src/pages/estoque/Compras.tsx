@@ -38,6 +38,7 @@ import { ComprasListaTableEstoque } from "@/components/estoque/ComprasListaTable
 import { ConfirmarNovosProdutosDialog, NovoProdutoCandidato, DecisaoItem } from "@/components/estoque/ConfirmarNovosProdutosDialog";
 import { registrarPagamentoCompra, reverterPagamentoCompra, type FormaPagamentoCompra } from "@/services/compraFinanceiroService";
 import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
+import { normalizarChave, validarChaveNfe } from "@/lib/fiscal/chaveNfe";
 import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 
 interface Compra {
@@ -157,6 +158,32 @@ export default function Compras() {
     valor_frete: "",
     observacoes: "",
   });
+  const ultimaChaveBuscada = useRef<string>("");
+  const buscarPorChaveRef = useRef<() => Promise<void>>();
+
+  // Busca automática (com debounce) assim que uma chave válida de 44 dígitos é digitada/colada.
+  useEffect(() => {
+    const chave = normalizarChave(form.chave_nfe);
+    if (!open || chave.length !== 44 || !validarChaveNfe(chave)) return;
+    if (ultimaChaveBuscada.current === chave || isBuscandoChave) return;
+    const t = setTimeout(() => {
+      ultimaChaveBuscada.current = chave;
+      void buscarPorChaveRef.current?.();
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.chave_nfe, open, isBuscandoChave]);
+
+  // Abertura vinda de DF-e Recebidos: /estoque/compras?chave=...
+  useEffect(() => {
+    const chave = normalizarChave(new URLSearchParams(window.location.search).get("chave"));
+    if (chave.length === 44) {
+      setForm((prev) => ({ ...prev, chave_nfe: chave }));
+      setOpen(true);
+    }
+  }, []);
+
+
 
   const [pagamento, setPagamento] = useState<{
     situacao: "avista" | "aprazo";
@@ -804,10 +831,19 @@ export default function Compras() {
   };
 
   const buscarPorChave = async () => {
-    const chave = (form.chave_nfe || "").replace(/\D/g, "");
+    const chave = normalizarChave(form.chave_nfe);
     setBuscaSucesso(null);
     if (chave.length !== 44) {
       setBuscaErro({ titulo: "Chave incompleta", mensagem: "Informe os 44 dígitos da chave de acesso da NF-e.", podeRepetir: false });
+      return;
+    }
+    if (!validarChaveNfe(chave)) {
+      setBuscaErro({
+        titulo: "Chave inválida",
+        mensagem: "O dígito verificador da chave não confere — provavelmente há um dígito trocado.",
+        comoResolver: "Confira a chave impressa no DANFE e digite novamente.",
+        podeRepetir: false,
+      });
       return;
     }
     if (!unidadeAtual?.id) {
@@ -831,10 +867,28 @@ export default function Compras() {
         return;
       }
 
+      // 1) Repositório DF-e já sincronizado da unidade (sem consultar a SEFAZ de novo)
+      setBuscaEtapa("Procurando no repositório de DF-e já sincronizados...");
+      const { data: dfe } = await (supabase as any).from("dfe_documentos")
+        .select("chave, xml_path, xml_completo, nome_emitente")
+        .eq("unidade_id", unidadeAtual.id).eq("chave", chave).maybeSingle();
+
+      if (dfe?.xml_path && dfe?.xml_completo) {
+        const { data: file } = await supabase.storage.from("contabil-xmls").download(dfe.xml_path);
+        if (file) {
+          setBuscaEtapa("Processando o XML e preenchendo os dados...");
+          await processarXmlNfe(await file.text());
+          setBuscaSucesso(`NF-e encontrada no repositório DF-e da unidade${dfe.nome_emitente ? ` (${dfe.nome_emitente})` : ""}. Confira os dados abaixo.`);
+          return;
+        }
+      }
+
+      // 2) Consulta autorizada à SEFAZ pelo backend, com o e-CNPJ da unidade
       setBuscaEtapa("Consultando a SEFAZ com o certificado digital (pode levar até 30s)...");
       const { data, error } = await supabase.functions.invoke("baixar-nfe-chave", {
         body: { chave, unidadeId: unidadeAtual.id },
       });
+
 
       if (error) {
         setBuscaErro({
@@ -875,6 +929,9 @@ export default function Compras() {
       setBuscaEtapa("");
     }
   };
+  buscarPorChaveRef.current = buscarPorChave;
+
+
 
 
   const processarXmlNfe = async (text: string) => {
@@ -1497,25 +1554,36 @@ export default function Compras() {
                     <Input
                       className="flex-1"
                       value={form.chave_nfe}
-                      onChange={e => setForm({ ...form, chave_nfe: e.target.value.replace(/\D/g, "").slice(0, 44) })}
+                      onChange={e => {
+                        const v = normalizarChave(e.target.value);
+                        if (v.length < 44) { ultimaChaveBuscada.current = ""; setBuscaErro(null); setBuscaSucesso(null); }
+                        setForm({ ...form, chave_nfe: v });
+                      }}
                       placeholder="0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"
                       maxLength={44}
+                      inputMode="numeric"
+                      aria-invalid={form.chave_nfe.length === 44 && !validarChaveNfe(form.chave_nfe)}
                     />
                     <Button
                       type="button"
                       variant="secondary"
                       className="h-11 shrink-0 gap-2"
-                      onClick={buscarPorChave}
+                      onClick={() => { ultimaChaveBuscada.current = normalizarChave(form.chave_nfe); void buscarPorChave(); }}
                       disabled={isBuscandoChave || (form.chave_nfe || "").length !== 44}
-                      title="Buscar dados da NF-e na SEFAZ com o certificado digital"
+                      title="Buscar dados da NF-e no repositório DF-e e, se necessário, na SEFAZ"
                     >
                       {isBuscandoChave ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                       <span className="hidden sm:inline">{isBuscandoChave ? "Buscando..." : "Buscar NF-e"}</span>
                     </Button>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    Usa o certificado A1 da unidade para baixar a nota na SEFAZ e preencher fornecedor, itens e valores.
+                    {form.chave_nfe.length > 0 && form.chave_nfe.length < 44
+                      ? `${form.chave_nfe.length}/44 dígitos — a busca inicia sozinha ao completar a chave.`
+                      : form.chave_nfe.length === 44 && !validarChaveNfe(form.chave_nfe)
+                        ? "Dígito verificador inválido — confira a chave impressa no DANFE."
+                        : "Busca primeiro no repositório DF-e sincronizado da unidade; se não houver, consulta a SEFAZ com o certificado A1 (e-CNPJ) guardado no servidor."}
                   </p>
+
 
                   {isBuscandoChave && (
                     <div className="mt-2 flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground" aria-live="polite">

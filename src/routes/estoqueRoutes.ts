@@ -11,11 +11,13 @@ const MCMM = lazy(() => import("@/pages/estoque/MCMM"));
 const TransferenciaEstoque = lazy(() => import("@/pages/estoque/TransferenciaEstoque"));
 const LotesRastreabilidade = lazy(() => import("@/pages/estoque/LotesRastreabilidade"));
 const ConferenciaEstoque = lazy(() => import("@/pages/estoque/ConferenciaEstoque"));
+const DFeRecebidos = lazy(() => import("@/pages/estoque/DFeRecebidos"));
 
 export const estoqueRoutes: RouteConfig[] = [
   { path: "/estoque/dashboard", component: DashboardEstoque, roles: ["admin", "gestor", "operacional"] },
   { path: "/estoque", component: Estoque, roles: ["admin", "gestor", "operacional"] },
   { path: "/estoque/compras", component: Compras, roles: ["admin", "gestor", "operacional"] },
+  { path: "/estoque/dfe", component: DFeRecebidos, roles: ["admin", "gestor", "operacional"] },
   { path: "/estoque/conferencia", component: ConferenciaEstoque, roles: ["admin", "gestor", "operacional"] },
   { path: "/estoque/comodatos", component: Comodatos, roles: ["admin", "gestor", "operacional"] },
   { path: "/estoque/mcmm", component: MCMM, roles: ["admin", "gestor"] },
