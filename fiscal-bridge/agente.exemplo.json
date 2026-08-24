@@ -1,0 +1,15 @@
+{
+  "pfxPath": "C:\\certificados\\certificado-a1.pfx",
+  "senha": "senha-do-certificado",
+  "cnpj": "00000000000191",
+  "uf": "PR",
+  "token": "",
+  "origens": [
+    "https://gasfacilpro.lovable.app",
+    "https://gasfacilpro.com.br",
+    "https://www.gasfacilpro.com.br",
+    "https://app.gasfacilpro.com.br",
+    "https://painel.gasfacilpro.com.br",
+    "http://localhost:8080"
+  ]
+}

@@ -116,3 +116,56 @@ npm run typecheck
 npm test        # assinatura/replay, sanitização e parsing SOAP/gzip/base64
 npm run dev
 ```
+
+---
+
+## Modo local (agente no PC do escritório, sem VPS)
+
+Quando não há servidor, o mesmo código roda como **agente local**: ele lê o certificado A1
+direto do disco do PC e atende apenas `http://127.0.0.1:8787`. O navegador (aba do ERP) chama
+o agente, recebe os XMLs e envia ao backend para validação/gravação — o agente nunca fala com
+o banco e o `.pfx` nunca sai da máquina.
+
+```text
+Navegador (ERP)  --http://127.0.0.1:8787-->  Agente local (A1 no disco)  --mTLS-->  SEFAZ
+       |                                            XMLs brutos
+       +---- função "dfe-ingerir" (valida e grava com RLS) ---> banco
+```
+
+### Instalação (Windows)
+
+1. Instale o Node.js 20 (https://nodejs.org).
+2. Copie a pasta `fiscal-bridge` para o PC (ex.: `C:\gasfacil\fiscal-bridge`).
+3. Copie `agente.exemplo.json` para `agente.json` e preencha:
+   - `pfxPath`: caminho do certificado A1 `.pfx`;
+   - `senha`: senha do certificado;
+   - `cnpj` e `uf` da unidade;
+   - `token`: deixe vazio — é gerado na primeira execução e gravado no arquivo;
+   - `origens`: domínios do ERP autorizados a chamar o agente.
+4. Dê dois cliques em `iniciar-agente.bat` e deixe a janela aberta.
+5. No ERP, em **DF-e Recebidos → Configurar agente local**, informe `http://127.0.0.1:8787`
+   e o `token` que está no `agente.json`.
+
+Para iniciar junto com o Windows, crie um atalho de `iniciar-agente.bat` em
+`shell:startup` (Win+R → `shell:startup`).
+
+### Docker (alternativa)
+
+```bash
+docker run --rm -p 127.0.0.1:8787:8787 \
+  -e BRIDGE_MODE=local -e PORT=8787 \
+  -v /caminho/agente.json:/app/agente.json \
+  -v /caminho/certificado.pfx:/certs/certificado.pfx:ro \
+  fiscal-bridge
+```
+
+### Diferenças em relação ao modo servidor
+
+| | Servidor | Local |
+|---|---|---|
+| Autenticação | HMAC SHA-256 das Edge Functions | Token de pareamento (`X-Agente-Token`) + CORS por origem |
+| Certificado | baixado do cofre (Storage) | lido do disco (`agente.json`) |
+| Rotas | distribuição, chave, manifestação | distribuição e chave (manifestação bloqueada) |
+| Porta padrão | 8443 | 8787 (somente 127.0.0.1) |
+
+Os logs continuam sanitizados: nunca gravam PEM, senha ou XML completo.
