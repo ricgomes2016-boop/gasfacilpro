@@ -41,6 +41,7 @@ import {
   PackageOpen,
   ShoppingBag,
   ShoppingBasket,
+  Inbox,
   Handshake,
   TrendingUp,
   TrendingDown,
