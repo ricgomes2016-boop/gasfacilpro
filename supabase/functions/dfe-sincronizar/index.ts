@@ -27,6 +27,8 @@ interface Resultado {
   cStat?: string | null;
   xMotivo?: string | null;
   podeRepetir?: boolean;
+  detalheTecnico?: string | null;
+
 }
 
 Deno.serve(async (req) => {
