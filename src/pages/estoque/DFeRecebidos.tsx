@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  AlertTriangle, CheckCircle2, Download, Eye, FileText, Inbox, Loader2,
-  RefreshCw, Search, ShieldQuestion, ShoppingBasket, XCircle,
+  AlertTriangle, CheckCircle2, Download, Eye, FileText, Inbox, Loader2, Plug, PlugZap,
+  RefreshCw, Search, Settings2, ShieldQuestion, ShoppingBasket, Upload, XCircle,
 } from "lucide-react";
+
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { AppPage } from "@/components/ui-kit/AppPage";
@@ -33,6 +34,12 @@ import {
   ROTULO_MANIFESTACAO, manifestacoesPermitidas, exigeJustificativa, validarJustificativa,
   type ManifestacaoTipo,
 } from "@/lib/fiscal/manifestacao";
+import {
+  AGENTE_URL_PADRAO, agenteDistribuicao, getAgenteConfig, setAgenteConfig, verificarAgente,
+  type AgenteConfig, type AgenteStatus, type DocumentoAgente,
+} from "@/lib/fiscal/agenteLocal";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 
 interface DfeDocumento {
   id: string;
@@ -113,6 +120,26 @@ export default function DFeRecebidos() {
   const [justificativa, setJustificativa] = useState("");
   const [manifestando, setManifestando] = useState(false);
 
+  // Agente local (fiscal-bridge no PC do escritório, com o certificado A1)
+  const [agenteCfg, setAgenteCfgState] = useState<AgenteConfig>(() => getAgenteConfig());
+  const [agente, setAgente] = useState<AgenteStatus>({ online: false });
+  const [checandoAgente, setChecandoAgente] = useState(true);
+  const [configAberta, setConfigAberta] = useState(false);
+  const [rascunhoCfg, setRascunhoCfg] = useState<AgenteConfig>(() => getAgenteConfig());
+  const [progresso, setProgresso] = useState("");
+  const inputXmlRef = useRef<HTMLInputElement>(null);
+
+  const checarAgente = useCallback(async (cfg?: AgenteConfig) => {
+    setChecandoAgente(true);
+    const status = await verificarAgente(cfg ?? agenteCfg);
+    setAgente(status);
+    setChecandoAgente(false);
+    return status;
+  }, [agenteCfg]);
+
+  useEffect(() => { void checarAgente(); }, [checarAgente]);
+
+
   const carregar = useCallback(async () => {
     if (!unidadeAtual?.id) { setDocumentos([]); setCarregando(false); return; }
     setCarregando(true);
@@ -135,6 +162,60 @@ export default function DFeRecebidos() {
   useEffect(() => { void carregar(); }, [carregar]);
   useEffect(() => { setPagina(1); }, [busca, filtroManifestacao, filtroSituacao, dataInicial, dataFinal]);
 
+  /** Envia XMLs brutos para a edge function que valida e persiste com RLS. */
+  const ingerir = async (documentosXml: DocumentoAgente[], ultimoNSU?: number, maxNSU?: number) => {
+    const { data, error } = await supabase.functions.invoke("dfe-ingerir", {
+      body: { unidadeId: unidadeAtual!.id, documentos: documentosXml, ultimoNSU, maxNSU },
+    });
+    if (error) throw error;
+    return data as { ok: boolean; novos?: number; atualizados?: number; eventos?: number; mensagem?: string };
+  };
+
+  /** Sincroniza pela SEFAZ usando o agente local (lotes de NSU). */
+  const sincronizarComAgente = async () => {
+    const cnpj = (unidadeAtual as any)?.cnpj ?? null;
+    let ultNSU = Number(estado?.ultimo_nsu ?? 0);
+    let maxNSU = Number(estado?.max_nsu ?? 0);
+    let novos = 0;
+    let atualizados = 0;
+
+    for (let lote = 1; lote <= 5; lote++) {
+      setProgresso(`Consultando a SEFAZ pelo agente local (lote ${lote})...`);
+      const resp = await agenteDistribuicao({ unidadeId: unidadeAtual!.id, cnpj, ultNSU }, agenteCfg);
+      if (resp.ok !== true) {
+        toast({ title: "Consulta não concluída", description: (resp as { mensagem?: string }).mensagem, variant: "destructive" });
+        break;
+      }
+
+      const dados = resp.dados;
+      if (dados.maxNSU) maxNSU = Number(dados.maxNSU);
+      const docs = dados.documentos ?? [];
+      if (String(dados.cStat ?? "") === "656") {
+        toast({
+          title: "Consumo indevido",
+          description: "A SEFAZ bloqueou temporariamente novas consultas. Aguarde uma hora antes de sincronizar de novo.",
+          variant: "destructive",
+        });
+        break;
+      }
+      if (docs.length) {
+        setProgresso(`Importando ${docs.length} documento(s)...`);
+        const ing = await ingerir(docs, Number(dados.ultNSU ?? 0), maxNSU);
+        novos += Number(ing?.novos ?? 0);
+        atualizados += Number(ing?.atualizados ?? 0);
+      }
+      if (Number(dados.ultNSU ?? 0) > ultNSU) ultNSU = Number(dados.ultNSU);
+      if (String(dados.cStat ?? "") === "137" || docs.length === 0 || (maxNSU && ultNSU >= maxNSU)) break;
+    }
+
+    toast({
+      title: "Sincronização concluída",
+      description: novos + atualizados === 0
+        ? "Nenhum documento novo na SEFAZ."
+        : `${novos} novo(s) e ${atualizados} atualizado(s).`,
+    });
+  };
+
   const sincronizar = async () => {
     if (!unidadeAtual?.id) {
       toast({ title: "Selecione uma unidade", description: "A consulta usa o certificado digital da unidade.", variant: "destructive" });
@@ -142,26 +223,88 @@ export default function DFeRecebidos() {
     }
     setSincronizando(true);
     try {
-      const { data, error } = await supabase.functions.invoke("dfe-sincronizar", {
-        body: { unidadeId: unidadeAtual.id },
-      });
-      if (error) throw error;
-      if (!data?.ok) {
-        toast({
-          title: data?.motivo === "cert_nao_cadastrado" ? "Certificado digital não configurado" : "Sincronização não concluída",
-          description: data?.mensagem || "A SEFAZ não respondeu à consulta.",
-          variant: "destructive",
-        });
+      const status = agente.online ? agente : await checarAgente();
+      if (status.online) {
+        await sincronizarComAgente();
       } else {
-        toast({ title: "Sincronização concluída", description: data.mensagem });
+        const { data, error } = await supabase.functions.invoke("dfe-sincronizar", {
+          body: { unidadeId: unidadeAtual.id },
+        });
+        if (error) throw error;
+        if (!data?.ok) {
+          const semBridge = data?.motivo === "bridge_nao_configurado";
+          toast({
+            title: semBridge
+              ? "Agente local desligado"
+              : data?.motivo === "cert_nao_cadastrado" ? "Certificado digital não configurado" : "Sincronização não concluída",
+            description: semBridge
+              ? "Ligue o agente local no computador do escritório (iniciar-agente.bat) ou importe o XML manualmente."
+              : (data?.mensagem || "A SEFAZ não respondeu à consulta."),
+            variant: "destructive",
+          });
+        } else {
+          toast({ title: "Sincronização concluída", description: data.mensagem });
+        }
       }
       await carregar();
     } catch (e: any) {
       toast({ title: "Erro ao sincronizar", description: e?.message, variant: "destructive" });
     } finally {
       setSincronizando(false);
+      setProgresso("");
     }
   };
+
+  /** Importação manual de arquivos XML (fallback quando o agente está desligado). */
+  const importarXmls = async (arquivos: FileList | null) => {
+    if (!arquivos?.length) return;
+    if (!unidadeAtual?.id) {
+      toast({ title: "Selecione uma unidade", variant: "destructive" });
+      return;
+    }
+    setSincronizando(true);
+    try {
+      const docs: DocumentoAgente[] = [];
+      for (const arq of Array.from(arquivos)) {
+        const texto = await arq.text();
+        if (texto.trim()) docs.push({ nsu: 0, schema: null, xml: texto });
+      }
+      if (!docs.length) {
+        toast({ title: "Nenhum XML válido", variant: "destructive" });
+        return;
+      }
+      setProgresso(`Importando ${docs.length} arquivo(s)...`);
+      const ing = await ingerir(docs);
+      toast({
+        title: ing?.ok ? "Importação concluída" : "Importação não concluída",
+        description: ing?.mensagem,
+        variant: ing?.ok ? undefined : "destructive",
+      });
+      await carregar();
+    } catch (e: any) {
+      toast({ title: "Erro ao importar XML", description: e?.message, variant: "destructive" });
+    } finally {
+      setSincronizando(false);
+      setProgresso("");
+      if (inputXmlRef.current) inputXmlRef.current.value = "";
+    }
+  };
+
+  const salvarConfigAgente = async () => {
+    const cfg = { url: (rascunhoCfg.url || AGENTE_URL_PADRAO).replace(/\/+$/, ""), token: rascunhoCfg.token.trim() };
+    setAgenteConfig(cfg);
+    setAgenteCfgState(cfg);
+    const status = await checarAgente(cfg);
+    toast({
+      title: status.online ? "Agente local conectado" : "Agente local não respondeu",
+      description: status.online
+        ? `Modo ${status.modo ?? "local"}${status.ambiente ? ` — ${status.ambiente}` : ""}.`
+        : "Verifique se o agente está em execução no computador do escritório.",
+      variant: status.online ? undefined : "destructive",
+    });
+    if (status.online) setConfigAberta(false);
+  };
+
 
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase().replace(/[.\-/]/g, "");
@@ -300,6 +443,34 @@ export default function DFeRecebidos() {
 
         <Card>
           <CardContent className="space-y-3 p-3 sm:p-4">
+            <div className="flex flex-col gap-2 rounded-xl border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm">
+                {checandoAgente ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                ) : agente.online ? (
+                  <PlugZap className="h-4 w-4 text-success" />
+                ) : (
+                  <Plug className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="font-medium">
+                  {checandoAgente ? "Procurando o agente local..." : agente.online ? "Agente local conectado" : "Agente local desligado"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {agente.online
+                    ? `${agenteCfg.url}${agente.ambiente ? ` — ${agente.ambiente}` : ""}`
+                    : "Ligue o agente no computador do escritório (iniciar-agente.bat) ou importe o XML manualmente."}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => { setRascunhoCfg(agenteCfg); setConfigAberta(true); }}>
+                  <Settings2 className="h-4 w-4" /> Configurar agente
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => void checarAgente()} disabled={checandoAgente}>
+                  <RefreshCw className={`h-4 w-4 ${checandoAgente ? "animate-spin" : ""}`} /> Testar conexão
+                </Button>
+              </div>
+            </div>
+
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -310,11 +481,25 @@ export default function DFeRecebidos() {
                   onChange={(e) => setBusca(e.target.value)}
                 />
               </div>
+              <input
+                ref={inputXmlRef}
+                type="file"
+                accept=".xml,text/xml,application/xml"
+                multiple
+                className="hidden"
+                onChange={(e) => void importarXmls(e.target.files)}
+              />
+              <Button variant="outline" onClick={() => inputXmlRef.current?.click()} disabled={sincronizando} className="gap-2">
+                <Upload className="h-4 w-4" /> Importar XML
+              </Button>
               <Button onClick={sincronizar} disabled={sincronizando} className="gap-2">
                 {sincronizando ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Sincronizar agora
               </Button>
             </div>
+
+            {progresso && <p className="text-xs text-muted-foreground">{progresso}</p>}
+
 
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
               <div>
@@ -596,6 +781,44 @@ export default function DFeRecebidos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={configAberta} onOpenChange={setConfigAberta}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configurar agente local</DialogTitle>
+            <DialogDescription>
+              O agente roda no computador do escritório com o certificado A1 e conversa com a SEFAZ.
+              O certificado nunca sai desse computador — só os XMLs chegam ao ERP.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Endereço do agente</Label>
+              <Input
+                value={rascunhoCfg.url}
+                placeholder={AGENTE_URL_PADRAO}
+                onChange={(e) => setRascunhoCfg((c) => ({ ...c, url: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Token de pareamento</Label>
+              <Input
+                value={rascunhoCfg.token}
+                placeholder="Token exibido na primeira execução do agente"
+                onChange={(e) => setRascunhoCfg((c) => ({ ...c, token: e.target.value }))}
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Inicie o agente com <code>iniciar-agente.bat</code> e copie o token gerado no arquivo <code>agente.json</code>.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfigAberta(false)}>Cancelar</Button>
+            <Button onClick={() => void salvarConfigAgente()}>Salvar e testar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
+
   );
 }

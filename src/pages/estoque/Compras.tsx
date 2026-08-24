@@ -39,6 +39,8 @@ import { ConfirmarNovosProdutosDialog, NovoProdutoCandidato, DecisaoItem } from 
 import { registrarPagamentoCompra, reverterPagamentoCompra, type FormaPagamentoCompra } from "@/services/compraFinanceiroService";
 import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
 import { normalizarChave, validarChaveNfe } from "@/lib/fiscal/chaveNfe";
+import { agenteConsultaChave, verificarAgente } from "@/lib/fiscal/agenteLocal";
+
 import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 
 interface Compra {
@@ -773,11 +775,17 @@ export default function Compras() {
   };
 
   const EXPLICACAO_MOTIVO: Record<string, { titulo: string; comoResolver: string; podeRepetir: boolean }> = {
+    bridge_nao_configurado: {
+      titulo: "Agente local desligado",
+      comoResolver: "Ligue o agente fiscal no computador do escritório (iniciar-agente.bat) ou importe o XML manualmente pelo botão “Importar XML”.",
+      podeRepetir: false,
+    },
     sefaz_indisponivel: {
       titulo: "SEFAZ fora do ar ou instável",
       comoResolver: "Tente novamente em alguns instantes. Se persistir, importe o XML manualmente pelo botão “Importar XML”.",
       podeRepetir: true,
     },
+
     nfe_nao_disponivel: {
       titulo: "Nota não liberada para este CNPJ",
       comoResolver: "Faça a Manifestação do Destinatário (Ciência da Operação) no portal da NF-e, ou confirme se a nota é destinada a esta unidade.",
@@ -883,8 +891,37 @@ export default function Compras() {
         }
       }
 
-      // 2) Consulta autorizada à SEFAZ pelo backend, com o e-CNPJ da unidade
+      // 2) Agente local (certificado A1 no PC do escritório), quando ligado
+      setBuscaEtapa("Procurando o agente local com o certificado digital...");
+      const statusAgente = await verificarAgente();
+      if (statusAgente.online) {
+        setBuscaEtapa("Consultando a SEFAZ pelo agente local (pode levar até 30s)...");
+        const respAgente = await agenteConsultaChave({
+          unidadeId: unidadeAtual.id,
+          cnpj: (unidadeAtual as any)?.cnpj ?? null,
+          chave,
+        });
+        if (respAgente.ok === true && respAgente.dados?.xml) {
+          const xmlAgente = respAgente.dados.xml;
+          setBuscaEtapa("Processando o XML e preenchendo os dados...");
+          await processarXmlNfe(xmlAgente);
+          // Guarda o documento no repositório DF-e da unidade (best-effort)
+          void supabase.functions.invoke("dfe-ingerir", {
+            body: {
+              unidadeId: unidadeAtual.id,
+              documentos: [{ nsu: 0, schema: respAgente.dados.schema ?? null, xml: xmlAgente }],
+            },
+          });
+          setBuscaSucesso(
+            `NF-e baixada da SEFAZ pelo agente local${respAgente.dados.titular ? ` (certificado: ${respAgente.dados.titular})` : ""}. Confira os dados abaixo.`,
+          );
+          return;
+        }
+      }
+
+      // 3) Consulta autorizada à SEFAZ pelo backend, com o e-CNPJ da unidade
       setBuscaEtapa("Consultando a SEFAZ com o certificado digital (pode levar até 30s)...");
+
       const { data, error } = await supabase.functions.invoke("baixar-nfe-chave", {
         body: { chave, unidadeId: unidadeAtual.id },
       });
