@@ -84,12 +84,14 @@ Deno.serve(async (req) => {
             conexao_interrompida: "A conexão com a SEFAZ foi interrompida.",
             http_erro: "A SEFAZ respondeu com erro HTTP.",
             resposta_vazia: "A SEFAZ respondeu sem conteúdo.",
+            tls_mtls_nao_suportado: "O webservice da SEFAZ encerrou a conexão ao exigir o certificado do cliente (mTLS) neste caminho. O ambiente atual não consegue concluir essa autenticação; será necessário um intermediário (proxy/servidor próprio) para a consulta DF-e.",
           };
           console.error(`[dfe-sincronizar] transporte falhou categoria=${cat} detalhe=${resp.erro ?? ""}`);
           return json({
             ok: false,
             motivo: cat === "rede_desconhecida" ? "sefaz_indisponivel" : cat,
-            podeRepetir: cat !== "cert_formato_invalido" && cat !== "tls_certificado_rejeitado",
+            podeRepetir: !["cert_formato_invalido", "tls_certificado_rejeitado", "tls_mtls_nao_suportado"].includes(cat),
+
             mensagem: mensagens[cat] || "Não foi possível falar com a SEFAZ agora. Tente novamente em alguns instantes.",
             detalheTecnico: resp.erro || null,
             lotes,
