@@ -162,6 +162,59 @@ export default function DFeRecebidos() {
   useEffect(() => { void carregar(); }, [carregar]);
   useEffect(() => { setPagina(1); }, [busca, filtroManifestacao, filtroSituacao, dataInicial, dataFinal]);
 
+  /** Envia XMLs brutos para a edge function que valida e persiste com RLS. */
+  const ingerir = async (documentosXml: DocumentoAgente[], ultimoNSU?: number, maxNSU?: number) => {
+    const { data, error } = await supabase.functions.invoke("dfe-ingerir", {
+      body: { unidadeId: unidadeAtual!.id, documentos: documentosXml, ultimoNSU, maxNSU },
+    });
+    if (error) throw error;
+    return data as { ok: boolean; novos?: number; atualizados?: number; eventos?: number; mensagem?: string };
+  };
+
+  /** Sincroniza pela SEFAZ usando o agente local (lotes de NSU). */
+  const sincronizarComAgente = async () => {
+    const cnpj = (unidadeAtual as any)?.cnpj ?? null;
+    let ultNSU = Number(estado?.ultimo_nsu ?? 0);
+    let maxNSU = Number(estado?.max_nsu ?? 0);
+    let novos = 0;
+    let atualizados = 0;
+
+    for (let lote = 1; lote <= 5; lote++) {
+      setProgresso(`Consultando a SEFAZ pelo agente local (lote ${lote})...`);
+      const resp = await agenteDistribuicao({ unidadeId: unidadeAtual!.id, cnpj, ultNSU }, agenteCfg);
+      if (!resp.ok) {
+        toast({ title: "Consulta não concluída", description: resp.mensagem, variant: "destructive" });
+        break;
+      }
+      const dados = resp.dados;
+      if (dados.maxNSU) maxNSU = Number(dados.maxNSU);
+      const docs = dados.documentos ?? [];
+      if (String(dados.cStat ?? "") === "656") {
+        toast({
+          title: "Consumo indevido",
+          description: "A SEFAZ bloqueou temporariamente novas consultas. Aguarde uma hora antes de sincronizar de novo.",
+          variant: "destructive",
+        });
+        break;
+      }
+      if (docs.length) {
+        setProgresso(`Importando ${docs.length} documento(s)...`);
+        const ing = await ingerir(docs, Number(dados.ultNSU ?? 0), maxNSU);
+        novos += Number(ing?.novos ?? 0);
+        atualizados += Number(ing?.atualizados ?? 0);
+      }
+      if (Number(dados.ultNSU ?? 0) > ultNSU) ultNSU = Number(dados.ultNSU);
+      if (String(dados.cStat ?? "") === "137" || docs.length === 0 || (maxNSU && ultNSU >= maxNSU)) break;
+    }
+
+    toast({
+      title: "Sincronização concluída",
+      description: novos + atualizados === 0
+        ? "Nenhum documento novo na SEFAZ."
+        : `${novos} novo(s) e ${atualizados} atualizado(s).`,
+    });
+  };
+
   const sincronizar = async () => {
     if (!unidadeAtual?.id) {
       toast({ title: "Selecione uma unidade", description: "A consulta usa o certificado digital da unidade.", variant: "destructive" });
@@ -169,26 +222,88 @@ export default function DFeRecebidos() {
     }
     setSincronizando(true);
     try {
-      const { data, error } = await supabase.functions.invoke("dfe-sincronizar", {
-        body: { unidadeId: unidadeAtual.id },
-      });
-      if (error) throw error;
-      if (!data?.ok) {
-        toast({
-          title: data?.motivo === "cert_nao_cadastrado" ? "Certificado digital não configurado" : "Sincronização não concluída",
-          description: data?.mensagem || "A SEFAZ não respondeu à consulta.",
-          variant: "destructive",
-        });
+      const status = agente.online ? agente : await checarAgente();
+      if (status.online) {
+        await sincronizarComAgente();
       } else {
-        toast({ title: "Sincronização concluída", description: data.mensagem });
+        const { data, error } = await supabase.functions.invoke("dfe-sincronizar", {
+          body: { unidadeId: unidadeAtual.id },
+        });
+        if (error) throw error;
+        if (!data?.ok) {
+          const semBridge = data?.motivo === "bridge_nao_configurado";
+          toast({
+            title: semBridge
+              ? "Agente local desligado"
+              : data?.motivo === "cert_nao_cadastrado" ? "Certificado digital não configurado" : "Sincronização não concluída",
+            description: semBridge
+              ? "Ligue o agente local no computador do escritório (iniciar-agente.bat) ou importe o XML manualmente."
+              : (data?.mensagem || "A SEFAZ não respondeu à consulta."),
+            variant: "destructive",
+          });
+        } else {
+          toast({ title: "Sincronização concluída", description: data.mensagem });
+        }
       }
       await carregar();
     } catch (e: any) {
       toast({ title: "Erro ao sincronizar", description: e?.message, variant: "destructive" });
     } finally {
       setSincronizando(false);
+      setProgresso("");
     }
   };
+
+  /** Importação manual de arquivos XML (fallback quando o agente está desligado). */
+  const importarXmls = async (arquivos: FileList | null) => {
+    if (!arquivos?.length) return;
+    if (!unidadeAtual?.id) {
+      toast({ title: "Selecione uma unidade", variant: "destructive" });
+      return;
+    }
+    setSincronizando(true);
+    try {
+      const docs: DocumentoAgente[] = [];
+      for (const arq of Array.from(arquivos)) {
+        const texto = await arq.text();
+        if (texto.trim()) docs.push({ nsu: 0, schema: null, xml: texto });
+      }
+      if (!docs.length) {
+        toast({ title: "Nenhum XML válido", variant: "destructive" });
+        return;
+      }
+      setProgresso(`Importando ${docs.length} arquivo(s)...`);
+      const ing = await ingerir(docs);
+      toast({
+        title: ing?.ok ? "Importação concluída" : "Importação não concluída",
+        description: ing?.mensagem,
+        variant: ing?.ok ? undefined : "destructive",
+      });
+      await carregar();
+    } catch (e: any) {
+      toast({ title: "Erro ao importar XML", description: e?.message, variant: "destructive" });
+    } finally {
+      setSincronizando(false);
+      setProgresso("");
+      if (inputXmlRef.current) inputXmlRef.current.value = "";
+    }
+  };
+
+  const salvarConfigAgente = async () => {
+    const cfg = { url: (rascunhoCfg.url || AGENTE_URL_PADRAO).replace(/\/+$/, ""), token: rascunhoCfg.token.trim() };
+    setAgenteConfig(cfg);
+    setAgenteCfgState(cfg);
+    const status = await checarAgente(cfg);
+    toast({
+      title: status.online ? "Agente local conectado" : "Agente local não respondeu",
+      description: status.online
+        ? `Modo ${status.modo ?? "local"}${status.ambiente ? ` — ${status.ambiente}` : ""}.`
+        : "Verifique se o agente está em execução no computador do escritório.",
+      variant: status.online ? undefined : "destructive",
+    });
+    if (status.online) setConfigAberta(false);
+  };
+
 
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase().replace(/[.\-/]/g, "");
