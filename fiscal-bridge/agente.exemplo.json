@@ -1,9 +1,10 @@
 {
-  "pfxPath": "C:\\certificados\\certificado-a1.pfx",
-  "senha": "senha-do-certificado",
+  "_comentario": "Gerado automaticamente por scripts/instalar.ps1. NUNCA coloque senha ou token aqui — os segredos ficam em blobs DPAPI (CurrentUser) com ACL restrita.",
+  "pfxPath": "C:\\Users\\SEU_USUARIO\\AppData\\Local\\GasFacil\\AgenteFiscal\\certificado.pfx",
+  "senhaProtegidaPath": "C:\\Users\\SEU_USUARIO\\AppData\\Local\\GasFacil\\AgenteFiscal\\senha.dpapi",
+  "tokenProtegidoPath": "C:\\Users\\SEU_USUARIO\\AppData\\Local\\GasFacil\\AgenteFiscal\\token.dpapi",
   "cnpj": "00000000000191",
   "uf": "PR",
-  "token": "",
   "origens": [
     "https://gasfacilpro.lovable.app",
     "https://gasfacilpro.com.br",
