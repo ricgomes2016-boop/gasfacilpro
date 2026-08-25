@@ -101,6 +101,18 @@ function Unprotect-Segredo {
   return [Text.Encoding]::UTF8.GetString($bytes)
 }
 
+<#
+Converte texto em SecureString sem depender do modulo Microsoft.PowerShell.Security
+(ConvertTo-SecureString pode nao estar disponivel em sessoes restritas).
+#>
+function ConvertTo-SecureStringSegura {
+  param([Parameter(Mandatory)][string]$Texto)
+  $segura = New-Object System.Security.SecureString
+  foreach ($c in $Texto.ToCharArray()) { $segura.AppendChar($c) }
+  $segura.MakeReadOnly()
+  return $segura
+}
+
 function New-TokenForte {
   $bytes = New-Object 'System.Byte[]' 32
   [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
