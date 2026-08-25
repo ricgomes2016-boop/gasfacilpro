@@ -238,7 +238,7 @@ export default function DFeRecebidos() {
               ? "Agente local desligado"
               : data?.motivo === "cert_nao_cadastrado" ? "Certificado digital não configurado" : "Sincronização não concluída",
             description: semBridge
-              ? "Ligue o agente local no computador do escritório (iniciar-agente.bat) ou importe o XML manualmente."
+              ? "Ligue o agente local no computador do escritório (instalar-agente.bat) ou importe o XML manualmente."
               : (data?.mensagem || "A SEFAZ não respondeu à consulta."),
             variant: "destructive",
           });
@@ -488,7 +488,7 @@ export default function DFeRecebidos() {
                 <span className="text-xs text-muted-foreground">
                   {agente.online
                     ? `${agenteCfg.url}${agente.ambiente ? ` — ${agente.ambiente}` : ""}`
-                    : "Ligue o agente no computador do escritório (iniciar-agente.bat) ou importe o XML manualmente."}
+                    : "Ligue o agente no computador do escritório (instalar-agente.bat) ou importe o XML manualmente."}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -839,7 +839,7 @@ export default function DFeRecebidos() {
               />
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Inicie o agente com <code>iniciar-agente.bat</code> e copie o token gerado no arquivo <code>agente.json</code>.
+              Inicie o agente com <code>instalar-agente.bat</code> e copie o token gerado no arquivo <code>agente.json</code>.
             </p>
           </div>
           <DialogFooter>
