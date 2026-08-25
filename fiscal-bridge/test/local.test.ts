@@ -81,7 +81,7 @@ describe("scripts de instalação do Windows", () => {
 
     const inst = fs.readFileSync(path.join(dirScripts, "instalar.ps1"), "utf8");
     expect(inst).toMatch(/Get-CertificadosCandidatos -Cnpj \$Cnpj/);
-    expect(inst).toMatch(/Export-CertificadoParaPfx[\s\S]{0,200}Protect-Segredo -Segredo \$senhaSegura -Destino \$Script:ArqSenha/);
+    expect(inst).toMatch(/Export-CertificadoParaPfx[\s\S]{0,700}Protect-Segredo -Segredo \$senhaSegura -Destino \$Script:ArqSenha/);
     // opção manual preservada
     expect(inst).toMatch(/Caminho completo do arquivo \.pfx/);
     // a senha aleatória nunca é exibida
