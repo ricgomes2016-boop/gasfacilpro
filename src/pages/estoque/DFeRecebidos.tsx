@@ -4,7 +4,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   AlertTriangle, CheckCircle2, Download, Eye, FileText, Inbox, Loader2, Plug, PlugZap,
-  RefreshCw, Search, Settings2, ShieldQuestion, ShoppingBasket, Upload, XCircle,
+  FileDown, RefreshCw, Search, Settings2, ShieldQuestion, ShoppingBasket, Upload, XCircle,
 } from "lucide-react";
 
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -28,14 +28,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useToast } from "@/hooks/use-toast";
 import { formatCNPJ } from "@/hooks/useInputMasks";
-import { formatarChave, formatarNumeroSerie } from "@/lib/fiscal/chaveNfe";
+import { formatarChave, formatarNumeroSerieComChave } from "@/lib/fiscal/chaveNfe";
 import { parseDfeItens, type DfeItemParsed } from "@/lib/fiscal/dfeXml";
+import { obterXmlCompletoDfe } from "@/lib/fiscal/obterXmlCompleto";
 import {
   ROTULO_MANIFESTACAO, manifestacoesPermitidas, exigeJustificativa, validarJustificativa,
   type ManifestacaoTipo,
 } from "@/lib/fiscal/manifestacao";
 import {
-  AGENTE_URL_PADRAO, agenteDistribuicao, agenteManifestar, getAgenteConfig, setAgenteConfig, verificarAgente,
+  AGENTE_URL_PADRAO, agenteConsultaChave, agenteDistribuicao, agenteManifestar,
+  getAgenteConfig, setAgenteConfig, verificarAgente,
   type AgenteConfig, type AgenteStatus, type DocumentoAgente,
 } from "@/lib/fiscal/agenteLocal";
 import { ErroSincronizacaoAgente, sincronizarDfeComAgente } from "@/lib/fiscal/dfeSync";
@@ -120,6 +122,8 @@ export default function DFeRecebidos() {
   const [confirmacao, setConfirmacao] = useState<{ doc: DfeDocumento; tipo: ManifestacaoTipo } | null>(null);
   const [justificativa, setJustificativa] = useState("");
   const [manifestando, setManifestando] = useState(false);
+  const [obterXml, setObterXml] = useState<{ doc: DfeDocumento; comCiencia: boolean } | null>(null);
+  const [buscandoXml, setBuscandoXml] = useState(false);
 
   // Agente local (fiscal-bridge no PC do escritório, com o certificado A1)
   const [agenteCfg, setAgenteCfgState] = useState<AgenteConfig>(() => getAgenteConfig());
@@ -439,9 +443,92 @@ export default function DFeRecebidos() {
   };
 
 
+  /**
+   * Criar compra só é honesto quando existe XML completo (com det/prod).
+   * Para resumo (resNFe) abrimos a confirmação de Ciência da Emissão.
+   */
   const criarCompra = (doc: DfeDocumento) => {
-    navigate(`/estoque/compras?chave=${doc.chave}`);
+    if (doc.xml_completo) {
+      navigate(`/estoque/compras?chave=${doc.chave}`);
+      return;
+    }
+    setObterXml({ doc, comCiencia: !doc.manifestacao });
   };
+
+  /** Fluxo resumo -> (ciência) -> consulta por chave -> XML completo -> Nova Compra. */
+  const executarObterXmlCompleto = async () => {
+    if (!obterXml || !unidadeAtual?.id) return;
+    const { doc, comCiencia } = obterXml;
+    const status = agente.autenticado ? agente : await checarAgente();
+    if (!status.autenticado) {
+      toast({
+        title: "Agente local não autenticado",
+        description: "Ligue o agente fiscal no computador do escritório e confira o token em “Configurar agente”.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setBuscandoXml(true);
+    try {
+      const resultado = await obterXmlCompletoDfe({
+        registrarCiencia: comCiencia,
+        manifestar: () => agenteManifestar(
+          { unidadeId: unidadeAtual.id, chave: doc.chave, tipo: "ciencia", justificativa: "" },
+          agenteCfg,
+        ) as any,
+        ingerirEvento: async (dados) => {
+          const ingest = await supabase.functions.invoke("dfe-evento-ingerir", {
+            body: {
+              unidadeId: unidadeAtual.id, chave: doc.chave, tipo: "ciencia", justificativa: "",
+              eventoXml: dados.eventoXml, retornoXml: dados.retornoXml,
+              cStat: dados.cStat, xMotivo: dados.xMotivo, protocolo: dados.protocolo,
+            },
+          });
+          if (ingest.error) return { ok: false, mensagem: ingest.error.message };
+          return { ok: !!(ingest.data as any)?.ok, mensagem: (ingest.data as any)?.mensagem };
+        },
+        consultarChave: () => agenteConsultaChave(
+          { unidadeId: unidadeAtual.id, cnpj: (unidadeAtual as any)?.cnpj ?? null, chave: doc.chave },
+          agenteCfg,
+        ) as any,
+        ingerirXml: async (xml, schema) => {
+          try {
+            const r = await ingerir([{ nsu: doc.nsu ?? 0, schema, xml }]);
+            return { ok: !!r?.ok, mensagem: r?.mensagem };
+          } catch (e: any) {
+            return { ok: false, mensagem: e?.message };
+          }
+        },
+        progresso: setProgresso,
+      });
+
+      await carregar();
+
+      if (resultado.status === "completo") {
+        setObterXml(null);
+        setDetalhe(null);
+        toast({ title: "XML completo obtido", description: "Abrindo Nova Compra com os itens da NF-e." });
+        navigate(`/estoque/compras?chave=${doc.chave}`);
+        return;
+      }
+      if (resultado.status === "aguardando_liberacao") {
+        setObterXml(null);
+        toast({ title: "Aguardando liberação da SEFAZ", description: resultado.mensagem });
+        return;
+      }
+      toast({
+        title: resultado.cienciaRegistrada ? "Ciência registrada, mas o XML não veio" : "Não foi possível obter o XML",
+        description: resultado.mensagem,
+        variant: "destructive",
+      });
+    } catch (e: any) {
+      toast({ title: "Erro ao obter o XML completo", description: e?.message, variant: "destructive" });
+    } finally {
+      setBuscandoXml(false);
+      setProgresso("");
+    }
+  };
+
 
   const acoesManifestacao = (doc: DfeDocumento) => manifestacoesPermitidas(doc.manifestacao);
 
@@ -608,7 +695,7 @@ export default function DFeRecebidos() {
                   {paginados.map((d) => (
                     <TableRow key={d.id} className="cursor-pointer" onClick={() => abrirDetalhe(d)}>
                       <TableCell className="whitespace-nowrap text-sm">{dataBR(d.data_emissao)}</TableCell>
-                      <TableCell className="whitespace-nowrap text-sm">{formatarNumeroSerie(d.numero, d.serie)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">{formatarNumeroSerieComChave(d.numero, d.serie, d.chave)}</TableCell>
                       <TableCell className="min-w-[220px]">
                         <p className="truncate text-sm font-medium">{d.nome_emitente || "—"}</p>
                         <p className="text-xs text-muted-foreground">{d.cnpj_emitente ? formatCNPJ(d.cnpj_emitente) : "—"}</p>
@@ -627,8 +714,14 @@ export default function DFeRecebidos() {
                           <Button size="icon" variant="ghost" title="Baixar XML" onClick={() => baixarXml(d)}>
                             <Download className="h-4 w-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" title="Criar compra" onClick={() => criarCompra(d)}>
-                            <ShoppingBasket className="h-4 w-4" />
+                          <Button
+                            size="icon" variant="ghost"
+                            title={d.xml_completo
+                              ? "Criar compra"
+                              : d.manifestacao ? "Buscar XML completo" : "Registrar ciência e carregar XML"}
+                            onClick={() => criarCompra(d)}
+                          >
+                            {d.xml_completo ? <ShoppingBasket className="h-4 w-4" /> : <FileDown className="h-4 w-4" />}
                           </Button>
                           <Button size="icon" variant="ghost" title="Detalhes" onClick={() => abrirDetalhe(d)}>
                             <Eye className="h-4 w-4" />
@@ -661,7 +754,7 @@ export default function DFeRecebidos() {
             <>
               <SheetHeader>
                 <SheetTitle className="text-base">
-                  NF-e {formatarNumeroSerie(detalhe.numero, detalhe.serie)} — {detalhe.nome_emitente || "Emitente não informado"}
+                  NF-e {formatarNumeroSerieComChave(detalhe.numero, detalhe.serie, detalhe.chave)} — {detalhe.nome_emitente || "Emitente não informado"}
                 </SheetTitle>
                 <SheetDescription className="break-all font-mono text-[11px]">
                   {formatarChave(detalhe.chave)}
@@ -683,7 +776,11 @@ export default function DFeRecebidos() {
                     <Download className="h-4 w-4" /> Baixar XML
                   </Button>
                   <Button size="sm" className="gap-2" onClick={() => criarCompra(detalhe)}>
-                    <ShoppingBasket className="h-4 w-4" /> Criar compra
+                    {detalhe.xml_completo
+                      ? <><ShoppingBasket className="h-4 w-4" /> Criar compra</>
+                      : detalhe.manifestacao
+                        ? <><FileDown className="h-4 w-4" /> Buscar XML completo</>
+                        : <><FileDown className="h-4 w-4" /> Registrar ciência e carregar XML</>}
                   </Button>
                 </div>
 
@@ -706,7 +803,10 @@ export default function DFeRecebidos() {
                   {!detalhe.xml_completo && (
                     <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
                       <ShieldQuestion className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      Apenas o resumo foi disponibilizado pela SEFAZ. O XML completo costuma ser liberado após a manifestação e nova sincronização.
+                      Apenas o resumo (resNFe) foi disponibilizado pela SEFAZ — ele não contém os itens da nota.
+                      {detalhe.manifestacao
+                        ? " Use “Buscar XML completo” para consultar a chave novamente."
+                        : " Registre a Ciência da Emissão para que a SEFAZ libere o XML completo."}
                     </p>
                   )}
                 </div>
@@ -811,6 +911,52 @@ export default function DFeRecebidos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!obterXml} onOpenChange={(v) => { if (!v && !buscandoXml) setObterXml(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {obterXml?.comCiencia ? "Registrar ciência e carregar XML" : "Buscar XML completo"}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  Esta nota chegou apenas como <strong>resumo (resNFe)</strong>, que não traz os itens.
+                  Sem o XML completo não é possível montar a compra.
+                </p>
+                {obterXml?.comCiencia ? (
+                  <p>
+                    Para obter os itens é necessário registrar a <strong>Ciência da Emissão</strong> na SEFAZ —
+                    evento fiscal <strong>não conclusivo</strong>, que apenas informa que você tomou conhecimento da nota
+                    (não confirma nem recusa a operação). Em seguida a chave será consultada novamente.
+                  </p>
+                ) : (
+                  <p>
+                    Já existe manifestação registrada para esta nota. Vamos apenas consultar a chave novamente na SEFAZ,
+                    sem enviar novo evento.
+                  </p>
+                )}
+                {obterXml && (
+                  <p className="break-all font-mono text-[11px] text-muted-foreground">{formatarChave(obterXml.doc.chave)}</p>
+                )}
+                {progresso && <p className="text-xs text-muted-foreground">{progresso}</p>}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={buscandoXml}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={buscandoXml}
+              onClick={(e) => { e.preventDefault(); void executarObterXmlCompleto(); }}
+            >
+              {buscandoXml ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {obterXml?.comCiencia ? "Registrar ciência e carregar XML" : "Buscar XML completo"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
 
       <Dialog open={configAberta} onOpenChange={setConfigAberta}>
         <DialogContent className="max-w-md">

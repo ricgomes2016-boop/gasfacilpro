@@ -86,3 +86,32 @@ export function formatarNumeroSerie(numero?: string | null, serie?: string | nul
   const s = String(serie ?? "").replace(/^0+/, "");
   return s ? `${n}/${s}` : n;
 }
+
+/** Série embutida na chave (posições 23-25). Null se a chave não tiver 44 dígitos. */
+export function serieDaChave(valor: string | null | undefined): string | null {
+  const chave = normalizarChave(valor);
+  if (chave.length !== 44) return null;
+  return chave.slice(22, 25);
+}
+
+/** Número da NF-e embutido na chave (posições 26-34). Null se a chave for inválida. */
+export function numeroDaChave(valor: string | null | undefined): string | null {
+  const chave = normalizarChave(valor);
+  if (chave.length !== 44) return null;
+  return chave.slice(25, 34);
+}
+
+/**
+ * Exibição de número/série usando a chave apenas como fallback quando o resumo
+ * não trouxe os campos — nunca inventa valores.
+ */
+export function formatarNumeroSerieComChave(
+  numero: string | null | undefined,
+  serie: string | null | undefined,
+  chave: string | null | undefined,
+): string {
+  const n = numero ?? numeroDaChave(chave);
+  const s = serie ?? serieDaChave(chave);
+  return formatarNumeroSerie(n, s);
+}
+
