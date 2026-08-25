@@ -47,7 +47,7 @@ export async function sincronizarDfeComAgente(opcoes: OpcoesSincronizacao) {
   for (let lote = 1; lote <= 5; lote++) {
     opcoes.progresso?.(`Consultando a SEFAZ pelo agente local (lote ${lote})...`);
     const resposta = await opcoes.distribuir(ultimoNSU);
-    if (!resposta.ok) {
+    if (resposta.ok === false) {
       const mensagem = resposta.motivo === "token_invalido"
         ? "Token de pareamento inválido. Abra Configurar agente e informe o token atual."
         : resposta.mensagem;

@@ -9,7 +9,7 @@ describe("sincronização DF-e pelo agente local", () => {
       maxNSU: 0,
       distribuir: async () => ({ ok: false, motivo: "token_invalido", mensagem: "Token inválido." }),
       ingerir,
-    })).rejects.toMatchObject<Partial<ErroSincronizacaoAgente>>({ motivo: "token_invalido" });
+    })).rejects.toMatchObject({ motivo: "token_invalido" });
     expect(ingerir).not.toHaveBeenCalled();
   });
 

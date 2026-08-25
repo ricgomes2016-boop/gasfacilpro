@@ -38,6 +38,7 @@ import {
   AGENTE_URL_PADRAO, agenteDistribuicao, agenteManifestar, getAgenteConfig, setAgenteConfig, verificarAgente,
   type AgenteConfig, type AgenteStatus, type DocumentoAgente,
 } from "@/lib/fiscal/agenteLocal";
+import { ErroSincronizacaoAgente, sincronizarDfeComAgente } from "@/lib/fiscal/dfeSync";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 
@@ -126,6 +127,7 @@ export default function DFeRecebidos() {
   const [checandoAgente, setChecandoAgente] = useState(true);
   const [configAberta, setConfigAberta] = useState(false);
   const [rascunhoCfg, setRascunhoCfg] = useState<AgenteConfig>(() => getAgenteConfig());
+  const [tokenVisivel, setTokenVisivel] = useState(false);
   const [progresso, setProgresso] = useState("");
   const inputXmlRef = useRef<HTMLInputElement>(null);
 
@@ -168,9 +170,10 @@ export default function DFeRecebidos() {
     ultimoNSU?: number,
     maxNSU?: number,
     registrarEstado = false,
+    cStat?: string,
   ) => {
     const { data, error } = await supabase.functions.invoke("dfe-ingerir", {
-      body: { unidadeId: unidadeAtual!.id, documentos: documentosXml, ultimoNSU, maxNSU, registrarEstado },
+      body: { unidadeId: unidadeAtual!.id, documentos: documentosXml, ultimoNSU, maxNSU, registrarEstado, cStat },
     });
     if (error) throw error;
     return data as { ok: boolean; novos?: number; atualizados?: number; eventos?: number; mensagem?: string };
@@ -179,59 +182,19 @@ export default function DFeRecebidos() {
   /** Sincroniza pela SEFAZ usando o agente local (lotes de NSU). */
   const sincronizarComAgente = async () => {
     const cnpj = (unidadeAtual as any)?.cnpj ?? null;
-    let ultNSU = Number(estado?.ultimo_nsu ?? 0);
-    let maxNSU = Number(estado?.max_nsu ?? 0);
-    let novos = 0;
-    let atualizados = 0;
-    // Uma consulta que respondeu com cStat (mesmo "137 - nenhum documento") é
-    // sucesso real e precisa registrar a data da última sincronização.
-    let consultaOk = false;
-
-    for (let lote = 1; lote <= 5; lote++) {
-      setProgresso(`Consultando a SEFAZ pelo agente local (lote ${lote})...`);
-      const resp = await agenteDistribuicao({ unidadeId: unidadeAtual!.id, cnpj, ultNSU }, agenteCfg);
-      if (resp.ok !== true) {
-        toast({ title: "Consulta não concluída", description: (resp as { mensagem?: string }).mensagem, variant: "destructive" });
-        break;
-      }
-
-      const dados = resp.dados;
-      if (dados.maxNSU) maxNSU = Number(dados.maxNSU);
-      const docs = dados.documentos ?? [];
-      if (String(dados.cStat ?? "") === "656") {
-        toast({
-          title: "Consumo indevido",
-          description: "A SEFAZ bloqueou temporariamente novas consultas. Aguarde uma hora antes de sincronizar de novo.",
-          variant: "destructive",
-        });
-        break;
-      }
-      if (dados.cStat) consultaOk = true;
-      if (docs.length) {
-        setProgresso(`Importando ${docs.length} documento(s)...`);
-        const ing = await ingerir(docs, Number(dados.ultNSU ?? 0), maxNSU);
-        novos += Number(ing?.novos ?? 0);
-        atualizados += Number(ing?.atualizados ?? 0);
-      }
-      if (Number(dados.ultNSU ?? 0) > ultNSU) ultNSU = Number(dados.ultNSU);
-      if (String(dados.cStat ?? "") === "137" || docs.length === 0 || (maxNSU && ultNSU >= maxNSU)) break;
-    }
-
-    // Sem documentos novos ainda assim gravamos o estado (data/NSU) na nuvem.
-    if (consultaOk && novos + atualizados === 0) {
-      setProgresso("Registrando a sincronização...");
-      try {
-        await ingerir([], ultNSU, maxNSU, true);
-      } catch {
-        /* o estado é informativo; a consulta em si já foi bem-sucedida */
-      }
-    }
+    const resultado = await sincronizarDfeComAgente({
+      ultimoNSU: Number(estado?.ultimo_nsu ?? 0),
+      maxNSU: Number(estado?.max_nsu ?? 0),
+      distribuir: (ultNSU) => agenteDistribuicao({ unidadeId: unidadeAtual!.id, cnpj, ultNSU }, agenteCfg),
+      ingerir: (docs, ultimoNSU, maxNSU, cStat) => ingerir(docs, ultimoNSU, maxNSU, docs.length === 0, cStat),
+      progresso: setProgresso,
+    });
 
     toast({
       title: "Sincronização concluída",
-      description: novos + atualizados === 0
+      description: resultado.novos + resultado.atualizados === 0
         ? "Nenhum documento novo na SEFAZ."
-        : `${novos} novo(s) e ${atualizados} atualizado(s).`,
+        : `${resultado.novos} novo(s) e ${resultado.atualizados} atualizado(s).`,
     });
   };
 
@@ -242,8 +205,8 @@ export default function DFeRecebidos() {
     }
     setSincronizando(true);
     try {
-      const status = agente.online ? agente : await checarAgente();
-      if (status.online) {
+      const status = agente.autenticado ? agente : await checarAgente();
+      if (status.autenticado) {
         await sincronizarComAgente();
       } else {
         const { data, error } = await supabase.functions.invoke("dfe-sincronizar", {
@@ -267,7 +230,11 @@ export default function DFeRecebidos() {
       }
       await carregar();
     } catch (e: any) {
-      toast({ title: "Erro ao sincronizar", description: e?.message, variant: "destructive" });
+      toast({
+        title: e instanceof ErroSincronizacaoAgente && e.motivo === "token_invalido" ? "Token do agente inválido" : "Erro ao sincronizar",
+        description: e?.message || "A sincronização não foi concluída.",
+        variant: "destructive",
+      });
     } finally {
       setSincronizando(false);
       setProgresso("");
@@ -311,17 +278,23 @@ export default function DFeRecebidos() {
 
   const salvarConfigAgente = async () => {
     const cfg = { url: (rascunhoCfg.url || AGENTE_URL_PADRAO).replace(/\/+$/, ""), token: rascunhoCfg.token.trim() };
-    setAgenteConfig(cfg);
-    setAgenteCfgState(cfg);
     const status = await checarAgente(cfg);
+    if (status.autenticado) {
+      setAgenteConfig(cfg);
+      setAgenteCfgState(cfg);
+    }
     toast({
-      title: status.online ? "Agente local conectado" : "Agente local não respondeu",
-      description: status.online
+      title: status.autenticado ? "Agente local conectado" : status.online ? "Pareamento não autorizado" : "Agente local não respondeu",
+      description: status.autenticado
         ? `Modo ${status.modo ?? "local"}${status.ambiente ? ` — ${status.ambiente}` : ""}.`
-        : "Verifique se o agente está em execução no computador do escritório.",
-      variant: status.online ? undefined : "destructive",
+        : status.erro === "token_vazio"
+          ? "Informe o token de pareamento do agente."
+          : status.erro === "token_invalido"
+            ? "O token informado não corresponde ao agente local."
+            : "Verifique se o agente está em execução no computador do escritório.",
+      variant: status.autenticado ? undefined : "destructive",
     });
-    if (status.online) setConfigAberta(false);
+    if (status.autenticado) setConfigAberta(false);
   };
 
 
@@ -496,18 +469,26 @@ export default function DFeRecebidos() {
               <div className="flex items-center gap-2 text-sm">
                 {checandoAgente ? (
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                ) : agente.online ? (
+                ) : agente.autenticado ? (
                   <PlugZap className="h-4 w-4 text-success" />
                 ) : (
                   <Plug className="h-4 w-4 text-muted-foreground" />
                 )}
                 <span className="font-medium">
-                  {checandoAgente ? "Procurando o agente local..." : agente.online ? "Agente local conectado" : "Agente local desligado"}
+                   {checandoAgente
+                     ? "Procurando o agente local..."
+                     : agente.autenticado
+                       ? "Agente local conectado"
+                       : agente.online
+                         ? "Agente local sem pareamento"
+                         : "Agente local desligado"}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {agente.online
+                   {agente.autenticado
                     ? `${agenteCfg.url}${agente.ambiente ? ` — ${agente.ambiente}` : ""}`
-                    : "Ligue o agente no computador do escritório (instalar-agente.bat) ou importe o XML manualmente."}
+                     : agente.online
+                       ? agente.erro === "token_vazio" ? "Informe o token para autenticar." : "Token inválido; configure novamente o pareamento."
+                       : "Ligue o agente no computador do escritório (instalar-agente.bat) ou importe o XML manualmente."}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -851,14 +832,29 @@ export default function DFeRecebidos() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Token de pareamento</Label>
-              <Input
-                value={rascunhoCfg.token}
-                placeholder="Token exibido na primeira execução do agente"
-                onChange={(e) => setRascunhoCfg((c) => ({ ...c, token: e.target.value }))}
-              />
+              <div className="relative">
+                <Input
+                  type={tokenVisivel ? "text" : "password"}
+                  value={rascunhoCfg.token}
+                  placeholder="Token exibido pelo comando mostrar-token.ps1"
+                  className="pr-10"
+                  onChange={(e) => setRascunhoCfg((c) => ({ ...c, token: e.target.value }))}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0"
+                  title={tokenVisivel ? "Ocultar token" : "Mostrar token"}
+                  onClick={() => setTokenVisivel((v) => !v)}
+                >
+                  {tokenVisivel ? <Eye className="h-4 w-4" /> : <ShieldQuestion className="h-4 w-4" />}
+                </Button>
+              </div>
+              {!rascunhoCfg.token.trim() && <p className="text-[11px] text-destructive">Token não informado.</p>}
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Inicie o agente com <code>instalar-agente.bat</code> e copie o token gerado no arquivo <code>agente.json</code>.
+              Use o comando local <code>mostrar-token.ps1</code> para copiar o token protegido. Ele nunca é exibido em logs.
             </p>
           </div>
           <DialogFooter>
