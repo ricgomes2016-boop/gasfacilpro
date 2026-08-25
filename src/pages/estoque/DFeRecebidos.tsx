@@ -35,7 +35,7 @@ import {
   type ManifestacaoTipo,
 } from "@/lib/fiscal/manifestacao";
 import {
-  AGENTE_URL_PADRAO, agenteDistribuicao, getAgenteConfig, setAgenteConfig, verificarAgente,
+  AGENTE_URL_PADRAO, agenteDistribuicao, agenteManifestar, getAgenteConfig, setAgenteConfig, verificarAgente,
   type AgenteConfig, type AgenteStatus, type DocumentoAgente,
 } from "@/lib/fiscal/agenteLocal";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
