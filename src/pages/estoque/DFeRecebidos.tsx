@@ -35,7 +35,7 @@ import {
   type ManifestacaoTipo,
 } from "@/lib/fiscal/manifestacao";
 import {
-  AGENTE_URL_PADRAO, agenteDistribuicao, getAgenteConfig, setAgenteConfig, verificarAgente,
+  AGENTE_URL_PADRAO, agenteDistribuicao, agenteManifestar, getAgenteConfig, setAgenteConfig, verificarAgente,
   type AgenteConfig, type AgenteStatus, type DocumentoAgente,
 } from "@/lib/fiscal/agenteLocal";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -238,7 +238,7 @@ export default function DFeRecebidos() {
               ? "Agente local desligado"
               : data?.motivo === "cert_nao_cadastrado" ? "Certificado digital não configurado" : "Sincronização não concluída",
             description: semBridge
-              ? "Ligue o agente local no computador do escritório (iniciar-agente.bat) ou importe o XML manualmente."
+              ? "Ligue o agente local no computador do escritório (instalar-agente.bat) ou importe o XML manualmente."
               : (data?.mensagem || "A SEFAZ não respondeu à consulta."),
             variant: "destructive",
           });
@@ -390,10 +390,39 @@ export default function DFeRecebidos() {
     }
     setManifestando(true);
     try {
-      const { data, error } = await supabase.functions.invoke("dfe-manifestar", {
-        body: { unidadeId: unidadeAtual.id, chave: doc.chave, tipo, justificativa },
-      });
-      if (error) throw error;
+      // 1) Preferência: agente local (o certificado A1 nunca sai do PC).
+      const status = agente.online ? agente : await checarAgente();
+      let data: any = null;
+
+      if (status.online) {
+        const resp: any = await agenteManifestar(
+          { unidadeId: unidadeAtual.id, chave: doc.chave, tipo, justificativa },
+          agenteCfg,
+        );
+        if (!resp.ok) {
+          toast({ title: "Manifestação não registrada", description: resp.mensagem, variant: "destructive" });
+          return;
+        }
+
+
+        // 2) A nuvem confere a assinatura do evento antes de gravar.
+        const ingest = await supabase.functions.invoke("dfe-evento-ingerir", {
+          body: {
+            unidadeId: unidadeAtual.id, chave: doc.chave, tipo, justificativa,
+            eventoXml: resp.dados.eventoXml, retornoXml: resp.dados.retornoXml,
+            cStat: resp.dados.cStat, xMotivo: resp.dados.xMotivo, protocolo: resp.dados.protocolo,
+          },
+        });
+        if (ingest.error) throw ingest.error;
+        data = ingest.data;
+      } else {
+        const resp = await supabase.functions.invoke("dfe-manifestar", {
+          body: { unidadeId: unidadeAtual.id, chave: doc.chave, tipo, justificativa },
+        });
+        if (resp.error) throw resp.error;
+        data = resp.data;
+      }
+
       if (!data?.ok) {
         toast({
           title: "Manifestação não registrada",
@@ -416,6 +445,7 @@ export default function DFeRecebidos() {
       setManifestando(false);
     }
   };
+
 
   const criarCompra = (doc: DfeDocumento) => {
     navigate(`/estoque/compras?chave=${doc.chave}`);
@@ -458,7 +488,7 @@ export default function DFeRecebidos() {
                 <span className="text-xs text-muted-foreground">
                   {agente.online
                     ? `${agenteCfg.url}${agente.ambiente ? ` — ${agente.ambiente}` : ""}`
-                    : "Ligue o agente no computador do escritório (iniciar-agente.bat) ou importe o XML manualmente."}
+                    : "Ligue o agente no computador do escritório (instalar-agente.bat) ou importe o XML manualmente."}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -809,7 +839,7 @@ export default function DFeRecebidos() {
               />
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Inicie o agente com <code>iniciar-agente.bat</code> e copie o token gerado no arquivo <code>agente.json</code>.
+              Inicie o agente com <code>instalar-agente.bat</code> e copie o token gerado no arquivo <code>agente.json</code>.
             </p>
           </div>
           <DialogFooter>

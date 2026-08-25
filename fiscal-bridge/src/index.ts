@@ -8,6 +8,8 @@ import {
   envelope, montarConsChNFe, montarDistNSU, montarEnvEvento, soapPost, type TipoManifestacao,
 } from "./sefaz.js";
 import { parseDistribuicao, parseEvento } from "./soap.js";
+import { cabecalhosCorsLocal, mascararCnpj, tokensIguais } from "./local.js";
+import { conferirComprovante, gerarComprovante } from "./comprovante.js";
 
 const cfg = carregarConfig();
 const nonces = new RegistroNonce();
@@ -18,16 +20,7 @@ const LIMITE_CORPO = 256 * 1024;
 /** No modo local a página HTTPS do ERP chama http://127.0.0.1 — exige CORS explícito. */
 function cabecalhosCors(origem: string | undefined): Record<string, string> {
   if (!MODO_LOCAL) return {};
-  const permitidas = cfg.local?.origens ?? [];
-  const alvo = (origem ?? "").replace(/\/+$/, "");
-  if (!alvo || !permitidas.includes(alvo)) return {};
-  return {
-    "Access-Control-Allow-Origin": alvo,
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "content-type, x-agente-token",
-    "Access-Control-Max-Age": "600",
-    Vary: "Origin",
-  };
+  return cabecalhosCorsLocal(origem, cfg.local?.origens ?? []);
 }
 
 function responder(res: http.ServerResponse, status: number, corpo: unknown, cors: Record<string, string> = {}) {
@@ -57,6 +50,20 @@ function lerCorpo(req: http.IncomingMessage): Promise<string> {
 
 function cUFDe(cert: CertificadoUnidade, chave?: string): string {
   return UF_CODIGO[String(cert.estado ?? "").toUpperCase()] || chave?.slice(0, 2) || "41";
+}
+
+/** Extrai o primeiro elemento <tag>...</tag> (com ou sem prefixo de namespace). */
+function extrair(xml: string, tag: string): string | null {
+  const re = new RegExp(`<(?:\\w+:)?${tag}[\\s>][\\s\\S]*?<\\/(?:\\w+:)?${tag}>`, "i");
+  return xml.match(re)?.[0] ?? null;
+}
+
+function esperadoToken(): string {
+  try {
+    return cfg.local?.lerToken() ?? "";
+  } catch {
+    return "";
+  }
 }
 
 function validarChave(v: unknown): string | null {
@@ -98,11 +105,19 @@ const servidor = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && caminho === "/health") {
+    // No modo local o /health só é legível por origem autorizada (CORS obrigatório)
+    // e nunca revela o CNPJ completo.
+    if (MODO_LOCAL && !Object.keys(cors).length) {
+      responder(res, 403, { ok: false, motivo: "origem_nao_autorizada", mensagem: "Origem não autorizada pelo agente." });
+      return;
+    }
     responder(res, 200, {
       ok: true,
       servico: "fiscal-bridge",
       modo: cfg.modo,
-      cnpj: MODO_LOCAL ? cfg.local?.cnpj : undefined,
+      cnpj: MODO_LOCAL ? mascararCnpj(cfg.local?.cnpj) : undefined,
+      uf: MODO_LOCAL ? cfg.local?.uf : undefined,
+      manifestacao: MODO_LOCAL ? true : undefined,
       ambiente: cfg.tpAmb === "1" ? "producao" : "homologacao",
     }, cors);
     return;
@@ -129,13 +144,17 @@ const servidor = http.createServer(async (req, res) => {
   if (MODO_LOCAL) {
     // Modo local: pareamento por token (a assinatura HMAC vale só no modo servidor).
     const token = String(req.headers["x-agente-token"] ?? "");
-    if (!token || token !== cfg.local?.token) {
-      log.warn("token_recusado", { caminho });
-      responder(res, 401, { ok: false, motivo: "token_invalido", mensagem: "Token do agente local inválido." }, cors);
+    let esperado = "";
+    try {
+      esperado = cfg.local?.lerToken() ?? "";
+    } catch (e) {
+      log.error("token_protegido_indisponivel", { detalhe: sanitizar(e) });
+      responder(res, 500, { ok: false, motivo: "token_indisponivel", mensagem: "Não foi possível ler o token protegido. Rode scripts/instalar.ps1 -Reparar." }, cors);
       return;
     }
-    if (caminho === "/dfe/manifestar") {
-      responder(res, 403, { ok: false, motivo: "manifestacao_desabilitada", mensagem: "O agente local só consulta e baixa documentos." }, cors);
+    if (!tokensIguais(token, esperado)) {
+      log.warn("token_recusado", { caminho });
+      responder(res, 401, { ok: false, motivo: "token_invalido", mensagem: "Token do agente local inválido." }, cors);
       return;
     }
   } else {
@@ -243,9 +262,74 @@ const servidor = http.createServer(async (req, res) => {
         if (!resp.ok) return { ok: false as const, motivo: resp.categoria ?? "sefaz_indisponivel", mensagem: "Não foi possível falar com a SEFAZ.", detalheTecnico: sanitizar(resp.detalhe) };
         const p = parseEvento(resp.texto ?? "");
         log.info("manifestacao", { unidade: mascarar(unidadeId), tipo, cStat: p.cStat ?? "", sucesso: p.sucesso });
-        return { ok: p.sucesso, cStat: p.cStat, xMotivo: p.xMotivo, protocolo: p.protocolo, tipo, sequencia, motivo: p.sucesso ? undefined : "evento_rejeitado" };
+
+        // O XML do evento assinado (XMLDSig com o A1) é a prova que a nuvem consegue
+        // validar sozinha — o navegador não tem a chave privada e não pode forjá-lo.
+        const eventoXml = extrair(env, "evento");
+        const retornoXml = extrair(resp.texto ?? "", "retEvento");
+        const dhResposta = new Date().toISOString();
+        const comprovanteLocal = gerarComprovante(
+          { chave, tipo, cStat: String(p.cStat ?? ""), protocolo: String(p.protocolo ?? ""), dhResposta },
+          esperadoToken(),
+        );
+        return {
+          ok: p.sucesso,
+          cStat: p.cStat,
+          xMotivo: p.xMotivo,
+          protocolo: p.protocolo,
+          tipo,
+          sequencia,
+          dhResposta,
+          eventoXml,
+          retornoXml,
+          comprovanteLocal,
+          motivo: p.sucesso ? undefined : "evento_rejeitado",
+        };
       });
       responder(res, 200, resultado, cors);
+      return;
+    }
+
+    if (caminho === "/diagnostico") {
+      // Autenticado pelo token (já validado acima). Nunca devolve CNPJ completo,
+      // caminho de PFX, senha ou token.
+      const carga = MODO_LOCAL ? carregarCertificadoLocal() : { ok: false as const, motivo: "modo_servidor", mensagem: "Diagnóstico disponível apenas no modo local." };
+      const info = carga.ok
+        ? {
+          certificado: "ok",
+          titular: carga.cert.titular,
+          validade: carga.cert.validade.toISOString().slice(0, 10),
+          cnpj: mascararCnpj(carga.cert.cnpjUnidade),
+        }
+        : { certificado: "falha", motivo: carga.motivo, mensagem: carga.mensagem };
+      if (carga.ok) descartarCertificado(carga.cert);
+
+      const conferencia = body.comprovante
+        ? conferirComprovante(
+          {
+            chave: String(body.chave ?? ""),
+            tipo: String(body.tipo ?? ""),
+            cStat: String(body.cStat ?? ""),
+            protocolo: String(body.protocolo ?? ""),
+            dhResposta: String(body.dhResposta ?? ""),
+          },
+          esperadoToken(),
+          String(body.comprovante),
+        )
+        : undefined;
+
+      responder(res, 200, {
+        ok: true,
+        modo: cfg.modo,
+        ambiente: cfg.tpAmb === "1" ? "producao" : "homologacao",
+        porta: cfg.porta,
+        uf: MODO_LOCAL ? cfg.local?.uf : undefined,
+        origensAutorizadas: MODO_LOCAL ? (cfg.local?.origens.length ?? 0) : undefined,
+        node: process.versions.node,
+        plataforma: process.platform,
+        ...info,
+        comprovanteConfere: conferencia,
+      }, cors);
       return;
     }
 

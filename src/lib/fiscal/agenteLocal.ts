@@ -116,3 +116,52 @@ export function agenteConsultaChave(
     cfg,
   );
 }
+
+export interface RespostaManifestacaoAgente {
+  ok: boolean;
+  cStat: string | null;
+  xMotivo: string | null;
+  protocolo: string | null;
+  tipo: string;
+  sequencia: number;
+  dhResposta: string;
+  /** XML do evento assinado com o A1 — é a prova que a nuvem consegue verificar. */
+  eventoXml: string;
+  retornoXml: string;
+  comprovanteLocal?: string;
+  motivo?: string;
+}
+
+/**
+ * Manifestação do destinatário executada pelo agente local.
+ * O navegador NÃO declara sucesso: o `eventoXml` assinado volta para a Edge
+ * `dfe-evento-ingerir`, que confere a assinatura contra o A1 da unidade.
+ */
+export function agenteManifestar(
+  params: { unidadeId: string; cnpj?: string | null; chave: string; tipo: string; justificativa?: string; sequencia?: number },
+  cfg?: AgenteConfig,
+) {
+  return chamar<RespostaManifestacaoAgente>(
+    "/dfe/manifestar",
+    {
+      unidadeId: params.unidadeId,
+      cnpj: params.cnpj ?? undefined,
+      chave: params.chave,
+      tipo: params.tipo,
+      justificativa: params.justificativa ?? "",
+      sequencia: params.sequencia ?? 1,
+    },
+    cfg,
+  );
+}
+
+/** Diagnóstico local autenticado pelo token (certificado, rede, ambiente). */
+export function agenteDiagnostico(cfg?: AgenteConfig) {
+  return chamar<{
+    modo: string; ambiente: string; cnpj: string | null; uf: string | null;
+    certificado: { titular: string; validade: string; diasParaVencer: number } | null;
+    rede: { sefazAlcancavel: boolean; detalhe?: string };
+    versao?: string;
+  }>("/diagnostico", {}, cfg);
+}
+
