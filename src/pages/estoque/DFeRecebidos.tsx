@@ -4,7 +4,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   AlertTriangle, CheckCircle2, Download, Eye, FileText, Inbox, Loader2, Plug, PlugZap,
-  RefreshCw, Search, Settings2, ShieldQuestion, ShoppingBasket, Upload, XCircle,
+  FileDown, RefreshCw, Search, Settings2, ShieldQuestion, ShoppingBasket, Upload, XCircle,
 } from "lucide-react";
 
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -714,8 +714,14 @@ export default function DFeRecebidos() {
                           <Button size="icon" variant="ghost" title="Baixar XML" onClick={() => baixarXml(d)}>
                             <Download className="h-4 w-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" title="Criar compra" onClick={() => criarCompra(d)}>
-                            <ShoppingBasket className="h-4 w-4" />
+                          <Button
+                            size="icon" variant="ghost"
+                            title={d.xml_completo
+                              ? "Criar compra"
+                              : d.manifestacao ? "Buscar XML completo" : "Registrar ciência e carregar XML"}
+                            onClick={() => criarCompra(d)}
+                          >
+                            {d.xml_completo ? <ShoppingBasket className="h-4 w-4" /> : <FileDown className="h-4 w-4" />}
                           </Button>
                           <Button size="icon" variant="ghost" title="Detalhes" onClick={() => abrirDetalhe(d)}>
                             <Eye className="h-4 w-4" />
@@ -770,7 +776,11 @@ export default function DFeRecebidos() {
                     <Download className="h-4 w-4" /> Baixar XML
                   </Button>
                   <Button size="sm" className="gap-2" onClick={() => criarCompra(detalhe)}>
-                    <ShoppingBasket className="h-4 w-4" /> Criar compra
+                    {detalhe.xml_completo
+                      ? <><ShoppingBasket className="h-4 w-4" /> Criar compra</>
+                      : detalhe.manifestacao
+                        ? <><FileDown className="h-4 w-4" /> Buscar XML completo</>
+                        : <><FileDown className="h-4 w-4" /> Registrar ciência e carregar XML</>}
                   </Button>
                 </div>
 
@@ -793,7 +803,10 @@ export default function DFeRecebidos() {
                   {!detalhe.xml_completo && (
                     <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
                       <ShieldQuestion className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      Apenas o resumo foi disponibilizado pela SEFAZ. O XML completo costuma ser liberado após a manifestação e nova sincronização.
+                      Apenas o resumo (resNFe) foi disponibilizado pela SEFAZ — ele não contém os itens da nota.
+                      {detalhe.manifestacao
+                        ? " Use “Buscar XML completo” para consultar a chave novamente."
+                        : " Registre a Ciência da Emissão para que a SEFAZ libere o XML completo."}
                     </p>
                   )}
                 </div>
