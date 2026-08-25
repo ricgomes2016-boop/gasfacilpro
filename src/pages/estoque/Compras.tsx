@@ -39,6 +39,7 @@ import { ConfirmarNovosProdutosDialog, NovoProdutoCandidato, DecisaoItem } from 
 import { registrarPagamentoCompra, reverterPagamentoCompra, type FormaPagamentoCompra } from "@/services/compraFinanceiroService";
 import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
 import { normalizarChave, validarChaveNfe } from "@/lib/fiscal/chaveNfe";
+import { parseDfeDocumento } from "@/lib/fiscal/dfeXml";
 import { agenteConsultaChave, verificarAgente } from "@/lib/fiscal/agenteLocal";
 
 import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
@@ -891,6 +892,17 @@ export default function Compras() {
         }
       }
 
+      // Documento existe, mas só como resumo (resNFe): não há itens para importar.
+      if (dfe && !dfe.xml_completo) {
+        setBuscaErro({
+          titulo: "Somente o resumo desta NF-e está disponível",
+          mensagem: "A SEFAZ enviou apenas o resumo (resNFe), que não contém os itens da nota.",
+          comoResolver: "Abra DF-e Recebidos e use “Registrar ciência e carregar XML” para liberar o XML completo antes de lançar a compra.",
+          podeRepetir: false,
+        });
+        return;
+      }
+
       // 2) Agente local (certificado A1 no PC do escritório), quando ligado
       setBuscaEtapa("Procurando o agente local com o certificado digital...");
       const statusAgente = await verificarAgente();
@@ -903,6 +915,15 @@ export default function Compras() {
         });
         if (respAgente.ok === true && respAgente.dados?.xml) {
           const xmlAgente = respAgente.dados.xml;
+          if (parseDfeDocumento(xmlAgente).tipo !== "completo") {
+            setBuscaErro({
+              titulo: "A SEFAZ devolveu apenas o resumo",
+              mensagem: "O documento retornado é o resumo (resNFe) e não contém os itens da nota.",
+              comoResolver: "Abra DF-e Recebidos e use “Registrar ciência e carregar XML”; após a liberação, volte e busque a chave novamente.",
+              podeRepetir: false,
+            });
+            return;
+          }
           setBuscaEtapa("Processando o XML e preenchendo os dados...");
           await processarXmlNfe(xmlAgente);
           // Guarda o documento no repositório DF-e da unidade (best-effort)
@@ -950,6 +971,15 @@ export default function Compras() {
         return;
       }
 
+      if (parseDfeDocumento(String(data.xml)).tipo !== "completo") {
+        setBuscaErro({
+          titulo: "A SEFAZ devolveu apenas o resumo",
+          mensagem: "O documento retornado é o resumo (resNFe) e não contém os itens da nota.",
+          comoResolver: "Abra DF-e Recebidos e registre a Ciência da Emissão para liberar o XML completo.",
+          podeRepetir: false,
+        });
+        return;
+      }
       setBuscaEtapa("Processando o XML e preenchendo os dados...");
       await processarXmlNfe(data.xml);
       setBuscaSucesso(`NF-e baixada da SEFAZ${data.titular ? ` (certificado: ${data.titular})` : ""}. Confira os dados abaixo.`);
