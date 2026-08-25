@@ -23,14 +23,51 @@ function Write-Aviso([string]$texto) { Write-Host "  !!  $texto" -ForegroundColo
 function Write-Erro([string]$texto)  { Write-Host "  XX  $texto" -ForegroundColor Red }
 
 # ---------------------------------------------------------------- ACL restrita
+<#
+Aplica ACL restrita (usuario atual + SYSTEM). IMPORTANTE: as flags de herança
+(OI)(CI) só valem para DIRETÓRIOS. Em arquivos o Windows descarta a ACE e o
+arquivo fica com ACL vazia, quebrando leitura/cópia (UnauthorizedAccessException).
+#>
 function Set-AclSomenteUsuario([string]$caminho) {
   if (-not (Test-Path $caminho)) { return }
   $usuario = "$env:USERDOMAIN\$env:USERNAME"
+  $ehPasta = (Get-Item -LiteralPath $caminho -Force).PSIsContainer
+  $flags = if ($ehPasta) { '(OI)(CI)F' } else { 'F' }
   # Remove herança e concede apenas ao usuário atual e ao SYSTEM.
   & icacls.exe "$caminho" /inheritance:r | Out-Null
-  & icacls.exe "$caminho" /grant:r "${usuario}:(OI)(CI)F" | Out-Null
-  & icacls.exe "$caminho" /grant:r "SYSTEM:(OI)(CI)F" | Out-Null
+  & icacls.exe "$caminho" /grant:r "${usuario}:$flags" | Out-Null
+  & icacls.exe "$caminho" /grant:r "SYSTEM:$flags" | Out-Null
+  if (-not $ehPasta) { [void](Test-AcessoTotalArquivo -Caminho $caminho) }
 }
+
+<#
+Confirma que o usuário atual tem FullControl efetivo no arquivo após a ACL.
+Se não tiver, reaplica a concessão sem flags e revalida.
+#>
+function Test-AcessoTotalArquivo {
+  param([Parameter(Mandatory)][string]$Caminho, [switch]$Silencioso)
+  $usuario = "$env:USERDOMAIN\$env:USERNAME"
+  $temFull = {
+    try {
+      $acl = Get-Acl -LiteralPath $Caminho
+      foreach ($ace in $acl.Access) {
+        if ($ace.AccessControlType -ne 'Allow') { continue }
+        $id = $ace.IdentityReference.Value
+        if ($id -ne $usuario -and $id -ne $env:USERNAME) { continue }
+        if (($ace.FileSystemRights -band [Security.AccessControl.FileSystemRights]::FullControl) -eq [Security.AccessControl.FileSystemRights]::FullControl) { return $true }
+      }
+      return $false
+    } catch { return $false }
+  }
+  if (& $temFull) { return $true }
+  & icacls.exe "$Caminho" /grant:r "${usuario}:F" | Out-Null
+  if (& $temFull) { return $true }
+  if (-not $Silencioso) {
+    Write-Erro "ACL invalida em $(Split-Path -Leaf $Caminho): o usuario atual nao tem FullControl efetivo."
+  }
+  return $false
+}
+
 
 function New-PastaPrivada([string]$caminho) {
   if (-not (Test-Path $caminho)) { New-Item -ItemType Directory -Path $caminho -Force | Out-Null }
