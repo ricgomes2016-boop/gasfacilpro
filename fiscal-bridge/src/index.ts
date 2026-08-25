@@ -340,4 +340,10 @@ const servidor = http.createServer(async (req, res) => {
   }
 });
 
-servidor.listen(cfg.porta, () => log.info("bridge_online", { porta: cfg.porta }));
+// Modo local: escuta SOMENTE no loopback (nunca 0.0.0.0/::), para o agente não
+// ficar exposto na rede do escritório. Modo servidor mantém o bind padrão.
+if (MODO_LOCAL) {
+  servidor.listen(cfg.porta, "127.0.0.1", () => log.info("bridge_online", { porta: cfg.porta, host: "127.0.0.1" }));
+} else {
+  servidor.listen(cfg.porta, () => log.info("bridge_online", { porta: cfg.porta }));
+}
