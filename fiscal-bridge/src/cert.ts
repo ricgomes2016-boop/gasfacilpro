@@ -163,9 +163,21 @@ export function carregarCertificadoLocal(): CargaCertificado {
     return { ok: false, motivo: "pfx_nao_encontrado", mensagem: "Arquivo do certificado A1 não encontrado no PC." };
   }
 
+  // A senha é desprotegida (DPAPI) só agora e vive apenas nesta função.
+  let senha = "";
+  try {
+    senha = local.lerSenha();
+  } catch (e) {
+    return {
+      ok: false,
+      motivo: "senha_protegida_indisponivel",
+      mensagem: (e as Error)?.message || "Não foi possível ler a senha protegida do certificado.",
+    };
+  }
+
   let aberto: ReturnType<typeof abrirPfx>;
   try {
-    aberto = abrirPfx(pfx, local.senha);
+    aberto = abrirPfx(pfx, senha);
   } catch (e) {
     const msg = String((e as Error)?.message ?? "");
     const senhaRuim = /MAC|password|invalid|integrity/i.test(msg);
@@ -191,7 +203,7 @@ export function carregarCertificadoLocal(): CargaCertificado {
     ok: true,
     cert: {
       pfx,
-      senha: local.senha,
+      senha,
       cnpjUnidade: local.cnpj,
       cnpjCertificado: aberto.cnpjCertificado,
       estado: local.uf,

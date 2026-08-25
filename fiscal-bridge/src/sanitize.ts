@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+
 /**
  * Sanitização obrigatória: nada de PEM, PFX, senha, base64 longo, XML,
  * CNPJ/chave ou token pode chegar aos logs ou às respostas de erro.
@@ -34,14 +37,62 @@ export function classificarErro(e: unknown): { categoria: string; detalhe: strin
   return { categoria, detalhe };
 }
 
-/** Logger que sanitiza tudo antes de escrever. */
+/**
+ * Sink em arquivo (pasta do usuário) com rotação básica: nada sensível chega aqui
+ * porque toda linha passa antes por `mapear`/`sanitizar`.
+ */
+const LIMITE_ARQUIVO = 1_000_000; // ~1 MB por arquivo
+const ROTACOES = 3;
+
+function caminhoLog(): string | null {
+  const dir = process.env.AGENTE_LOG_DIR?.trim();
+  if (!dir) return null;
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+  } catch {
+    return null;
+  }
+  return path.join(dir, "agente-fiscal.log");
+}
+
+export function rotacionar(arquivo: string, limite = LIMITE_ARQUIVO, manter = ROTACOES) {
+  try {
+    if (!fs.existsSync(arquivo)) return;
+    if (fs.statSync(arquivo).size < limite) return;
+    for (let i = manter; i >= 1; i--) {
+      const de = i === 1 ? arquivo : `${arquivo}.${i - 1}`;
+      const para = `${arquivo}.${i}`;
+      if (fs.existsSync(de)) fs.renameSync(de, para);
+    }
+  } catch {
+    /* log nunca derruba o agente */
+  }
+}
+
+function escrever(linha: string) {
+  const arquivo = caminhoLog();
+  if (!arquivo) return;
+  try {
+    rotacionar(arquivo);
+    fs.appendFileSync(arquivo, `${linha}\n`, { encoding: "utf8", mode: 0o600 });
+  } catch {
+    /* log nunca derruba o agente */
+  }
+}
+
+function emitir(nivel: "info" | "warn" | "error", evento: string, dados: Record<string, unknown>) {
+  const linha = JSON.stringify({ ts: new Date().toISOString(), nivel, evento, ...mapear(dados) });
+  if (nivel === "error") console.error(linha);
+  else if (nivel === "warn") console.warn(linha);
+  else console.log(linha);
+  escrever(linha);
+}
+
+/** Logger que sanitiza tudo antes de escrever (console + arquivo rotacionado). */
 export const log = {
-  info: (evento: string, dados: Record<string, unknown> = {}) =>
-    console.log(JSON.stringify({ nivel: "info", evento, ...mapear(dados) })),
-  warn: (evento: string, dados: Record<string, unknown> = {}) =>
-    console.warn(JSON.stringify({ nivel: "warn", evento, ...mapear(dados) })),
-  error: (evento: string, dados: Record<string, unknown> = {}) =>
-    console.error(JSON.stringify({ nivel: "error", evento, ...mapear(dados) })),
+  info: (evento: string, dados: Record<string, unknown> = {}) => emitir("info", evento, dados),
+  warn: (evento: string, dados: Record<string, unknown> = {}) => emitir("warn", evento, dados),
+  error: (evento: string, dados: Record<string, unknown> = {}) => emitir("error", evento, dados),
 };
 
 function mapear(dados: Record<string, unknown>): Record<string, unknown> {
