@@ -777,7 +777,7 @@ export default function Compras() {
   const EXPLICACAO_MOTIVO: Record<string, { titulo: string; comoResolver: string; podeRepetir: boolean }> = {
     bridge_nao_configurado: {
       titulo: "Agente local desligado",
-      comoResolver: "Ligue o agente fiscal no computador do escritório (iniciar-agente.bat) ou importe o XML manualmente pelo botão “Importar XML”.",
+      comoResolver: "Ligue o agente fiscal no computador do escritório (instalar-agente.bat) ou importe o XML manualmente pelo botão “Importar XML”.",
       podeRepetir: false,
     },
     sefaz_indisponivel: {
