@@ -193,6 +193,24 @@ const servidor = http.createServer(async (req, res) => {
 
 
   try {
+    if (caminho === "/auth-check") {
+      const carga = MODO_LOCAL ? carregarCertificadoLocal() : { ok: false as const, motivo: "modo_servidor", mensagem: "Rota disponível apenas no modo local." };
+      if (!carga.ok) {
+        responder(res, 200, { ok: false, motivo: carga.motivo, mensagem: carga.mensagem }, cors);
+        return;
+      }
+      const resposta = {
+        ok: true,
+        modo: cfg.modo,
+        ambiente: cfg.tpAmb === "1" ? "producao" : "homologacao",
+        cnpj: mascararCnpj(carga.cert.cnpjUnidade),
+        certificado: { titular: carga.cert.titular, validade: carga.cert.validade.toISOString().slice(0, 10) },
+      };
+      descartarCertificado(carga.cert);
+      responder(res, 200, resposta, cors);
+      return;
+    }
+
     if (caminho === "/dfe/distribuicao") {
       const ultNSU = Number(body.ultNSU ?? 0);
       const resultado = await comCertificado(unidadeId, cnpjInformado, async (cert) => {

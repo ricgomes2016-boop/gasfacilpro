@@ -10,6 +10,7 @@ export interface AgenteConfig {
 
 export interface AgenteStatus {
   online: boolean;
+  autenticado?: boolean;
   modo?: string;
   cnpj?: string | null;
   ambiente?: string | null;
@@ -54,15 +55,31 @@ async function comTimeout(url: string, init: RequestInit, ms: number): Promise<R
   }
 }
 
-/** Ping curto para saber se o agente está ligado neste PC. */
+/** Confere processo, token e certificado sem consultar a SEFAZ. */
 export async function verificarAgente(cfg = getAgenteConfig()): Promise<AgenteStatus> {
   try {
-    const resp = await comTimeout(`${cfg.url}/health`, { method: "GET" }, 2500);
-    if (!resp.ok) return { online: false, erro: `HTTP ${resp.status}` };
-    const dados = await resp.json();
-    return { online: dados?.ok === true, modo: dados?.modo, cnpj: dados?.cnpj ?? null, ambiente: dados?.ambiente ?? null };
+    if (!cfg.token.trim()) return { online: true, autenticado: false, erro: "token_vazio" };
+    const resp = await comTimeout(`${cfg.url}/auth-check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Agente-Token": cfg.token },
+      body: "{}",
+    }, 4000);
+    const dados = await resp.json().catch(() => ({}));
+    if (resp.status === 401 || dados?.motivo === "token_invalido") {
+      return { online: true, autenticado: false, erro: "token_invalido" };
+    }
+    if (!resp.ok || dados?.ok !== true) {
+      return { online: true, autenticado: false, erro: String(dados?.motivo || `HTTP ${resp.status}`) };
+    }
+    return {
+      online: true,
+      autenticado: true,
+      modo: dados?.modo,
+      cnpj: dados?.cnpj ?? null,
+      ambiente: dados?.ambiente ?? null,
+    };
   } catch (e: any) {
-    return { online: false, erro: e?.name === "AbortError" ? "tempo esgotado" : "agente não respondeu" };
+    return { online: false, autenticado: false, erro: e?.name === "AbortError" ? "tempo_esgotado" : "agente_offline" };
   }
 }
 
