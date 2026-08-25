@@ -340,4 +340,14 @@ const servidor = http.createServer(async (req, res) => {
   }
 });
 
-servidor.listen(cfg.porta, () => log.info("bridge_online", { porta: cfg.porta }));
+// Modo local: escuta SOMENTE no loopback (nunca 0.0.0.0/::), para o agente não
+// ficar exposto na rede do escritório. O Chrome resolve "localhost" para ::1 em
+// alguns Windows, então subimos também um listener IPv6 de loopback.
+if (MODO_LOCAL) {
+  servidor.listen(cfg.porta, "127.0.0.1", () => log.info("bridge_online", { porta: cfg.porta, host: "127.0.0.1" }));
+  const servidorV6 = http.createServer(servidor.listeners("request")[0] as http.RequestListener);
+  servidorV6.on("error", () => log.info("loopback_ipv6_indisponivel", {}));
+  servidorV6.listen(cfg.porta, "::1", () => log.info("bridge_online", { porta: cfg.porta, host: "::1" }));
+} else {
+  servidor.listen(cfg.porta, () => log.info("bridge_online", { porta: cfg.porta }));
+}

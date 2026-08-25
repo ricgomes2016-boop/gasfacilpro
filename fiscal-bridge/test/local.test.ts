@@ -96,3 +96,14 @@ describe("scripts de instalação do Windows", () => {
     }
   });
 });
+
+describe("private network access", () => {
+  it("libera o cabeçalho Allow-Private-Network para origem autorizada", () => {
+    const h = cabecalhosCorsLocal("https://gasfacilpro.lovable.app", ["https://gasfacilpro.lovable.app"]);
+    expect(h["Access-Control-Allow-Private-Network"]).toBe("true");
+  });
+  it("não libera para origem desconhecida", () => {
+    const h = cabecalhosCorsLocal("https://malicioso.example", ["https://gasfacilpro.lovable.app"]);
+    expect(h["Access-Control-Allow-Private-Network"]).toBeUndefined();
+  });
+});

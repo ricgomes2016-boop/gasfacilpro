@@ -1,5 +1,5 @@
 // Cliente do "agente local" (fiscal-bridge em modo local) que roda no PC do
-// escritório com o certificado A1. O navegador fala com http://127.0.0.1, o
+// escritório com o certificado A1. O navegador fala com http://localhost:8787, o
 // agente conversa com a SEFAZ por mTLS e devolve apenas os XMLs — que o ERP
 // envia para a edge function `dfe-ingerir` para validação e persistência.
 
@@ -23,7 +23,9 @@ export interface DocumentoAgente {
 }
 
 const STORAGE_KEY = "dfe:agente-local";
-export const AGENTE_URL_PADRAO = "http://127.0.0.1:8787";
+// O Chrome recusa silenciosamente http://127.0.0.1 vindo de página HTTPS em alguns
+// perfis; "localhost" é aceito pela política de Private Network Access.
+export const AGENTE_URL_PADRAO = "http://localhost:8787";
 
 export function getAgenteConfig(): AgenteConfig {
   try {
