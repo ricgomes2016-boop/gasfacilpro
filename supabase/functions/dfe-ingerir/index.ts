@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
     // Atualiza o controle de NSU quando o agente informou o avanço da consulta.
     const ultimoNSU = Number(body?.ultimoNSU ?? 0) || maiorNsu;
     const maxNSU = Number(body?.maxNSU ?? 0) || 0;
-    if (ultimoNSU || maxNSU) {
+    if (ultimoNSU || maxNSU || registrarEstado) {
       const { data: atual } = await admin
         .from("dfe_nsu_estado").select("ultimo_nsu, max_nsu, documentos_recebidos")
         .eq("unidade_id", unidadeId).maybeSingle();
