@@ -122,12 +122,12 @@ npm run dev
 ## Modo local (agente no PC do escritório, sem VPS)
 
 Quando não há servidor, o mesmo código roda como **agente local**: ele lê o certificado A1
-direto do disco do PC e atende apenas `http://127.0.0.1:8787`. O navegador (aba do ERP) chama
+direto do disco do PC e atende o loopback em `http://localhost:8787` (127.0.0.1 e ::1). O navegador (aba do ERP) chama
 o agente, recebe os XMLs e envia ao backend para validação/gravação — o agente nunca fala com
 o banco e o `.pfx` nunca sai da máquina.
 
 ```text
-Navegador (ERP)  --http://127.0.0.1:8787-->  Agente local (A1 no disco)  --mTLS-->  SEFAZ
+Navegador (ERP)  --http://localhost:8787-->  Agente local (A1 no disco)  --mTLS-->  SEFAZ
        |                                            XMLs brutos
        +---- função "dfe-ingerir" (valida e grava com RLS) ---> banco
 ```
@@ -161,7 +161,7 @@ como blob em `%LOCALAPPDATA%\GasFacil\AgenteFiscal`, com ACL só para o seu usu�
    - gerar um token forte (32 bytes) e proteger senha + token com DPAPI;
    - registrar a **Tarefa Agendada** de início automático no logon (janela oculta);
    - iniciar o agente, aguardar o `/health` e mostrar a URL e o token na tela.
-5. No ERP, em **DF-e Recebidos → Configurar agente local**, informe `http://127.0.0.1:8787`
+5. No ERP, em **DF-e Recebidos → Configurar agente local**, informe `http://localhost:8787`
    e cole o token exibido.
 
 Reinstalar/reparar: rode o instalador de novo — ele reaproveita a configuração existente e
