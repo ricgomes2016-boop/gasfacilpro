@@ -39,9 +39,13 @@ Deno.serve(async (req) => {
     // Lote vazio é aceito apenas quando a intenção é registrar o avanço do NSU
     // após uma consulta real bem-sucedida sem documentos novos ("cStat 137").
     const registrarEstado = body?.registrarEstado === true;
+    const cStat = String(body?.cStat ?? "");
     if (!unidadeId) return json({ ok: false, motivo: "bad_request", mensagem: "unidadeId é obrigatório." });
     if (!documentos.length && !registrarEstado) {
       return json({ ok: false, motivo: "bad_request", mensagem: "Envie ao menos um documento XML." });
+    }
+    if (!documentos.length && registrarEstado && cStat !== "137") {
+      return json({ ok: false, motivo: "estado_sem_resposta_valida", mensagem: "Lote vazio só registra estado após resposta SEFAZ cStat 137." });
     }
     if (documentos.length > MAX_DOCUMENTOS) {
       return json({ ok: false, motivo: "bad_request", mensagem: `Envie no máximo ${MAX_DOCUMENTOS} documentos por vez.` });
@@ -143,7 +147,7 @@ Deno.serve(async (req) => {
       const { data: atual } = await admin
         .from("dfe_nsu_estado").select("ultimo_nsu, max_nsu, documentos_recebidos")
         .eq("unidade_id", unidadeId).maybeSingle();
-      await admin.from("dfe_nsu_estado").upsert({
+      const { error: errEstado } = await admin.from("dfe_nsu_estado").upsert({
         unidade_id: unidadeId,
         empresa_id: empresaId,
         ultimo_nsu: Math.max(Number(atual?.ultimo_nsu ?? 0), ultimoNSU),
@@ -151,6 +155,10 @@ Deno.serve(async (req) => {
         ultima_sincronizacao: new Date().toISOString(),
         documentos_recebidos: Number(atual?.documentos_recebidos ?? 0) + novos,
       }, { onConflict: "unidade_id" });
+      if (errEstado) {
+        console.error("[dfe-ingerir] estado NSU não persistido", errEstado.message);
+        return json({ ok: false, motivo: "estado_nao_persistido", mensagem: "Não foi possível registrar o estado da sincronização." });
+      }
     }
 
     const partes = [`${novos} novo(s)`, `${atualizados} atualizado(s)`];
