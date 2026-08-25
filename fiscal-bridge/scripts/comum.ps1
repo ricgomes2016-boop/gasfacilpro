@@ -117,3 +117,77 @@ function Stop-Agente {
   Remove-Item $Script:ArqPid -ErrorAction SilentlyContinue
   Write-Ok "Agente parado (PID $($p.Id))."
 }
+
+# ------------------------------------------- Repositório de certificados do Windows
+<#
+Seleção automática no Cert:\CurrentUser\My.
+Regras: somente certificado VIGENTE (NotBefore <= agora <= NotAfter) e com chave
+privada. Se o CNPJ for informado, filtra pelo CNPJ presente no Subject/SAN.
+Nunca imprime o CNPJ completo nem qualquer segredo.
+#>
+function Get-CertificadosCandidatos {
+  param([string]$Cnpj)
+  $agora = Get-Date
+  $itens = @(Get-ChildItem -Path 'Cert:\CurrentUser\My' -ErrorAction SilentlyContinue | Where-Object {
+    $_.HasPrivateKey -and $_.NotAfter -gt $agora -and $_.NotBefore -le $agora
+  })
+  if ($Cnpj) {
+    $itens = @($itens | Where-Object {
+      $texto = "$($_.Subject) $($_.FriendlyName)"
+      try { $texto += ' ' + ($_.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.17' } | ForEach-Object { $_.Format($false) }) } catch { }
+      ($texto -replace '\D', '') -like "*$Cnpj*"
+    })
+  }
+  # Mais recente primeiro (renovação vence a antiga).
+  return @($itens | Sort-Object NotAfter -Descending)
+}
+
+function Get-CnpjDoCertificado {
+  param([Parameter(Mandatory)]$Certificado)
+  $texto = "$($Certificado.Subject) $($Certificado.FriendlyName)"
+  try { $texto += ' ' + ($Certificado.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.17' } | ForEach-Object { $_.Format($false) }) } catch { }
+  $m = [regex]::Match(($texto -replace '\D', ''), '(\d{14})')
+  if ($m.Success) { return $m.Value }
+  return $null
+}
+
+function Format-CertificadoResumo {
+  param([Parameter(Mandatory)]$Certificado)
+  $cn = ($Certificado.Subject -split ',' | Where-Object { $_ -match 'CN=' } | Select-Object -First 1) -replace '.*CN=', ''
+  $cn = ($cn -replace ':\d{14}', '').Trim()
+  $cnpj = Get-CnpjDoCertificado -Certificado $Certificado
+  $fim = $cnpj ? "...$($cnpj.Substring(10))" : 'sem CNPJ'
+  return "$cn (CNPJ $fim) - valido ate $($Certificado.NotAfter.ToString('dd/MM/yyyy'))"
+}
+
+<# Senha aleatória de uso interno, criada e mantida apenas em memória (SecureString). #>
+function New-SenhaAleatoriaSegura {
+  param([int]$Bytes = 32)
+  $b = New-Object 'System.Byte[]' $Bytes
+  [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b)
+  $texto = [Convert]::ToBase64String($b)
+  [Array]::Clear($b, 0, $b.Length)
+  $segura = New-Object System.Security.SecureString
+  foreach ($c in $texto.ToCharArray()) { $segura.AppendChar($c) }
+  $segura.MakeReadOnly()
+  # Remove a cópia em texto da memória gerenciada assim que possível.
+  Remove-Variable texto -ErrorAction SilentlyContinue
+  return $segura
+}
+
+<#
+Exporta uma CÓPIA OPERACIONAL do certificado do repositório para .pfx usando uma
+senha SecureString. A senha nunca vira string, nunca vai para argv e nunca é impressa.
+#>
+function Export-CertificadoParaPfx {
+  param(
+    [Parameter(Mandatory)]$Certificado,
+    [Parameter(Mandatory)][string]$Destino,
+    [Parameter(Mandatory)][System.Security.SecureString]$Senha
+  )
+  $bytes = $Certificado.Export([Security.Cryptography.X509Certificates.X509ContentType]::Pkcs12, $Senha)
+  if (-not $bytes -or $bytes.Length -eq 0) { throw 'exportacao_vazia' }
+  [IO.File]::WriteAllBytes($Destino, $bytes)
+  [Array]::Clear($bytes, 0, $bytes.Length)
+  Set-AclSomenteUsuario $Destino
+}
