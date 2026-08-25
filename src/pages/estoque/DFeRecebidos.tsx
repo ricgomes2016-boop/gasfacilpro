@@ -439,9 +439,92 @@ export default function DFeRecebidos() {
   };
 
 
+  /**
+   * Criar compra só é honesto quando existe XML completo (com det/prod).
+   * Para resumo (resNFe) abrimos a confirmação de Ciência da Emissão.
+   */
   const criarCompra = (doc: DfeDocumento) => {
-    navigate(`/estoque/compras?chave=${doc.chave}`);
+    if (doc.xml_completo) {
+      navigate(`/estoque/compras?chave=${doc.chave}`);
+      return;
+    }
+    setObterXml({ doc, comCiencia: !doc.manifestacao });
   };
+
+  /** Fluxo resumo -> (ciência) -> consulta por chave -> XML completo -> Nova Compra. */
+  const executarObterXmlCompleto = async () => {
+    if (!obterXml || !unidadeAtual?.id) return;
+    const { doc, comCiencia } = obterXml;
+    const status = agente.autenticado ? agente : await checarAgente();
+    if (!status.autenticado) {
+      toast({
+        title: "Agente local não autenticado",
+        description: "Ligue o agente fiscal no computador do escritório e confira o token em “Configurar agente”.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setBuscandoXml(true);
+    try {
+      const resultado = await obterXmlCompletoDfe({
+        registrarCiencia: comCiencia,
+        manifestar: () => agenteManifestar(
+          { unidadeId: unidadeAtual.id, chave: doc.chave, tipo: "ciencia", justificativa: "" },
+          agenteCfg,
+        ) as any,
+        ingerirEvento: async (dados) => {
+          const ingest = await supabase.functions.invoke("dfe-evento-ingerir", {
+            body: {
+              unidadeId: unidadeAtual.id, chave: doc.chave, tipo: "ciencia", justificativa: "",
+              eventoXml: dados.eventoXml, retornoXml: dados.retornoXml,
+              cStat: dados.cStat, xMotivo: dados.xMotivo, protocolo: dados.protocolo,
+            },
+          });
+          if (ingest.error) return { ok: false, mensagem: ingest.error.message };
+          return { ok: !!(ingest.data as any)?.ok, mensagem: (ingest.data as any)?.mensagem };
+        },
+        consultarChave: () => agenteConsultaChave(
+          { unidadeId: unidadeAtual.id, cnpj: (unidadeAtual as any)?.cnpj ?? null, chave: doc.chave },
+          agenteCfg,
+        ) as any,
+        ingerirXml: async (xml, schema) => {
+          try {
+            const r = await ingerir([{ nsu: doc.nsu ?? 0, schema, xml }]);
+            return { ok: !!r?.ok, mensagem: r?.mensagem };
+          } catch (e: any) {
+            return { ok: false, mensagem: e?.message };
+          }
+        },
+        progresso: setProgresso,
+      });
+
+      await carregar();
+
+      if (resultado.status === "completo") {
+        setObterXml(null);
+        setDetalhe(null);
+        toast({ title: "XML completo obtido", description: "Abrindo Nova Compra com os itens da NF-e." });
+        navigate(`/estoque/compras?chave=${doc.chave}`);
+        return;
+      }
+      if (resultado.status === "aguardando_liberacao") {
+        setObterXml(null);
+        toast({ title: "Aguardando liberação da SEFAZ", description: resultado.mensagem });
+        return;
+      }
+      toast({
+        title: resultado.cienciaRegistrada ? "Ciência registrada, mas o XML não veio" : "Não foi possível obter o XML",
+        description: resultado.mensagem,
+        variant: "destructive",
+      });
+    } catch (e: any) {
+      toast({ title: "Erro ao obter o XML completo", description: e?.message, variant: "destructive" });
+    } finally {
+      setBuscandoXml(false);
+      setProgresso("");
+    }
+  };
+
 
   const acoesManifestacao = (doc: DfeDocumento) => manifestacoesPermitidas(doc.manifestacao);
 
