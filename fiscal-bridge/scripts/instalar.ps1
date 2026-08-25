@@ -204,7 +204,9 @@ try {
 Write-Passo 'Token de pareamento'
 if ($Reparar -or -not (Test-Path $Script:ArqToken)) {
   $token = New-TokenForte
-  $tokenSeguro = ConvertTo-SecureString $token -AsPlainText -Force
+  # ConvertTo-SecureString exige o modulo Microsoft.PowerShell.Security carregado;
+  # construimos o SecureString manualmente para nao depender dele.
+  $tokenSeguro = ConvertTo-SecureStringSegura -Texto $token
   Protect-Segredo -Segredo $tokenSeguro -Destino $Script:ArqToken
   $token = $null; $tokenSeguro = $null
   Write-Ok 'Token forte gerado e protegido (use scripts\mostrar-token.ps1 para copiar).'
