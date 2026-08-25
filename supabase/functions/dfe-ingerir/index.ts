@@ -36,8 +36,13 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const unidadeId: string | undefined = body?.unidadeId;
     const documentos: DocEntrada[] = Array.isArray(body?.documentos) ? body.documentos : [];
+    // Lote vazio é aceito apenas quando a intenção é registrar o avanço do NSU
+    // após uma consulta real bem-sucedida sem documentos novos ("cStat 137").
+    const registrarEstado = body?.registrarEstado === true;
     if (!unidadeId) return json({ ok: false, motivo: "bad_request", mensagem: "unidadeId é obrigatório." });
-    if (!documentos.length) return json({ ok: false, motivo: "bad_request", mensagem: "Envie ao menos um documento XML." });
+    if (!documentos.length && !registrarEstado) {
+      return json({ ok: false, motivo: "bad_request", mensagem: "Envie ao menos um documento XML." });
+    }
     if (documentos.length > MAX_DOCUMENTOS) {
       return json({ ok: false, motivo: "bad_request", mensagem: `Envie no máximo ${MAX_DOCUMENTOS} documentos por vez.` });
     }
