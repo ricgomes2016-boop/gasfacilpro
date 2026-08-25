@@ -390,10 +390,37 @@ export default function DFeRecebidos() {
     }
     setManifestando(true);
     try {
-      const { data, error } = await supabase.functions.invoke("dfe-manifestar", {
-        body: { unidadeId: unidadeAtual.id, chave: doc.chave, tipo, justificativa },
-      });
-      if (error) throw error;
+      // 1) Preferência: agente local (o certificado A1 nunca sai do PC).
+      const status = agente.online ? agente : await checarAgente();
+      let data: any = null;
+
+      if (status.online) {
+        const resp = await agenteManifestar(
+          { unidadeId: unidadeAtual.id, chave: doc.chave, tipo, justificativa },
+          agenteCfg,
+        );
+        if (!resp.ok) {
+          toast({ title: "Manifestação não registrada", description: resp.mensagem, variant: "destructive" });
+          return;
+        }
+        // 2) A nuvem confere a assinatura do evento antes de gravar.
+        const ingest = await supabase.functions.invoke("dfe-evento-ingerir", {
+          body: {
+            unidadeId: unidadeAtual.id, chave: doc.chave, tipo, justificativa,
+            eventoXml: resp.dados.eventoXml, retornoXml: resp.dados.retornoXml,
+            cStat: resp.dados.cStat, xMotivo: resp.dados.xMotivo, protocolo: resp.dados.protocolo,
+          },
+        });
+        if (ingest.error) throw ingest.error;
+        data = ingest.data;
+      } else {
+        const resp = await supabase.functions.invoke("dfe-manifestar", {
+          body: { unidadeId: unidadeAtual.id, chave: doc.chave, tipo, justificativa },
+        });
+        if (resp.error) throw resp.error;
+        data = resp.data;
+      }
+
       if (!data?.ok) {
         toast({
           title: "Manifestação não registrada",
@@ -416,6 +443,7 @@ export default function DFeRecebidos() {
       setManifestando(false);
     }
   };
+
 
   const criarCompra = (doc: DfeDocumento) => {
     navigate(`/estoque/compras?chave=${doc.chave}`);
