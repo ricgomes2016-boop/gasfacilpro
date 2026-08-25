@@ -163,9 +163,14 @@ export default function DFeRecebidos() {
   useEffect(() => { setPagina(1); }, [busca, filtroManifestacao, filtroSituacao, dataInicial, dataFinal]);
 
   /** Envia XMLs brutos para a edge function que valida e persiste com RLS. */
-  const ingerir = async (documentosXml: DocumentoAgente[], ultimoNSU?: number, maxNSU?: number) => {
+  const ingerir = async (
+    documentosXml: DocumentoAgente[],
+    ultimoNSU?: number,
+    maxNSU?: number,
+    registrarEstado = false,
+  ) => {
     const { data, error } = await supabase.functions.invoke("dfe-ingerir", {
-      body: { unidadeId: unidadeAtual!.id, documentos: documentosXml, ultimoNSU, maxNSU },
+      body: { unidadeId: unidadeAtual!.id, documentos: documentosXml, ultimoNSU, maxNSU, registrarEstado },
     });
     if (error) throw error;
     return data as { ok: boolean; novos?: number; atualizados?: number; eventos?: number; mensagem?: string };
@@ -178,6 +183,9 @@ export default function DFeRecebidos() {
     let maxNSU = Number(estado?.max_nsu ?? 0);
     let novos = 0;
     let atualizados = 0;
+    // Uma consulta que respondeu com cStat (mesmo "137 - nenhum documento") é
+    // sucesso real e precisa registrar a data da última sincronização.
+    let consultaOk = false;
 
     for (let lote = 1; lote <= 5; lote++) {
       setProgresso(`Consultando a SEFAZ pelo agente local (lote ${lote})...`);
@@ -198,6 +206,7 @@ export default function DFeRecebidos() {
         });
         break;
       }
+      if (dados.cStat) consultaOk = true;
       if (docs.length) {
         setProgresso(`Importando ${docs.length} documento(s)...`);
         const ing = await ingerir(docs, Number(dados.ultNSU ?? 0), maxNSU);
@@ -206,6 +215,16 @@ export default function DFeRecebidos() {
       }
       if (Number(dados.ultNSU ?? 0) > ultNSU) ultNSU = Number(dados.ultNSU);
       if (String(dados.cStat ?? "") === "137" || docs.length === 0 || (maxNSU && ultNSU >= maxNSU)) break;
+    }
+
+    // Sem documentos novos ainda assim gravamos o estado (data/NSU) na nuvem.
+    if (consultaOk && novos + atualizados === 0) {
+      setProgresso("Registrando a sincronização...");
+      try {
+        await ingerir([], ultNSU, maxNSU, true);
+      } catch {
+        /* o estado é informativo; a consulta em si já foi bem-sucedida */
+      }
     }
 
     toast({
