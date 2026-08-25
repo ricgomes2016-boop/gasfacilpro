@@ -15,6 +15,8 @@ export function cabecalhosCorsLocal(origem: string | undefined, permitidas: stri
     "Access-Control-Allow-Origin": alvo,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "content-type, x-agente-token",
+    // Chrome (Private Network Access): página pública -> host local exige este cabeçalho.
+    "Access-Control-Allow-Private-Network": "true",
     "Access-Control-Max-Age": "600",
     Vary: "Origin",
   };
