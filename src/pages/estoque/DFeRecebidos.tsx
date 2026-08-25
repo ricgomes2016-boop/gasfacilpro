@@ -912,6 +912,52 @@ export default function DFeRecebidos() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={!!obterXml} onOpenChange={(v) => { if (!v && !buscandoXml) setObterXml(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {obterXml?.comCiencia ? "Registrar ciência e carregar XML" : "Buscar XML completo"}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  Esta nota chegou apenas como <strong>resumo (resNFe)</strong>, que não traz os itens.
+                  Sem o XML completo não é possível montar a compra.
+                </p>
+                {obterXml?.comCiencia ? (
+                  <p>
+                    Para obter os itens é necessário registrar a <strong>Ciência da Emissão</strong> na SEFAZ —
+                    evento fiscal <strong>não conclusivo</strong>, que apenas informa que você tomou conhecimento da nota
+                    (não confirma nem recusa a operação). Em seguida a chave será consultada novamente.
+                  </p>
+                ) : (
+                  <p>
+                    Já existe manifestação registrada para esta nota. Vamos apenas consultar a chave novamente na SEFAZ,
+                    sem enviar novo evento.
+                  </p>
+                )}
+                {obterXml && (
+                  <p className="break-all font-mono text-[11px] text-muted-foreground">{formatarChave(obterXml.doc.chave)}</p>
+                )}
+                {progresso && <p className="text-xs text-muted-foreground">{progresso}</p>}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={buscandoXml}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={buscandoXml}
+              onClick={(e) => { e.preventDefault(); void executarObterXmlCompleto(); }}
+            >
+              {buscandoXml ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {obterXml?.comCiencia ? "Registrar ciência e carregar XML" : "Buscar XML completo"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
+
       <Dialog open={configAberta} onOpenChange={setConfigAberta}>
         <DialogContent className="max-w-md">
           <DialogHeader>
