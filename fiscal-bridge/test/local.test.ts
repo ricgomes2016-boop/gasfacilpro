@@ -68,6 +68,26 @@ describe("scripts de instalação do Windows", () => {
     expect(desinst).toMatch(/RemoverCopiaCertificado/);
   });
 
+  it("aceita seleção automática no repositório CurrentUser\\My com regras estritas", () => {
+    const comum = fs.readFileSync(path.join(dirScripts, "comum.ps1"), "utf8");
+    expect(comum).toContain("Cert:\\CurrentUser\\My");
+    expect(comum).toMatch(/HasPrivateKey/);
+    expect(comum).toMatch(/NotAfter -gt \$agora/);
+    expect(comum).toMatch(/NotBefore -le \$agora/);
+    // senha da cópia operacional: aleatória, SecureString, nunca em texto
+    expect(comum).toMatch(/function New-SenhaAleatoriaSegura/);
+    expect(comum).toMatch(/RandomNumberGenerator\]::Create\(\)\.GetBytes/);
+    expect(comum).toMatch(/\[System\.Security\.SecureString\]\$Senha/);
+
+    const inst = fs.readFileSync(path.join(dirScripts, "instalar.ps1"), "utf8");
+    expect(inst).toMatch(/Get-CertificadosCandidatos -Cnpj \$Cnpj/);
+    expect(inst).toMatch(/Export-CertificadoParaPfx[\s\S]{0,700}Protect-Segredo -Segredo \$senhaSegura -Destino \$Script:ArqSenha/);
+    // opção manual preservada
+    expect(inst).toMatch(/Caminho completo do arquivo \.pfx/);
+    // a senha aleatória nunca é exibida
+    expect(inst).not.toMatch(/Write-(Host|Ok|Aviso)[^\n]*\$senhaSegura/);
+  });
+
   it("nenhum script grava senha ou token em texto no disco", () => {
     for (const a of arquivos) {
       const txt = fs.readFileSync(path.join(dirScripts, a), "utf8");

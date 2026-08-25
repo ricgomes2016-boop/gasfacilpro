@@ -5,18 +5,26 @@
 .DESCRIPTION
   - verifica Node 20+;
   - instala dependências e compila;
-  - pede o PFX, CNPJ, UF e a senha (Read-Host -AsSecureString, nunca em argv);
-  - valida o PFX/CNPJ antes de concluir;
+  - obtém o certificado A1 de duas formas:
+      (a) automática: seleciona no repositório Cert:\CurrentUser\My pelo CNPJ,
+          aceitando apenas certificado vigente e com chave privada, e exporta uma
+          cópia operacional .pfx com senha aleatória gerada em memória;
+      (b) manual: caminho de um arquivo .pfx e senha digitada (-AsSecureString);
+  - valida o certificado/CNPJ antes de concluir;
   - gera token forte e grava senha/token protegidos por DPAPI (CurrentUser);
   - aplica ACL restrita (usuário atual + SYSTEM) na pasta privada;
   - registra Tarefa Agendada oculta no logon do usuário;
   - inicia o agente e aguarda o healthcheck.
 
   Reexecutar é seguro: reaproveita o que já está correto. Use -Reparar para
-  regravar segredos e tarefa. O .pfx de origem nunca é apagado nem movido.
+  regravar segredos e tarefa. O .pfx de origem nunca é apagado nem movido, e o
+  certificado do repositório do Windows permanece instalado.
 
 .PARAMETER Pfx
-  Caminho do certificado A1 (.pfx). Se omitido, é solicitado.
+  Caminho do certificado A1 (.pfx). Força o modo manual.
+
+.PARAMETER DoRepositorio
+  Força a seleção automática no repositório do Windows (sem perguntar).
 #>
 [CmdletBinding()]
 param(
@@ -24,9 +32,11 @@ param(
   [string]$Cnpj,
   [string]$Uf,
   [int]$Porta = 8787,
+  [switch]$DoRepositorio,
   [switch]$Reparar,
   [switch]$SemIniciar
 )
+
 
 . (Join-Path $PSScriptRoot 'comum.ps1')
 $env:AGENTE_PORTA = "$Porta"
@@ -69,38 +79,94 @@ if (Test-Path $Script:ArqConfig) {
   try { $cfgAtual = Get-Content -Raw $Script:ArqConfig | ConvertFrom-Json } catch { $cfgAtual = $null }
 }
 
-# 5) PFX: copia manual e explicita para a pasta privada
-Write-Passo 'Certificado digital A1 (.pfx)'
-$destinoPfx = Join-Path $Script:PastaAgente 'certificado.pfx'
-$precisaPfx = $Reparar -or -not (Test-Path $destinoPfx)
-if ($precisaPfx) {
-  if (-not $Pfx) { $Pfx = Read-Host 'Caminho completo do arquivo .pfx (ex.: C:\certificados\empresa.pfx)' }
-  $Pfx = $Pfx.Trim('"').Trim()
-  if (-not (Test-Path $Pfx)) { Write-Erro "Arquivo nao encontrado: $Pfx"; exit 1 }
-  Copy-Item -Path $Pfx -Destination $destinoPfx -Force
-  Write-Ok 'Copia local do certificado criada na pasta privada (o arquivo original permanece onde estava).'
-} else {
-  Write-Ok 'Certificado ja presente na pasta privada.'
-}
-Set-AclSomenteUsuario $destinoPfx
-
-# 6) CNPJ / UF
+# 5) CNPJ / UF (necessários antes de escolher o certificado no repositório)
+Write-Passo 'Dados da unidade'
 if (-not $Cnpj) { $Cnpj = if ($cfgAtual -and -not $Reparar) { $cfgAtual.cnpj } else { Read-Host 'CNPJ da unidade (somente numeros)' } }
 $Cnpj = ($Cnpj -replace '\D', '')
 if ($Cnpj.Length -ne 14) { Write-Erro 'CNPJ deve ter 14 digitos.'; exit 1 }
 if (-not $Uf) { $Uf = if ($cfgAtual -and -not $Reparar) { $cfgAtual.uf } else { Read-Host 'UF da unidade (ex.: PR)' } }
 $Uf = $Uf.Trim().ToUpper()
 if ($Uf.Length -ne 2) { Write-Erro 'UF deve ter 2 letras.'; exit 1 }
+Write-Ok "Unidade ...$($Cnpj.Substring(10)) / $Uf"
 
-# 7) Senha protegida por DPAPI
-Write-Passo 'Senha do certificado (protegida por DPAPI, nunca gravada em texto)'
-$precisaSenha = $Reparar -or -not (Test-Path $Script:ArqSenha)
-if ($precisaSenha) {
-  $senhaSegura = Read-Host 'Senha do certificado A1' -AsSecureString
-  Protect-Segredo -Segredo $senhaSegura -Destino $Script:ArqSenha
-  Write-Ok 'Senha protegida gravada (DPAPI CurrentUser, ACL restrita).'
+# 6) Certificado A1: repositório do Windows (automático) ou arquivo .pfx (manual)
+Write-Passo 'Certificado digital A1'
+$destinoPfx  = Join-Path $Script:PastaAgente 'certificado.pfx'
+$precisaCert = $Reparar -or -not (Test-Path $destinoPfx) -or -not (Test-Path $Script:ArqSenha)
+$senhaDefinida = $false
+
+if (-not $precisaCert) {
+  Write-Ok 'Certificado e senha protegida ja presentes na pasta privada.'
 } else {
-  Write-Ok 'Senha protegida ja existente.'
+  $usarRepositorio = $false
+  if (-not $Pfx) {
+    $candidatos = @(Get-CertificadosCandidatos -Cnpj $Cnpj)
+    if ($candidatos.Count -gt 0) {
+      Write-Host '  Certificados vigentes com chave privada encontrados no Windows (CurrentUser\My):'
+      for ($i = 0; $i -lt $candidatos.Count; $i++) {
+        Write-Host "    [$($i + 1)] $(Format-CertificadoResumo -Certificado $candidatos[$i])"
+      }
+      if ($DoRepositorio) {
+        $escolha = 1
+      } else {
+        $resp = Read-Host "  Usar o certificado [1] do Windows? (S/n, ou o numero da lista, ou 'M' para arquivo .pfx)"
+        $resp = $resp.Trim()
+        if ($resp -match '^[Mm]') { $escolha = 0 }
+        elseif ($resp -match '^\d+$') { $escolha = [int]$resp }
+        elseif ($resp -eq '' -or $resp -match '^[SsYy]') { $escolha = 1 }
+        else { $escolha = 0 }
+      }
+      if ($escolha -ge 1 -and $escolha -le $candidatos.Count) {
+        $certLoja = $candidatos[$escolha - 1]
+        $cnpjCertLoja = Get-CnpjDoCertificado -Certificado $certLoja
+        if ($cnpjCertLoja -and $cnpjCertLoja -ne $Cnpj) {
+          Write-Erro 'O CNPJ do certificado escolhido nao confere com o CNPJ da unidade.'; exit 1
+        }
+        # Senha aleatória: existe só em memória, é usada na exportação e protegida
+        # em seguida por DPAPI. Nunca é impressa nem passa por linha de comando.
+        $senhaSegura = New-SenhaAleatoriaSegura
+        try {
+          Export-CertificadoParaPfx -Certificado $certLoja -Destino $destinoPfx -Senha $senhaSegura
+        } catch {
+          Write-Erro 'Nao foi possivel exportar a chave privada deste certificado (pode ser A3/token ou marcado como nao exportavel).'
+          Write-Aviso 'Use a opcao manual: rode de novo informando -Pfx "C:\caminho\certificado.pfx".'
+          exit 1
+        }
+        Protect-Segredo -Segredo $senhaSegura -Destino $Script:ArqSenha
+        $senhaSegura = $null
+        $senhaDefinida = $true
+        $usarRepositorio = $true
+        Write-Ok 'Copia operacional exportada do repositorio do Windows com senha aleatoria protegida por DPAPI.'
+        Write-Ok 'O certificado original continua instalado no Windows, intacto.'
+      }
+    } elseif (-not $DoRepositorio) {
+      Write-Aviso 'Nenhum certificado vigente com chave privada para este CNPJ no repositorio do Windows.'
+    } else {
+      Write-Erro 'Nenhum certificado vigente com chave privada para este CNPJ em Cert:\CurrentUser\My.'; exit 1
+    }
+  }
+
+  if (-not $usarRepositorio) {
+    if (-not $Pfx) { $Pfx = Read-Host 'Caminho completo do arquivo .pfx (ex.: C:\certificados\empresa.pfx)' }
+    $Pfx = $Pfx.Trim('"').Trim()
+    if (-not (Test-Path $Pfx)) { Write-Erro "Arquivo nao encontrado: $Pfx"; exit 1 }
+    Copy-Item -Path $Pfx -Destination $destinoPfx -Force
+    Write-Ok 'Copia local do certificado criada na pasta privada (o arquivo original permanece onde estava).'
+  }
+}
+Set-AclSomenteUsuario $destinoPfx
+
+# 7) Senha protegida por DPAPI (só quando veio de arquivo .pfx manual)
+if (-not $senhaDefinida) {
+  Write-Passo 'Senha do certificado (protegida por DPAPI, nunca gravada em texto)'
+  if ($Reparar -or -not (Test-Path $Script:ArqSenha)) {
+    $senhaSegura = Read-Host 'Senha do certificado A1' -AsSecureString
+    Protect-Segredo -Segredo $senhaSegura -Destino $Script:ArqSenha
+    $senhaSegura = $null
+    Write-Ok 'Senha protegida gravada (DPAPI CurrentUser, ACL restrita).'
+  } else {
+    Write-Ok 'Senha protegida ja existente.'
+  }
 }
 
 # 8) Validação do PFX + CNPJ antes de concluir
@@ -111,14 +177,16 @@ try {
   $cert = New-Object Security.Cryptography.X509Certificates.X509Certificate2 `
             -ArgumentList $destinoPfx, $senhaClara, 'EphemeralKeySet'
   $senhaClara = $null
+  if (-not $cert.HasPrivateKey) { Write-Erro 'A copia do certificado esta sem chave privada.'; exit 1 }
   if ($cert.NotAfter -lt (Get-Date)) { Write-Erro "Certificado vencido em $($cert.NotAfter.ToString('dd/MM/yyyy'))."; exit 1 }
-  $cnpjCert = ([regex]'(\d{14})').Match($cert.Subject).Value
+  $cnpjCert = ([regex]'(\d{14})').Match(($cert.Subject -replace '\D', '')).Value
   if ($cnpjCert -and $cnpjCert -ne $Cnpj) { Write-Erro 'O CNPJ do certificado nao confere com o CNPJ informado.'; exit 1 }
   Write-Ok "Certificado valido ate $($cert.NotAfter.ToString('dd/MM/yyyy')) - CNPJ final ...$($Cnpj.Substring(12))"
 } catch {
   Write-Erro "Nao foi possivel abrir o certificado. Verifique a senha e rode com -Reparar. ($($_.Exception.GetType().Name))"
   exit 1
 }
+
 
 # 9) Token forte protegido por DPAPI
 Write-Passo 'Token de pareamento'
