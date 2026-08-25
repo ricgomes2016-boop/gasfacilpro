@@ -5,18 +5,26 @@
 .DESCRIPTION
   - verifica Node 20+;
   - instala dependências e compila;
-  - pede o PFX, CNPJ, UF e a senha (Read-Host -AsSecureString, nunca em argv);
-  - valida o PFX/CNPJ antes de concluir;
+  - obtém o certificado A1 de duas formas:
+      (a) automática: seleciona no repositório Cert:\CurrentUser\My pelo CNPJ,
+          aceitando apenas certificado vigente e com chave privada, e exporta uma
+          cópia operacional .pfx com senha aleatória gerada em memória;
+      (b) manual: caminho de um arquivo .pfx e senha digitada (-AsSecureString);
+  - valida o certificado/CNPJ antes de concluir;
   - gera token forte e grava senha/token protegidos por DPAPI (CurrentUser);
   - aplica ACL restrita (usuário atual + SYSTEM) na pasta privada;
   - registra Tarefa Agendada oculta no logon do usuário;
   - inicia o agente e aguarda o healthcheck.
 
   Reexecutar é seguro: reaproveita o que já está correto. Use -Reparar para
-  regravar segredos e tarefa. O .pfx de origem nunca é apagado nem movido.
+  regravar segredos e tarefa. O .pfx de origem nunca é apagado nem movido, e o
+  certificado do repositório do Windows permanece instalado.
 
 .PARAMETER Pfx
-  Caminho do certificado A1 (.pfx). Se omitido, é solicitado.
+  Caminho do certificado A1 (.pfx). Força o modo manual.
+
+.PARAMETER DoRepositorio
+  Força a seleção automática no repositório do Windows (sem perguntar).
 #>
 [CmdletBinding()]
 param(
@@ -24,9 +32,11 @@ param(
   [string]$Cnpj,
   [string]$Uf,
   [int]$Porta = 8787,
+  [switch]$DoRepositorio,
   [switch]$Reparar,
   [switch]$SemIniciar
 )
+
 
 . (Join-Path $PSScriptRoot 'comum.ps1')
 $env:AGENTE_PORTA = "$Porta"
