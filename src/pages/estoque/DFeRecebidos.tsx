@@ -28,14 +28,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useToast } from "@/hooks/use-toast";
 import { formatCNPJ } from "@/hooks/useInputMasks";
-import { formatarChave, formatarNumeroSerie } from "@/lib/fiscal/chaveNfe";
+import { formatarChave, formatarNumeroSerieComChave } from "@/lib/fiscal/chaveNfe";
 import { parseDfeItens, type DfeItemParsed } from "@/lib/fiscal/dfeXml";
+import { obterXmlCompletoDfe } from "@/lib/fiscal/obterXmlCompleto";
 import {
   ROTULO_MANIFESTACAO, manifestacoesPermitidas, exigeJustificativa, validarJustificativa,
   type ManifestacaoTipo,
 } from "@/lib/fiscal/manifestacao";
 import {
-  AGENTE_URL_PADRAO, agenteDistribuicao, agenteManifestar, getAgenteConfig, setAgenteConfig, verificarAgente,
+  AGENTE_URL_PADRAO, agenteConsultaChave, agenteDistribuicao, agenteManifestar,
+  getAgenteConfig, setAgenteConfig, verificarAgente,
   type AgenteConfig, type AgenteStatus, type DocumentoAgente,
 } from "@/lib/fiscal/agenteLocal";
 import { ErroSincronizacaoAgente, sincronizarDfeComAgente } from "@/lib/fiscal/dfeSync";
