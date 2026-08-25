@@ -155,6 +155,18 @@ if (-not $precisaCert) {
   }
 }
 Set-AclSomenteUsuario $destinoPfx
+# Validação de ACL: o usuário atual precisa de FullControl efetivo no arquivo.
+if (-not (Test-AcessoTotalArquivo -Caminho $destinoPfx)) {
+  Write-Erro 'Nao foi possivel garantir permissao total ao usuario atual no certificado.pfx.'
+  exit 1
+}
+try {
+  [void][IO.File]::ReadAllBytes($destinoPfx)
+  Write-Ok 'ACL do certificado validada (leitura permitida ao usuario atual).'
+} catch {
+  Write-Erro "O certificado.pfx nao pode ser lido apos a ACL ($($_.Exception.GetType().Name))."
+  exit 1
+}
 
 # 7) Senha protegida por DPAPI (só quando veio de arquivo .pfx manual)
 if (-not $senhaDefinida) {
