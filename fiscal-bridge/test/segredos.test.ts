@@ -94,3 +94,38 @@ describe("DPAPI fora do Windows", () => {
     expect(() => dpapiWindows.proteger("x")).toThrow(/Windows/);
   });
 });
+
+describe("agente.json com BOM UTF-8 (regressão)", () => {
+  it("carrega configuração local mesmo com BOM gravado pelo PowerShell", async () => {
+    const { carregarConfig, limparCacheConfig } = await import("../src/config.js");
+    const pfx = path.join(dir, "certificado.pfx");
+    const senha = path.join(dir, "senha.dpapi");
+    const token = path.join(dir, "token.dpapi");
+    fs.writeFileSync(pfx, "conteudo-fake");
+    gravarSegredoProtegido(senha, "senha-secreta");
+    gravarSegredoProtegido(token, "token-secreto");
+    const cfg = path.join(dir, "agente.json");
+    fs.writeFileSync(
+      cfg,
+      "\uFEFF" + JSON.stringify({
+        pfxPath: pfx, senhaProtegidaPath: senha, tokenProtegidoPath: token,
+        cnpj: "36904786000119", uf: "PR",
+      }),
+      "utf8",
+    );
+
+    const anterior = { modo: process.env.BRIDGE_MODE, conf: process.env.AGENTE_CONFIG };
+    process.env.BRIDGE_MODE = "local";
+    process.env.AGENTE_CONFIG = cfg;
+    limparCacheConfig();
+    try {
+      const c = carregarConfig();
+      expect(c.local?.cnpj).toBe("36904786000119");
+      expect(c.local?.lerToken()).toBe("token-secreto");
+    } finally {
+      limparCacheConfig();
+      process.env.BRIDGE_MODE = anterior.modo ?? "";
+      process.env.AGENTE_CONFIG = anterior.conf ?? "";
+    }
+  });
+});
