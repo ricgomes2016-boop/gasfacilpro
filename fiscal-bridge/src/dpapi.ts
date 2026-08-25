@@ -56,24 +56,13 @@ $bytes = [Security.Cryptography.ProtectedData]::Unprotect($prot, $null, 'Current
 `;
 
 /**
- * PowerShell lê o segredo pelo stdin: enviamos o script e, em seguida, o segredo,
- * usando um marcador para separar as duas partes sem expor nada em argv.
+ * O script (não sensível) vai como argumento de -Command e o stdin carrega APENAS
+ * o segredo. Assim nada sensível aparece em argv e o PowerShell não precisa
+ * interpretar script e segredo misturados no mesmo fluxo de entrada.
  */
 function executarComSegredo(script: string, segredo: string): string {
-  const marcador = "#####FIM-SCRIPT#####";
-  const envolto = script.replace("[Console]::In.ReadToEnd()", `(Ler-AteMarcador)`);
-  const preludio = `
-function Ler-AteMarcador {
-  $sb = New-Object Text.StringBuilder
-  while (($linha = [Console]::In.ReadLine()) -ne $null) {
-    if ($linha -eq '${marcador}') { break }
-    [void]$sb.AppendLine($linha)
-  }
-  return $sb.ToString().TrimEnd("\`r","\`n")
-}
-`;
-  const r = spawnSync(PS, ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", "-"], {
-    input: `${preludio}${envolto}\n${segredo}\n${marcador}\n`,
+  const r = spawnSync(PS, ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], {
+    input: `${segredo}\n`,
     encoding: "utf8",
     windowsHide: true,
     maxBuffer: 4 * 1024 * 1024,
