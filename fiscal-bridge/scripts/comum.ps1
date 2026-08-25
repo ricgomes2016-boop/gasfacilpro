@@ -156,7 +156,7 @@ function Format-CertificadoResumo {
   $cn = ($Certificado.Subject -split ',' | Where-Object { $_ -match 'CN=' } | Select-Object -First 1) -replace '.*CN=', ''
   $cn = ($cn -replace ':\d{14}', '').Trim()
   $cnpj = Get-CnpjDoCertificado -Certificado $Certificado
-  $fim = $cnpj ? "...$($cnpj.Substring(10))" : 'sem CNPJ'
+  $fim = if ($cnpj) { "...$($cnpj.Substring(10))" } else { 'sem CNPJ' }
   return "$cn (CNPJ $fim) - valido ate $($Certificado.NotAfter.ToString('dd/MM/yyyy'))"
 }
 
