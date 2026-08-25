@@ -140,14 +140,24 @@ como blob em `%LOCALAPPDATA%\GasFacil\AgenteFiscal`, com ACL só para o seu usu�
 
 1. Instale o **Node.js 20 ou superior** (https://nodejs.org).
 2. Copie a pasta `fiscal-bridge` para o PC (ex.: `C:\gasfacil\fiscal-bridge`).
-3. Tenha em mãos o arquivo **`.pfx` do certificado A1** (cópia manual, feita por você — o
-   sistema nunca baixa o certificado do servidor para o navegador) e a senha dele.
+3. Certificado A1 — duas formas aceitas:
+   - **Automática (recomendada):** se o e-CNPJ já estiver instalado no Windows
+     (`Cert:\CurrentUser\My`), o instalador seleciona sozinho pelo CNPJ da unidade.
+     Só aceita certificado **vigente e com chave privada**; exporta uma **cópia
+     operacional** para a pasta privada usando uma **senha aleatória gerada em memória**,
+     protegida na hora com DPAPI. Essa senha nunca é exibida, nem passa por linha de
+     comando, nem é gravada em texto. O certificado original permanece instalado no Windows.
+   - **Manual:** informe o caminho de um arquivo `.pfx` e a senha (digitada oculta).
+     Use `-Pfx "C:\caminho\certificado.pfx"` para forçar esse modo.
+   Em nenhum caso o sistema baixa o certificado do servidor para o navegador.
 4. Clique com o botão direito em `scripts\instalar-agente.bat` → **Executar**.
    O instalador vai:
    - conferir a versão do Node e instalar dependências/compilar;
-   - pedir o caminho do `.pfx`, CNPJ, UF e a senha (digitada oculta, `-AsSecureString`);
+   - pedir CNPJ e UF e então localizar o certificado no repositório do Windows
+     (ou pedir o `.pfx` e a senha, digitada oculta com `-AsSecureString`);
    - **validar o PFX e o CNPJ** antes de concluir;
-   - copiar o `.pfx` para a pasta privada com ACL restrita (o original permanece intacto);
+   - gravar a cópia operacional do certificado na pasta privada com ACL restrita
+     (o original — arquivo ou repositório do Windows — permanece intacto);
    - gerar um token forte (32 bytes) e proteger senha + token com DPAPI;
    - registrar a **Tarefa Agendada** de início automático no logon (janela oculta);
    - iniciar o agente, aguardar o `/health` e mostrar a URL e o token na tela.
@@ -221,7 +231,7 @@ docker run --rm -p 127.0.0.1:8787:8787 \
 
 - [ ] Node.js 20+ instalado
 - [ ] Pasta `fiscal-bridge` copiada para o PC do escritório
-- [ ] Arquivo `.pfx` do A1 disponível e senha em mãos
+- [ ] Certificado A1 instalado no Windows **ou** arquivo `.pfx` + senha em mãos
 - [ ] `scripts\instalar-agente.bat` executado e concluído sem erro
 - [ ] `scripts\status.ps1` mostra **online** e validade do certificado em dia
 - [ ] Token colado no ERP (DF-e Recebidos → Configurar agente local)
