@@ -395,7 +395,7 @@ export default function DFeRecebidos() {
       let data: any = null;
 
       if (status.online) {
-        const resp = await agenteManifestar(
+        const resp: any = await agenteManifestar(
           { unidadeId: unidadeAtual.id, chave: doc.chave, tipo, justificativa },
           agenteCfg,
         );
@@ -403,6 +403,7 @@ export default function DFeRecebidos() {
           toast({ title: "Manifestação não registrada", description: resp.mensagem, variant: "destructive" });
           return;
         }
+
 
         // 2) A nuvem confere a assinatura do evento antes de gravar.
         const ingest = await supabase.functions.invoke("dfe-evento-ingerir", {
