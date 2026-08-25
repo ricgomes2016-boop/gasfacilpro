@@ -78,7 +78,8 @@ function carregarLocal(): ConfigLocal {
   }
   let bruto: Record<string, unknown>;
   try {
-    bruto = JSON.parse(fs.readFileSync(arquivo, "utf8"));
+    // PowerShell (Set-Content/Out-File) grava UTF-8 com BOM; JSON.parse falha com o BOM.
+    bruto = JSON.parse(fs.readFileSync(arquivo, "utf8").replace(/^\uFEFF/, ""));
   } catch {
     throw new Error(`agente.json inválido (JSON malformado): ${arquivo}`);
   }
