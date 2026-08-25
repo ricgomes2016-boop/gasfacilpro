@@ -132,30 +132,79 @@ Navegador (ERP)  --http://127.0.0.1:8787-->  Agente local (A1 no disco)  --mTLS-
        +---- função "dfe-ingerir" (valida e grava com RLS) ---> banco
 ```
 
-### Instalação (Windows)
+### Instalação profissional no Windows (recomendada)
 
-1. Instale o Node.js 20 (https://nodejs.org).
+Tudo é feito por um instalador idempotente. **Nada de senha em texto**: a senha do
+certificado e o token de pareamento são cifrados com **DPAPI (usuário atual)** e gravados
+como blob em `%LOCALAPPDATA%\GasFacil\AgenteFiscal`, com ACL só para o seu usuário e SYSTEM.
+
+1. Instale o **Node.js 20 ou superior** (https://nodejs.org).
 2. Copie a pasta `fiscal-bridge` para o PC (ex.: `C:\gasfacil\fiscal-bridge`).
-3. Copie `agente.exemplo.json` para `agente.json` e preencha:
-   - `pfxPath`: caminho do certificado A1 `.pfx`;
-   - `senha`: senha do certificado;
-   - `cnpj` e `uf` da unidade;
-   - `token`: deixe vazio — é gerado na primeira execução e gravado no arquivo;
-   - `origens`: domínios do ERP autorizados a chamar o agente.
-4. Dê dois cliques em `iniciar-agente.bat` e deixe a janela aberta.
+3. Tenha em mãos o arquivo **`.pfx` do certificado A1** (cópia manual, feita por você — o
+   sistema nunca baixa o certificado do servidor para o navegador) e a senha dele.
+4. Clique com o botão direito em `scripts\instalar-agente.bat` → **Executar**.
+   O instalador vai:
+   - conferir a versão do Node e instalar dependências/compilar;
+   - pedir o caminho do `.pfx`, CNPJ, UF e a senha (digitada oculta, `-AsSecureString`);
+   - **validar o PFX e o CNPJ** antes de concluir;
+   - copiar o `.pfx` para a pasta privada com ACL restrita (o original permanece intacto);
+   - gerar um token forte (32 bytes) e proteger senha + token com DPAPI;
+   - registrar a **Tarefa Agendada** de início automático no logon (janela oculta);
+   - iniciar o agente, aguardar o `/health` e mostrar a URL e o token na tela.
 5. No ERP, em **DF-e Recebidos → Configurar agente local**, informe `http://127.0.0.1:8787`
-   e o `token` que está no `agente.json`.
+   e cole o token exibido.
 
-Para iniciar junto com o Windows, crie um atalho de `iniciar-agente.bat` em
-`shell:startup` (Win+R → `shell:startup`).
+Reinstalar/reparar: rode o instalador de novo — ele reaproveita a configuração existente e
+só pergunta o que faltar. Nenhum passo apaga o `.pfx` de origem.
 
-### Docker (alternativa)
+### Comandos do dia a dia
+
+| Script | O que faz |
+| --- | --- |
+| `scripts\iniciar.ps1` | Inicia o agente (se já estiver rodando, não duplica) |
+| `scripts\parar.ps1` | Encerra o agente |
+| `scripts\status.ps1` | Mostra estado, porta, ambiente, validade do certificado |
+| `scripts\mostrar-token.ps1` | Revela/copia o token de pareamento (só para o usuário local) |
+| `scripts\desinstalar.ps1` | Remove tarefa agendada, segredos e a cópia privada do PFX |
+
+Logs: `%LOCALAPPDATA%\GasFacil\AgenteFiscal\logs\agente-fiscal.log`, sanitizados e com
+rotação básica. Nunca gravam senha, token, PFX, XML nem CNPJ completo.
+
+### Segurança do modo local
+
+- A senha e o token só existem em memória durante o uso; em disco, apenas o blob DPAPI.
+  Fora do Windows o agente **falha com orientação** em vez de voltar para texto puro.
+- `/health` responde com o CNPJ mascarado (`**.***.***/****-99`) e só para **origens
+  autorizadas** (CORS); `/diagnostico` exige o token.
+- **Risco conhecido (XSS):** o token fica no `localStorage` do navegador para o ERP poder
+  chamar o agente. Um XSS no ERP conseguiria usar o agente enquanto ele estiver ligado —
+  por isso o agente escuta só em `127.0.0.1`, aceita apenas origens conhecidas e o token
+  nunca aparece em logs ou mensagens de erro. Rode o instalador de novo para trocar o token
+  em caso de suspeita.
+- O certificado A1 **nunca** é baixado do servidor para o navegador: a cópia local é um
+  passo manual e explícito seu.
+
+### Manifestação pelo agente local (como a nuvem confia nisso)
+
+Ciência, Confirmação, Desconhecimento e Operação não Realizada rodam no agente. O navegador
+**não** pode dizer "deu certo" — ele conhece o token e poderia forjar qualquer comprovante.
+Por isso o agente devolve o **XML do evento assinado (XMLDSig) com a chave privada do A1**, e
+a Edge `dfe-evento-ingerir` valida antes de gravar:
+
+1. assinatura RSA-SHA1 sobre o `<SignedInfo>`;
+2. digest SHA-1 do `<infEvento>`;
+3. chave/tipo/CNPJ coerentes dentro do XML assinado;
+4. a chave pública que assinou é a mesma do A1 da unidade guardado no cofre.
+
+Se o certificado de referência não existir no cofre, a Edge **recusa** e explica — em vez de
+registrar uma manifestação sem prova. A chamada à SEFAZ não é refeita na nuvem.
+
+### Docker (alternativa Linux/teste)
 
 ```bash
 docker run --rm -p 127.0.0.1:8787:8787 \
   -e BRIDGE_MODE=local -e PORT=8787 \
   -v /caminho/agente.json:/app/agente.json \
-  -v /caminho/certificado.pfx:/certs/certificado.pfx:ro \
   fiscal-bridge
 ```
 
@@ -163,9 +212,19 @@ docker run --rm -p 127.0.0.1:8787:8787 \
 
 | | Servidor | Local |
 |---|---|---|
-| Autenticação | HMAC SHA-256 das Edge Functions | Token de pareamento (`X-Agente-Token`) + CORS por origem |
-| Certificado | baixado do cofre (Storage) | lido do disco (`agente.json`) |
-| Rotas | distribuição, chave, manifestação | distribuição e chave (manifestação bloqueada) |
+| Autenticação | HMAC SHA-256 das Edge Functions | Token DPAPI (`X-Agente-Token`) + CORS por origem |
+| Certificado | baixado do cofre (Storage) | cópia local com ACL, senha protegida por DPAPI |
+| Rotas | distribuição, chave, manifestação | distribuição, chave, manifestação, diagnóstico |
 | Porta padrão | 8443 | 8787 (somente 127.0.0.1) |
 
-Os logs continuam sanitizados: nunca gravam PEM, senha ou XML completo.
+## Checklist de instalação (imprimir e conferir)
+
+- [ ] Node.js 20+ instalado
+- [ ] Pasta `fiscal-bridge` copiada para o PC do escritório
+- [ ] Arquivo `.pfx` do A1 disponível e senha em mãos
+- [ ] `scripts\instalar-agente.bat` executado e concluído sem erro
+- [ ] `scripts\status.ps1` mostra **online** e validade do certificado em dia
+- [ ] Token colado no ERP (DF-e Recebidos → Configurar agente local)
+- [ ] Botão **Testar conexão** no ERP ficou verde
+- [ ] Uma sincronização de teste trouxe documentos (ou "nenhum novo NSU")
+- [ ] Reiniciar o PC e conferir que o agente sobe sozinho no logon
