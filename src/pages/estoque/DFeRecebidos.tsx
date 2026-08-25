@@ -122,6 +122,8 @@ export default function DFeRecebidos() {
   const [confirmacao, setConfirmacao] = useState<{ doc: DfeDocumento; tipo: ManifestacaoTipo } | null>(null);
   const [justificativa, setJustificativa] = useState("");
   const [manifestando, setManifestando] = useState(false);
+  const [obterXml, setObterXml] = useState<{ doc: DfeDocumento; comCiencia: boolean } | null>(null);
+  const [buscandoXml, setBuscandoXml] = useState(false);
 
   // Agente local (fiscal-bridge no PC do escritório, com o certificado A1)
   const [agenteCfg, setAgenteCfgState] = useState<AgenteConfig>(() => getAgenteConfig());
@@ -693,7 +695,7 @@ export default function DFeRecebidos() {
                   {paginados.map((d) => (
                     <TableRow key={d.id} className="cursor-pointer" onClick={() => abrirDetalhe(d)}>
                       <TableCell className="whitespace-nowrap text-sm">{dataBR(d.data_emissao)}</TableCell>
-                      <TableCell className="whitespace-nowrap text-sm">{formatarNumeroSerie(d.numero, d.serie)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">{formatarNumeroSerieComChave(d.numero, d.serie, d.chave)}</TableCell>
                       <TableCell className="min-w-[220px]">
                         <p className="truncate text-sm font-medium">{d.nome_emitente || "—"}</p>
                         <p className="text-xs text-muted-foreground">{d.cnpj_emitente ? formatCNPJ(d.cnpj_emitente) : "—"}</p>
@@ -746,7 +748,7 @@ export default function DFeRecebidos() {
             <>
               <SheetHeader>
                 <SheetTitle className="text-base">
-                  NF-e {formatarNumeroSerie(detalhe.numero, detalhe.serie)} — {detalhe.nome_emitente || "Emitente não informado"}
+                  NF-e {formatarNumeroSerieComChave(detalhe.numero, detalhe.serie, detalhe.chave)} — {detalhe.nome_emitente || "Emitente não informado"}
                 </SheetTitle>
                 <SheetDescription className="break-all font-mono text-[11px]">
                   {formatarChave(detalhe.chave)}
