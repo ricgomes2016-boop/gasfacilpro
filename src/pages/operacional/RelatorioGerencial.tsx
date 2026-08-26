@@ -231,7 +231,7 @@ export default function RelatorioGerencial() {
         .lte("data_despesa", fim);
       if (unidadeAtual?.id) dcQ = dcQ.eq("unidade_id", unidadeAtual.id);
 
-      let prodQ = supabase.from("produtos").select("id, nome, preco, preco_custo, estoque_atual:estoque");
+      let prodQ = supabase.from("produtos").select("id, nome, preco, preco_custo, estoque_atual");
       if (unidadeAtual?.id) prodQ = prodQ.eq("unidade_id", unidadeAtual.id);
 
       const cliQ = supabase.from("clientes").select("id, nome, created_at");

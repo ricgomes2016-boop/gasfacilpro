@@ -111,15 +111,14 @@ export async function handleBiaPausedGuard(
   if (!(await isBiaPaused(supabase, config.unidadeId))) return false;
   try {
     if (conversationId) {
-      const ctx = { telefone: phone, unidadeId: config.unidadeId };
       if (userMessageText) {
         await saveMessage(supabase, conversationId, "user", userMessageText, {
           source, message_id: messageKey, bia_paused: true,
-        }, ctx);
+        });
       }
       await saveMessage(supabase, conversationId, "assistant", BIA_PAUSED_MESSAGE, {
         source, bia_paused: true,
-      }, ctx);
+      });
     }
   } catch (e) {
     console.error("handleBiaPausedGuard save error:", e);
@@ -1175,14 +1174,7 @@ export async function loadHistory(supabase: any, conversationId: string) {
   return data ? data.map((m: any) => ({ role: m.role, content: m.content })) : [];
 }
 
-export async function saveMessage(
-  supabase: any,
-  conversationId: string,
-  role: string,
-  content: string,
-  metadata?: any,
-  ctx?: { telefone?: string | null; unidadeId?: string | null; titulo?: string },
-) {
+export async function saveMessage(supabase: any, conversationId: string, role: string, content: string, metadata?: any) {
   const wa_message_id = metadata?.message_id || metadata?.wa_message_id || null;
   const row: any = { conversa_id: conversationId, role, content, metadata };
   if (wa_message_id) row.wa_message_id = wa_message_id;
@@ -1192,28 +1184,11 @@ export async function saveMessage(
   // Set tenant fields explicitly so RLS/Realtime can deliver the message to
   // the right company/unit even if the DB trigger is delayed or unavailable.
   try {
-    let { data: conv } = await supabase
+    const { data: conv } = await supabase
       .from("ai_conversas")
       .select("empresa_id, unidade_id")
       .eq("id", conversationId)
       .maybeSingle();
-    if (!conv) {
-      // Auto-cura: a conversa pode ter sido apagada ou ainda não criada.
-      // Sem ela o INSERT quebra na FK (23503) e a mensagem é perdida.
-      await upsertConversation(
-        supabase,
-        conversationId,
-        ctx?.titulo || (ctx?.telefone ? `WhatsApp: ${ctx.telefone}` : "Cliente"),
-        ctx?.telefone || undefined,
-        ctx?.unidadeId ?? null,
-      );
-      const re = await supabase
-        .from("ai_conversas")
-        .select("empresa_id, unidade_id")
-        .eq("id", conversationId)
-        .maybeSingle();
-      conv = re.data;
-    }
     if (conv?.empresa_id) row.empresa_id = conv.empresa_id;
     if (conv?.unidade_id) row.unidade_id = conv.unidade_id;
   } catch (_) { /* DB trigger remains as fallback */ }

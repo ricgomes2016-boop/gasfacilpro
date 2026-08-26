@@ -102,7 +102,7 @@ type CaixaRow = {
   status?: string | null;
 };
 
-const STATUS_RECEITA = ["entregue", "finalizado", "pago", "pago_cartao"];
+const STATUS_RECEITA = ["entregue", "finalizado", "pago_cartao"];
 
 const mesesOptions = Array.from({ length: 12 }, (_, i) => ({
   value: String(i),

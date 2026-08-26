@@ -43,16 +43,7 @@ export function ConectarRedeSocialButton({ unidadeId, onConnected }: Props) {
       const popup = window.open(data.url, "meta-oauth", "width=600,height=750");
 
       if (!popup) {
-        // Pop-up bloqueado: refaz o start em modo redirect para que o callback
-        // volte para o app (senão o usuário fica preso na página do callback).
-        const { data: redirectData } = await supabase.functions.invoke("meta-oauth-start", {
-          body: {
-            unidade_id: unidadeId,
-            return_url: window.location.origin + window.location.pathname,
-            mode: "redirect",
-          },
-        });
-        window.location.href = redirectData?.url || data.url;
+        window.location.href = data.url;
         return;
       }
 
