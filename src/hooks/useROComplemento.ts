@@ -70,7 +70,7 @@ export function useROComplemento(
         supabase.from("movimentacoes_caixa").select("valor, forma_pagamento, tipo, status")
           .eq("unidade_id", unidadeId).eq("tipo", "entrada").neq("status", "rejeitada")
           .gte("created_at", inicio).lte("created_at", fim),
-        supabase.from("contas_receber").select("valor_pago, forma_pagamento, status, operadora_id, data_recebimento")
+        supabase.from("contas_receber").select("valor, valor_liquido, forma_pagamento, status, operadora_id, data_recebimento")
           .eq("unidade_id", unidadeId).eq("status", "pago")
           .gte("data_recebimento", inicio.substring(0, 10)).lte("data_recebimento", fim.substring(0, 10)),
         supabase.from("boletos_emitidos").select("valor, status")
@@ -79,12 +79,12 @@ export function useROComplemento(
         supabase.from("cheques").select("valor, status")
           .eq("unidade_id", unidadeId)
           .gte("created_at", inicio).lte("created_at", fim),
-        supabase.from("vale_gas").select("valor_total, produto_id, status")
+        supabase.from("vale_gas").select("valor, valor_venda, produto_id, status")
           .eq("unidade_id", unidadeId)
           .gte("created_at", inicio).lte("created_at", fim),
         supabase.from("contas_bancarias").select("banco, saldo_atual")
           .eq("unidade_id", unidadeId).eq("ativo", true),
-        supabase.from("produtos").select("id, nome, preco_custo, estoque_atual").eq("unidade_id", unidadeId),
+        supabase.from("produtos").select("id, nome, preco_custo, estoque").eq("unidade_id", unidadeId),
       ]);
 
       // Ajustes
