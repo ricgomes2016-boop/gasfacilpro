@@ -386,11 +386,12 @@ export default function DFeRecebidos() {
     }
     setManifestando(true);
     try {
-      // 1) Preferência: agente local (o certificado A1 nunca sai do PC).
-      const status = agente.online ? agente : await checarAgente();
+      // 1) Preferência: agente local autenticado (o certificado A1 nunca sai do PC).
+      //    Sem pareamento válido, cai para o caminho do servidor (dfe-manifestar).
+      const status = agente.autenticado ? agente : await checarAgente();
       let data: any = null;
 
-      if (status.online) {
+      if (status.autenticado) {
         const resp: any = await agenteManifestar(
           { unidadeId: unidadeAtual.id, chave: doc.chave, tipo, justificativa },
           agenteCfg,
