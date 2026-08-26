@@ -4,7 +4,7 @@ import { RegistroNonce, verificarAssinatura } from "./hmac.js";
 import { log, mascarar, sanitizar } from "./sanitize.js";
 import { carregarCertificado, carregarCertificadoLocal, descartarCertificado, type CertificadoUnidade } from "./cert.js";
 import {
-  UF_CODIGO, URL_DISTRIBUICAO, URL_EVENTO, CODIGO_EVENTO, EXIGE_JUSTIFICATIVA,
+  UF_CODIGO, urlDistribuicao, urlEvento, CODIGO_EVENTO, EXIGE_JUSTIFICATIVA,
   envelope, montarConsChNFe, montarDistNSU, montarEnvEvento, soapPost, type TipoManifestacao,
 } from "./sefaz.js";
 import { parseDistribuicao, parseEvento } from "./soap.js";
@@ -215,7 +215,7 @@ const servidor = http.createServer(async (req, res) => {
       const ultNSU = Number(body.ultNSU ?? 0);
       const resultado = await comCertificado(unidadeId, cnpjInformado, async (cert) => {
         const soap = envelope("dist", montarDistNSU(cert.cnpjUnidade, cUFDe(cert), ultNSU, cfg.tpAmb));
-        const resp = await soapPost(URL_DISTRIBUICAO, soap, cert);
+        const resp = await soapPost(urlDistribuicao(cfg.tpAmb), soap, cert);
         if (!resp.ok) return { ok: false as const, motivo: resp.categoria ?? "sefaz_indisponivel", mensagem: "Não foi possível falar com a SEFAZ.", detalheTecnico: sanitizar(resp.detalhe) };
         const p = parseDistribuicao(resp.texto ?? "");
         log.info("distribuicao", { unidade: mascarar(unidadeId), docs: p.documentos.length, cStat: p.cStat ?? "" });
@@ -233,7 +233,7 @@ const servidor = http.createServer(async (req, res) => {
       }
       const resultado = await comCertificado(unidadeId, cnpjInformado, async (cert) => {
         const soap = envelope("dist", montarConsChNFe(cert.cnpjUnidade, cUFDe(cert, chave), chave, cfg.tpAmb));
-        const resp = await soapPost(URL_DISTRIBUICAO, soap, cert);
+        const resp = await soapPost(urlDistribuicao(cfg.tpAmb), soap, cert);
         if (!resp.ok) return { ok: false as const, motivo: resp.categoria ?? "sefaz_indisponivel", mensagem: "Não foi possível falar com a SEFAZ.", detalheTecnico: sanitizar(resp.detalhe) };
         const p = parseDistribuicao(resp.texto ?? "");
         const doc = p.documentos[0];
@@ -276,8 +276,18 @@ const servidor = http.createServer(async (req, res) => {
       }
       const resultado = await comCertificado(unidadeId, cnpjInformado, async (cert) => {
         const env = montarEnvEvento(cert, { chave, tipo, justificativa, sequencia, tpAmb: cfg.tpAmb });
-        const resp = await soapPost(URL_EVENTO, envelope("evento", env), cert);
-        if (!resp.ok) return { ok: false as const, motivo: resp.categoria ?? "sefaz_indisponivel", mensagem: "Não foi possível falar com a SEFAZ.", detalheTecnico: sanitizar(resp.detalhe) };
+        const resp = await soapPost(urlEvento(cfg.tpAmb), envelope("evento", env), cert);
+        if (!resp.ok) {
+          const categoria = resp.categoria ?? "sefaz_indisponivel";
+          return {
+            ok: false as const,
+            motivo: categoria,
+            mensagem: categoria === "soap_fault"
+              ? `A SEFAZ recusou a requisição do evento (${sanitizar(resp.detalhe, 160)}).`
+              : "Não foi possível falar com a SEFAZ para registrar o evento.",
+            detalheTecnico: sanitizar(resp.detalhe),
+          };
+        }
         const p = parseEvento(resp.texto ?? "");
         log.info("manifestacao", { unidade: mascarar(unidadeId), tipo, cStat: p.cStat ?? "", sucesso: p.sucesso });
 
@@ -301,7 +311,12 @@ const servidor = http.createServer(async (req, res) => {
           eventoXml,
           retornoXml,
           comprovanteLocal,
-          motivo: p.sucesso ? undefined : "evento_rejeitado",
+          motivo: p.sucesso ? undefined : (p.falhaSoap ? "soap_fault" : "evento_rejeitado"),
+          mensagem: p.sucesso
+            ? `Evento registrado na SEFAZ${p.protocolo ? ` (protocolo ${p.protocolo})` : ""}.`
+            : (p.falhaSoap
+              ? `A SEFAZ respondeu com falha SOAP: ${sanitizar(p.falhaSoap, 160)}`
+              : `SEFAZ ${p.cStat ?? "sem código"}: ${p.xMotivo ?? "evento não registrado"}`),
         };
       });
       responder(res, 200, resultado, cors);
