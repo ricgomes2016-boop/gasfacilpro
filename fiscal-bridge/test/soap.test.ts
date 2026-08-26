@@ -46,7 +46,7 @@ describe("parsing SOAP / gzip / base64", () => {
 
 describe("endpoints do Ambiente Nacional", () => {
   it("evento usa www (sem o 1) em produção e hom em homologação", async () => {
-    const { URL_EVENTO, URL_DISTRIBUICAO, urlEvento, urlDistribuicao } = await import("../src/sefaz.js");
+    const { URL_EVENTO, URL_DISTRIBUICAO, urlEvento, urlDistribuicao } = await import("../src/endpoints.js");
     expect(URL_EVENTO).toBe("https://www.nfe.fazenda.gov.br/NFeRecepcaoEvento4/NFeRecepcaoEvento4.asmx");
     expect(URL_DISTRIBUICAO).toContain("www1.nfe.fazenda.gov.br");
     expect(urlEvento("1")).toBe(URL_EVENTO);

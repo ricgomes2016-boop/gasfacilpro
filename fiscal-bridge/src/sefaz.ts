@@ -4,22 +4,7 @@ import { carregarConfig } from "./config.js";
 import type { CertificadoUnidade } from "./cert.js";
 import { classificarErro, log, sanitizar } from "./sanitize.js";
 import { escaparXml, extrairSoapFault } from "./soap.js";
-
-// Ambiente Nacional (Portal oficial da NF-e).
-// Atenção: Distribuição DF-e usa "www1"; RecepcaoEvento4 usa "www" (sem o 1).
-export const URL_DISTRIBUICAO = "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx";
-export const URL_EVENTO = "https://www.nfe.fazenda.gov.br/NFeRecepcaoEvento4/NFeRecepcaoEvento4.asmx";
-export const URL_DISTRIBUICAO_HOM = "https://hom1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx";
-export const URL_EVENTO_HOM = "https://hom.nfe.fazenda.gov.br/NFeRecepcaoEvento4/NFeRecepcaoEvento4.asmx";
-
-/** tpAmb "1" = produção, "2" = homologação. */
-export function urlDistribuicao(tpAmb: string): string {
-  return tpAmb === "2" ? URL_DISTRIBUICAO_HOM : URL_DISTRIBUICAO;
-}
-export function urlEvento(tpAmb: string): string {
-  return tpAmb === "2" ? URL_EVENTO_HOM : URL_EVENTO;
-}
-
+export { URL_DISTRIBUICAO, URL_EVENTO, URL_DISTRIBUICAO_HOM, URL_EVENTO_HOM, urlDistribuicao, urlEvento } from "./endpoints.js";
 
 export const UF_CODIGO: Record<string, string> = {
   RO: "11", AC: "12", AM: "13", RR: "14", PA: "15", AP: "16", TO: "17",
