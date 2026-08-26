@@ -101,7 +101,7 @@ export function useROComplemento(
       // Cartão (contas_receber com operadora_id não nula ou forma cartão/pix maquininha)
       const cartao = (crRes.data || [])
         .filter((c: any) => c.operadora_id || /cart|pix.?maquin|maquineta|pix_maquin/i.test(String(c.forma_pagamento || "")))
-        .reduce((s: number, c: any) => s + (Number(c.valor_pago) || 0), 0);
+        .reduce((s: number, c: any) => s + (Number(c.valor_liquido ?? c.valor) || 0), 0);
 
       // Boletos
       const boletos = (boletosRes.data || []).reduce((s: number, b: any) => s + (Number(b.valor) || 0), 0);
@@ -120,7 +120,7 @@ export function useROComplemento(
       (valeRes.data || []).forEach((v: any) => {
         const p: any = prodMap.get(v.produto_id);
         const nome = (p?.nome || "").toLowerCase();
-        const val = Number(v.valor_total) || 0;
+        const val = Number(v.valor_venda ?? v.valor) || 0;
         if (/p45|45.?kg/.test(nome)) vP45 += val;
         else vP13 += val;
       });
