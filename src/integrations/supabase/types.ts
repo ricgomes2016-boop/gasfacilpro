@@ -12925,6 +12925,7 @@ export type Database = {
         Args: { _path: string }
         Returns: boolean
       }
+      user_can_access_dfe_path: { Args: { _path: string }; Returns: boolean }
       user_has_unidade: {
         Args: { _unidade_id: string; _user_id: string }
         Returns: boolean
