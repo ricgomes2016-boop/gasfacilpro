@@ -2,11 +2,9 @@ import https from "node:https";
 import forge from "node-forge";
 import { carregarConfig } from "./config.js";
 import type { CertificadoUnidade } from "./cert.js";
-import { classificarErro, log } from "./sanitize.js";
-import { escaparXml } from "./soap.js";
-
-export const URL_DISTRIBUICAO = "https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx";
-export const URL_EVENTO = "https://www1.nfe.fazenda.gov.br/NFeRecepcaoEvento4/NFeRecepcaoEvento4.asmx";
+import { classificarErro, log, sanitizar } from "./sanitize.js";
+import { escaparXml, extrairSoapFault } from "./soap.js";
+export { URL_DISTRIBUICAO, URL_EVENTO, URL_DISTRIBUICAO_HOM, URL_EVENTO_HOM, urlDistribuicao, urlEvento } from "./endpoints.js";
 
 export const UF_CODIGO: Record<string, string> = {
   RO: "11", AC: "12", AM: "13", RR: "14", PA: "15", AP: "16", TO: "17",
@@ -61,12 +59,25 @@ export function soapPost(url: string, soap: string, cert: CertificadoUnidade, te
           res.on("data", (c: Buffer) => partes.push(c));
           res.on("end", () => {
             const texto = Buffer.concat(partes).toString("utf8");
+            const status = res.statusCode ?? 0;
             if (!texto) {
-              resolve({ ok: false, status: res.statusCode, categoria: "resposta_vazia", detalhe: `HTTP ${res.statusCode} sem corpo` });
+              resolve({ ok: false, status, categoria: "resposta_vazia", detalhe: `HTTP ${status} sem corpo` });
               return;
             }
-            resolve({ ok: true, status: res.statusCode, texto });
+            const fault = extrairSoapFault(texto);
+            if (status >= 400 || fault) {
+              resolve({
+                ok: false,
+                status,
+                categoria: fault ? "soap_fault" : "http_erro",
+                // `fault` já vem curto (só faultstring/Reason); sanitizar remove qualquer resíduo.
+                detalhe: sanitizar(fault ? `HTTP ${status}: ${fault}` : `HTTP ${status}`),
+              });
+              return;
+            }
+            resolve({ ok: true, status, texto });
           });
+
         },
       );
 

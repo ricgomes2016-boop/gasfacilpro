@@ -93,3 +93,23 @@ describe("número/série derivados da chave", () => {
     expect(formatarNumeroSerieComChave(null, null, "123")).toBe("S/N");
   });
 });
+
+describe("propagação de mensagem específica da SEFAZ", () => {
+  it("repassa a falha SOAP/cStat vinda do agente em vez de mensagem genérica", async () => {
+    const consultarChave = vi.fn();
+    const r = await obterXmlCompletoDfe({
+      registrarCiencia: true,
+      manifestar: async () => ({
+        ok: false as const,
+        motivo: "soap_fault",
+        mensagem: "A SEFAZ respondeu com falha SOAP: Rejeicao: Servico indisponivel",
+      }),
+      ingerirEvento: async () => ({ ok: true }),
+      consultarChave,
+      ingerirXml: async () => ({ ok: true }),
+    });
+    expect(r).toMatchObject({ status: "erro", motivo: "soap_fault" });
+    expect(r.status === "erro" && r.mensagem).toContain("Rejeicao: Servico indisponivel");
+    expect(consultarChave).not.toHaveBeenCalled();
+  });
+});

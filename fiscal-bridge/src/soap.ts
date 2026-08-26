@@ -58,10 +58,31 @@ export interface RetornoEvento {
   xMotivo: string | null;
   protocolo: string | null;
   sucesso: boolean;
+  /** Motivo técnico seguro quando a SEFAZ devolve SOAP Fault em vez de retEnvEvento. */
+  falhaSoap?: string;
+}
+
+/**
+ * Extrai apenas a descrição textual de um SOAP Fault (1.1 faultstring / 1.2 Reason>Text).
+ * Nunca devolve o envelope inteiro — evita vazar XML, chave, CNPJ ou certificado nos logs.
+ */
+export function extrairSoapFault(xml: string): string | null {
+  if (!/<(?:\w+:)?Fault[\s>]/i.test(xml)) return null;
+  const texto = pick(xml, "faultstring") ?? pick(xml, "Text") ?? pick(xml, "faultcode") ?? null;
+  const limpo = (texto ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return limpo ? limpo.slice(0, 200) : "SOAP Fault sem descrição";
 }
 
 export function parseEvento(resposta: string): RetornoEvento {
-  const bloco = resposta.match(/<retEvento[\s\S]*?<\/retEvento>/i)?.[0] ?? resposta;
+  const fault = extrairSoapFault(resposta);
+  if (fault) {
+    return { cStat: null, xMotivo: null, protocolo: null, sucesso: false, falhaSoap: fault };
+  }
+  // Prefere o retEvento individual; se ausente, cai no retEnvEvento do lote.
+  const bloco =
+    resposta.match(/<(?:\w+:)?retEvento[\s\S]*?<\/(?:\w+:)?retEvento>/i)?.[0] ??
+    resposta.match(/<(?:\w+:)?retEnvEvento[\s\S]*?<\/(?:\w+:)?retEnvEvento>/i)?.[0] ??
+    resposta;
   const cStat = pick(bloco, "cStat");
   return {
     cStat,
@@ -70,6 +91,7 @@ export function parseEvento(resposta: string): RetornoEvento {
     sucesso: ["135", "136", "573"].includes(String(cStat ?? "")),
   };
 }
+
 
 export function escaparXml(s: string): string {
   return String(s)
