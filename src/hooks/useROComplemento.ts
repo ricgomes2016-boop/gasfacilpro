@@ -70,7 +70,7 @@ export function useROComplemento(
         supabase.from("movimentacoes_caixa").select("valor, forma_pagamento, tipo, status")
           .eq("unidade_id", unidadeId).eq("tipo", "entrada").neq("status", "rejeitada")
           .gte("created_at", inicio).lte("created_at", fim),
-        supabase.from("contas_receber").select("valor, valor_liquido, forma_pagamento, status, operadora_id, data_recebimento")
+        supabase.from("contas_receber").select("valor_pago, forma_pagamento, status, operadora_id, data_recebimento")
           .eq("unidade_id", unidadeId).eq("status", "pago")
           .gte("data_recebimento", inicio.substring(0, 10)).lte("data_recebimento", fim.substring(0, 10)),
         supabase.from("boletos_emitidos").select("valor, status")
@@ -79,12 +79,12 @@ export function useROComplemento(
         supabase.from("cheques").select("valor, status")
           .eq("unidade_id", unidadeId)
           .gte("created_at", inicio).lte("created_at", fim),
-        supabase.from("vale_gas").select("valor, valor_venda, produto_id, status")
+        supabase.from("vale_gas").select("valor_total, produto_id, status")
           .eq("unidade_id", unidadeId)
           .gte("created_at", inicio).lte("created_at", fim),
         supabase.from("contas_bancarias").select("banco, saldo_atual")
           .eq("unidade_id", unidadeId).eq("ativo", true),
-        supabase.from("produtos").select("id, nome, preco_custo, estoque").eq("unidade_id", unidadeId),
+        supabase.from("produtos").select("id, nome, preco_custo, estoque_atual").eq("unidade_id", unidadeId),
       ]);
 
       // Ajustes
@@ -101,7 +101,7 @@ export function useROComplemento(
       // Cartão (contas_receber com operadora_id não nula ou forma cartão/pix maquininha)
       const cartao = (crRes.data || [])
         .filter((c: any) => c.operadora_id || /cart|pix.?maquin|maquineta|pix_maquin/i.test(String(c.forma_pagamento || "")))
-        .reduce((s: number, c: any) => s + (Number(c.valor_liquido ?? c.valor) || 0), 0);
+        .reduce((s: number, c: any) => s + (Number(c.valor_pago) || 0), 0);
 
       // Boletos
       const boletos = (boletosRes.data || []).reduce((s: number, b: any) => s + (Number(b.valor) || 0), 0);
@@ -120,7 +120,7 @@ export function useROComplemento(
       (valeRes.data || []).forEach((v: any) => {
         const p: any = prodMap.get(v.produto_id);
         const nome = (p?.nome || "").toLowerCase();
-        const val = Number(v.valor_venda ?? v.valor) || 0;
+        const val = Number(v.valor_total) || 0;
         if (/p45|45.?kg/.test(nome)) vP45 += val;
         else vP13 += val;
       });
@@ -135,11 +135,11 @@ export function useROComplemento(
 
       // Estoque valorizado (só produtos com estoque > 0)
       const estoqueValorizado = (produtosRes.data || [])
-        .filter((p: any) => (Number(p.estoque) || 0) > 0)
+        .filter((p: any) => (Number(p.estoque_atual) || 0) > 0)
         .map((p: any) => ({
           produto: p.nome,
-          qtd: Number(p.estoque) || 0,
-          valor: (Number(p.estoque) || 0) * (Number(p.preco_custo) || 0),
+          qtd: Number(p.estoque_atual) || 0,
+          valor: (Number(p.estoque_atual) || 0) * (Number(p.preco_custo) || 0),
         }))
         .sort((a, b) => b.valor - a.valor)
         .slice(0, 8);
