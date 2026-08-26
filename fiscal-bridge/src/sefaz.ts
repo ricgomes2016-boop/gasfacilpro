@@ -74,12 +74,25 @@ export function soapPost(url: string, soap: string, cert: CertificadoUnidade, te
           res.on("data", (c: Buffer) => partes.push(c));
           res.on("end", () => {
             const texto = Buffer.concat(partes).toString("utf8");
+            const status = res.statusCode ?? 0;
             if (!texto) {
-              resolve({ ok: false, status: res.statusCode, categoria: "resposta_vazia", detalhe: `HTTP ${res.statusCode} sem corpo` });
+              resolve({ ok: false, status, categoria: "resposta_vazia", detalhe: `HTTP ${status} sem corpo` });
               return;
             }
-            resolve({ ok: true, status: res.statusCode, texto });
+            const fault = extrairSoapFault(texto);
+            if (status >= 400 || fault) {
+              resolve({
+                ok: false,
+                status,
+                categoria: fault ? "soap_fault" : "http_erro",
+                // `fault` já vem curto (só faultstring/Reason); sanitizar remove qualquer resíduo.
+                detalhe: sanitizar(fault ? `HTTP ${status}: ${fault}` : `HTTP ${status}`),
+              });
+              return;
+            }
+            resolve({ ok: true, status, texto });
           });
+
         },
       );
 
