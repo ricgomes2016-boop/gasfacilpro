@@ -135,11 +135,11 @@ export function useROComplemento(
 
       // Estoque valorizado (só produtos com estoque > 0)
       const estoqueValorizado = (produtosRes.data || [])
-        .filter((p: any) => (Number(p.estoque_atual) || 0) > 0)
+        .filter((p: any) => (Number(p.estoque) || 0) > 0)
         .map((p: any) => ({
           produto: p.nome,
-          qtd: Number(p.estoque_atual) || 0,
-          valor: (Number(p.estoque_atual) || 0) * (Number(p.preco_custo) || 0),
+          qtd: Number(p.estoque) || 0,
+          valor: (Number(p.estoque) || 0) * (Number(p.preco_custo) || 0),
         }))
         .sort((a, b) => b.valor - a.valor)
         .slice(0, 8);
