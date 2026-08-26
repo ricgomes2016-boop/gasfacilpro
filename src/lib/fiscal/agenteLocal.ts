@@ -58,7 +58,16 @@ async function comTimeout(url: string, init: RequestInit, ms: number): Promise<R
 /** Confere processo, token e certificado sem consultar a SEFAZ. */
 export async function verificarAgente(cfg = getAgenteConfig()): Promise<AgenteStatus> {
   try {
-    if (!cfg.token.trim()) return { online: true, autenticado: false, erro: "token_vazio" };
+    if (!cfg.token.trim()) {
+      // Sem token salvo: ainda assim pinga /health para distinguir
+      // "agente desligado" de "agente no ar aguardando pareamento".
+      try {
+        await comTimeout(`${cfg.url}/health`, { method: "GET" }, 2500);
+        return { online: true, autenticado: false, erro: "token_vazio" };
+      } catch {
+        return { online: false, autenticado: false, erro: "agente_offline" };
+      }
+    }
     const resp = await comTimeout(`${cfg.url}/auth-check`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Agente-Token": cfg.token },
