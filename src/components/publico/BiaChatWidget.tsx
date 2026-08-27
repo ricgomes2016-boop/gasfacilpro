@@ -74,6 +74,10 @@ interface Props {
   openSignal?: number;
   /** Mensagem que será pré-preenchida no input ao abrir via openSignal */
   prefilledMessage?: string;
+  /** Lançador discreto (sem glow/halo e com rótulo curto), para não competir com o CTA de WhatsApp */
+  compact?: boolean;
+  /** Sobrescreve posicionamento/cores do botão flutuante */
+  launcherClassName?: string;
 }
 
 export function BiaChatWidget({
@@ -84,7 +88,10 @@ export function BiaChatWidget({
   saudacao,
   openSignal,
   prefilledMessage,
+  compact = false,
+  launcherClassName,
 }: Props) {
+
   const storageKey = `bia-chat-${unidadeSlug}`;
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
