@@ -41,7 +41,8 @@ function WhatsAppButton({ className = "", label = "Pedir pelo WhatsApp" }: { cla
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`${label} — ${LOJA.telefoneExibicao}`}
-      className={`${btnBase} bg-[#128C4A] text-white hover:bg-[#0E7A40] shadow-sm ${className}`}
+      style={{ color: "#ffffff" }}
+      className={`${btnBase} bg-[#128C4A] hover:bg-[#0E7A40] shadow-sm ${className}`}
     >
       <MessageCircle className="h-5 w-5 shrink-0" aria-hidden />
       <span className="truncate">{label}</span>
@@ -49,12 +50,13 @@ function WhatsAppButton({ className = "", label = "Pedir pelo WhatsApp" }: { cla
   );
 }
 
-function CallButton({ className = "" }: { className?: string }) {
+function CallButton({ className = "", dark = false }: { className?: string; dark?: boolean }) {
   return (
     <a
       href={`tel:${LOJA.telefoneTel}`}
       aria-label={`Ligar agora para ${LOJA.telefoneExibicao}`}
-      className={`${btnBase} border border-[#0F2A4A]/20 bg-white text-[#0F2A4A] hover:bg-[#0F2A4A]/[0.06] ${className}`}
+      style={{ color: dark ? "#ffffff" : "#0F2A4A" }}
+      className={`${btnBase} border ${dark ? "border-white/40 bg-transparent hover:bg-white/10" : "border-[#0F2A4A]/20 bg-white hover:bg-[#0F2A4A]/[0.06]"} ${className}`}
     >
       <Phone className="h-5 w-5 shrink-0" aria-hidden />
       <span className="truncate">Ligar agora</span>
@@ -179,7 +181,7 @@ function Hero() {
 
           <div className="mt-8 flex w-full min-w-0 flex-col gap-3 sm:flex-row">
             <WhatsAppButton />
-            <CallButton className="!bg-transparent !text-white !border-white/40 hover:!bg-white/10" />
+            <CallButton dark />
           </div>
 
           <p className="mt-4 text-sm text-slate-300">
@@ -381,7 +383,8 @@ function Atendimento() {
             href={MAPS_LINK}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[#0F2A4A]/20 bg-white px-4 text-sm font-semibold text-[#0F2A4A] transition-colors hover:bg-[#0F2A4A]/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F2A4A]"
+            style={{ color: "#0F2A4A" }}
+            className="mt-5 inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[#0F2A4A]/20 bg-white px-4 text-sm font-semibold transition-colors hover:bg-[#0F2A4A]/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F2A4A]"
           >
             <MapPin className="h-4 w-4" aria-hidden /> Ver no mapa
             <ArrowRight className="h-4 w-4" aria-hidden />
@@ -403,7 +406,7 @@ function CTAFinal() {
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <WhatsAppButton />
-          <CallButton className="!bg-transparent !text-white !border-white/40 hover:!bg-white/10" />
+          <CallButton dark />
         </div>
       </div>
     </section>
@@ -422,7 +425,7 @@ function Footer() {
           </span>
         </div>
         <div className="min-w-0 text-sm text-slate-600">
-          <a href={`tel:${LOJA.telefoneTel}`} className="font-semibold text-[#0F2A4A] hover:underline">
+          <a href={`tel:${LOJA.telefoneTel}`} style={{ color: "#0F2A4A" }} className="font-semibold hover:underline">
             {LOJA.telefoneExibicao}
           </a>
           <p className="mt-1 text-xs text-slate-500">
