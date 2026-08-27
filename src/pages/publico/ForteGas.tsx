@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   Flame, Phone, MapPin, Truck, Shield, ChevronUp, MessageCircle,
   Droplets, Menu, X, Headset, PackageCheck, ArrowRight, Check,
@@ -27,12 +27,6 @@ const WHATSAPP_LINK = `https://wa.me/${LOJA.whatsappNumero}?text=${encodeURIComp
 const MAPS_LINK = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
   `${LOJA.endereco}, ${LOJA.cidade} - ${LOJA.estado}`,
 )}`;
-
-/* ---------- Paleta institucional (escopo local da página) ---------- */
-const NAVY = "#0F2A4A";
-const NAVY_DEEP = "#0A1E36";
-const ORANGE = "#E8620C";
-const GREEN = "#128C4A";
 
 /* ---------- Botões ---------- */
 const btnBase =
@@ -476,12 +470,6 @@ function ScrollTop() {
 /* ---------- Página ---------- */
 export default function ForteGas() {
   const [biaSignal] = useState(0);
-  const noop = useCallback(() => {}, []);
-  void noop;
-  void NAVY;
-  void NAVY_DEEP;
-  void ORANGE;
-  void GREEN;
 
   return (
     <div className="min-h-screen w-full min-w-0 overflow-x-hidden bg-white font-sans text-slate-800 antialiased">
