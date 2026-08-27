@@ -307,11 +307,11 @@ export function BiaChatWidget({
               </span>
             </div>
             <div className="relative flex-1" style={{ color: "#ffffff" }}>
-              <div className="font-bold leading-tight tracking-tight flex items-center gap-1.5">
-                Bia <span className="text-white/60 font-normal">·</span>{" "}
-                <span className="font-medium">{nomeLoja}</span>
+              <div className="font-bold leading-tight tracking-tight flex items-center gap-1.5" style={{ color: "#ffffff" }}>
+                Bia <span className="font-normal" style={{ color: "rgba(255,255,255,0.65)" }}>·</span>{" "}
+                <span className="font-medium" style={{ color: "#ffffff" }}>{nomeLoja}</span>
               </div>
-              <div className="text-[11px] flex items-center gap-1.5 opacity-95 mt-0.5">
+              <div className="text-[11px] flex items-center gap-1.5 opacity-95 mt-0.5" style={{ color: "rgba(255,255,255,0.9)" }}>
                 <Sparkles className="w-3 h-3" />
                 <span className="uppercase tracking-wider font-semibold">IA · Online</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse ml-0.5" />
