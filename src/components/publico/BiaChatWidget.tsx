@@ -74,6 +74,10 @@ interface Props {
   openSignal?: number;
   /** Mensagem que será pré-preenchida no input ao abrir via openSignal */
   prefilledMessage?: string;
+  /** Lançador discreto (sem glow/halo e com rótulo curto), para não competir com o CTA de WhatsApp */
+  compact?: boolean;
+  /** Sobrescreve posicionamento/cores do botão flutuante */
+  launcherClassName?: string;
 }
 
 export function BiaChatWidget({
@@ -84,7 +88,10 @@ export function BiaChatWidget({
   saudacao,
   openSignal,
   prefilledMessage,
+  compact = false,
+  launcherClassName,
 }: Props) {
+
   const storageKey = `bia-chat-${unidadeSlug}`;
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -223,36 +230,51 @@ export function BiaChatWidget({
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          aria-label="Falar com a Bia"
-          className={`fixed bottom-6 right-24 z-50 group flex items-center gap-3 pl-2 pr-5 py-2 rounded-full bg-[#0a0118]/80 backdrop-blur-xl border border-white/10 text-white shadow-2xl shadow-${accent}/40 hover:scale-[1.04] active:scale-100 transition-all`}
+          aria-label="Falar com a Bia, assistente virtual"
+          className={
+            compact
+              ? `fixed z-40 group flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full border border-white/15 text-white shadow-lg hover:brightness-110 transition-[filter,transform] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                  launcherClassName ?? "bottom-6 right-24 bg-[#0a0118]/90"
+                }`
+              : `fixed bottom-6 right-24 z-50 group flex items-center gap-3 pl-2 pr-5 py-2 rounded-full bg-[#0a0118]/80 backdrop-blur-xl border border-white/10 text-white shadow-2xl shadow-${accent}/40 hover:scale-[1.04] active:scale-100 transition-all ${launcherClassName ?? ""}`
+          }
         >
           {/* Glow halo */}
-          <span
-            className={`pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r ${gradient} opacity-50 blur-xl group-hover:opacity-80 transition-opacity`}
-          />
-          {/* Avatar moderno: orbital com núcleo pulsante */}
-          <span className="relative w-11 h-11 rounded-full p-[2px] overflow-hidden">
+          {!compact && (
             <span
-              className="absolute inset-0 rounded-full animate-spin"
+              className={`pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r ${gradient} opacity-50 blur-xl group-hover:opacity-80 transition-opacity`}
+            />
+          )}
+          {/* Avatar moderno: orbital com núcleo pulsante */}
+          <span className={`relative rounded-full p-[2px] overflow-hidden ${compact ? "w-8 h-8" : "w-11 h-11"}`}>
+            <span
+              className={`absolute inset-0 rounded-full ${compact ? "" : "animate-spin"}`}
               style={{
                 animationDuration: "4s",
                 background: "conic-gradient(from 0deg, #2fc2b5, #6c63ff, #8b5cf6, #2dd4bf, #2fc2b5)",
               }}
             />
             <span className="relative w-full h-full rounded-full bg-[#0a0118] flex items-center justify-center">
-              <BiaMark size={26} />
+              <BiaMark size={compact ? 18 : 26} />
             </span>
           </span>
-          <span className="relative flex flex-col items-start leading-tight">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-white/60 font-semibold flex items-center gap-1">
-              <Sparkles className="w-2.5 h-2.5 text-primary" /> IA · Online
-            </span>
-            <span className="text-sm font-bold hidden sm:inline">Falar com a Bia</span>
-            <span className="text-sm font-bold sm:hidden">Bia</span>
-          </span>
-          <span className="relative ml-1 h-2 w-2 rounded-full bg-success animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
+          {compact ? (
+            <span className="relative text-xs font-semibold">Falar com a Bia</span>
+          ) : (
+            <>
+              <span className="relative flex flex-col items-start leading-tight">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-white/60 font-semibold flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5 text-primary" /> IA · Online
+                </span>
+                <span className="text-sm font-bold hidden sm:inline">Falar com a Bia</span>
+                <span className="text-sm font-bold sm:hidden">Bia</span>
+              </span>
+              <span className="relative ml-1 h-2 w-2 rounded-full bg-success animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
+            </>
+          )}
         </button>
       )}
+
 
       {/* Painel de chat */}
       {open && (
