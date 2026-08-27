@@ -12887,6 +12887,10 @@ export type Database = {
         Args: { p_produto_id: string }
         Returns: undefined
       }
+      recalcular_saldo_conta_bancaria: {
+        Args: { p_conta_id: string }
+        Returns: number
+      }
       registrar_pagamento_conta_pagar: {
         Args: { p_conta_id: string; p_pagamentos: Json; p_quitar?: boolean }
         Returns: Json
