@@ -13,7 +13,7 @@ const corsHeaders = {
 // roteamento sempre aponta para a unidade certa dentro da empresa `central-gas`.
 const SLUG_TO_TENANT: Record<string, { empresaSlug: string; unidadeNome: string; nomeLoja: string }> = {
   centralgascp: { empresaSlug: "central-gas", unidadeNome: "Central Gas", nomeLoja: "Central Gás" },
-  fortegas:     { empresaSlug: "central-gas", unidadeNome: "Forte Gás",   nomeLoja: "Forte Gás" },
+  fortegas:     { empresaSlug: "forte-gas",   unidadeNome: "Forte Gás",   nomeLoja: "Forte Gás" },
   japagas:      { empresaSlug: "central-gas", unidadeNome: "Japa Gás",    nomeLoja: "Japa Gás" },
 };
 
