@@ -155,13 +155,7 @@ function Hero() {
       />
       <div className="relative mx-auto grid w-full min-w-0 max-w-6xl items-center gap-10 px-4 py-12 lg:grid-cols-[1.1fr_0.9fr] lg:py-20">
         <div className="min-w-0">
-          <p style={{ color: "#ffffff" }}
-            className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold">
-            <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {LOJA.cidade} · {LOJA.estado}
-          </p>
-
-          <div className="mb-6 inline-flex rounded-2xl bg-white p-3 shadow-lg sm:p-4">
+          <div className="mb-5 w-fit rounded-2xl bg-white p-3 shadow-lg sm:p-4">
             <img
               src={forteGasLogo}
               alt="Forte Gás — distribuidora de gás em Cornélio Procópio"
@@ -170,6 +164,12 @@ function Hero() {
               height={70}
             />
           </div>
+
+          <p style={{ color: "#ffffff" }}
+            className="mb-5 flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold">
+            <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {LOJA.cidade} · {LOJA.estado}
+          </p>
 
           <h1 style={{ color: "#ffffff" }} className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
             Gás e água entregues na sua porta em {LOJA.cidade}
