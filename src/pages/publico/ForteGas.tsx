@@ -153,7 +153,8 @@ function Hero() {
       />
       <div className="relative mx-auto grid w-full min-w-0 max-w-6xl items-center gap-10 px-4 py-12 lg:grid-cols-[1.1fr_0.9fr] lg:py-20">
         <div className="min-w-0">
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white">
+          <p style={{ color: "#ffffff" }}
+            className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold">
             <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
             {LOJA.cidade} · {LOJA.estado}
           </p>
@@ -168,7 +169,7 @@ function Hero() {
             />
           </div>
 
-          <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
+          <h1 style={{ color: "#ffffff" }} className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
             Gás e água entregues na sua porta em {LOJA.cidade}
           </h1>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-200">
@@ -185,7 +186,8 @@ function Hero() {
             Ou ligue para{" "}
             <a
               href={`tel:${LOJA.telefoneTel}`}
-              className="font-semibold text-white underline underline-offset-4 hover:text-[#FFB27A]"
+              style={{ color: "#ffffff" }}
+              className="font-semibold underline underline-offset-4"
             >
               {LOJA.telefoneExibicao}
             </a>
@@ -194,7 +196,7 @@ function Hero() {
 
         {/* Cartão-resumo em vez de arte fotográfica inventada */}
         <div className="min-w-0 rounded-2xl border border-white/15 bg-white/[0.06] p-5 sm:p-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#FFB27A]">Disponível hoje</p>
+          <p style={{ color: "#FFB27A" }} className="text-xs font-semibold uppercase tracking-wider">Disponível hoje</p>
           <ul className="mt-4 space-y-3">
             {[
               { icon: Flame, t: "Gás P13", d: "Botijão de 13 kg para uso residencial" },
@@ -207,7 +209,7 @@ function Hero() {
                   <i.icon className="h-4 w-4" aria-hidden />
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-white">{i.t}</span>
+                  <span style={{ color: "#ffffff" }} className="block text-sm font-semibold">{i.t}</span>
                   <span className="block text-sm text-slate-300">{i.d}</span>
                 </span>
               </li>
@@ -246,8 +248,8 @@ const PRODUTOS = [
 function SectionTitle({ eyebrow, title, desc }: { eyebrow: string; title: string; desc?: string }) {
   return (
     <div className="mx-auto mb-10 max-w-2xl text-center">
-      <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#E8620C]">{eyebrow}</p>
-      <h2 className="text-2xl font-bold tracking-tight text-[#0F2A4A] sm:text-3xl">{title}</h2>
+      <p style={{ color: "#C4530A" }} className="mb-2 text-xs font-bold uppercase tracking-[0.18em]">{eyebrow}</p>
+      <h2 style={{ color: "#0F2A4A" }} className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
       {desc && <p className="mt-3 text-base leading-relaxed text-slate-600">{desc}</p>}
     </div>
   );
@@ -271,7 +273,7 @@ function Produtos() {
               <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#0F2A4A]/[0.06] text-[#0F2A4A]">
                 <p.icon className="h-5 w-5" aria-hidden />
               </span>
-              <h3 className="text-base font-semibold text-[#0F2A4A]">{p.title}</h3>
+              <h3 style={{ color: "#0F2A4A" }} className="text-base font-semibold">{p.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">{p.desc}</p>
             </article>
           ))}
@@ -296,10 +298,10 @@ function ComoPedir() {
         <ol className="grid gap-4 md:grid-cols-3">
           {PASSOS.map((p) => (
             <li key={p.n} className="min-w-0 rounded-2xl border border-slate-200 bg-[#F6F7F9] p-6">
-              <span className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#0F2A4A] text-sm font-bold text-white">
+              <span style={{ color: "#ffffff" }} className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#0F2A4A] text-sm font-bold">
                 {p.n}
               </span>
-              <h3 className="text-base font-semibold text-[#0F2A4A]">{p.t}</h3>
+              <h3 style={{ color: "#0F2A4A" }} className="text-base font-semibold">{p.t}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">{p.d}</p>
             </li>
           ))}
@@ -332,7 +334,7 @@ function Diferenciais() {
               <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#E8620C]/10 text-[#C4530A]">
                 <d.icon className="h-5 w-5" aria-hidden />
               </span>
-              <h3 className="text-base font-semibold text-[#0F2A4A]">{d.t}</h3>
+              <h3 style={{ color: "#0F2A4A" }} className="text-base font-semibold">{d.t}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">{d.d}</p>
             </div>
           ))}
@@ -348,8 +350,8 @@ function Atendimento() {
     <section id="atendimento" className="w-full min-w-0 bg-white py-16 sm:py-20">
       <div className="mx-auto grid w-full min-w-0 max-w-6xl gap-8 px-4 lg:grid-cols-2 lg:items-center">
         <div className="min-w-0">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-[#E8620C]">Onde estamos</p>
-          <h2 className="text-2xl font-bold tracking-tight text-[#0F2A4A] sm:text-3xl">
+          <p style={{ color: "#C4530A" }} className="mb-2 text-xs font-bold uppercase tracking-[0.18em]">Onde estamos</p>
+          <h2 style={{ color: "#0F2A4A" }} className="text-2xl font-bold tracking-tight sm:text-3xl">
             Área de atendimento em {LOJA.cidade}
           </h2>
           <p className="mt-3 text-base leading-relaxed text-slate-600">
@@ -369,7 +371,7 @@ function Atendimento() {
         </div>
 
         <address className="min-w-0 rounded-2xl border border-slate-200 bg-[#F6F7F9] p-6 not-italic">
-          <h3 className="text-base font-semibold text-[#0F2A4A]">Endereço da loja</h3>
+          <h3 style={{ color: "#0F2A4A" }} className="text-base font-semibold">Endereço da loja</h3>
           <p className="mt-3 text-sm leading-relaxed text-slate-700">
             {LOJA.endereco}
             <br />
@@ -395,7 +397,7 @@ function CTAFinal() {
   return (
     <section id="contato" className="w-full min-w-0 bg-[#0F2A4A] py-16 sm:py-20">
       <div className="mx-auto w-full min-w-0 max-w-3xl px-4 text-center">
-        <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Acabou o gás?</h2>
+        <h2 style={{ color: "#ffffff" }} className="text-2xl font-bold tracking-tight sm:text-3xl">Acabou o gás?</h2>
         <p className="mt-3 text-base leading-relaxed text-slate-200">
           Fale agora com a Forte Gás pelo WhatsApp ou por telefone e receba o pedido no seu endereço.
         </p>
