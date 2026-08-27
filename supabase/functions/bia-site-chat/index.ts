@@ -17,6 +17,22 @@ const SLUG_TO_TENANT: Record<string, { empresaSlug: string; unidadeNome: string;
   japagas:      { empresaSlug: "central-gas", unidadeNome: "Japa Gás",    nomeLoja: "Japa Gás" },
 };
 
+// A indisponibilidade do atendimento é configurada por site/unidade. Nunca use
+// o slug da empresa-mãe aqui: Forte Gás, Central Gás e Japa Gás compartilham a
+// mesma empresa no banco, mas operam canais de atendimento independentes.
+const BIA_PAUSED_UNIDADE_SLUGS = new Set(["centralgascp"]);
+
+function formatarTelefoneBr(value: string | null | undefined) {
+  const digits = String(value ?? "").replace(/\D/g, "").replace(/^55/, "");
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return digits || null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -44,20 +60,6 @@ serve(async (req) => {
     const tenant = SLUG_TO_TENANT[unidadeSlug];
     const nomeLoja = tenant.nomeLoja;
 
-    // BIA PAUSADA (empresa em manutenção): retornar mensagem fixa sem consultar IA.
-    // Enquanto o slug da empresa-mãe estiver em BIA_PAUSED_EMPRESA_SLUGS, o chat
-    // do site institucional responde apenas o aviso abaixo.
-    const BIA_PAUSED_EMPRESA_SLUGS = ["central-gas"];
-    if (BIA_PAUSED_EMPRESA_SLUGS.includes(tenant.empresaSlug)) {
-      return new Response(
-        JSON.stringify({
-          reply: "Este WhatsApp está indisponível, por favor envie mensagem para o número 43 99966-1816. Obrigada.",
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-
     // Resolve empresa + unidade pelo nome EXATO da unidade dentro da empresa-mãe.
     const { data: empresa } = await supabase
       .from("empresas")
@@ -74,7 +76,7 @@ serve(async (req) => {
 
     const { data: unidade } = await supabase
       .from("unidades")
-      .select("id, nome")
+      .select("id, nome, telefone, whatsapp_notificacao_pedido")
       .eq("empresa_id", empresa.id)
       .eq("nome", tenant.unidadeNome)
       .eq("ativo", true)
@@ -85,6 +87,18 @@ serve(async (req) => {
         JSON.stringify({ error: `Unidade "${tenant.unidadeNome}" não encontrada/ativa para ${unidadeSlug}` }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    if (BIA_PAUSED_UNIDADE_SLUGS.has(unidadeSlug)) {
+      const contato = formatarTelefoneBr(
+        unidade.whatsapp_notificacao_pedido || unidade.telefone
+      );
+      const reply = contato
+        ? `O atendimento automático da ${nomeLoja} está temporariamente indisponível. Por favor, fale com a loja pelo número ${contato}.`
+        : `O atendimento automático da ${nomeLoja} está temporariamente indisponível. Por favor, fale diretamente com a loja.`;
+      return new Response(JSON.stringify({ reply }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const tools = [
