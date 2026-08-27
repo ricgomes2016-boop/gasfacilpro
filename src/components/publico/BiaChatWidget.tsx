@@ -78,6 +78,8 @@ interface Props {
   compact?: boolean;
   /** Sobrescreve posicionamento/cores do botão flutuante */
   launcherClassName?: string;
+  /** Usa painel claro; útil em sites institucionais com identidade clara */
+  lightTheme?: boolean;
 }
 
 export function BiaChatWidget({
@@ -90,6 +92,7 @@ export function BiaChatWidget({
   prefilledMessage,
   compact = false,
   launcherClassName,
+  lightTheme = false,
 }: Props) {
 
   const storageKey = `bia-chat-${unidadeSlug}`;
@@ -278,7 +281,9 @@ export function BiaChatWidget({
 
       {/* Painel de chat */}
       {open && (
-        <div className="fixed inset-x-0 bottom-0 sm:inset-auto sm:bottom-6 sm:right-6 z-50 sm:w-[380px] h-[80vh] sm:h-[560px] bg-[#0a0118] border border-white/10 sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
+        <div className={`fixed inset-x-0 bottom-0 sm:inset-auto sm:bottom-6 sm:right-6 z-50 sm:w-[380px] h-[80vh] sm:h-[560px] border sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200 ${
+          lightTheme ? "bg-[#F8FAFC] border-[#D8E0EA]" : "bg-[#0a0118] border-white/10"
+        }`}>
           {/* Header */}
           <div className={`relative bg-gradient-to-r ${gradient} px-4 py-3 flex items-center gap-3 overflow-hidden`}>
             <div className="absolute inset-0 opacity-30 pointer-events-none"
@@ -317,7 +322,7 @@ export function BiaChatWidget({
           </div>
 
           {/* Mensagens */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#0a0118]">
+          <div ref={scrollRef} className={`flex-1 overflow-y-auto p-4 space-y-3 ${lightTheme ? "bg-[#F8FAFC]" : "bg-[#0a0118]"}`}>
             {messages.map((m, i) => (
               <div
                 key={i}
@@ -327,7 +332,9 @@ export function BiaChatWidget({
                   className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed ${
                     m.role === "user"
                       ? `bg-gradient-to-br ${gradient} text-white rounded-br-sm`
-                      : "bg-white/5 text-slate-100 border border-white/10 rounded-bl-sm"
+                      : lightTheme
+                        ? "bg-white text-[#0F2A4A] border border-[#D8E0EA] shadow-sm rounded-bl-sm"
+                        : "bg-white/5 text-slate-100 border border-white/10 rounded-bl-sm"
                   }`}
                 >
                   {m.content}
@@ -336,17 +343,17 @@ export function BiaChatWidget({
             ))}
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-white/5 border border-white/10 rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1">
-                  <span className="w-2 h-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-2 h-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-2 h-2 rounded-full bg-white/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+                <div className={`rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1 ${lightTheme ? "bg-white border border-[#D8E0EA]" : "bg-white/5 border border-white/10"}`}>
+                  <span className={`w-2 h-2 rounded-full animate-bounce ${lightTheme ? "bg-[#E8620C]" : "bg-white/60"}`} style={{ animationDelay: "0ms" }} />
+                  <span className={`w-2 h-2 rounded-full animate-bounce ${lightTheme ? "bg-[#E8620C]" : "bg-white/60"}`} style={{ animationDelay: "150ms" }} />
+                  <span className={`w-2 h-2 rounded-full animate-bounce ${lightTheme ? "bg-[#E8620C]" : "bg-white/60"}`} style={{ animationDelay: "300ms" }} />
                 </div>
               </div>
             )}
           </div>
 
           {/* Input */}
-          <div className="border-t border-white/10 p-3 bg-[#0a0118]">
+          <div className={`border-t p-3 ${lightTheme ? "border-[#D8E0EA] bg-white" : "border-white/10 bg-[#0a0118]"}`}>
             <div className="flex gap-2 items-center">
               <input
                 value={input}
@@ -354,7 +361,11 @@ export function BiaChatWidget({
                 onKeyDown={(e) => e.key === "Enter" && enviar()}
                 placeholder={listening ? "Ouvindo... fale agora" : "Digite ou toque no microfone..."}
                 disabled={loading}
-                className="flex-1 bg-white/5 border border-white/10 text-white placeholder:text-white/40 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-white/30"
+                className={`flex-1 border rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8620C]/30 ${
+                  lightTheme
+                    ? "bg-[#F8FAFC] border-[#CBD5E1] text-[#0F2A4A] placeholder:text-slate-400 focus:border-[#E8620C]"
+                    : "bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-white/30"
+                }`}
               />
               {sttSupported && (
                 <button
@@ -363,7 +374,9 @@ export function BiaChatWidget({
                   className={`w-11 h-11 shrink-0 rounded-full flex items-center justify-center transition-all ${
                     listening
                       ? "bg-destructive text-white animate-pulse shadow-lg shadow-red-500/50"
-                      : "bg-white/5 border border-white/10 text-white/80 hover:bg-white/10"
+                      : lightTheme
+                        ? "bg-white border border-[#CBD5E1] text-[#0F2A4A] hover:bg-slate-50"
+                        : "bg-white/5 border border-white/10 text-white/80 hover:bg-white/10"
                   }`}
                   aria-label={listening ? "Parar gravação" : "Gravar áudio"}
                   title={listening ? "Parar" : "Gravar áudio"}
@@ -380,7 +393,7 @@ export function BiaChatWidget({
                 <Send className="w-4 h-4" />
               </button>
             </div>
-            <div className="text-[10px] text-white/30 text-center mt-2">
+            <div className={`text-[10px] text-center mt-2 ${lightTheme ? "text-slate-500" : "text-white/30"}`}>
               {listening ? "🎙️ Ouvindo... toque no quadrado para parar" : "Atendimento automático com IA"}
             </div>
           </div>

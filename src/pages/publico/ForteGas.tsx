@@ -515,6 +515,7 @@ export default function ForteGas() {
         accent="orange-500"
         openSignal={biaSignal}
         compact
+        lightTheme
         launcherClassName="bottom-5 right-[5.5rem] bg-[#0F2A4A]/95"
       />
     </div>
