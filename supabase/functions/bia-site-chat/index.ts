@@ -33,6 +33,71 @@ function formatarTelefoneBr(value: string | null | undefined) {
   return digits || null;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SITE_USER_ID = "00000000-0000-0000-0000-000000000000";
+
+async function upsertSiteConversation(
+  supabase: any,
+  conversationId: string,
+  empresaId: string,
+  unidadeId: string,
+  nomeLoja: string,
+) {
+  const { error } = await supabase.from("ai_conversas").upsert({
+    id: conversationId,
+    user_id: SITE_USER_ID,
+    titulo: `Site: ${nomeLoja}`,
+    subject: "site_institucional",
+    status: "active",
+    empresa_id: empresaId,
+    unidade_id: unidadeId,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "id" });
+  if (error) throw new Error(`Falha ao registrar conversa: ${error.message}`);
+}
+
+async function saveSiteMessage(
+  supabase: any,
+  conversationId: string,
+  empresaId: string,
+  unidadeId: string,
+  role: "user" | "assistant",
+  content: string,
+  requestId: string,
+  extra: Record<string, unknown> = {},
+) {
+  const { error } = await supabase.from("ai_mensagens").insert({
+    conversa_id: conversationId,
+    empresa_id: empresaId,
+    unidade_id: unidadeId,
+    role,
+    content,
+    status: "sent",
+    direction: role === "user" ? "inbound" : "outbound",
+    metadata: { source: "bia-site-chat", request_id: requestId, ...extra },
+  });
+  if (error) console.error("[BIA-SITE-CHAT] Falha ao auditar mensagem", error);
+}
+
+async function getSavedReply(supabase: any, conversationId: string, requestId: string) {
+  const { data } = await supabase.from("ai_mensagens")
+    .select("content")
+    .eq("conversa_id", conversationId)
+    .eq("role", "assistant")
+    .contains("metadata", { request_id: requestId })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.content || null;
+}
+
+function jsonReply(reply: string, conversationId: string, status = 200) {
+  return new Response(JSON.stringify({ reply, conversationId }), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -47,6 +112,12 @@ serve(async (req) => {
 
     const body = await req.json();
     const { messages = [], unidadeSlug = "fortegas" } = body;
+    const conversationId = UUID_RE.test(String(body.conversationId || ""))
+      ? String(body.conversationId)
+      : crypto.randomUUID();
+    const messageId = UUID_RE.test(String(body.messageId || ""))
+      ? String(body.messageId)
+      : crypto.randomUUID();
 
     // SECURITY: enforce strict slug allowlist. Public endpoint must not allow
     // arbitrary tenant enumeration via guessed slugs.
@@ -89,6 +160,24 @@ serve(async (req) => {
       );
     }
 
+    await upsertSiteConversation(supabase, conversationId, empresa.id, unidade.id, nomeLoja);
+
+    const savedReply = await getSavedReply(supabase, conversationId, messageId);
+    if (savedReply) return jsonReply(savedReply, conversationId);
+
+    const currentUserMessage = [...messages].reverse().find((m: any) => m?.role === "user")?.content;
+    if (typeof currentUserMessage === "string" && currentUserMessage.trim()) {
+      await saveSiteMessage(
+        supabase,
+        conversationId,
+        empresa.id,
+        unidade.id,
+        "user",
+        currentUserMessage.trim(),
+        messageId,
+      );
+    }
+
     if (BIA_PAUSED_UNIDADE_SLUGS.has(unidadeSlug)) {
       const contato = formatarTelefoneBr(
         unidade.whatsapp_notificacao_pedido || unidade.telefone
@@ -96,9 +185,8 @@ serve(async (req) => {
       const reply = contato
         ? `O atendimento automático da ${nomeLoja} está temporariamente indisponível. Por favor, fale com a loja pelo número ${contato}.`
         : `O atendimento automático da ${nomeLoja} está temporariamente indisponível. Por favor, fale diretamente com a loja.`;
-      return new Response(JSON.stringify({ reply }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      await saveSiteMessage(supabase, conversationId, empresa.id, unidade.id, "assistant", reply, messageId);
+      return jsonReply(reply, conversationId);
     }
 
     const tools = [
@@ -224,10 +312,9 @@ Regras:
 
       // Sem tool calls? termina
       if (!msg.tool_calls || msg.tool_calls.length === 0) {
-        return new Response(
-          JSON.stringify({ reply: msg.content ?? "" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        const reply = msg.content ?? "";
+        await saveSiteMessage(supabase, conversationId, empresa.id, unidade.id, "assistant", reply, messageId);
+        return jsonReply(reply, conversationId);
       }
 
       // Adiciona a msg do assistant com tool_calls ao histórico
@@ -243,7 +330,7 @@ Regras:
           } else if (tc.function.name === "consultar_produtos") {
             result = await consultarProdutos(supabase, empresa.id, unidade.id);
           } else if (tc.function.name === "criar_pedido") {
-            result = await criarPedido(supabase, empresa.id, unidade.id, args);
+            result = await criarPedido(supabase, empresa.id, unidade.id, args, messageId);
           } else {
             result = { error: "Tool desconhecida" };
           }
@@ -256,13 +343,39 @@ Regras:
           tool_call_id: tc.id,
           content: JSON.stringify(result),
         });
+
+        // O sucesso não depende de uma segunda chamada à IA. Assim o cliente
+        // sempre recebe a confirmação mesmo se o gateway falhar depois do insert.
+        if (tc.function.name === "criar_pedido" && result?.sucesso) {
+          const valor = Number(result.valor_total || 0).toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          });
+          const reply = result.reutilizado
+            ? `Seu pedido nº ${result.numero_pedido} já estava registrado. ${result.quantidade}x ${result.produto}, total ${valor}.`
+            : `Pedido nº ${result.numero_pedido} realizado com sucesso. ${result.quantidade}x ${result.produto}, total ${valor}. A loja já recebeu sua solicitação.`;
+          await saveSiteMessage(
+            supabase,
+            conversationId,
+            empresa.id,
+            unidade.id,
+            "assistant",
+            reply,
+            messageId,
+            { pedido_id: result.pedido_id, pedido_criado: !result.reutilizado },
+          );
+          await supabase.from("ai_conversas").update({
+            pedido_id: result.pedido_id,
+            updated_at: new Date().toISOString(),
+          }).eq("id", conversationId);
+          return jsonReply(reply, conversationId);
+        }
       }
     }
 
-    return new Response(
-      JSON.stringify({ reply: "Desculpe, tive um problema. Pode repetir, por favor?" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const fallback = "Não consegui concluir esta etapa e nenhum novo pedido foi confirmado. Pode tentar novamente?";
+    await saveSiteMessage(supabase, conversationId, empresa.id, unidade.id, "assistant", fallback, messageId);
+    return jsonReply(fallback, conversationId);
   } catch (e: any) {
     console.error("[BIA-SITE-CHAT] Error:", e);
     return new Response(JSON.stringify({ error: e.message ?? "Erro interno" }), {
@@ -292,15 +405,19 @@ async function identificarCliente(
     .limit(1);
 
   // Registra chamada recebida (popup CallerID)
-  await supabase.from("chamadas_recebidas").insert({
+  const { data: chamada, error: chamadaError } = await supabase.from("chamadas_recebidas").insert({
     telefone,
     cliente_id: clientes?.[0]?.id ?? null,
     cliente_nome: clientes?.[0]?.nome ?? null,
     tipo: "voip",
     status: "recebida",
+    empresa_id: empresaId,
     unidade_id: unidadeId,
-    observacoes: "🤖 Pedido criado pela Bia (site institucional)",
-  });
+    observacoes: "🤖 Atendimento iniciado pela Bia (site institucional)",
+  }).select("id").single();
+  if (chamadaError) {
+    console.error("[BIA-SITE-CHAT] Falha ao registrar atendimento", chamadaError);
+  }
 
   if (clientes && clientes.length > 0) {
     const c = clientes[0];
@@ -312,9 +429,10 @@ async function identificarCliente(
       numero: c.numero,
       bairro: c.bairro,
       cidade: c.cidade,
+      chamada_id: chamada?.id ?? null,
     };
   }
-  return { encontrado: false };
+  return { encontrado: false, chamada_id: chamada?.id ?? null };
 }
 
 // Fonte oficial de preços da Bia: configuracoes_empresa.regras_bia.tabela_precos
@@ -373,7 +491,8 @@ async function criarPedido(
   supabase: any,
   empresaId: string,
   unidadeId: string,
-  args: any
+  args: any,
+  idempotencyKey: string,
 ) {
   const {
     cliente_id,
@@ -454,6 +573,40 @@ async function criarPedido(
     };
   }
 
+  // Protege retries do mesmo envio e confirmações repetidas em poucos minutos.
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const { data: recentes } = await supabase.from("pedidos")
+    .select("id, numero_sequencial, valor_total")
+    .eq("unidade_id", unidadeId)
+    .eq("cliente_id", finalClienteId)
+    .eq("origem_pedido", "site")
+    .eq("valor_total", valorTotal)
+    .gte("created_at", fiveMinutesAgo)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  if (recentes?.length) {
+    const { data: itensRecentes } = await supabase.from("pedido_itens")
+      .select("pedido_id, produto_id, quantidade")
+      .in("pedido_id", recentes.map((p: any) => p.id))
+      .eq("produto_id", prod.id)
+      .eq("quantidade", qty)
+      .limit(1);
+    const itemExistente = itensRecentes?.[0];
+    const pedidoExistente = recentes.find((p: any) => p.id === itemExistente?.pedido_id);
+    if (pedidoExistente) {
+      return {
+        sucesso: true,
+        reutilizado: true,
+        pedido_id: pedidoExistente.id,
+        numero_pedido: pedidoExistente.numero_sequencial,
+        produto: nomeProduto,
+        quantidade: qty,
+        valor_total: Number(pedidoExistente.valor_total),
+      };
+    }
+  }
+
   const { data: pedido, error: pedidoErr } = await supabase
     .from("pedidos")
     .insert({
@@ -467,7 +620,7 @@ async function criarPedido(
       endereco_entrega: endereco ?? null,
       numero_entrega: numero ?? null,
       bairro_entrega: bairro ?? null,
-      observacoes: `Pedido pela Bia (site).${referencia ? " Ref: " + referencia : ""}${telefone ? " Tel: " + telefone : ""}`,
+      observacoes: `Pedido pela Bia (site). BiaReq:${idempotencyKey}.${referencia ? " Ref: " + referencia : ""}${telefone ? " Tel: " + telefone : ""}`,
     })
     .select("id, numero_sequencial")
     .single();
@@ -487,8 +640,30 @@ async function criarPedido(
     return { error: "Erro ao gravar item do pedido: " + itemErr.message };
   }
 
+
+  const telDigits = String(telefone || "").replace(/\D/g, "");
+  if (telDigits) {
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const { data: chamada } = await supabase.from("chamadas_recebidas")
+      .select("id")
+      .eq("unidade_id", unidadeId)
+      .or(`telefone.eq.${telDigits},telefone.ilike.%${telDigits.slice(-11)}%`)
+      .gte("created_at", twoHoursAgo)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (chamada?.id) {
+      await supabase.from("chamadas_recebidas").update({
+        pedido_gerado_id: pedido.id,
+        observacoes: `🤖 Pedido nº ${pedido.numero_sequencial} criado pela Bia (site institucional)`,
+      }).eq("id", chamada.id);
+    }
+  }
+
   return {
     sucesso: true,
+    reutilizado: false,
+    pedido_id: pedido.id,
     numero_pedido: pedido.numero_sequencial,
     produto: nomeProduto,
     quantidade: qty,

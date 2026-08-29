@@ -98,6 +98,15 @@ export function BiaChatWidget({
   // A versão evita reaproveitar conversas antigas após mudanças de tenant ou
   // mensagens de indisponibilidade que já não são válidas.
   const storageKey = `bia-chat-v2-${unidadeSlug}`;
+  const conversationKey = `bia-site-conversation-v1-${unidadeSlug}`;
+  const [conversationId] = useState(() => {
+    if (typeof window === "undefined") return crypto.randomUUID();
+    const existing = sessionStorage.getItem(conversationKey);
+    if (existing) return existing;
+    const created = crypto.randomUUID();
+    sessionStorage.setItem(conversationKey, created);
+    return created;
+  });
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -202,12 +211,15 @@ export function BiaChatWidget({
     setMessages(novas);
     setInput("");
     setLoading(true);
+    const messageId = crypto.randomUUID();
 
     try {
       const { data, error } = await supabase.functions.invoke("bia-site-chat", {
         body: {
           messages: novas,
           unidadeSlug,
+          conversationId,
+          messageId,
         },
       });
 
