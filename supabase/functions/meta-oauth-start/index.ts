@@ -58,7 +58,46 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const unidadeId = body.unidade_id ?? null;
-    const returnUrl = body.return_url ?? "";
+    if (!unidadeId) {
+      return new Response(JSON.stringify({ error: "Selecione a unidade antes de conectar a Meta" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const [{ data: unidade }, { data: roles }] = await Promise.all([
+      admin.from("unidades").select("id,nome,empresa_id").eq("id", unidadeId).maybeSingle(),
+      admin.from("user_roles").select("role").eq("user_id", userId),
+    ]);
+    if (!unidade || unidade.empresa_id !== profile.empresa_id) {
+      return new Response(JSON.stringify({ error: "A unidade selecionada não pertence à sua empresa" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const podeConectar = (roles ?? []).some((r: any) => ["super_admin", "admin", "gestor"].includes(r.role));
+    if (!podeConectar) {
+      return new Response(JSON.stringify({ error: "Somente administrador ou gestor pode conectar redes sociais" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    let returnUrl = "";
+    try {
+      const parsedReturn = new URL(String(body.return_url || ""));
+      const allowed = parsedReturn.hostname === "app.gasfacilpro.com.br" ||
+        parsedReturn.hostname.endsWith(".lovable.app") ||
+        parsedReturn.hostname === "localhost";
+      if (!allowed) throw new Error("origem não autorizada");
+      returnUrl = parsedReturn.toString();
+    } catch {
+      return new Response(JSON.stringify({ error: "Endereço de retorno não autorizado" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const mode = body.mode === "redirect" ? "redirect" : "popup";
 
     const META_APP_ID = Deno.env.get("META_APP_ID");
@@ -70,13 +109,12 @@ Deno.serve(async (req) => {
     }
 
     // Persistir nonce com service role (RLS bloqueia acesso direto)
-    const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const nonce = crypto.randomUUID();
     const { error: nonceErr } = await admin.from("oauth_states").insert({
       nonce,
       user_id: userId,
       empresa_id: profile.empresa_id,
-      unidade_id: unidadeId,
+      unidade_id: unidade.id,
       return_url: returnUrl,
     });
     if (nonceErr) throw new Error(`Falha ao gerar state: ${nonceErr.message}`);
@@ -97,6 +135,8 @@ Deno.serve(async (req) => {
     console.log("meta-oauth-start", JSON.stringify({
       user_id: userId,
       empresa_id: profile.empresa_id,
+      unidade_id: unidade.id,
+      unidade_nome: unidade.nome,
       mode,
       redirect_uri: redirectUri,
       return_url: returnUrl,

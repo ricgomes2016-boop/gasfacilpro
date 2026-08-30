@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+const META_CALLBACK_ORIGIN = new URL(import.meta.env.VITE_SUPABASE_URL).origin;
+
 type Plataforma = {
   id: string;
   label: string;
@@ -129,7 +131,7 @@ export function ConectarRedesModal({ open, onOpenChange, unidadeId, contasConect
       }
 
       const onMessage = (ev: MessageEvent) => {
-        if (ev.data?.type === "meta-oauth") {
+        if (ev.origin === META_CALLBACK_ORIGIN && ev.data?.type === "meta-oauth") {
           window.removeEventListener("message", onMessage);
           if (ev.data.ok) {
             toast({ title: "Conta conectada com sucesso! 🎉" });
@@ -166,6 +168,12 @@ export function ConectarRedesModal({ open, onOpenChange, unidadeId, contasConect
             Escolha a rede. Você fará login direto na plataforma — não precisa criar conta aqui.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2.5 text-xs leading-relaxed text-foreground">
+          <strong>Conexão protegida por empresa:</strong> o login pessoal serve apenas para autorizar.
+          O sistema aceitará somente a Página com o nome da empresa/unidade selecionada e o Instagram
+          profissional ligado a ela. O perfil pessoal não será salvo.
+        </div>
 
         <div className="space-y-2 py-2">
           {PLATAFORMAS.map((p) => {

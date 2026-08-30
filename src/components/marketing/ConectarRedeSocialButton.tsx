@@ -5,6 +5,8 @@ import { Loader2, Facebook, Instagram } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+const META_CALLBACK_ORIGIN = new URL(import.meta.env.VITE_SUPABASE_URL).origin;
+
 interface Props {
   unidadeId?: string | null;
   onConnected?: () => void;
@@ -15,6 +17,10 @@ export function ConectarRedeSocialButton({ unidadeId, onConnected }: Props) {
   const isMobile = useIsMobile();
 
   const handleConnect = async () => {
+    if (!unidadeId) {
+      toast({ title: "Selecione a unidade", description: "Escolha a unidade da empresa antes de conectar a Meta.", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -49,7 +55,7 @@ export function ConectarRedeSocialButton({ unidadeId, onConnected }: Props) {
 
 
       const onMessage = (ev: MessageEvent) => {
-        if (ev.data?.type === "meta-oauth") {
+        if (ev.origin === META_CALLBACK_ORIGIN && ev.data?.type === "meta-oauth") {
           window.removeEventListener("message", onMessage);
           if (ev.data.ok) {
             toast({ title: "Conta conectada com sucesso! 🎉" });

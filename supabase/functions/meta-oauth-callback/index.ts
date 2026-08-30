@@ -15,7 +15,7 @@ function escHtml(s: string | null | undefined): string {
     .replace(/'/g, "&#39;");
 }
 
-function renderHtml(title: string, message: string, ok: boolean, errorCode?: string) {
+function renderHtml(title: string, message: string, ok: boolean, errorCode?: string, targetOrigin = "") {
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><title>${escHtml(title)}</title>
 <style>
@@ -30,7 +30,7 @@ button{background:#3b82f6;color:#fff;border:0;padding:10px 20px;border-radius:8p
 ${errorCode ? `<div class="code">${escHtml(errorCode)}</div>` : ""}
 <button onclick="window.close()">Fechar janela</button>
 </div>
-<script>setTimeout(()=>{try{window.opener&&window.opener.postMessage({type:'meta-oauth',ok:${ok},error:${JSON.stringify(errorCode || null)}},'*');}catch(e){}}, 100);</script>
+<script>setTimeout(()=>{try{window.opener&&window.opener.postMessage({type:'meta-oauth',ok:${ok},error:${JSON.stringify(errorCode || null)}},${JSON.stringify(targetOrigin)});}catch(e){}}, 100);</script>
 </body></html>`;
 }
 
@@ -93,7 +93,9 @@ Deno.serve(async (req) => {
         // return_url inválida — cai no HTML
       }
     }
-    return new Response(renderHtml(title, message, ok, motivo), {
+    let targetOrigin = "";
+    try { targetOrigin = returnUrl ? new URL(returnUrl).origin : ""; } catch (_) {}
+    return new Response(renderHtml(title, message, ok, motivo, targetOrigin), {
       headers: { "Content-Type": "text/html; charset=utf-8" },
     });
   };
@@ -172,16 +174,52 @@ Deno.serve(async (req) => {
     const expiresIn = longData.expires_in ?? 60 * 24 * 60 * 60;
     const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
-    // 3. Listar páginas
+    // 3. Listar somente Páginas administradas. A API /me/accounts não retorna
+    // o perfil pessoal usado no login.
     const pagesRes = await fetch(
       `https://graph.facebook.com/v21.0/me/accounts?access_token=${longToken}&fields=id,name,access_token,instagram_business_account{id,username,profile_picture_url},picture`,
     );
     const pagesData = await pagesRes.json();
     if (!pagesRes.ok) throw new Error(`Pages fetch failed: ${JSON.stringify(pagesData)}`);
 
+    const { data: unidade } = await supabase
+      .from("unidades")
+      .select("id,nome,empresa_id")
+      .eq("id", stateRow.unidade_id)
+      .maybeSingle();
+    const { data: empresa } = await supabase
+      .from("empresas")
+      .select("id,nome")
+      .eq("id", stateRow.empresa_id)
+      .maybeSingle();
+    if (!unidade || unidade.empresa_id !== stateRow.empresa_id || !empresa) {
+      throw new Error("Empresa/unidade do vínculo não encontrada");
+    }
+
+    const normalizeAssetName = (value: string) => value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    const nomesPermitidos = new Set([
+      normalizeAssetName(empresa.nome),
+      normalizeAssetName(unidade.nome),
+    ].filter(Boolean));
+    const paginasPermitidas = (pagesData.data ?? []).filter((page: any) =>
+      nomesPermitidos.has(normalizeAssetName(String(page.name || "")))
+    );
+
+    if (paginasPermitidas.length !== 1) {
+      const encontradas = (pagesData.data ?? []).map((p: any) => p.name).filter(Boolean);
+      const detalhe = paginasPermitidas.length > 1
+        ? `Foram encontradas várias Páginas com o nome ${unidade.nome}. Remova a duplicidade ou solicite ao suporte a seleção pelo ID.`
+        : `Nenhuma Página chamada ${unidade.nome} foi autorizada. Contas pessoais e outras empresas não são vinculadas. Páginas disponíveis: ${encontradas.join(", ") || "nenhuma"}.`;
+      return finish(false, "Página empresarial não confirmada", detalhe, "pagina_empresa_nao_confirmada");
+    }
+
     let savedCount = 0;
-    for (const page of pagesData.data ?? []) {
-      await supabase.from("social_accounts").upsert(
+    for (const page of paginasPermitidas) {
+      const { error: facebookSaveError } = await supabase.from("social_accounts").upsert(
         {
           empresa_id: stateRow.empresa_id,
           unidade_id: stateRow.unidade_id,
@@ -199,11 +237,12 @@ Deno.serve(async (req) => {
         },
         { onConflict: "empresa_id,plataforma,external_id" },
       );
+      if (facebookSaveError) throw new Error(`Falha ao salvar Página da empresa: ${facebookSaveError.message}`);
       savedCount++;
 
       if (page.instagram_business_account?.id) {
         const ig = page.instagram_business_account;
-        await supabase.from("social_accounts").upsert(
+        const { error: instagramSaveError } = await supabase.from("social_accounts").upsert(
           {
             empresa_id: stateRow.empresa_id,
             unidade_id: stateRow.unidade_id,
@@ -222,6 +261,7 @@ Deno.serve(async (req) => {
           },
           { onConflict: "empresa_id,plataforma,external_id" },
         );
+        if (instagramSaveError) throw new Error(`Falha ao salvar Instagram da empresa: ${instagramSaveError.message}`);
         savedCount++;
       }
     }
@@ -238,7 +278,7 @@ Deno.serve(async (req) => {
     return finish(
       true,
       "Conectado com sucesso!",
-      `${savedCount} conta(s) Meta vinculada(s).`,
+      `${savedCount} conta(s) da ${unidade.nome} vinculada(s). Nenhum perfil pessoal foi armazenado.`,
     );
   } catch (e) {
     console.error("meta-oauth-callback error:", e);
