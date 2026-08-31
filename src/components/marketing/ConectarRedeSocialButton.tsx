@@ -16,7 +16,7 @@ export function ConectarRedeSocialButton({ unidadeId, onConnected }: Props) {
   const [loading, setLoading] = useState(false);
   const isMobile = useIsMobile();
 
-  const handleConnect = async () => {
+  const handleConnect = async (provider: "instagram" | "facebook") => {
     if (!unidadeId) {
       toast({ title: "Selecione a unidade", description: "Escolha a unidade da empresa antes de conectar a Meta.", variant: "destructive" });
       return;
@@ -32,6 +32,7 @@ export function ConectarRedeSocialButton({ unidadeId, onConnected }: Props) {
       const { data, error } = await supabase.functions.invoke("meta-oauth-start", {
         body: {
           unidade_id: unidadeId,
+          provider,
           return_url: window.location.origin + window.location.pathname,
           mode: isMobile ? "redirect" : "popup",
         },
@@ -84,14 +85,15 @@ export function ConectarRedeSocialButton({ unidadeId, onConnected }: Props) {
   };
 
   return (
-    <Button onClick={handleConnect} disabled={loading} className="gap-2">
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
-        <span className="flex items-center gap-1">
-          <Instagram className="h-4 w-4" />
-          <Facebook className="h-4 w-4" />
-        </span>
-      )}
-      Conectar Instagram + Facebook
-    </Button>
+    <div className="flex flex-wrap gap-2">
+      <Button onClick={() => handleConnect("instagram")} disabled={loading} className="gap-2">
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Instagram className="h-4 w-4" />}
+        Entrar com Instagram
+      </Button>
+      <Button onClick={() => handleConnect("facebook")} disabled={loading} variant="outline" className="gap-2">
+        <Facebook className="h-4 w-4" />
+        Entrar com Facebook
+      </Button>
+    </div>
   );
 }

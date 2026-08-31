@@ -5,13 +5,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SCOPES = [
+const FACEBOOK_SCOPES = [
   "pages_show_list",
   "pages_manage_posts",
   "pages_read_engagement",
   "instagram_basic",
   "instagram_content_publish",
   "business_management",
+].join(",");
+
+const INSTAGRAM_SCOPES = [
+  "instagram_business_basic",
+  "instagram_business_content_publish",
 ].join(",");
 
 Deno.serve(async (req) => {
@@ -57,6 +62,14 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
+    const provider = body.provider === "instagram" ? "instagram" :
+      body.provider === "facebook" ? "facebook" : null;
+    if (!provider) {
+      return new Response(JSON.stringify({ error: "Escolha Instagram ou Facebook para conectar" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const unidadeId = body.unidade_id ?? null;
     if (!unidadeId) {
       return new Response(JSON.stringify({ error: "Selecione a unidade antes de conectar a Meta" }), {
@@ -100,9 +113,15 @@ Deno.serve(async (req) => {
     }
     const mode = body.mode === "redirect" ? "redirect" : "popup";
 
-    const META_APP_ID = Deno.env.get("META_APP_ID");
-    if (!META_APP_ID) {
-      return new Response(JSON.stringify({ error: "META_APP_ID não configurado" }), {
+    const appId = provider === "instagram"
+      ? Deno.env.get("INSTAGRAM_APP_ID")
+      : Deno.env.get("META_APP_ID");
+    if (!appId) {
+      return new Response(JSON.stringify({
+        error: provider === "instagram"
+          ? "Instagram Login ainda não está configurado no servidor"
+          : "Facebook Login ainda não está configurado no servidor",
+      }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -122,28 +141,35 @@ Deno.serve(async (req) => {
     const redirectUri = `${supabaseUrl}/functions/v1/meta-oauth-callback`;
 
     // State carrega nonce (anti-replay) + ts + modo de retorno
-    const statePayload = { n: nonce, ts: Date.now(), m: mode };
+    const statePayload = { n: nonce, ts: Date.now(), m: mode, p: provider };
     const state = btoa(JSON.stringify(statePayload));
 
-    const authUrl = new URL("https://www.facebook.com/v21.0/dialog/oauth");
-    authUrl.searchParams.set("client_id", META_APP_ID);
+    const authUrl = new URL(provider === "instagram"
+      ? "https://www.instagram.com/oauth/authorize"
+      : "https://www.facebook.com/v21.0/dialog/oauth");
+    authUrl.searchParams.set("client_id", appId);
     authUrl.searchParams.set("redirect_uri", redirectUri);
-    authUrl.searchParams.set("scope", SCOPES);
+    authUrl.searchParams.set("scope", provider === "instagram" ? INSTAGRAM_SCOPES : FACEBOOK_SCOPES);
     authUrl.searchParams.set("state", state);
     authUrl.searchParams.set("response_type", "code");
+    if (provider === "instagram") {
+      authUrl.searchParams.set("enable_fb_login", "0");
+      authUrl.searchParams.set("force_authentication", "1");
+    }
 
     console.log("meta-oauth-start", JSON.stringify({
       user_id: userId,
       empresa_id: profile.empresa_id,
       unidade_id: unidade.id,
       unidade_nome: unidade.nome,
+      provider,
       mode,
       redirect_uri: redirectUri,
       return_url: returnUrl,
     }));
 
     return new Response(
-      JSON.stringify({ url: authUrl.toString(), redirect_uri: redirectUri, mode }),
+      JSON.stringify({ url: authUrl.toString(), redirect_uri: redirectUri, mode, provider }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

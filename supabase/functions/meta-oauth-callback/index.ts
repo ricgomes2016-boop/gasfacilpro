@@ -46,6 +46,7 @@ Deno.serve(async (req) => {
 
   // Decodifica o state o quanto antes para saber o modo de retorno
   let mode: "popup" | "redirect" = "popup";
+  let provider: "instagram" | "facebook" = "facebook";
   let nonce: string | null = null;
   let ts: number | null = null;
   try {
@@ -54,6 +55,7 @@ Deno.serve(async (req) => {
       nonce = parsed.n ?? null;
       ts = parsed.ts ?? null;
       if (parsed.m === "redirect") mode = "redirect";
+      if (parsed.p === "instagram") provider = "instagram";
     }
   } catch (_) {
     // state ilegível — segue como popup
@@ -65,6 +67,7 @@ Deno.serve(async (req) => {
     has_state: !!stateRaw,
     error: errorParam,
     error_reason: errorReason,
+    provider,
   }));
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -105,7 +108,9 @@ Deno.serve(async (req) => {
       errorParam === "access_denied" || errorReason === "user_denied" ||
       errorDescription?.toLowerCase().includes("permission");
     const msg = isPermissionError
-      ? "O app Meta do GásFácilPro ainda está em modo desenvolvimento. Para conectar agora: 1) descubra seu Facebook ID em facebook.com/settings (Informações pessoais); 2) envie esse ID ao suporte do GásFácilPro para ser adicionado como Testador; 3) aceite o convite em facebook.com/settings → Desenvolvedor; 4) volte aqui e clique em Conectar novamente."
+      ? provider === "instagram"
+        ? "O Instagram não autorizou a conexão. Confirme que @fortegascp é uma conta profissional, que foi adicionada como testadora do app e que o convite foi aceito nas configurações do Instagram."
+        : "O app Meta do GásFácilPro ainda está em modo desenvolvimento. Adicione o Facebook administrador como testador do app, aceite o convite e tente novamente."
       : `Erro retornado pela Meta: ${errorDescription || errorParam}. Confira se você é administrador da Página do Facebook e se o Instagram está como conta Profissional vinculada a ela.`;
     return finish(false, "Conexão cancelada", msg, errorParam);
   }
@@ -120,6 +125,8 @@ Deno.serve(async (req) => {
 
     const META_APP_ID = Deno.env.get("META_APP_ID")!;
     const META_APP_SECRET = Deno.env.get("META_APP_SECRET")!;
+    const INSTAGRAM_APP_ID = Deno.env.get("INSTAGRAM_APP_ID")!;
+    const INSTAGRAM_APP_SECRET = Deno.env.get("INSTAGRAM_APP_SECRET")!;
     const redirectUri = `${supabaseUrl}/functions/v1/meta-oauth-callback`;
 
     const supabase = admin;
@@ -145,6 +152,113 @@ Deno.serve(async (req) => {
       .from("oauth_states")
       .update({ used_at: new Date().toISOString() })
       .eq("nonce", nonce);
+
+    const { data: unidade } = await supabase
+      .from("unidades")
+      .select("id,nome,empresa_id")
+      .eq("id", stateRow.unidade_id)
+      .maybeSingle();
+    const { data: empresa } = await supabase
+      .from("empresas")
+      .select("id,nome")
+      .eq("id", stateRow.empresa_id)
+      .maybeSingle();
+    if (!unidade || unidade.empresa_id !== stateRow.empresa_id || !empresa) {
+      throw new Error("Empresa/unidade do vínculo não encontrada");
+    }
+
+    const normalizeAssetName = (value: string) => value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    const nomesPermitidos = new Set([
+      normalizeAssetName(empresa.nome),
+      normalizeAssetName(unidade.nome),
+    ].filter(Boolean));
+
+    if (provider === "instagram") {
+      if (!INSTAGRAM_APP_ID || !INSTAGRAM_APP_SECRET) {
+        throw new Error("Instagram Login não configurado no servidor");
+      }
+
+      const tokenBody = new URLSearchParams({
+        client_id: INSTAGRAM_APP_ID,
+        client_secret: INSTAGRAM_APP_SECRET,
+        grant_type: "authorization_code",
+        redirect_uri: redirectUri,
+        code,
+      });
+      const shortRes = await fetch("https://api.instagram.com/oauth/access_token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: tokenBody,
+      });
+      const shortData = await shortRes.json();
+      if (!shortRes.ok) throw new Error(`Instagram token exchange failed: ${JSON.stringify(shortData)}`);
+
+      const longUrl = new URL("https://graph.instagram.com/access_token");
+      longUrl.searchParams.set("grant_type", "ig_exchange_token");
+      longUrl.searchParams.set("client_secret", INSTAGRAM_APP_SECRET);
+      longUrl.searchParams.set("access_token", shortData.access_token);
+      const longRes = await fetch(longUrl.toString());
+      const longData = await longRes.json();
+      if (!longRes.ok) throw new Error(`Instagram long token failed: ${JSON.stringify(longData)}`);
+
+      const profileUrl = new URL("https://graph.instagram.com/me");
+      profileUrl.searchParams.set("fields", "user_id,username,name,profile_picture_url");
+      profileUrl.searchParams.set("access_token", longData.access_token);
+      const profileRes = await fetch(profileUrl.toString());
+      const instagram = await profileRes.json();
+      if (!profileRes.ok) throw new Error(`Instagram profile failed: ${JSON.stringify(instagram)}`);
+
+      const { data: contasEsperadas } = await supabase
+        .from("social_accounts")
+        .select("username,nome_conta")
+        .eq("empresa_id", stateRow.empresa_id)
+        .eq("unidade_id", stateRow.unidade_id)
+        .eq("plataforma", "instagram");
+      for (const conta of contasEsperadas ?? []) {
+        if (conta.username) nomesPermitidos.add(normalizeAssetName(conta.username));
+        if (conta.nome_conta) nomesPermitidos.add(normalizeAssetName(conta.nome_conta));
+      }
+
+      const usernameNormalizado = normalizeAssetName(String(instagram.username || ""));
+      if (!usernameNormalizado || !nomesPermitidos.has(usernameNormalizado)) {
+        return finish(
+          false,
+          "Instagram empresarial não confirmado",
+          `A conta @${instagram.username || "desconhecida"} não corresponde à conta cadastrada da ${unidade.nome}. Nenhuma conexão foi salva.`,
+          "instagram_empresa_nao_confirmado",
+        );
+      }
+
+      const externalId = String(instagram.user_id || instagram.id || shortData.user_id || "");
+      if (!externalId) throw new Error("Instagram não retornou o identificador da conta profissional");
+      const expiresIn = Number(longData.expires_in || 60 * 24 * 60 * 60);
+      const { error: instagramSaveError } = await supabase.from("social_accounts").upsert({
+        empresa_id: stateRow.empresa_id,
+        unidade_id: stateRow.unidade_id,
+        plataforma: "instagram",
+        nome_conta: instagram.name || instagram.username,
+        username: instagram.username,
+        access_token: longData.access_token,
+        token_expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
+        ig_business_id: externalId,
+        external_id: externalId,
+        profile_picture_url: instagram.profile_picture_url ?? null,
+        conectado_via: "oauth",
+        ativo: true,
+        scopes: ["instagram_business_basic", "instagram_business_content_publish"],
+      }, { onConflict: "empresa_id,plataforma,external_id" });
+      if (instagramSaveError) throw new Error(`Falha ao salvar Instagram da empresa: ${instagramSaveError.message}`);
+
+      return finish(
+        true,
+        "Instagram conectado!",
+        `A conta @${instagram.username} foi vinculada à ${unidade.nome}. Nenhum Facebook pessoal foi armazenado.`,
+      );
+    }
 
     // 1. Trocar code por short-lived token
     const tokenUrl = new URL("https://graph.facebook.com/v21.0/oauth/access_token");
@@ -182,29 +296,6 @@ Deno.serve(async (req) => {
     const pagesData = await pagesRes.json();
     if (!pagesRes.ok) throw new Error(`Pages fetch failed: ${JSON.stringify(pagesData)}`);
 
-    const { data: unidade } = await supabase
-      .from("unidades")
-      .select("id,nome,empresa_id")
-      .eq("id", stateRow.unidade_id)
-      .maybeSingle();
-    const { data: empresa } = await supabase
-      .from("empresas")
-      .select("id,nome")
-      .eq("id", stateRow.empresa_id)
-      .maybeSingle();
-    if (!unidade || unidade.empresa_id !== stateRow.empresa_id || !empresa) {
-      throw new Error("Empresa/unidade do vínculo não encontrada");
-    }
-
-    const normalizeAssetName = (value: string) => value
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "");
-    const nomesPermitidos = new Set([
-      normalizeAssetName(empresa.nome),
-      normalizeAssetName(unidade.nome),
-    ].filter(Boolean));
     const paginasPermitidas = (pagesData.data ?? []).filter((page: any) =>
       nomesPermitidos.has(normalizeAssetName(String(page.name || "")))
     );

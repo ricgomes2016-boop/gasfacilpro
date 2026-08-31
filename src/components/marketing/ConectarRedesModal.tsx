@@ -110,6 +110,7 @@ export function ConectarRedesModal({ open, onOpenChange, unidadeId, contasConect
       const { data, error } = await supabase.functions.invoke("meta-oauth-start", {
         body: {
           unidade_id: unidadeId,
+          provider: p.id,
           return_url: window.location.origin + window.location.pathname,
           mode: usarRedirect ? "redirect" : "popup",
         },
@@ -165,14 +166,14 @@ export function ConectarRedesModal({ open, onOpenChange, unidadeId, contasConect
         <DialogHeader>
           <DialogTitle>Conectar rede social</DialogTitle>
           <DialogDescription>
-            Escolha a rede. Você fará login direto na plataforma — não precisa criar conta aqui.
+            Escolha a rede. Cada botão abre a página oficial de login da própria plataforma.
           </DialogDescription>
         </DialogHeader>
 
         <div className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2.5 text-xs leading-relaxed text-foreground">
-          <strong>Conexão protegida por empresa:</strong> o login pessoal serve apenas para autorizar.
-          O sistema aceitará somente a Página com o nome da empresa/unidade selecionada e o Instagram
-          profissional ligado a ela. O perfil pessoal não será salvo.
+          <strong>Conexão protegida por empresa:</strong> Instagram abre o login do Instagram e Facebook
+          abre o login do Facebook. Somente a conta empresarial correspondente à unidade selecionada
+          será aceita; perfis pessoais e contas de outras empresas não serão salvos.
         </div>
 
         <div className="space-y-2 py-2">
