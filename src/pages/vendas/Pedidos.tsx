@@ -63,6 +63,7 @@ import { format as fnsFormat } from "date-fns";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { getOrigemMeta, ORIGEM_PEDIDO_META, ORIGENS_PEDIDO, type OrigemPedido } from "@/lib/pedidos/origem";
 import { EditarPagamentoPedidoDialog } from "@/components/vendas/EditarPagamentoPedidoDialog";
+import { normalizeFormaPagamentoKey } from "@/lib/financeiro/formaPagamento";
 
 function OrigemBadge({ origem }: { origem?: string | null }) {
   const meta = getOrigemMeta(origem);
@@ -761,7 +762,7 @@ export default function Pedidos() {
       (cr || []).forEach((r: any) => {
         if (!r.pedido_id) return;
         const arr = recebiveis[r.pedido_id] || [];
-        arr.push({ forma: String(r.forma_pagamento || "nao_informado").toLowerCase(), valor: Number(r.valor) || 0 });
+        arr.push({ forma: normalizeFormaPagamentoKey(r.forma_pagamento), valor: Number(r.valor) || 0 });
         recebiveis[r.pedido_id] = arr;
       });
       const caixa: Record<string, number> = {};
@@ -788,11 +789,11 @@ export default function Pedidos() {
         const n = Number(num);
         if (Number.isFinite(n)) valor = n;
       }
-      const forma = s
+      const forma = normalizeFormaPagamentoKey(s
         .replace(/r\$\s*[\d.,]+/gi, " ")
         .replace(/\s+/g, " ")
         .trim()
-        .toLowerCase();
+        .toLowerCase());
       return { forma: forma || "nao_informado", valor };
     };
 

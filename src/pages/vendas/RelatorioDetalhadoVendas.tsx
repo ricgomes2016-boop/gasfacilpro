@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useToast } from "@/hooks/use-toast";
+import { normalizeFormaPagamentoKey } from "@/lib/financeiro/formaPagamento";
 
 interface PedidoRelatorio {
   id: string;
@@ -100,7 +101,7 @@ const formaPagamentoLabels: Record<string, string> = {
 };
 
 const normalizarFormaPagamento = (forma: string | null | undefined) => {
-  const chave = String(forma || "nao_informado").trim().toLowerCase().replace(/\s+/g, "_");
+  const chave = normalizeFormaPagamentoKey(forma);
   const custom = chave.match(/^custom_(?:avista|aprazo)_(.+)$/);
   const labelCustom = custom?.[1]
     .split("_")
@@ -122,7 +123,15 @@ const parseFormasPagamento = (raw: string | null | undefined) => {
     const forma = limpo.replace(/r\$\s*[\d.,]+/gi, " ").replace(/\s+/g, " ").trim();
     return { ...normalizarFormaPagamento(forma), valor };
   }).filter(item => item.chave && item.chave !== "nao_informado");
-  return formas.length ? formas : [{ ...normalizarFormaPagamento(null), valor: null as number | null }];
+  if (!formas.length) return [{ ...normalizarFormaPagamento(null), valor: null as number | null }];
+
+  const consolidadas = new Map<string, (typeof formas)[number]>();
+  formas.forEach((forma) => {
+    const atual = consolidadas.get(forma.chave);
+    if (!atual) consolidadas.set(forma.chave, { ...forma });
+    else if (forma.valor != null) atual.valor = (atual.valor || 0) + forma.valor;
+  });
+  return Array.from(consolidadas.values());
 };
 
 const formasAReceber = new Set(["fiado", "a_prazo", "convenio", "boleto"]);

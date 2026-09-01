@@ -22,6 +22,31 @@ function norm(s: string | null | undefined): string {
   return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }
 
+/**
+ * Retorna uma chave canônica para agrupamentos e conciliações.
+ * Preserva formas customizadas e mantém PIX comum separado de PIX maquininha.
+ */
+export function normalizeFormaPagamentoKey(forma: string | null | undefined): string {
+  const limpa = norm(forma)
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/r\$\s*[\d.,]+/gi, " ")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  if (!limpa || limpa === "a_definir" || limpa === "nao_informada") return "nao_informado";
+  if (limpa.startsWith("custom_avista_") || limpa.startsWith("custom_aprazo_")) return limpa;
+  if (limpa.includes("pix_maquininha") || limpa.includes("pix_na_maquininha")) return "pix_maquininha";
+  if (limpa === "pix" || limpa === "pix_direto") return "pix";
+  if (["credito", "cartao", "cartao_credito", "cartao_de_credito", "credito_cartao"].includes(limpa)) return "cartao_credito";
+  if (["debito", "cartao_debito", "cartao_de_debito", "debito_cartao"].includes(limpa)) return "cartao_debito";
+  if (["dinheiro", "especie", "em_dinheiro"].includes(limpa)) return "dinheiro";
+  if (["fiado", "a_prazo", "prazo"].includes(limpa)) return "fiado";
+  if (["vale_gas", "valegas", "vale_gaz"].includes(limpa)) return "vale_gas";
+  if (["gas_do_povo", "gas_povo"].includes(limpa)) return "gas_do_povo";
+  if (["transferencia", "transferencia_bancaria", "ted", "doc"].includes(limpa)) return "transferencia";
+  return limpa;
+}
+
 export function getFormaCategoria(forma: string | null | undefined): FormaCategoria {
   const f = norm(forma);
   if (!f) return "outros";
