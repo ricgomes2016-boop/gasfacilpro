@@ -104,6 +104,21 @@ const normalizarFormaPagamento = (forma: string | null | undefined) => {
   return { chave, label: formaPagamentoLabels[chave] || chave.replace(/_/g, " ").replace(/^./, c => c.toUpperCase()) };
 };
 
+const parseFormasPagamento = (raw: string | null | undefined) => {
+  const texto = String(raw || "").trim();
+  if (!texto) return [{ ...normalizarFormaPagamento(null), valor: null as number | null }];
+  const semPrefixo = texto.toLowerCase().startsWith("multiplo:") ? texto.slice("multiplo:".length) : texto;
+  const formas = semPrefixo.split(/[,+]/).map((trecho) => {
+    const limpo = trecho.replace(/\[[^\]]*\]/g, " ").trim();
+    const valorEncontrado = limpo.match(/r\$\s*([\d.,]+)/i);
+    const valorTexto = valorEncontrado?.[1].replace(/\.(?=\d{3}\b)/g, "").replace(",", ".");
+    const valor = valorTexto && Number.isFinite(Number(valorTexto)) ? Number(valorTexto) : null;
+    const forma = limpo.replace(/r\$\s*[\d.,]+/gi, " ").replace(/\s+/g, " ").trim();
+    return { ...normalizarFormaPagamento(forma), valor };
+  }).filter(item => item.chave && item.chave !== "nao_informado");
+  return formas.length ? formas : [{ ...normalizarFormaPagamento(null), valor: null as number | null }];
+};
+
 const formasAReceber = new Set(["fiado", "a_prazo", "convenio", "boleto"]);
 
 const money = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -272,18 +287,17 @@ export default function RelatorioDetalhadoVendas() {
   const resumoPagamentos = useMemo<ResumoPagamento[]>(() => {
     const mapa = new Map<string, Omit<ResumoPagamento, "participacao" | "ticketMedio">>();
     pedidos.forEach((pedido) => {
-      const formas = String(pedido.forma_pagamento || "")
-        .split(",")
-        .map((forma) => normalizarFormaPagamento(forma))
-        .filter((forma, index, lista) => lista.findIndex(item => item.chave === forma.chave) === index);
-      const formasValidas = formas.length ? formas : [normalizarFormaPagamento(null)];
+      const formasValidas = parseFormasPagamento(pedido.forma_pagamento);
       const valorPedido = Number(pedido.valor_total) || (pedido.pedido_itens || []).reduce(
         (total, item) => total + (Number(item.quantidade) || 0) * (Number(item.preco_unitario) || 0), 0,
       );
-      // Quando o pedido registra mais de uma forma sem os valores individuais,
-      // divide-se o total igualmente e sinaliza-se a participação sem duplicar faturamento.
-      const valorPorForma = valorPedido / formasValidas.length;
-      formasValidas.forEach(({ chave, label }) => {
+      const totalInformado = formasValidas.reduce((soma, forma) => soma + (forma.valor || 0), 0);
+      const semValor = formasValidas.filter(forma => forma.valor == null).length;
+      const saldoSemForma = Math.max(valorPedido - totalInformado, 0);
+      formasValidas.forEach(({ chave, label, valor }) => {
+        // Os fluxos mais novos persistem o valor de cada forma no próprio texto.
+        // Para registros legados sem valor, somente o saldo é dividido entre elas.
+        const valorPorForma = valor ?? (semValor ? saldoSemForma / semValor : 0);
         const atual = mapa.get(chave) || {
           chave,
           forma: label,
