@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Brain, Download, Filter, RefreshCw, Search, TrendingUp, X, Trophy, Medal, Crown, UserRound, ShoppingCart } from "lucide-react";
+import { AlertTriangle, Brain, CreditCard, Download, Filter, RefreshCw, Search, TrendingUp, X, Trophy, Medal, Crown, UserRound, ShoppingCart, WalletCards } from "lucide-react";
 import * as XLSX from "xlsx";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
@@ -27,6 +27,7 @@ interface PedidoRelatorio {
   valor_total: number | null;
   status: string | null;
   canal_venda: string | null;
+  forma_pagamento: string | null;
   entregadores: { nome: string } | null;
   pedido_itens: Array<{
     quantidade: number;
@@ -56,6 +57,17 @@ type ResumoEntregador = LinhaDetalhe & {
   posicao: number;
 };
 
+type ResumoPagamento = {
+  chave: string;
+  forma: string;
+  vendas: number;
+  total: number;
+  participacao: number;
+  ticketMedio: number;
+  aReceber: boolean;
+  pedidos: Array<{ id: string; data: string; status: string; valor: number }>;
+};
+
 const canalLabels: Record<string, string> = {
   telefone: "Telefone",
   whatsapp: "WhatsApp",
@@ -67,6 +79,32 @@ const canalLabels: Record<string, string> = {
   importado: "Importado",
   outros: "Outros",
 };
+
+const formaPagamentoLabels: Record<string, string> = {
+  dinheiro: "Dinheiro",
+  pix: "PIX",
+  pix_maquininha: "PIX na maquininha",
+  cartao_credito: "Cartão de crédito",
+  credito: "Cartão de crédito",
+  cartao_debito: "Cartão de débito",
+  debito: "Cartão de débito",
+  boleto: "Boleto",
+  vale_gas: "Vale-gás",
+  gas_do_povo: "Gás do Povo",
+  fiado: "Fiado / a prazo",
+  a_prazo: "A prazo",
+  convenio: "Convênio",
+  cheque: "Cheque",
+  a_definir: "Não informado",
+  nao_informado: "Não informado",
+};
+
+const normalizarFormaPagamento = (forma: string | null | undefined) => {
+  const chave = String(forma || "nao_informado").trim().toLowerCase().replace(/\s+/g, "_");
+  return { chave, label: formaPagamentoLabels[chave] || chave.replace(/_/g, " ").replace(/^./, c => c.toUpperCase()) };
+};
+
+const formasAReceber = new Set(["fiado", "a_prazo", "convenio", "boleto"]);
 
 const money = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const pct = (v: number) => `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
@@ -124,6 +162,7 @@ export default function RelatorioDetalhadoVendas() {
   const [busca, setBusca] = useState("");
   const [entregadorAberto, setEntregadorAberto] = useState<ResumoEntregador | null>(null);
   const [produtoAberto, setProdutoAberto] = useState<LinhaDetalhe | null>(null);
+  const [formaPagamentoAberta, setFormaPagamentoAberta] = useState<string | null>(null);
 
   const { data: pedidos = [], isLoading, refetch } = useQuery({
     queryKey: ["relatorio-vendas-unificado", unidadeAtual?.id, dataInicio, dataFim],
@@ -134,7 +173,7 @@ export default function RelatorioDetalhadoVendas() {
       const { data, error } = await supabase
         .from("pedidos")
         .select(`
-          id, data_entrega, created_at, valor_total, status, canal_venda,
+          id, data_entrega, created_at, valor_total, status, canal_venda, forma_pagamento,
           entregadores (nome),
           pedido_itens (quantidade, preco_unitario, produtos (id, nome, preco_custo))
         `)
@@ -230,6 +269,56 @@ export default function RelatorioDetalhadoVendas() {
     return { qtd, totalVenda, totalCusto, lucro, vendaMedia: qtd ? totalVenda / qtd : 0, margem: baseMargem > 0 ? (lucro / baseMargem) * 100 : 0 };
   }, [filtradas]);
 
+  const resumoPagamentos = useMemo<ResumoPagamento[]>(() => {
+    const mapa = new Map<string, Omit<ResumoPagamento, "participacao" | "ticketMedio">>();
+    pedidos.forEach((pedido) => {
+      const formas = String(pedido.forma_pagamento || "")
+        .split(",")
+        .map((forma) => normalizarFormaPagamento(forma))
+        .filter((forma, index, lista) => lista.findIndex(item => item.chave === forma.chave) === index);
+      const formasValidas = formas.length ? formas : [normalizarFormaPagamento(null)];
+      const valorPedido = Number(pedido.valor_total) || (pedido.pedido_itens || []).reduce(
+        (total, item) => total + (Number(item.quantidade) || 0) * (Number(item.preco_unitario) || 0), 0,
+      );
+      // Quando o pedido registra mais de uma forma sem os valores individuais,
+      // divide-se o total igualmente e sinaliza-se a participação sem duplicar faturamento.
+      const valorPorForma = valorPedido / formasValidas.length;
+      formasValidas.forEach(({ chave, label }) => {
+        const atual = mapa.get(chave) || {
+          chave,
+          forma: label,
+          vendas: 0,
+          total: 0,
+          aReceber: formasAReceber.has(chave),
+          pedidos: [],
+        };
+        atual.vendas += 1;
+        atual.total += valorPorForma;
+        atual.pedidos.push({
+          id: pedido.id,
+          data: dataPedido(pedido),
+          status: pedido.status || "não informado",
+          valor: valorPorForma,
+        });
+        mapa.set(chave, atual);
+      });
+    });
+    const total = Array.from(mapa.values()).reduce((soma, item) => soma + item.total, 0);
+    return Array.from(mapa.values())
+      .map(item => ({
+        ...item,
+        participacao: total ? item.total / total * 100 : 0,
+        ticketMedio: item.vendas ? item.total / item.vendas : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [pedidos]);
+
+  const totaisPagamentos = useMemo(() => {
+    const total = resumoPagamentos.reduce((soma, item) => soma + item.total, 0);
+    const aReceber = resumoPagamentos.filter(item => item.aReceber).reduce((soma, item) => soma + item.total, 0);
+    return { total, aReceber, recebido: total - aReceber };
+  }, [resumoPagamentos]);
+
   const agregado = (campo: "entregador" | "produto" | "canal") => {
     const map = new Map<string, LinhaDetalhe>();
     filtradas.forEach(l => {
@@ -312,9 +401,37 @@ export default function RelatorioDetalhadoVendas() {
 
   const exportarExcel = () => {
     const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumoPagamentos.map(item => ({
+      "Forma de pagamento": item.forma,
+      "Quantidade de vendas": item.vendas,
+      "Valor total": item.total,
+      "Participação %": item.participacao,
+      "Ticket médio": item.ticketMedio,
+      "Situação financeira": item.aReceber ? "A receber" : "Recebido",
+    }))), "Formas de pagamento");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filtradas.map(l => ({ Entregador: l.entregador, Produto: l.produto, Canal: l.canal, Quantidade: l.qtd, "Custo Médio": l.custoMedio, "Preço Médio Venda": l.vendaMedia, "Total Custo": l.totalCusto, "Total Venda": l.totalVenda, Lucro: l.lucro, "Margem %": l.margem }))), "Detalhado");
     XLSX.writeFile(wb, `relatorio-vendas-${dataInicio}-${dataFim}.xlsx`);
     toast({ title: "Relatório exportado" });
+  };
+
+  const ResumoFormasPagamento = () => {
+    const selecionada = resumoPagamentos.find(item => item.chave === formaPagamentoAberta);
+    return (
+      <div className="space-y-3">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Card className="border-primary/20"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Faturamento do período</p><p className="text-xl font-bold">{money(totaisPagamentos.total)}</p><p className="text-xs text-muted-foreground mt-1">{pedidos.length.toLocaleString("pt-BR")} vendas</p></CardContent></Card>
+          <Card className="border-success/30"><CardContent className="p-4"><p className="text-xs text-muted-foreground">Recebido / à vista</p><p className="text-xl font-bold text-success">{money(totaisPagamentos.recebido)}</p><p className="text-xs text-muted-foreground mt-1">{pct(totaisPagamentos.total ? totaisPagamentos.recebido / totaisPagamentos.total * 100 : 0)} do total</p></CardContent></Card>
+          <Card className="border-warning/30"><CardContent className="p-4"><p className="text-xs text-muted-foreground">A receber / a prazo</p><p className="text-xl font-bold text-warning">{money(totaisPagamentos.aReceber)}</p><p className="text-xs text-muted-foreground mt-1">{pct(totaisPagamentos.total ? totaisPagamentos.aReceber / totaisPagamentos.total * 100 : 0)} do total</p></CardContent></Card>
+        </div>
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><WalletCards className="h-5 w-5 text-primary" />Resumo por forma de pagamento</CardTitle></CardHeader>
+          <CardContent className="p-0 sm:p-6 sm:pt-0">
+            {isLoading ? <div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /></div> : resumoPagamentos.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">Sem vendas no período selecionado.</p> : <div className="overflow-x-auto"><Table className="min-w-[760px]"><TableHeader><TableRow><TableHead>Forma de pagamento</TableHead><TableHead className="text-right">Vendas</TableHead><TableHead className="text-right">Valor total</TableHead><TableHead className="text-right">Participação</TableHead><TableHead className="text-right">Ticket médio</TableHead><TableHead>Situação</TableHead></TableRow></TableHeader><TableBody>{resumoPagamentos.map(item => <TableRow key={item.chave} className="cursor-pointer hover:bg-muted/60" onClick={() => setFormaPagamentoAberta(atual => atual === item.chave ? null : item.chave)}><TableCell><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center"><CreditCard className="h-4 w-4" /></div><div className="min-w-[180px]"><p className="font-medium">{item.forma}</p><div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(item.participacao, 2)}%` }} /></div></div></div></TableCell><TableCell className="text-right">{item.vendas.toLocaleString("pt-BR")}</TableCell><TableCell className="text-right font-semibold">{money(item.total)}</TableCell><TableCell className="text-right">{pct(item.participacao)}</TableCell><TableCell className="text-right">{money(item.ticketMedio)}</TableCell><TableCell><Badge variant={item.aReceber ? "outline" : "secondary"}>{item.aReceber ? "A receber" : "Recebido"}</Badge></TableCell></TableRow>)}<TableRow className="bg-muted/50 font-bold"><TableCell>Total</TableCell><TableCell className="text-right">{pedidos.length.toLocaleString("pt-BR")}</TableCell><TableCell className="text-right">{money(totaisPagamentos.total)}</TableCell><TableCell className="text-right">100,0%</TableCell><TableCell className="text-right">{money(pedidos.length ? totaisPagamentos.total / pedidos.length : 0)}</TableCell><TableCell>—</TableCell></TableRow></TableBody></Table></div>}
+          </CardContent>
+        </Card>
+        {selecionada && <Card className="border-primary/25"><CardHeader className="pb-3"><CardTitle className="text-base">Vendas em {selecionada.forma}</CardTitle></CardHeader><CardContent className="p-0 sm:p-6 sm:pt-0"><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Valor atribuído</TableHead></TableRow></TableHeader><TableBody>{selecionada.pedidos.map(pedido => <TableRow key={pedido.id}><TableCell>{pedido.data ? format(new Date(`${pedido.data}T00:00:00`), "dd/MM/yyyy") : "—"}</TableCell><TableCell><Badge variant="outline">{pedido.status.replace(/_/g, " ")}</Badge></TableCell><TableCell className="text-right font-medium">{money(pedido.valor)}</TableCell></TableRow>)}</TableBody></Table></div></CardContent></Card>}
+      </div>
+    );
   };
 
   const TabelaDetalhada = () => (
@@ -353,7 +470,7 @@ export default function RelatorioDetalhadoVendas() {
       <Header title="Relatório de Vendas" subtitle="Resumo e detalhamento inteligente em uma única tela" />
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 min-w-0">
         <Card><CardContent className="p-3 sm:p-4 space-y-3"><div className="flex items-center justify-between gap-3 flex-wrap"><div className="flex items-center gap-2 text-sm font-medium"><Filter className="h-4 w-4 text-primary" />Filtros inteligentes</div>{filtrosAtivos > 0 && <Button size="sm" variant="ghost" onClick={limparFiltros}><X className="h-4 w-4 mr-1" />Limpar filtros</Button>}</div><div className="grid grid-cols-2 lg:grid-cols-7 gap-2 sm:gap-3"><div className="space-y-1"><Label className="text-xs">Início</Label><Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} /></div><div className="space-y-1"><Label className="text-xs">Fim</Label><Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} /></div><div className="lg:col-span-1 col-span-2"><MultiSelectFiltro titulo="Entregadores" opcoes={opcoesEntregador} selecionados={entregadoresSelecionados} onChange={setEntregadoresSelecionados} /></div><div className="lg:col-span-1 col-span-2"><MultiSelectFiltro titulo="Produtos" opcoes={opcoesProduto} selecionados={produtosSelecionados} onChange={setProdutosSelecionados} /></div><div className="lg:col-span-1 col-span-2"><MultiSelectFiltro titulo="Canais" opcoes={opcoesCanal} selecionados={canaisSelecionados} onChange={setCanaisSelecionados} /></div><div className="col-span-2 lg:col-span-1 flex items-end"><Button variant="outline" className="w-full" onClick={() => refetch()} disabled={isLoading}><RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? "animate-spin" : ""}`} />Atualizar</Button></div></div><div className="relative max-w-xl"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input className="pl-9" placeholder="Buscar entregador, produto ou canal..." value={busca} onChange={e => setBusca(e.target.value)} /></div></CardContent></Card>
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Qt vendida</p><p className="text-xl font-bold">{resumo.qtd.toLocaleString("pt-BR")}</p></CardContent></Card><Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Total venda</p><p className="text-lg font-bold truncate">{money(resumo.totalVenda)}</p></CardContent></Card><Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Preço médio</p><p className="text-lg font-bold truncate">{money(resumo.vendaMedia)}</p></CardContent></Card><Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Lucro estimado</p><p className="text-lg font-bold text-success truncate">{money(resumo.lucro)}</p></CardContent></Card><Card className="col-span-2 lg:col-span-1"><CardContent className="p-3"><p className="text-xs text-muted-foreground">Margem média</p><p className="text-xl font-bold">{pct(resumo.margem)}</p></CardContent></Card></div>
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3"><Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Número de vendas</p><p className="text-xl font-bold">{pedidos.length.toLocaleString("pt-BR")}</p></CardContent></Card><Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Itens vendidos</p><p className="text-xl font-bold">{resumo.qtd.toLocaleString("pt-BR")}</p></CardContent></Card><Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Faturamento real</p><p className="text-lg font-bold truncate">{money(totaisPagamentos.total)}</p></CardContent></Card><Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Preço médio/item</p><p className="text-lg font-bold truncate">{money(resumo.vendaMedia)}</p></CardContent></Card><Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Lucro estimado</p><p className="text-lg font-bold text-success truncate">{money(resumo.lucro)}</p></CardContent></Card><Card className="col-span-2 lg:col-span-1"><CardContent className="p-3"><p className="text-xs text-muted-foreground">Margem média</p><p className="text-xl font-bold">{pct(resumo.margem)}</p></CardContent></Card></div>
         {produtosSemCusto.length > 0 && (
           <Card className="border-warning/60 bg-warning dark:bg-warning/20">
             <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
@@ -371,7 +488,7 @@ export default function RelatorioDetalhadoVendas() {
           </Card>
         )}
         <div className="flex justify-end"><Button onClick={exportarExcel}><Download className="h-4 w-4 mr-2" />Exportar Excel</Button></div>
-        <Tabs defaultValue="geral" className="space-y-3"><TabsList className="w-full h-auto p-1 grid grid-cols-3 md:grid-cols-6"><TabsTrigger value="geral">Geral</TabsTrigger><TabsTrigger value="produto">Produtos</TabsTrigger><TabsTrigger value="entregador">Entregadores</TabsTrigger><TabsTrigger value="canal">Canais</TabsTrigger><TabsTrigger value="detalhado">Detalhado</TabsTrigger><TabsTrigger value="ia">Inteligência</TabsTrigger></TabsList><TabsContent value="geral" className="space-y-3"><div className="grid gap-3 lg:grid-cols-2"><TabelaResumo rows={agregado("produto").slice(0, 10)} titulo="Top produtos" campo="produto" /><TabelaResumo rows={agregado("canal").slice(0, 10)} titulo="Top canais" campo="canal" /></div></TabsContent><TabsContent value="produto"><TabelaResumo rows={agregado("produto")} titulo="Resumo por Produto" campo="produto" /></TabsContent><TabsContent value="entregador"><RankingEntregadores /></TabsContent><TabsContent value="canal"><TabelaResumo rows={agregado("canal")} titulo="Resumo por Canal" campo="canal" /></TabsContent><TabsContent value="detalhado"><TabelaDetalhada /></TabsContent><TabsContent value="ia"><Card className="border-primary/20 bg-primary/5"><CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Brain className="h-5 w-5 text-primary" />Insights automáticos</CardTitle></CardHeader><CardContent className="space-y-2">{insights.length ? insights.map((i, idx) => <div key={idx} className="text-sm flex gap-2"><TrendingUp className="h-4 w-4 text-primary mt-0.5" /><span>{i}</span></div>) : <p className="text-sm text-muted-foreground">Sem dados suficientes para gerar insights.</p>}</CardContent></Card></TabsContent></Tabs>
+        <Tabs defaultValue="pagamentos" className="space-y-3"><TabsList className="w-full h-auto p-1 grid grid-cols-3 md:grid-cols-6"><TabsTrigger value="pagamentos">Pagamentos</TabsTrigger><TabsTrigger value="produto">Produtos</TabsTrigger><TabsTrigger value="entregador">Entregadores</TabsTrigger><TabsTrigger value="canal">Canais</TabsTrigger><TabsTrigger value="detalhado">Detalhado</TabsTrigger><TabsTrigger value="ia">Inteligência</TabsTrigger></TabsList><TabsContent value="pagamentos"><ResumoFormasPagamento /></TabsContent><TabsContent value="produto"><TabelaResumo rows={agregado("produto")} titulo="Resumo por Produto" campo="produto" /></TabsContent><TabsContent value="entregador"><RankingEntregadores /></TabsContent><TabsContent value="canal"><TabelaResumo rows={agregado("canal")} titulo="Resumo por Canal" campo="canal" /></TabsContent><TabsContent value="detalhado"><TabelaDetalhada /></TabsContent><TabsContent value="ia"><Card className="border-primary/20 bg-primary/5"><CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Brain className="h-5 w-5 text-primary" />Insights automáticos</CardTitle></CardHeader><CardContent className="space-y-2">{insights.length ? insights.map((i, idx) => <div key={idx} className="text-sm flex gap-2"><TrendingUp className="h-4 w-4 text-primary mt-0.5" /><span>{i}</span></div>) : <p className="text-sm text-muted-foreground">Sem dados suficientes para gerar insights.</p>}</CardContent></Card></TabsContent></Tabs>
       </div>
 
       <Dialog open={!!entregadorAberto} onOpenChange={(open) => !open && setEntregadorAberto(null)}>
