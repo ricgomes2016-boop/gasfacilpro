@@ -101,7 +101,13 @@ const formaPagamentoLabels: Record<string, string> = {
 
 const normalizarFormaPagamento = (forma: string | null | undefined) => {
   const chave = String(forma || "nao_informado").trim().toLowerCase().replace(/\s+/g, "_");
-  return { chave, label: formaPagamentoLabels[chave] || chave.replace(/_/g, " ").replace(/^./, c => c.toUpperCase()) };
+  const custom = chave.match(/^custom_(?:avista|aprazo)_(.+)$/);
+  const labelCustom = custom?.[1]
+    .split("_")
+    .filter(Boolean)
+    .map(parte => parte.charAt(0).toUpperCase() + parte.slice(1))
+    .join(" ");
+  return { chave, label: formaPagamentoLabels[chave] || labelCustom || chave.replace(/_/g, " ").replace(/^./, c => c.toUpperCase()) };
 };
 
 const parseFormasPagamento = (raw: string | null | undefined) => {
@@ -120,6 +126,7 @@ const parseFormasPagamento = (raw: string | null | undefined) => {
 };
 
 const formasAReceber = new Set(["fiado", "a_prazo", "convenio", "boleto"]);
+const formaEhAReceber = (chave: string) => formasAReceber.has(chave) || chave.startsWith("custom_aprazo_");
 
 const money = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const pct = (v: number) => `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
@@ -303,7 +310,7 @@ export default function RelatorioDetalhadoVendas() {
           forma: label,
           vendas: 0,
           total: 0,
-          aReceber: formasAReceber.has(chave),
+          aReceber: formaEhAReceber(chave),
           pedidos: [],
         };
         atual.vendas += 1;
