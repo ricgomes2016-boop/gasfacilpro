@@ -130,6 +130,39 @@ Deno.serve(async (req) => {
     const redirectUri = `${supabaseUrl}/functions/v1/meta-oauth-callback`;
 
     const supabase = admin;
+    const normalizeAssetName = (value: string) => value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+
+    // The database has a partial unique index for external_id. PostgREST cannot
+    // infer that predicate from on_conflict, so upsert(..., onConflict) fails.
+    // Reuse the existing manual account (same username) or the OAuth account
+    // (same external_id), then update by primary key; otherwise insert it.
+    const saveSocialAccount = async (payload: Record<string, unknown>) => {
+      const { data: existing, error: lookupError } = await supabase
+        .from("social_accounts")
+        .select("id,external_id,username")
+        .eq("empresa_id", payload.empresa_id)
+        .eq("unidade_id", payload.unidade_id)
+        .eq("plataforma", payload.plataforma);
+      if (lookupError) return lookupError;
+
+      const externalId = String(payload.external_id || "");
+      const username = normalizeAssetName(String(payload.username || ""));
+      const target = (existing ?? []).find((account: any) =>
+        (externalId && String(account.external_id || "") === externalId) ||
+        (!account.external_id && username && normalizeAssetName(String(account.username || "")) === username)
+      );
+
+      if (target) {
+        const { error } = await supabase.from("social_accounts").update(payload).eq("id", target.id);
+        return error;
+      }
+      const { error } = await supabase.from("social_accounts").insert(payload);
+      return error;
+    };
 
     if (!stateRow) throw new Error("State inválido ou desconhecido");
     if (stateRow.used_at) throw new Error("State já utilizado (replay bloqueado)");
@@ -167,11 +200,6 @@ Deno.serve(async (req) => {
       throw new Error("Empresa/unidade do vínculo não encontrada");
     }
 
-    const normalizeAssetName = (value: string) => value
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "");
     const nomesPermitidos = new Set([
       normalizeAssetName(empresa.nome),
       normalizeAssetName(unidade.nome),
@@ -236,7 +264,7 @@ Deno.serve(async (req) => {
       const externalId = String(instagram.user_id || instagram.id || shortData.user_id || "");
       if (!externalId) throw new Error("Instagram não retornou o identificador da conta profissional");
       const expiresIn = Number(longData.expires_in || 60 * 24 * 60 * 60);
-      const { error: instagramSaveError } = await supabase.from("social_accounts").upsert({
+      const instagramSaveError = await saveSocialAccount({
         empresa_id: stateRow.empresa_id,
         unidade_id: stateRow.unidade_id,
         plataforma: "instagram",
@@ -250,7 +278,7 @@ Deno.serve(async (req) => {
         conectado_via: "oauth",
         ativo: true,
         scopes: ["instagram_business_basic", "instagram_business_content_publish"],
-      }, { onConflict: "empresa_id,plataforma,external_id" });
+      });
       if (instagramSaveError) throw new Error(`Falha ao salvar Instagram da empresa: ${instagramSaveError.message}`);
 
       return finish(
@@ -310,8 +338,7 @@ Deno.serve(async (req) => {
 
     let savedCount = 0;
     for (const page of paginasPermitidas) {
-      const { error: facebookSaveError } = await supabase.from("social_accounts").upsert(
-        {
+      const facebookSaveError = await saveSocialAccount({
           empresa_id: stateRow.empresa_id,
           unidade_id: stateRow.unidade_id,
           plataforma: "facebook",
@@ -325,16 +352,13 @@ Deno.serve(async (req) => {
           conectado_via: "oauth",
           ativo: true,
           scopes: ["pages_manage_posts", "pages_read_engagement"],
-        },
-        { onConflict: "empresa_id,plataforma,external_id" },
-      );
+        });
       if (facebookSaveError) throw new Error(`Falha ao salvar Página da empresa: ${facebookSaveError.message}`);
       savedCount++;
 
       if (page.instagram_business_account?.id) {
         const ig = page.instagram_business_account;
-        const { error: instagramSaveError } = await supabase.from("social_accounts").upsert(
-          {
+        const instagramSaveError = await saveSocialAccount({
             empresa_id: stateRow.empresa_id,
             unidade_id: stateRow.unidade_id,
             plataforma: "instagram",
@@ -349,9 +373,7 @@ Deno.serve(async (req) => {
             conectado_via: "oauth",
             ativo: true,
             scopes: ["instagram_basic", "instagram_content_publish"],
-          },
-          { onConflict: "empresa_id,plataforma,external_id" },
-        );
+          });
         if (instagramSaveError) throw new Error(`Falha ao salvar Instagram da empresa: ${instagramSaveError.message}`);
         savedCount++;
       }
