@@ -24,6 +24,10 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import {
+  ClienteAutocompleteInput,
+  type ClienteSugestao,
+} from "@/components/clientes/ClienteAutocompleteInput";
 
 interface ItemForm {
   produto_id: string;
@@ -46,7 +50,6 @@ export default function VendaAntecipada() {
     observacoes: "", data_validade: "",
   });
   const [itens, setItens] = useState<ItemForm[]>([]);
-  const [clienteSearch, setClienteSearch] = useState("");
 
   const { data: vendas = [], isLoading } = useQuery({
     queryKey: ["vendas-antecipadas-v2", unidadeAtual?.id],
@@ -67,20 +70,6 @@ export default function VendaAntecipada() {
         .eq("unidade_id", unidadeAtual.id).eq("ativo", true).order("nome");
       return data || [];
     },
-  });
-
-  const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes-search-va2", clienteSearch, unidadeAtual?.id],
-    queryFn: async () => {
-      if (!clienteSearch || clienteSearch.length < 2 || !unidadeAtual?.id) return [];
-      const { data: cuData } = await supabase.from("cliente_unidades").select("cliente_id").eq("unidade_id", unidadeAtual.id);
-      const ids = (cuData || []).map((cu: any) => cu.cliente_id);
-      if (ids.length === 0) return [];
-      const { data } = await supabase.from("clientes").select("id, nome, telefone")
-        .eq("ativo", true).in("id", ids).ilike("nome", `%${clienteSearch}%`).limit(5);
-      return data || [];
-    },
-    enabled: clienteSearch.length >= 2,
   });
 
   const { data: vales = [], refetch: refetchVales } = useQuery({
@@ -105,7 +94,15 @@ export default function VendaAntecipada() {
 
   const resetForm = () => {
     setForm({ cliente_id: "", cliente_nome: "", forma_pagamento: "dinheiro", observacoes: "", data_validade: "" });
-    setItens([]); setClienteSearch("");
+    setItens([]);
+  };
+
+  const handleClienteChange = (nome: string, cliente?: ClienteSugestao) => {
+    setForm((atual) => ({
+      ...atual,
+      cliente_nome: nome,
+      cliente_id: cliente?.id || "",
+    }));
   };
 
   const criarVenda = async () => {
@@ -255,16 +252,14 @@ export default function VendaAntecipada() {
             <div className="space-y-4 pt-2">
               <div>
                 <Label>Cliente *</Label>
-                <Input value={form.cliente_nome} onChange={e => { setForm({ ...form, cliente_nome: e.target.value, cliente_id: "" }); setClienteSearch(e.target.value); }} placeholder="Buscar cliente..." />
-                {clientes.length > 0 && (
-                  <div className="border rounded-md mt-1 max-h-32 overflow-y-auto">
-                    {clientes.map((c: any) => (
-                      <button key={c.id} type="button" className="w-full text-left px-3 py-2 hover:bg-muted text-sm"
-                        onClick={() => { setForm({ ...form, cliente_id: c.id, cliente_nome: c.nome }); setClienteSearch(""); }}>
-                        {c.nome} {c.telefone && `— ${c.telefone}`}
-                      </button>
-                    ))}
-                  </div>
+                <ClienteAutocompleteInput
+                  value={form.cliente_nome}
+                  onChange={handleClienteChange}
+                  placeholder="Buscar por nome, telefone ou endereço..."
+                  autoFocus
+                />
+                {form.cliente_id && (
+                  <p className="mt-1 text-xs text-emerald-600">Cliente cadastrado selecionado</p>
                 )}
               </div>
 
