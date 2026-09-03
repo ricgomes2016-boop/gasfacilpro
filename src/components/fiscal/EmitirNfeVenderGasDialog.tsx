@@ -109,19 +109,23 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange, tipoDocum
           observacoes: pedido.observacoes, unidade_id: unidadeAtual.id, created_by: user?.id,
           integracao_payload: payload,
         }).select("id").single();
-        if (criarError) throw criarError;
-        notaId = criada.id;
+        if (criarError) {
+          const schemaDesatualizado = /schema cache|column.*notas_fiscais/i.test(String(criarError.message || ""));
+          if (!schemaDesatualizado) throw criarError;
+        } else {
+          notaId = criada.id;
+        }
       } else {
         await db.from("notas_fiscais").update({ status: "rascunho", provedor_status: "aguardando_agente", motivo_rejeicao: null, integracao_payload: payload }).eq("id", notaId);
       }
 
       const resposta = await emitirDocumentoVenderGas(payload);
       if (!resposta.ok) {
-        await db.from("notas_fiscais").update({ provedor_status: resposta.motivo || "falha", motivo_rejeicao: resposta.mensagem, integracao_resultado: resposta }).eq("id", notaId);
+        if (notaId) await db.from("notas_fiscais").update({ provedor_status: resposta.motivo || "falha", motivo_rejeicao: resposta.mensagem, integracao_resultado: resposta }).eq("id", notaId);
         throw new Error(resposta.mensagem);
       }
       if (resposta.etapa === "pronta_para_revisao") {
-        await db.from("notas_fiscais").update({
+        if (notaId) await db.from("notas_fiscais").update({
           status: "rascunho", provedor_status: "pronta_para_revisao",
           motivo_rejeicao: null, integracao_resultado: resposta,
         }).eq("id", notaId);
@@ -129,7 +133,7 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange, tipoDocum
         onOpenChange(false);
         return;
       }
-      await db.from("notas_fiscais").update({
+      if (notaId) await db.from("notas_fiscais").update({
         status: "autorizada", provedor_status: "autorizada", numero: resposta.numero || null,
         chave_acesso: resposta.chaveAcesso || null, protocolo: resposta.protocolo || null,
         provedor_referencia: resposta.chaveAcesso || resposta.numero || null, integracao_resultado: resposta,
