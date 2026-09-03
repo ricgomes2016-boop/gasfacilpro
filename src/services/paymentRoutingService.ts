@@ -189,6 +189,8 @@ export async function criarMovimentacaoBancaria(params: {
   unidadeId?: string | null;
   userId?: string;
   pedidoId?: string;
+  referenciaId?: string;
+  referenciaTipo?: string;
 }) {
   const { data: conta } = await supabase
     .from("contas_bancarias")
@@ -200,12 +202,14 @@ export async function criarMovimentacaoBancaria(params: {
 
   // Idempotência: se já existe uma movimentação bancária para este pedido nesta conta
   // (mesmo referencia_tipo/categoria), não duplica.
-  if (params.pedidoId) {
+  const referenciaId = params.referenciaId || params.pedidoId;
+  const referenciaTipo = params.referenciaTipo || (params.pedidoId ? "pedido" : null);
+  if (referenciaId && referenciaTipo) {
     const { data: jaExiste } = await supabase
       .from("movimentacoes_bancarias")
       .select("id")
-      .eq("referencia_id", params.pedidoId)
-      .eq("referencia_tipo", "pedido")
+      .eq("referencia_id", referenciaId)
+      .eq("referencia_tipo", referenciaTipo)
       .eq("categoria", params.categoria)
       .eq("conta_bancaria_id", params.contaBancariaId)
       .maybeSingle();
@@ -222,8 +226,8 @@ export async function criarMovimentacaoBancaria(params: {
     descricao: params.descricao,
     valor: params.valor,
     saldo_apos: novoSaldo,
-    referencia_id: params.pedidoId || null,
-    referencia_tipo: params.pedidoId ? "pedido" : null,
+    referencia_id: referenciaId || null,
+    referencia_tipo: referenciaTipo,
     user_id: params.userId || null,
     unidade_id: params.unidadeId || null,
   });
@@ -233,6 +237,124 @@ export async function criarMovimentacaoBancaria(params: {
     .from("contas_bancarias")
     .update({ saldo_atual: novoSaldo })
     .eq("id", params.contaBancariaId);
+}
+
+export async function rotearPagamentosVendaAntecipada(params: {
+  vendaAntecipadaId: string;
+  vendaNumero?: string | number | null;
+  clienteId?: string | null;
+  clienteNome: string;
+  pagamentos: PagamentoRoteamento[];
+  unidadeId: string;
+  userId?: string;
+}): Promise<void> {
+  const { vendaAntecipadaId, clienteId, clienteNome, pagamentos, unidadeId, userId } = params;
+  const referencia = params.vendaNumero != null ? String(params.vendaNumero) : vendaAntecipadaId.slice(0, 8).toUpperCase();
+  const hoje = getBrasiliaDateString();
+
+  for (const pagamento of pagamentos) {
+    const forma = pagamento.forma === "debito" ? "cartao_debito"
+      : pagamento.forma === "credito" ? "cartao_credito"
+      : pagamento.forma;
+    const descricao = `Venda antecipada #${referencia}`;
+
+    if (forma === "dinheiro" || forma === "cheque") {
+      const { error } = await supabase.from("movimentacoes_caixa").insert({
+        tipo: "entrada",
+        descricao: `${descricao} - ${forma === "dinheiro" ? "Dinheiro" : "Cheque"}`,
+        valor: pagamento.valor,
+        categoria: forma === "dinheiro" ? "Venda Antecipada - Dinheiro" : "Venda Antecipada - Cheque",
+        status: "aprovada",
+        unidade_id: unidadeId,
+        observacoes: `venda_antecipada:${vendaAntecipadaId}`,
+      });
+      if (error) throw error;
+      continue;
+    }
+
+    if (forma === "pix" || forma.startsWith("custom_avista_")) {
+      const contaId = await resolverContaDestino({
+        unidadeId,
+        forma,
+        contaExplicita: pagamento.conta_bancaria_id,
+      });
+      if (contaId) {
+        await criarMovimentacaoBancaria({
+          contaBancariaId: contaId,
+          valor: pagamento.valor,
+          descricao: `${descricao} - ${forma === "pix" ? "PIX" : "Pagamento à vista"}`,
+          categoria: "venda_antecipada",
+          unidadeId,
+          userId,
+          referenciaId: vendaAntecipadaId,
+          referenciaTipo: "venda_antecipada",
+        });
+      } else {
+        const { error } = await supabase.from("movimentacoes_caixa").insert({
+          tipo: "entrada", descricao, valor: pagamento.valor,
+          categoria: "Venda Antecipada", status: "aprovada", unidade_id: unidadeId,
+          observacoes: `venda_antecipada:${vendaAntecipadaId};forma:${forma}`,
+        });
+        if (error) throw error;
+      }
+      continue;
+    }
+
+    if (["cartao_debito", "cartao_credito", "pix_maquininha", "gas_do_povo"].includes(forma)) {
+      const parcelas = forma === "cartao_credito" ? Math.max(1, Number(pagamento.parcelas) || 1) : 1;
+      const op = await getOperadoraConfig(unidadeId, forma, pagamento.operadora_id, parcelas);
+      const taxaBase = op?.taxa || 0;
+      const taxaTotal = Number(pagamento.taxa_total_percentual) ||
+        (taxaBase + (forma === "cartao_credito" ? Number(pagamento.taxa_desconto_percentual) || 0 : 0));
+      const prazo = op?.prazo ?? (forma === "cartao_debito" ? 1 : forma === "pix_maquininha" ? 0 : 30);
+      const valorTaxa = pagamento.valor * taxaTotal / 100;
+      const valorLiquido = pagamento.valor - valorTaxa;
+      const contaId = await resolverContaDestino({
+        unidadeId, forma, contaExplicita: pagamento.conta_bancaria_id,
+        operadoraContaId: op?.conta_bancaria_id || null,
+      });
+      const liquidaAgora = prazo === 0 && !!contaId;
+      const { error } = await supabase.from("contas_receber").insert({
+        cliente: op?.nome || clienteNome,
+        cliente_id: clienteId || null,
+        descricao: `${descricao} - ${forma.replaceAll("_", " ")}`,
+        valor: pagamento.valor,
+        vencimento: format(addDays(new Date(), prazo), "yyyy-MM-dd"),
+        status: liquidaAgora ? "recebida" : "pendente",
+        data_recebimento: liquidaAgora ? hoje : null,
+        forma_pagamento: forma,
+        unidade_id: unidadeId,
+        operadora_id: op?.id || null,
+        taxa_percentual: taxaTotal,
+        valor_taxa: valorTaxa,
+        valor_liquido: valorLiquido,
+        parcela_atual: 1,
+        total_parcelas: parcelas,
+        conta_bancaria_destino_id: contaId,
+      });
+      if (error) throw error;
+      if (liquidaAgora && contaId) {
+        await criarMovimentacaoBancaria({
+          contaBancariaId: contaId, valor: valorLiquido, descricao,
+          categoria: "liquidacao_operadora", unidadeId, userId,
+          referenciaId: vendaAntecipadaId, referenciaTipo: "venda_antecipada",
+        });
+      }
+      continue;
+    }
+
+    if (forma === "fiado" || forma === "boleto" || forma.startsWith("custom_aprazo_")) {
+      const contaId = await resolverContaDestino({ unidadeId, forma, contaExplicita: pagamento.conta_bancaria_id });
+      const { error } = await supabase.from("contas_receber").insert({
+        cliente: clienteNome, cliente_id: clienteId || null, descricao,
+        valor: pagamento.valor,
+        vencimento: pagamento.data_vencimento_fiado || format(addDays(new Date(), 30), "yyyy-MM-dd"),
+        status: "pendente", forma_pagamento: forma, unidade_id: unidadeId,
+        conta_bancaria_destino_id: contaId,
+      });
+      if (error) throw error;
+    }
+  }
 }
 
 /**

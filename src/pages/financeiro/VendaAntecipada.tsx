@@ -28,6 +28,8 @@ import {
   ClienteAutocompleteInput,
   type ClienteSugestao,
 } from "@/components/clientes/ClienteAutocompleteInput";
+import { PaymentSection, type Pagamento } from "@/components/vendas/PaymentSection";
+import { rotearPagamentosVendaAntecipada } from "@/services/paymentRoutingService";
 
 interface ItemForm {
   produto_id: string;
@@ -46,10 +48,11 @@ export default function VendaAntecipada() {
   const [printAllOpen, setPrintAllOpen] = useState(false);
 
   const [form, setForm] = useState({
-    cliente_id: "", cliente_nome: "", forma_pagamento: "dinheiro",
+    cliente_id: "", cliente_nome: "",
     observacoes: "", data_validade: "",
   });
   const [itens, setItens] = useState<ItemForm[]>([]);
+  const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
 
   const { data: vendas = [], isLoading } = useQuery({
     queryKey: ["vendas-antecipadas-v2", unidadeAtual?.id],
@@ -93,8 +96,9 @@ export default function VendaAntecipada() {
   };
 
   const resetForm = () => {
-    setForm({ cliente_id: "", cliente_nome: "", forma_pagamento: "dinheiro", observacoes: "", data_validade: "" });
+    setForm({ cliente_id: "", cliente_nome: "", observacoes: "", data_validade: "" });
     setItens([]);
+    setPagamentos([]);
   };
 
   const handleClienteChange = (nome: string, cliente?: ClienteSugestao) => {
@@ -112,13 +116,20 @@ export default function VendaAntecipada() {
       toast.error("Preencha produto, quantidade e valor de cada item"); return;
     }
     if (!unidadeAtual?.id) { toast.error("Selecione uma unidade"); return; }
+    const totalPago = pagamentos.reduce((soma, pagamento) => soma + Number(pagamento.valor || 0), 0);
+    if (pagamentos.length === 0 || Math.abs(totalPago - totalForm) > 0.01) {
+      toast.error("Informe as formas de pagamento até completar o total da venda"); return;
+    }
+    const formaPagamentoResumo = pagamentos.length === 1
+      ? pagamentos[0].forma
+      : pagamentos.map((pagamento) => `${pagamento.forma} R$${pagamento.valor.toFixed(2)}`).join(", ");
 
     // 1) Insert venda
     const { data: va, error: e1 } = await supabase.from("vendas_antecipadas").insert({
       cliente_id: form.cliente_id || null,
       cliente_nome: form.cliente_nome,
       valor_pago: totalForm,
-      forma_pagamento: form.forma_pagamento,
+      forma_pagamento: formaPagamentoResumo,
       observacoes: form.observacoes || null,
       data_validade: form.data_validade || null,
       unidade_id: unidadeAtual.id,
@@ -161,6 +172,21 @@ export default function VendaAntecipada() {
     }
     const { error: e3 } = await supabase.from("vendas_antecipadas_vales").insert(valesPayload);
     if (e3) { toast.error("Erro ao gerar vales: " + e3.message); return; }
+
+    try {
+      await rotearPagamentosVendaAntecipada({
+        vendaAntecipadaId: va.id,
+        vendaNumero: va.numero_sequencial,
+        clienteId: form.cliente_id || null,
+        clienteNome: form.cliente_nome,
+        pagamentos,
+        unidadeId: unidadeAtual.id,
+        userId: user?.id,
+      });
+    } catch (erro: any) {
+      toast.error("A venda foi criada, mas houve erro no lançamento financeiro: " + (erro?.message || "erro desconhecido"));
+      return;
+    }
 
     toast.success(`Venda #${va.numero_sequencial} criada com ${valesPayload.length} vales!`);
     setDialogOpen(false);
@@ -304,21 +330,17 @@ export default function VendaAntecipada() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Forma Pagamento</Label>
-                  <Select value={form.forma_pagamento} onValueChange={v => setForm({ ...form, forma_pagamento: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                      <SelectItem value="pix">PIX</SelectItem>
-                      <SelectItem value="cartao_debito">Débito</SelectItem>
-                      <SelectItem value="cartao_credito">Crédito</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><Label>Validade</Label>
+              <PaymentSection
+                pagamentos={pagamentos}
+                onChange={setPagamentos}
+                totalVenda={totalForm}
+                unidadeId={unidadeAtual?.id}
+                itens={itens.map((item) => ({ nome: item.produto_nome, quantidade: item.quantidade }))}
+                excludedFormas={["vale_gas"]}
+              />
+
+              <div><Label>Validade</Label>
                   <Input type="date" value={form.data_validade} onChange={e => setForm({ ...form, data_validade: e.target.value })} /></div>
-              </div>
               <div><Label>Observações</Label>
                 <Textarea value={form.observacoes} onChange={e => setForm({ ...form, observacoes: e.target.value })} rows={2} /></div>
               <div className="flex justify-end gap-2">

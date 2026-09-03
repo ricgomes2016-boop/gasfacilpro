@@ -60,6 +60,7 @@ interface PaymentSectionProps {
   totalVenda: number;
   unidadeId?: string;
   itens?: Array<{ nome: string; quantidade: number }>;
+  excludedFormas?: string[];
 }
 
 const formasPagamentoBase = [
@@ -76,7 +77,7 @@ const formasPagamentoBase = [
 
 const GAS_DO_POVO_FORMA = { value: "gas_do_povo", label: "Gás do Povo", icon: "🏛️", Icon: Flame, tone: "bg-info/15 text-info ring-info/25", cardTone: "border-info/25 bg-info/5 hover:border-info/45 hover:bg-info/10", valueTone: "text-info", quickTone: "text-info", quickSurface: "bg-info/10", quickRing: "ring-info/35" };
 
-export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, itens = [] }: PaymentSectionProps) {
+export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, itens = [], excludedFormas = [] }: PaymentSectionProps) {
   const [forma, setForma] = useState("");
   const [valorDisplay, setValorDisplay] = useState("");
   const [chequeNumero, setChequeNumero] = useState("");
@@ -123,7 +124,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     ...formasPagamentoBase,
     ...(gasDoPovoHabilitado ? [GAS_DO_POVO_FORMA] : []),
     ...customEntries,
-  ];
+  ].filter((formaPagamento) => !excludedFormas.includes(formaPagamento.value));
 
   // Carrinho elegível: exatamente 1× Gás P13
   const cartoElegivelGasDoPovo = (() => {
