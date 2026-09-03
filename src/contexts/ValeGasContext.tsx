@@ -1,5 +1,6 @@
 import { createContext, useContext, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { codigoValeGas } from "@/lib/vales/codigoVale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -103,8 +104,7 @@ interface ValeGasContextType {
 const ValeGasContext = createContext<ValeGasContextType | undefined>(undefined);
 
 const gerarCodigoVale = (numero: number) => {
-  const ano = new Date().getFullYear();
-  return `VG-${ano}-${numero.toString().padStart(5, "0")}`;
+  return codigoValeGas(numero);
 };
 
 export function ValeGasProvider({ children }: { children: ReactNode }) {

@@ -692,7 +692,7 @@ export default function FinalizarEntrega() {
                             <div className="space-y-4">
                               <div>
                               <Label>Código ou Número do Vale Gás</Label>
-                                <Input placeholder="Ex: 1 ou VG-2026-00001" value={codigoManual} onChange={(e) => setCodigoManual(e.target.value)} className="font-mono" />
+                                <Input placeholder="Ex: 1 ou VG-000001" value={codigoManual} onChange={(e) => setCodigoManual(e.target.value)} className="font-mono" />
                                 <p className="text-xs text-muted-foreground mt-1">Digite apenas o número (ex: 1) ou o código completo</p>
                               </div>
                               <Button onClick={validarCodigoManual} disabled={!codigoManual.trim() || validandoCodigo} className="w-full gradient-primary text-white">

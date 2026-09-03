@@ -165,7 +165,7 @@ export default function ParceiroVenderVale() {
                 <Label>Número ou código do vale</Label>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Ex: 123 ou VG-2026-00123"
+                    placeholder="Ex: 123 ou VG-000123"
                     value={busca}
                     onChange={(e) => setBusca(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && buscarVale()}

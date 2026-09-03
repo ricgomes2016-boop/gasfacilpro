@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { codigoValeGas, somenteDigitosCodigo } from "@/lib/vales/codigoVale";
 
 export interface ValeGasValidationResult {
   valido: boolean;
@@ -14,7 +15,7 @@ export interface ValeGasValidationResult {
 
 /**
  * Validates a Vale Gás code against the database.
- * Accepts either the full code (VG-2026-00001) or just the number (1).
+ * Accepts the short code (VG-000001), a legacy code or just the number (1).
  * Returns both valor (cost) and valorVenda (what the customer paid to the partner).
  */
 export async function validarValeGasNoBanco(codigo: string, parceiroId?: string): Promise<ValeGasValidationResult> {
@@ -23,7 +24,7 @@ export async function validarValeGasNoBanco(codigo: string, parceiroId?: string)
   });
 
   try {
-    const trimmed = codigo.trim();
+    const trimmed = codigo.trim().toUpperCase();
     const numInput = parseInt(trimmed);
     const isNumericOnly = !isNaN(numInput) && String(numInput) === trimmed;
 
@@ -46,7 +47,11 @@ export async function validarValeGasNoBanco(codigo: string, parceiroId?: string)
 
     // Fallback: search by codigo field
     if (!data && !error) {
-      let query = (supabase as any).from("vale_gas").select(selectFields).eq("codigo", trimmed);
+      const digitosCodigo = somenteDigitosCodigo(trimmed);
+      const codigoNormalizado = /^VG/i.test(trimmed) && digitosCodigo.length <= 6
+        ? codigoValeGas(Number(digitosCodigo))
+        : trimmed;
+      let query = (supabase as any).from("vale_gas").select(selectFields).eq("codigo", codigoNormalizado);
       if (parceiroId) query = query.eq("parceiro_id", parceiroId);
       const res = await query.maybeSingle();
       data = res.data;

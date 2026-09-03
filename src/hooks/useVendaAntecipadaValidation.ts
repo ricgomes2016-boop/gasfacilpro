@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { somenteDigitosCodigo } from "@/lib/vales/codigoVale";
 
 export interface VendaAntecipadaValidationResult {
   valido: boolean;
@@ -23,14 +24,22 @@ export async function validarValeVendaAntecipada(entrada: string, clienteId?: st
   try {
     const campos = "id, venda_antecipada_id, codigo, numero, status, produto_id, produto_nome, valor_unitario, cliente_id, unidade_id, vendas_antecipadas!inner(cliente_nome)";
     let registros: any[] = [];
-    if (/^\d+$/.test(codigo)) {
+    const digitos = somenteDigitosCodigo(codigo);
+    const pareceCodigoCurto = (/^VA/i.test(codigo) && digitos.length <= 7) || /^\d{7}$/.test(codigo);
+    if (pareceCodigoCurto) {
+      const codigoCurto = `VA-${digitos.padStart(7, "0")}`;
+      const { data, error } = await (supabase as any).from("vendas_antecipadas_vales")
+        .select(campos).eq("codigo", codigoCurto).limit(1);
+      if (error) throw error;
+      registros = data || [];
+    } else if (/^\d+$/.test(codigo)) {
       let query = (supabase as any).from("vendas_antecipadas_vales")
         .select(campos).eq("numero", Number(codigo)).eq("status", "disponivel");
       if (clienteId) query = query.eq("cliente_id", clienteId);
       const { data, error } = await query.order("created_at", { ascending: false }).limit(2);
       if (error) throw error;
       registros = data || [];
-      if (registros.length > 1) return falhar("Este número existe em mais de uma venda. Digite o código completo impresso no vale (ex.: VA-2026-00001-01).");
+      if (registros.length > 1) return falhar("Este número existe em mais de uma venda. Digite o código completo impresso no vale (ex.: VA-0000101).");
     } else {
       const { data, error } = await (supabase as any).from("vendas_antecipadas_vales")
         .select(campos).ilike("codigo", codigo).limit(1);

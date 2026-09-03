@@ -30,6 +30,7 @@ import {
 } from "@/components/clientes/ClienteAutocompleteInput";
 import { PaymentSection, type Pagamento } from "@/components/vendas/PaymentSection";
 import { rotearPagamentosVendaAntecipada } from "@/services/paymentRoutingService";
+import { codigoVendaAntecipada } from "@/lib/vales/codigoVale";
 
 interface ItemForm {
   produto_id: string;
@@ -149,7 +150,6 @@ export default function VendaAntecipada() {
     if (e2 || !itensIns) { toast.error("Erro ao criar itens: " + e2?.message); return; }
 
     // 3) Generate vales (1 per unit)
-    const ano = new Date().getFullYear();
     const numVenda = String(va.numero_sequencial || 0).padStart(5, "0");
     const valesPayload: any[] = [];
     let counter = 1;
@@ -161,7 +161,7 @@ export default function VendaAntecipada() {
           produto_id: item.produto_id,
           produto_nome: item.produto_nome,
           numero: counter,
-          codigo: `VA-${ano}-${numVenda}-${String(counter).padStart(2, "0")}`,
+          codigo: codigoVendaAntecipada(Number(numVenda), counter),
           valor_unitario: item.valor_unitario,
           cliente_id: form.cliente_id || null,
           unidade_id: unidadeAtual.id,

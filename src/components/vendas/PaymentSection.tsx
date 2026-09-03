@@ -614,7 +614,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
                     <Input
                       value={valeGasNumero}
                       onChange={(e) => setValeGasNumero(e.target.value)}
-                      placeholder="Ex: 529 ou VG-2026-00529"
+                      placeholder="Ex: 529 ou VG-000529"
                       className="h-9 text-sm"
                       data-venda-enter-next
                     />
@@ -636,7 +636,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
                   <Label className="text-xs">Código completo do vale *</Label>
                   <div className="flex gap-2">
                     <Input value={vendaAntecipadaCodigo} onChange={(e) => setVendaAntecipadaCodigo(e.target.value.toUpperCase())}
-                      placeholder="Ex: VA-2026-00001-01" className="h-9 text-sm font-mono" data-venda-enter-next />
+                      placeholder="Ex: VA-0000101 ou 0000101" className="h-9 text-sm font-mono" data-venda-enter-next />
                     <Button type="button" variant="outline" className="h-9 shrink-0" onClick={addPagamento} disabled={validandoValeGas}>
                       {validandoValeGas ? <Loader2 className="h-4 w-4 animate-spin" /> : "Validar"}
                     </Button>

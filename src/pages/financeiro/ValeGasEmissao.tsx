@@ -24,6 +24,7 @@ import {
 import { useValeGas } from "@/contexts/ValeGasContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { supabase } from "@/integrations/supabase/client";
+import { codigoValeGas } from "@/lib/vales/codigoVale";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Plus, Package, Hash, Banknote, FileText, CreditCard, Eye,
@@ -332,7 +333,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
     const preview = [];
     for (let i = 0; i < qtd; i++) {
       const num = numInicial + i;
-      preview.push({ numero: num, codigo: `VG-${new Date().getFullYear()}-${num.toString().padStart(5, "0")}`, valor });
+      preview.push({ numero: num, codigo: codigoValeGas(num), valor });
     }
     setPreviewVales(preview);
   };
@@ -393,7 +394,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
       for (let i = lote.numero_inicial; i <= lote.numero_final; i++) {
         valesDoLote.push({
           numero: i,
-          codigo: `VG-${new Date().getFullYear()}-${i.toString().padStart(5, "0")}`,
+          codigo: codigoValeGas(i),
           valor: Number(lote.valor_unitario),
         });
       }
@@ -436,17 +437,13 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
   };
 
   // Reimprimir cupons de um lote existente
-  const handleReimprimirLote = (lote: any) => {
+  const handleReimprimirLote = async (lote: any) => {
     const loteParceiro = parceiros.find(p => p.id === lote.parceiro_id);
     if (!loteParceiro) { toast.error("Parceiro não encontrado"); return; }
-    const valesDoLote: Array<{ numero: number; codigo: string; valor: number }> = [];
-    for (let i = lote.numero_inicial; i <= lote.numero_final; i++) {
-      valesDoLote.push({
-        numero: i,
-        codigo: `VG-${new Date().getFullYear()}-${i.toString().padStart(5, "0")}`,
-        valor: Number(lote.valor_unitario),
-      });
-    }
+    const { data, error } = await (supabase as any).from("vale_gas")
+      .select("numero, codigo, valor").eq("lote_id", lote.id).order("numero");
+    if (error || !data?.length) { toast.error("Não foi possível carregar os códigos originais deste lote."); return; }
+    const valesDoLote = data.map((vale: any) => ({ numero: vale.numero, codigo: vale.codigo, valor: Number(vale.valor) }));
     const cupons = gerarCuponsDoLote(valesDoLote, loteParceiro, lote.produto_nome, lote.cliente_nome, lote.descricao || "VALE GÁS");
     setCuponsGerados(cupons);
     setCupomDialogOpen(true);
