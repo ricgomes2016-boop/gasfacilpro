@@ -246,19 +246,35 @@ Deno.serve(async (req) => {
         .eq("empresa_id", stateRow.empresa_id)
         .eq("unidade_id", stateRow.unidade_id)
         .eq("plataforma", "instagram");
+      const contasCadastradas = new Set<string>();
       for (const conta of contasEsperadas ?? []) {
-        if (conta.username) nomesPermitidos.add(normalizeAssetName(conta.username));
-        if (conta.nome_conta) nomesPermitidos.add(normalizeAssetName(conta.nome_conta));
+        if (conta.username) contasCadastradas.add(normalizeAssetName(conta.username));
+        if (conta.nome_conta) contasCadastradas.add(normalizeAssetName(conta.nome_conta));
       }
 
       const usernameNormalizado = normalizeAssetName(String(instagram.username || ""));
-      if (!usernameNormalizado || !nomesPermitidos.has(usernameNormalizado)) {
+      if (!usernameNormalizado) {
         return finish(
           false,
           "Instagram empresarial não confirmado",
-          `A conta @${instagram.username || "desconhecida"} não corresponde à conta cadastrada da ${unidade.nome}. Nenhuma conexão foi salva.`,
+          "A Meta não retornou o @ da conta profissional. Nenhuma conexão foi salva.",
           "instagram_empresa_nao_confirmado",
         );
+      }
+      // O login do Instagram já prova a posse da conta, então o @ NÃO precisa ser
+      // igual ao nome da empresa na primeira conexão. Se a unidade já tem uma conta
+      // Instagram vinculada, apenas essa conta (ou o nome da empresa/unidade) é aceita,
+      // evitando troca silenciosa por outro perfil.
+      if (contasCadastradas.size > 0) {
+        const permitido = contasCadastradas.has(usernameNormalizado) || nomesPermitidos.has(usernameNormalizado);
+        if (!permitido) {
+          return finish(
+            false,
+            "Instagram empresarial não confirmado",
+            `A conta @${instagram.username} não é a conta já vinculada à ${unidade.nome}. Remova a conta atual antes de conectar outra.`,
+            "instagram_empresa_nao_confirmado",
+          );
+        }
       }
 
       const externalId = String(instagram.user_id || instagram.id || shortData.user_id || "");

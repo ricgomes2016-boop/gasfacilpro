@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { RotateCcw, ArrowLeftRight, DollarSign, Plus, Search, CheckCircle, XCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -30,6 +31,7 @@ const tipoConfig: Record<string, { label: string; icon: React.ElementType }> = {
 };
 
 export default function Devolucoes() {
+  const { unidadeAtual } = useUnidade();
   const [devolucoes, setDevolucoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState("todos");
@@ -68,7 +70,13 @@ export default function Devolucoes() {
       return;
     }
 
+    if (!unidadeAtual?.id) {
+      toast.error("Selecione uma unidade antes de registrar.");
+      return;
+    }
+
     const { error } = await supabase.from("devolucoes").insert({
+      unidade_id: unidadeAtual.id,
       cliente_nome: form.cliente_nome,
       tipo: form.tipo,
       motivo: form.motivo,
@@ -77,7 +85,7 @@ export default function Devolucoes() {
     });
 
     if (error) {
-      toast.error("Erro ao registrar");
+      toast.error("Erro ao registrar: " + error.message);
     } else {
       toast.success("Registrado com sucesso");
       setDialogOpen(false);

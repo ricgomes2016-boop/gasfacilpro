@@ -127,26 +127,35 @@ export async function fetchStrategicPlanningData(params: {
   const { empresaId, unidadeId } = params;
   const { start, end } = monthRange();
 
-  let pedidosQuery = db
+  // Nem pedidos nem movimentacoes_caixa possuem empresa_id:
+  // o escopo por empresa e resolvido via unidades da empresa.
+  let unidadeIdsEmpresa: string[] | null = null;
+  if (!unidadeId && empresaId) {
+    const { data: unidadesEmpresa } = await db.from("unidades").select("id").eq("empresa_id", empresaId);
+    unidadeIdsEmpresa = (unidadesEmpresa || []).map((u: any) => u.id);
+    if (unidadeIdsEmpresa!.length === 0) unidadeIdsEmpresa = ["00000000-0000-0000-0000-000000000000"];
+  }
+
+  const aplicarEscopo = (query: any) => {
+    if (unidadeId) return query.eq("unidade_id", unidadeId);
+    if (unidadeIdsEmpresa) return query.in("unidade_id", unidadeIdsEmpresa);
+    return query;
+  };
+
+  const pedidosQuery = aplicarEscopo(db
     .from("pedidos")
     .select("valor_total,status,created_at,unidade_id")
     .gte("created_at", start)
     .lt("created_at", end)
-    .neq("status", "cancelado");
-
-  if (empresaId) pedidosQuery = pedidosQuery.eq("empresa_id", empresaId);
-  if (unidadeId) pedidosQuery = pedidosQuery.eq("unidade_id", unidadeId);
+    .neq("status", "cancelado"));
 
   const { data: pedidos = [] } = await pedidosQuery;
 
-  let caixaQuery = db
+  const caixaQuery = aplicarEscopo(db
     .from("movimentacoes_caixa")
     .select("valor,tipo,created_at,unidade_id")
     .gte("created_at", start)
-    .lt("created_at", end);
-
-  if (empresaId) caixaQuery = caixaQuery.eq("empresa_id", empresaId);
-  if (unidadeId) caixaQuery = caixaQuery.eq("unidade_id", unidadeId);
+    .lt("created_at", end));
 
   const { data: caixa = [] } = await caixaQuery;
 

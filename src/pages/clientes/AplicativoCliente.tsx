@@ -145,7 +145,9 @@ export default function AplicativoCliente() {
 
       const [clientesRes, pedidosRes, avaliacoesRes]: any[] = await Promise.all([
         supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa!.id),
-        (supabase.from("pedidos").select("id", { count: "exact", head: true }) as any).eq("empresa_id", empresa!.id).gte("created_at", firstOfMonth),
+        unidadeAtual?.id
+          ? supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).gte("created_at", firstOfMonth)
+          : Promise.resolve({ count: 0, data: [] }),
         supabase.from("avaliacoes_entrega").select("nota_entregador, pedido_id").not("nota_entregador", "is", null).limit(500),
       ]);
 

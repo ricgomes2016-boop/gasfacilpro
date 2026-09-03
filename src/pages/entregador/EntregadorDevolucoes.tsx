@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { RotateCcw, ArrowLeftRight, DollarSign, Plus, Search, Clock, CheckCircle, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -28,6 +29,7 @@ const tipoConfig: Record<string, { label: string; icon: React.ElementType }> = {
 };
 
 export default function EntregadorDevolucoes() {
+  const { unidadeAtual } = useUnidade();
   const [devolucoes, setDevolucoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -60,7 +62,12 @@ export default function EntregadorDevolucoes() {
       toast.error("Preencha cliente e motivo");
       return;
     }
+    if (!unidadeAtual?.id) {
+      toast.error("Unidade não identificada. Faça login novamente.");
+      return;
+    }
     const { error } = await supabase.from("devolucoes").insert({
+      unidade_id: unidadeAtual.id,
       cliente_nome: form.cliente_nome,
       tipo: form.tipo,
       motivo: form.motivo,
@@ -68,7 +75,7 @@ export default function EntregadorDevolucoes() {
       observacoes: form.observacoes || null,
     });
     if (error) {
-      toast.error("Erro ao registrar");
+      toast.error("Erro ao registrar: " + error.message);
     } else {
       toast.success("Registrado com sucesso!");
       setDialogOpen(false);
