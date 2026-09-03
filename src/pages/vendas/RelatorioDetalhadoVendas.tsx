@@ -300,9 +300,26 @@ export default function RelatorioDetalhadoVendas() {
     return { qtd, totalVenda, totalCusto, lucro, vendaMedia: qtd ? totalVenda / qtd : 0, margem: baseMargem > 0 ? (lucro / baseMargem) * 100 : 0 };
   }, [filtradas]);
 
+  // Os cards de faturamento e a aba de pagamentos precisam respeitar os mesmos
+  // filtros aplicados ao detalhamento por item.
+  const pedidosFiltrados = useMemo(() => pedidos.filter((pedido) => {
+    const entregador = pedido.entregadores?.nome || "Sem entregador";
+    const canalKey = pedido.canal_venda || "outros";
+    const canal = canalLabels[canalKey] || canalKey;
+    if (entregadoresSelecionados.length > 0 && !entregadoresSelecionados.includes(entregador)) return false;
+    if (canaisSelecionados.length > 0 && !canaisSelecionados.includes(canal)) return false;
+    const produtosPedido = (pedido.pedido_itens || []).map(i => i.produtos?.nome || "Produto sem nome");
+    if (produtosSelecionados.length > 0 && !produtosPedido.some(p => produtosSelecionados.includes(p))) return false;
+    if (busca) {
+      const alvo = `${entregador} ${produtosPedido.join(" ")} ${canal}`.toLowerCase();
+      if (!alvo.includes(busca.toLowerCase())) return false;
+    }
+    return true;
+  }), [pedidos, entregadoresSelecionados, canaisSelecionados, produtosSelecionados, busca]);
+
   const resumoPagamentos = useMemo<ResumoPagamento[]>(() => {
     const mapa = new Map<string, Omit<ResumoPagamento, "participacao" | "ticketMedio">>();
-    pedidos.forEach((pedido) => {
+    pedidosFiltrados.forEach((pedido) => {
       const formasValidas = parseFormasPagamento(pedido.forma_pagamento);
       const valorPedido = Number(pedido.valor_total) || (pedido.pedido_itens || []).reduce(
         (total, item) => total + (Number(item.quantidade) || 0) * (Number(item.preco_unitario) || 0), 0,
