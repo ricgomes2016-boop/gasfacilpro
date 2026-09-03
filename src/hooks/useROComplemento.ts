@@ -101,7 +101,7 @@ export function useROComplemento(
       // Cartão (contas_receber com operadora_id não nula ou forma cartão/pix maquininha)
       const cartao = (crRes.data || [])
         .filter((c: any) => c.operadora_id || /cart|pix.?maquin|maquineta|pix_maquin/i.test(String(c.forma_pagamento || "")))
-        .reduce((s: number, c: any) => s + (Number(c.valor_pago) || 0), 0);
+        .reduce((s: number, c: any) => s + (Number(c.valor_liquido ?? c.valor) || 0), 0);
 
       // Boletos
       const boletos = (boletosRes.data || []).reduce((s: number, b: any) => s + (Number(b.valor) || 0), 0);
@@ -120,7 +120,7 @@ export function useROComplemento(
       (valeRes.data || []).forEach((v: any) => {
         const p: any = prodMap.get(v.produto_id);
         const nome = (p?.nome || "").toLowerCase();
-        const val = Number(v.valor_total) || 0;
+        const val = Number(v.valor_venda ?? v.valor) || 0;
         if (/p45|45.?kg/.test(nome)) vP45 += val;
         else vP13 += val;
       });
@@ -135,11 +135,11 @@ export function useROComplemento(
 
       // Estoque valorizado (só produtos com estoque > 0)
       const estoqueValorizado = (produtosRes.data || [])
-        .filter((p: any) => (Number(p.estoque_atual) || 0) > 0)
+        .filter((p: any) => (Number(p.estoque) || 0) > 0)
         .map((p: any) => ({
           produto: p.nome,
-          qtd: Number(p.estoque_atual) || 0,
-          valor: (Number(p.estoque_atual) || 0) * (Number(p.preco_custo) || 0),
+          qtd: Number(p.estoque) || 0,
+          valor: (Number(p.estoque) || 0) * (Number(p.preco_custo) || 0),
         }))
         .sort((a, b) => b.valor - a.valor)
         .slice(0, 8);
