@@ -10,6 +10,7 @@ import {
 import { parseDistribuicao, parseEvento } from "./soap.js";
 import { cabecalhosCorsLocal, mascararCnpj, tokensIguais } from "./local.js";
 import { conferirComprovante, gerarComprovante } from "./comprovante.js";
+import { abrirLoginVenderGas, emitirNoVenderGas } from "./vendergas.js";
 
 const cfg = carregarConfig();
 const nonces = new RegistroNonce();
@@ -193,6 +194,32 @@ const servidor = http.createServer(async (req, res) => {
 
 
   try {
+    if (caminho === "/vendergas/abrir-login") {
+      if (!MODO_LOCAL) {
+        responder(res, 400, { ok: false, motivo: "modo_invalido", mensagem: "A automação do Vender Gás só funciona no agente local." }, cors);
+        return;
+      }
+      const resposta = await abrirLoginVenderGas();
+      responder(res, 200, resposta, cors);
+      return;
+    }
+
+    if (caminho === "/vendergas/emitir") {
+      if (!MODO_LOCAL) {
+        responder(res, 400, { ok: false, motivo: "modo_invalido", mensagem: "A automação do Vender Gás só funciona no agente local." }, cors);
+        return;
+      }
+      const configurado = String(cfg.local?.cnpj ?? "").replace(/\D/g, "");
+      const emitente = String(body.cnpjEmitente ?? "").replace(/\D/g, "");
+      if (!emitente || emitente !== configurado) {
+        responder(res, 403, { ok: false, motivo: "empresa_incorreta", mensagem: "O agente aceita emissão somente para o CNPJ da Forte Gás configurado na instalação." }, cors);
+        return;
+      }
+      const resposta = await emitirNoVenderGas(body as unknown as Parameters<typeof emitirNoVenderGas>[0]);
+      responder(res, 200, resposta, cors);
+      return;
+    }
+
     if (caminho === "/auth-check") {
       const carga = MODO_LOCAL ? carregarCertificadoLocal() : { ok: false as const, motivo: "modo_servidor", mensagem: "Rota disponível apenas no modo local." };
       if (!carga.ok) {

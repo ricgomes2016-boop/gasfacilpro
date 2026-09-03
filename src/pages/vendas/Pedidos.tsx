@@ -31,7 +31,7 @@ import {
   User, RefreshCw, MoreHorizontal, Edit, ArrowRightLeft, Printer,
   Share2, DollarSign, Trash2, Lock, MessageCircle, CreditCard, Columns3,
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckSquare, Building2, Pencil, MoveRight, Map as MapIcon,
-  Download, Package, Calendar, SlidersHorizontal, MapPin, Phone } from
+  Download, Package, Calendar, SlidersHorizontal, MapPin, Phone, FileCheck2 } from
 "lucide-react";
 import { PedidoStatusPill } from "@/components/pedidos/PedidoStatusPill";
 import { PedidoPaymentPill } from "@/components/pedidos/PedidoPaymentPill";
@@ -64,6 +64,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { getOrigemMeta, ORIGEM_PEDIDO_META, ORIGENS_PEDIDO, type OrigemPedido } from "@/lib/pedidos/origem";
 import { EditarPagamentoPedidoDialog } from "@/components/vendas/EditarPagamentoPedidoDialog";
 import { normalizeFormaPagamentoKey } from "@/lib/financeiro/formaPagamento";
+import { EmitirNfeVenderGasDialog } from "@/components/fiscal/EmitirNfeVenderGasDialog";
 
 function OrigemBadge({ origem }: { origem?: string | null }) {
   const meta = getOrigemMeta(origem);
@@ -207,6 +208,8 @@ export default function Pedidos() {
   const [pedidoView, setPedidoView] = useState<PedidoFormatado | null>(null);
   const [pedidoEditarPagamento, setPedidoEditarPagamento] = useState<PedidoFormatado | null>(null);
   const [editarPagamentoAberto, setEditarPagamentoAberto] = useState(false);
+  const [pedidoEmitirNfe, setPedidoEmitirNfe] = useState<PedidoFormatado | null>(null);
+  const [emitirNfeAberto, setEmitirNfeAberto] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState<string>(filtrosPersistidosIniciais.filtroStatus ?? "todos");
   const [filtroEntregador, setFiltroEntregador] = useState<string>(filtrosPersistidosIniciais.filtroEntregador ?? "todos");
   const [filtroOrigem, setFiltroOrigem] = useState<string>(filtrosPersistidosIniciais.filtroOrigem ?? "todos");
@@ -1468,6 +1471,7 @@ export default function Pedidos() {
                             {unidades.length > 1 && !bloqueado && <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}><MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial</DropdownMenuItem>}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
+                            {pedido.status !== "cancelado" && <DropdownMenuItem onClick={() => { setPedidoEmitirNfe(pedido); setEmitirNfeAberto(true); }}><FileCheck2 className="h-4 w-4 mr-2" />Emitir NF-e</DropdownMenuItem>}
                             <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
                             {pedido.status === "entregue" && (
                               <DropdownMenuItem onClick={async () => { try { await gerarComprovanteEntregaPdf({ pedidoId: pedido.id }); } catch (e: any) { toast({ title: "Erro ao gerar PDF", description: e.message, variant: "destructive" }); } }}>
@@ -1645,6 +1649,7 @@ export default function Pedidos() {
                               {unidades.length > 1 && !isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}><MoveRight className="mr-2 h-4 w-4" />Transferir p/ Filial</DropdownMenuItem>}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="mr-2 h-4 w-4" />Imprimir</DropdownMenuItem>
+                              {pedido.status !== "cancelado" && <DropdownMenuItem onClick={() => { setPedidoEmitirNfe(pedido); setEmitirNfeAberto(true); }}><FileCheck2 className="mr-2 h-4 w-4" />Emitir NF-e</DropdownMenuItem>}
                               <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="mr-2 h-4 w-4" />WhatsApp</DropdownMenuItem>
                               {!isPedidoBloqueado(pedido.status) && (
                                 <>
@@ -2185,6 +2190,11 @@ export default function Pedidos() {
           itens: pedidoEditarPagamento.itens,
         } : null}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ["pedidos"] })}
+      />
+      <EmitirNfeVenderGasDialog
+        pedido={pedidoEmitirNfe}
+        open={emitirNfeAberto}
+        onOpenChange={(open) => { setEmitirNfeAberto(open); if (!open) setPedidoEmitirNfe(null); }}
       />
     </MainLayout>);
 

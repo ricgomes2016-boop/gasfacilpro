@@ -1,0 +1,156 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { chromium, type BrowserContext, type Page } from "playwright-core";
+
+const VENDER_GAS_URL = "https://app.vendergas.com.br";
+const EMISSAO_URL = `${VENDER_GAS_URL}/notaFiscal/emitir?tipoNota=nfe&tipoEntradaSaida=1&cfe=false`;
+let contexto: BrowserContext | null = null;
+
+export interface EmissaoVenderGas {
+  cnpjEmitente: string;
+  pedidoId: string;
+  numeroPedido: string;
+  destinatario: {
+    nome: string; cpfCnpj: string; inscricaoEstadual?: string; endereco: string;
+    numero?: string; bairro?: string; cep?: string; cidade?: string; uf?: string;
+    codigoMunicipio?: string; telefone?: string;
+  };
+  itens: Array<{ descricao: string; quantidade: number; valorUnitario: number }>;
+  valorTotal: number;
+  formaPagamento?: string;
+  observacoes?: string;
+}
+
+function executavelChrome(): string {
+  const candidatos = [
+    path.join(process.env.PROGRAMFILES ?? "", "Google", "Chrome", "Application", "chrome.exe"),
+    path.join(process.env["PROGRAMFILES(X86)"] ?? "", "Google", "Chrome", "Application", "chrome.exe"),
+    path.join(process.env.LOCALAPPDATA ?? "", "Google", "Chrome", "Application", "chrome.exe"),
+    path.join(process.env.PROGRAMFILES ?? "", "Microsoft", "Edge", "Application", "msedge.exe"),
+  ];
+  const encontrado = candidatos.find((arquivo) => arquivo && fs.existsSync(arquivo));
+  if (!encontrado) throw new Error("Chrome ou Edge não encontrado neste computador.");
+  return encontrado;
+}
+
+async function pagina(): Promise<Page> {
+  if (!contexto) {
+    const perfil = path.join(process.env.LOCALAPPDATA ?? os.tmpdir(), "GasFacil", "AgenteFiscal", "vendergas-profile");
+    fs.mkdirSync(perfil, { recursive: true });
+    contexto = await chromium.launchPersistentContext(perfil, {
+      executablePath: executavelChrome(),
+      headless: false,
+      viewport: null,
+      args: ["--start-maximized", "--disable-features=Translate"],
+    });
+  }
+  return contexto.pages()[0] ?? await contexto.newPage();
+}
+
+async function preencher(page: Page, rotulo: RegExp, valor?: string) {
+  if (!valor?.trim()) return;
+  const porLabel = page.getByLabel(rotulo).first();
+  if (await porLabel.count()) { await porLabel.fill(valor); return; }
+  const label = page.locator("label").filter({ hasText: rotulo }).first();
+  if (await label.count()) {
+    const alvo = label.locator("xpath=following::input[1]");
+    if (await alvo.count()) await alvo.fill(valor);
+  }
+}
+
+async function garantirLogin(page: Page) {
+  await page.goto(VENDER_GAS_URL, { waitUntil: "domcontentloaded", timeout: 45_000 });
+  await page.waitForTimeout(1200);
+  const url = page.url().toLowerCase();
+  const temLogin = await page.getByText(/entrar|login|acessar/i).count();
+  if (url.includes("login") || (temLogin && !url.includes("dashboard"))) {
+    return { ok: false as const, motivo: "login_necessario", mensagem: "Faça o login da Forte Gás na janela do Vender Gás e tente novamente." };
+  }
+  const texto = (await page.locator("body").innerText()).toUpperCase();
+  if (!texto.includes("FORTE GAS") && !texto.includes("FORTE GÁS")) {
+    return { ok: false as const, motivo: "empresa_incorreta", mensagem: "A sessão aberta não está identificada como Forte Gás. Troque a empresa no Vender Gás." };
+  }
+  return { ok: true as const };
+}
+
+export async function abrirLoginVenderGas() {
+  const page = await pagina();
+  await page.bringToFront();
+  await page.goto(VENDER_GAS_URL, { waitUntil: "domcontentloaded", timeout: 45_000 });
+  return { ok: true, etapa: "login", url: page.url(), mensagem: "Janela do Vender Gás aberta. Entre somente com a conta da Forte Gás." };
+}
+
+export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
+  if (!payload.pedidoId || !payload.destinatario?.nome || !payload.itens?.length) {
+    return { ok: false, motivo: "dados_incompletos", mensagem: "Pedido, cliente e itens são obrigatórios para emitir a NF-e." };
+  }
+  const page = await pagina();
+  await page.bringToFront();
+  const login = await garantirLogin(page);
+  if (!login.ok) return login;
+
+  await page.goto(EMISSAO_URL, { waitUntil: "domcontentloaded", timeout: 45_000 });
+  await page.waitForTimeout(1500);
+  const operacao = page.getByLabel(/opera[cç][aã]o fiscal/i).first();
+  if (await operacao.count()) {
+    await operacao.click();
+    const venda = page.getByText(/sa[ií]da\s*-?\s*venda de mercadoria/i).last();
+    if (!await venda.count()) {
+      return { ok: false, motivo: "operacao_fiscal_indisponivel", mensagem: "A operação fiscal Saída - Venda de Mercadoria não está cadastrada no Vender Gás." };
+    }
+    await venda.click();
+    await page.waitForTimeout(500);
+  }
+  const corpo = (await page.locator("body").innerText()).toUpperCase();
+  if (!corpo.includes("EMITIR NOTA FISCAL")) {
+    return { ok: false, motivo: "tela_emissao_indisponivel", mensagem: "O Vender Gás não abriu a tela de emissão de NF-e." };
+  }
+
+  // Falha fechada: nunca emite por uma operação de estorno/devolução selecionada.
+  if (/ESTORNO|DEVOLU[CÇ][AÃ]O/.test(corpo) && !/VENDA DE MERCADORIA/.test(corpo)) {
+    return { ok: false, motivo: "operacao_fiscal_incorreta", mensagem: "A operação fiscal selecionada no Vender Gás não é Venda de Mercadoria. Ajuste-a na janela aberta." };
+  }
+
+  const d = payload.destinatario;
+  await preencher(page, /cnpj.*cpf|cpf.*cnpj/i, d.cpfCnpj);
+  await preencher(page, /nome|raz[aã]o social/i, d.nome);
+  await preencher(page, /inscri[cç][aã]o estadual/i, d.inscricaoEstadual);
+  await preencher(page, /^endere[cç]o/i, d.endereco);
+  await preencher(page, /^n[uú]mero/i, d.numero);
+  await preencher(page, /bairro/i, d.bairro);
+  await preencher(page, /cep/i, d.cep);
+  await preencher(page, /munic[ií]pio|cidade/i, d.cidade);
+  await preencher(page, /^uf$/i, d.uf);
+  await preencher(page, /telefone/i, d.telefone);
+
+  for (const item of payload.itens) {
+    const buscar = page.getByText(/buscar produto/i).last();
+    if (!await buscar.count()) return { ok: false, motivo: "produto_indisponivel", mensagem: "Não encontrei o botão Buscar Produto no Vender Gás." };
+    await buscar.click();
+    await page.waitForTimeout(500);
+    const busca = page.getByPlaceholder(/buscar|produto|descri[cç][aã]o/i).last();
+    if (await busca.count()) await busca.fill(item.descricao);
+    await page.waitForTimeout(700);
+    const resultado = page.getByText(item.descricao, { exact: false }).last();
+    if (!await resultado.count()) return { ok: false, motivo: "produto_nao_mapeado", mensagem: `Produto “${item.descricao}” não encontrado no Vender Gás. Cadastre ou iguale o nome antes de emitir.` };
+    await resultado.click();
+    await page.waitForTimeout(400);
+  }
+
+  await preencher(page, /informa[cç][oõ]es adicionais|observa[cç][oõ]es/i, `Pedido GasFacil #${payload.numeroPedido}. ${payload.observacoes ?? ""}`.trim());
+
+  const botao = page.getByRole("button", { name: /^emitir nota fiscal$/i }).first();
+  if (!await botao.count()) return { ok: false, motivo: "botao_emitir_indisponivel", mensagem: "O formulário foi preenchido, mas o botão Emitir Nota Fiscal não foi encontrado." };
+  await botao.click();
+  await page.waitForTimeout(1800);
+
+  const resultado = await page.locator("body").innerText();
+  const chave = resultado.match(/\b\d{44}\b/)?.[0];
+  const numero = resultado.match(/(?:NF-e|Nota Fiscal)\D{0,20}(\d{1,12})/i)?.[1];
+  const sucesso = /autorizad[ao]|nota fiscal emitida|emiss[aã]o conclu[ií]da/i.test(resultado);
+  if (!sucesso) {
+    return { ok: false, motivo: "emissao_nao_confirmada", etapa: "vendergas", url: page.url(), mensagem: "O Vender Gás não confirmou a autorização. Confira a mensagem exibida na janela; o GasFácil não registrou a nota como emitida." };
+  }
+  return { ok: true, etapa: "autorizada", numero, chaveAcesso: chave, url: page.url(), mensagem: "NF-e autorizada no Vender Gás." };
+}
