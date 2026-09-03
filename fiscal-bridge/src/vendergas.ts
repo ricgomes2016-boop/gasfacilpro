@@ -91,7 +91,9 @@ async function abrirFluxoNfce(page: Page) {
   await page.goto(VENDER_GAS_URL, { waitUntil: "domcontentloaded", timeout: 45_000 });
   await page.waitForTimeout(800);
   for (const etapa of [/^vendas$/i, /^nota fiscal$/i, /^nfc-?e$/i, /sa[ií]da\s*-?\s*venda de mercadoria/i]) {
-    const item = page.getByText(etapa, { exact: false }).last();
+    const item = page.locator('a, button, [role="menuitem"]')
+      .filter({ hasText: etapa, visible: true })
+      .last();
     if (!await item.count()) return false;
     await item.click();
     await page.waitForTimeout(500);
