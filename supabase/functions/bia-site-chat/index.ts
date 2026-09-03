@@ -73,7 +73,6 @@ async function saveSiteMessage(
     role,
     content,
     status: "sent",
-    direction: role === "user" ? "inbound" : "outbound",
     metadata: { source: "bia-site-chat", request_id: requestId, ...extra },
   });
   if (error) console.error("[BIA-SITE-CHAT] Falha ao auditar mensagem", error);
@@ -573,38 +572,30 @@ async function criarPedido(
     };
   }
 
-  // Protege retries do mesmo envio e confirmações repetidas em poucos minutos.
+  // Protege apenas retries do MESMO envio (mesma idempotencyKey).
+  // Pedidos repetidos legitimos do mesmo produto NAO devem ser bloqueados.
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const { data: recentes } = await supabase.from("pedidos")
     .select("id, numero_sequencial, valor_total")
     .eq("unidade_id", unidadeId)
     .eq("cliente_id", finalClienteId)
     .eq("origem_pedido", "site")
-    .eq("valor_total", valorTotal)
+    .like("observacoes", `%BiaReq:${idempotencyKey}%`)
     .gte("created_at", fiveMinutesAgo)
     .order("created_at", { ascending: false })
-    .limit(5);
+    .limit(1);
 
-  if (recentes?.length) {
-    const { data: itensRecentes } = await supabase.from("pedido_itens")
-      .select("pedido_id, produto_id, quantidade")
-      .in("pedido_id", recentes.map((p: any) => p.id))
-      .eq("produto_id", prod.id)
-      .eq("quantidade", qty)
-      .limit(1);
-    const itemExistente = itensRecentes?.[0];
-    const pedidoExistente = recentes.find((p: any) => p.id === itemExistente?.pedido_id);
-    if (pedidoExistente) {
-      return {
-        sucesso: true,
-        reutilizado: true,
-        pedido_id: pedidoExistente.id,
-        numero_pedido: pedidoExistente.numero_sequencial,
-        produto: nomeProduto,
-        quantidade: qty,
-        valor_total: Number(pedidoExistente.valor_total),
-      };
-    }
+  const pedidoExistente = recentes?.[0];
+  if (pedidoExistente) {
+    return {
+      sucesso: true,
+      reutilizado: true,
+      pedido_id: pedidoExistente.id,
+      numero_pedido: pedidoExistente.numero_sequencial,
+      produto: nomeProduto,
+      quantidade: qty,
+      valor_total: Number(pedidoExistente.valor_total),
+    };
   }
 
   const { data: pedido, error: pedidoErr } = await supabase
