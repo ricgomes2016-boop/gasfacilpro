@@ -264,7 +264,7 @@ export async function rotearPagamentosVendaAntecipada(params: {
     if (forma === "dinheiro" || forma === "cheque") {
       const { error } = await supabase.from("movimentacoes_caixa").insert({
         tipo: "entrada",
-        descricao: `${descricao} - ${forma === "dinheiro" ? "Dinheiro" : "Cheque"}`,
+        descricao: `${descricao} - ${forma === "dinheiro" ? "Dinheiro" : `Cheque #${pagamento.cheque_numero || "s/n"}`}`,
         valor: pagamento.valor,
         categoria: forma === "dinheiro" ? "Venda Antecipada - Dinheiro" : "Venda Antecipada - Cheque",
         status: "aprovada",
@@ -272,6 +272,62 @@ export async function rotearPagamentosVendaAntecipada(params: {
         observacoes: `venda_antecipada:${vendaAntecipadaId}`,
       });
       if (error) throw error;
+
+      // Cheque também precisa existir no controle de cheques (igual ao fluxo de pedidos).
+      if (forma === "cheque" && userId && pagamento.cheque_numero && pagamento.cheque_banco) {
+        const { error: chequeErr } = await supabase.from("cheques").insert({
+          numero_cheque: pagamento.cheque_numero,
+          banco_emitente: pagamento.cheque_banco,
+          valor: pagamento.valor,
+          data_emissao: hoje,
+          data_vencimento: hoje,
+          status: "em_maos",
+          cliente_id: clienteId || null,
+          unidade_id: unidadeId,
+          user_id: userId,
+          foto_url: pagamento.cheque_foto_url || null,
+          observacoes: `venda_antecipada:${vendaAntecipadaId}`,
+        });
+        if (chequeErr) throw chequeErr;
+      }
+      continue;
+    }
+
+    if (forma === "gas_do_povo") {
+      // Programa Gás do Povo: taxa 0% e prazo curto (padrão D+2), igual ao fluxo de pedidos.
+      const op = await getOperadoraConfig(unidadeId, "gas_do_povo", pagamento.operadora_id);
+      const prazo = op?.prazo ?? 2;
+      const contaId = await resolverContaDestino({
+        unidadeId, forma, contaExplicita: pagamento.conta_bancaria_id,
+        operadoraContaId: op?.conta_bancaria_id || null,
+      });
+      const liquidaAgora = prazo === 0 && !!contaId;
+      const { error } = await supabase.from("contas_receber").insert({
+        cliente: op?.nome || "Programa Gás do Povo",
+        cliente_id: clienteId || null,
+        descricao: `${descricao} - Gás do Povo`,
+        valor: pagamento.valor,
+        vencimento: format(addDays(new Date(), prazo), "yyyy-MM-dd"),
+        status: liquidaAgora ? "recebida" : "pendente",
+        data_recebimento: liquidaAgora ? hoje : null,
+        forma_pagamento: "gas_do_povo",
+        unidade_id: unidadeId,
+        operadora_id: op?.id || null,
+        taxa_percentual: 0,
+        valor_taxa: 0,
+        valor_liquido: pagamento.valor,
+        parcela_atual: 1,
+        total_parcelas: 1,
+        conta_bancaria_destino_id: contaId,
+      });
+      if (error) throw error;
+      if (liquidaAgora && contaId) {
+        await criarMovimentacaoBancaria({
+          contaBancariaId: contaId, valor: pagamento.valor, descricao,
+          categoria: "liquidacao_operadora", unidadeId, userId,
+          referenciaId: vendaAntecipadaId, referenciaTipo: "venda_antecipada",
+        });
+      }
       continue;
     }
 
