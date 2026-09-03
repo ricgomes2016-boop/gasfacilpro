@@ -729,8 +729,6 @@ export default function ContasReceber() {
                 if (selectedContas.length === 1) {
                   openReceberDialog(selectedContas[0]);
                 } else {
-                  setBulkFormaPagamento("");
-                  setBulkDataRecebimento(getBrasiliaDateString());
                   setBulkDialogOpen(true);
                 }
               }}>
