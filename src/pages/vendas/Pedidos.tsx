@@ -210,6 +210,12 @@ export default function Pedidos() {
   const [editarPagamentoAberto, setEditarPagamentoAberto] = useState(false);
   const [pedidoEmitirNfe, setPedidoEmitirNfe] = useState<PedidoFormatado | null>(null);
   const [emitirNfeAberto, setEmitirNfeAberto] = useState(false);
+  const [tipoDocumentoFiscal, setTipoDocumentoFiscal] = useState<"nfe" | "nfce">("nfe");
+  const abrirEmissaoFiscal = (pedido: PedidoFormatado, tipo: "nfe" | "nfce") => {
+    setPedidoEmitirNfe(pedido);
+    setTipoDocumentoFiscal(tipo);
+    setEmitirNfeAberto(true);
+  };
   const [filtroStatus, setFiltroStatus] = useState<string>(filtrosPersistidosIniciais.filtroStatus ?? "todos");
   const [filtroEntregador, setFiltroEntregador] = useState<string>(filtrosPersistidosIniciais.filtroEntregador ?? "todos");
   const [filtroOrigem, setFiltroOrigem] = useState<string>(filtrosPersistidosIniciais.filtroOrigem ?? "todos");
@@ -1471,7 +1477,8 @@ export default function Pedidos() {
                             {unidades.length > 1 && !bloqueado && <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}><MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial</DropdownMenuItem>}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
-                            {pedido.status !== "cancelado" && <DropdownMenuItem onClick={() => { setPedidoEmitirNfe(pedido); setEmitirNfeAberto(true); }}><FileCheck2 className="h-4 w-4 mr-2" />Emitir NF-e</DropdownMenuItem>}
+                            {pedido.status !== "cancelado" && <DropdownMenuItem onClick={() => abrirEmissaoFiscal(pedido, "nfe")}><FileCheck2 className="h-4 w-4 mr-2" />Emitir NF-e (modelo 55)</DropdownMenuItem>}
+                            {pedido.status !== "cancelado" && <DropdownMenuItem onClick={() => abrirEmissaoFiscal(pedido, "nfce")}><FileCheck2 className="h-4 w-4 mr-2" />Emitir NFC-e (modelo 65)</DropdownMenuItem>}
                             <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
                             {pedido.status === "entregue" && (
                               <DropdownMenuItem onClick={async () => { try { await gerarComprovanteEntregaPdf({ pedidoId: pedido.id }); } catch (e: any) { toast({ title: "Erro ao gerar PDF", description: e.message, variant: "destructive" }); } }}>
@@ -1649,7 +1656,8 @@ export default function Pedidos() {
                               {unidades.length > 1 && !isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}><MoveRight className="mr-2 h-4 w-4" />Transferir p/ Filial</DropdownMenuItem>}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="mr-2 h-4 w-4" />Imprimir</DropdownMenuItem>
-                              {pedido.status !== "cancelado" && <DropdownMenuItem onClick={() => { setPedidoEmitirNfe(pedido); setEmitirNfeAberto(true); }}><FileCheck2 className="mr-2 h-4 w-4" />Emitir NF-e</DropdownMenuItem>}
+                              {pedido.status !== "cancelado" && <DropdownMenuItem onClick={() => abrirEmissaoFiscal(pedido, "nfe")}><FileCheck2 className="mr-2 h-4 w-4" />Emitir NF-e (modelo 55)</DropdownMenuItem>}
+                              {pedido.status !== "cancelado" && <DropdownMenuItem onClick={() => abrirEmissaoFiscal(pedido, "nfce")}><FileCheck2 className="mr-2 h-4 w-4" />Emitir NFC-e (modelo 65)</DropdownMenuItem>}
                               <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="mr-2 h-4 w-4" />WhatsApp</DropdownMenuItem>
                               {!isPedidoBloqueado(pedido.status) && (
                                 <>
@@ -1806,6 +1814,8 @@ export default function Pedidos() {
                               {unidades.length > 1 && !isPedidoBloqueado(pedido.status) && <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}><MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial</DropdownMenuItem>}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
+                              {pedido.status !== "cancelado" && <DropdownMenuItem onClick={() => abrirEmissaoFiscal(pedido, "nfe")}><FileCheck2 className="h-4 w-4 mr-2" />Emitir NF-e (modelo 55)</DropdownMenuItem>}
+                              {pedido.status !== "cancelado" && <DropdownMenuItem onClick={() => abrirEmissaoFiscal(pedido, "nfce")}><FileCheck2 className="h-4 w-4 mr-2" />Emitir NFC-e (modelo 65)</DropdownMenuItem>}
                               <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
                               {!isPedidoBloqueado(pedido.status) &&
                             <>
@@ -2194,6 +2204,7 @@ export default function Pedidos() {
       <EmitirNfeVenderGasDialog
         pedido={pedidoEmitirNfe}
         open={emitirNfeAberto}
+        tipoDocumento={tipoDocumentoFiscal}
         onOpenChange={(open) => { setEmitirNfeAberto(open); if (!open) setPedidoEmitirNfe(null); }}
       />
     </MainLayout>);

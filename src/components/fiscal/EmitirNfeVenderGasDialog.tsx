@@ -8,23 +8,25 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import type { PedidoFormatado } from "@/types/pedido";
-import { abrirLoginVenderGas, emitirNfeVenderGas, type VenderGasPayload } from "@/lib/fiscal/venderGasAgent";
+import { abrirLoginVenderGas, emitirDocumentoVenderGas, type VenderGasPayload } from "@/lib/fiscal/venderGasAgent";
 import { toast } from "sonner";
 
 interface Props {
   pedido: PedidoFormatado | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  tipoDocumento: "nfe" | "nfce";
 }
 
-export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange }: Props) {
+export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange, tipoDocumento }: Props) {
   const { empresa } = useEmpresa();
   const { unidadeAtual } = useUnidade();
   const { user } = useAuth();
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const rotulo = tipoDocumento === "nfce" ? "NFC-e" : "NF-e";
 
-  useEffect(() => { if (open) setErro(null); }, [open, pedido?.id]);
+  useEffect(() => { if (open) setErro(null); }, [open, pedido?.id, tipoDocumento]);
 
   const abrirLogin = async () => {
     if (!unidadeAtual || !empresa?.cnpj) return;
@@ -38,7 +40,7 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange }: Props) 
     setErro(null);
     let notaId: string | null = null;
     try {
-      if (!pedido.cliente_id) throw new Error("Este pedido não possui um cliente cadastrado. Vincule o cliente antes de emitir a NF-e.");
+      if (!pedido.cliente_id) throw new Error(`Este pedido não possui um cliente cadastrado. Vincule o cliente antes de emitir a ${rotulo}.`);
       const { data: cliente, error: clienteError } = await supabase
         .from("clientes")
         .select("nome, razao_social, cpf, cnpj, inscricao_estadual, endereco, numero, bairro, cep, cidade, estado, codigo_municipio, telefone")
@@ -53,6 +55,7 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange }: Props) 
       if (!pedido.itens.length) throw new Error("O pedido não possui itens para faturamento.");
 
       const payload: VenderGasPayload = {
+        tipoDocumento,
         unidadeId: unidadeAtual.id,
         cnpjEmitente: empresa.cnpj,
         pedidoId: pedido.id,
@@ -83,12 +86,12 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange }: Props) 
 
       const db = supabase as any;
       const { data: existente } = await db.from("notas_fiscais").select("id, status, numero, chave_acesso")
-        .eq("pedido_id", pedido.id).eq("provedor", "vendergas").neq("status", "cancelada").maybeSingle();
-      if (existente?.status === "autorizada") throw new Error(`Este pedido já possui a NF-e ${existente.numero || existente.chave_acesso || "autorizada"}.`);
+        .eq("pedido_id", pedido.id).eq("tipo", tipoDocumento).eq("provedor", "vendergas").neq("status", "cancelada").maybeSingle();
+      if (existente?.status === "autorizada") throw new Error(`Este pedido já possui a ${rotulo} ${existente.numero || existente.chave_acesso || "autorizada"}.`);
       notaId = existente?.id ?? null;
       if (!notaId) {
         const { data: criada, error: criarError } = await db.from("notas_fiscais").insert({
-          tipo: "nfe", status: "rascunho", pedido_id: pedido.id, provedor: "vendergas",
+          tipo: tipoDocumento, status: "rascunho", pedido_id: pedido.id, provedor: "vendergas",
           provedor_status: "aguardando_agente", destinatario_nome: payload.destinatario.nome,
           destinatario_cpf_cnpj: documento, destinatario_endereco: `${cliente.endereco}, ${cliente.numero}`,
           destinatario_cidade_uf: `${cliente.cidade}/${cliente.estado}`, destinatario_ie: cliente.inscricao_estadual,
@@ -103,7 +106,7 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange }: Props) 
         await db.from("notas_fiscais").update({ status: "rascunho", provedor_status: "aguardando_agente", motivo_rejeicao: null, integracao_payload: payload }).eq("id", notaId);
       }
 
-      const resposta = await emitirNfeVenderGas(payload);
+      const resposta = await emitirDocumentoVenderGas(payload);
       if (!resposta.ok) {
         await db.from("notas_fiscais").update({ provedor_status: resposta.motivo || "falha", motivo_rejeicao: resposta.mensagem, integracao_resultado: resposta }).eq("id", notaId);
         throw new Error(resposta.mensagem);
@@ -116,7 +119,7 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange }: Props) 
       toast.success(resposta.mensagem);
       onOpenChange(false);
     } catch (e: any) {
-      setErro(e?.message || "Não foi possível emitir a NF-e.");
+      setErro(e?.message || `Não foi possível emitir a ${rotulo}.`);
     } finally {
       setEnviando(false);
     }
@@ -126,14 +129,14 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange }: Props) 
     <Dialog open={open} onOpenChange={enviando ? undefined : onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><FileCheck2 className="h-5 w-5 text-primary" />Emitir NF-e no Vender Gás</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><FileCheck2 className="h-5 w-5 text-primary" />Emitir {rotulo} no Vender Gás</DialogTitle>
           <DialogDescription>Pedido #{pedido?.numero_sequencial ?? pedido?.id.slice(0, 8)} · {pedido?.cliente}</DialogDescription>
         </DialogHeader>
         <Alert>
           <ShieldCheck className="h-4 w-4" />
           <AlertTitle>Confirmação fiscal</AlertTitle>
           <AlertDescription>
-            O agente abrirá a conta da Forte Gás, preencherá a venda e clicará em emitir. Confirme cliente, itens e valor de <strong>R$ {Number(pedido?.valor || 0).toFixed(2)}</strong>. A mesma venda não poderá ser emitida duas vezes.
+            Você está preparando uma <strong>{rotulo}</strong>. O agente abrirá a conta da Forte Gás, preencherá a venda e somente transmitirá após esta confirmação. Confira cliente, itens e valor de <strong>R$ {Number(pedido?.valor || 0).toFixed(2)}</strong>. O mesmo modelo fiscal não poderá ser emitido duas vezes para este pedido.
           </AlertDescription>
         </Alert>
         {erro && <Alert variant="destructive"><AlertTitle>Emissão interrompida</AlertTitle><AlertDescription>{erro}</AlertDescription></Alert>}
@@ -142,7 +145,7 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange }: Props) 
           <div className="flex gap-2">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={enviando}>Cancelar</Button>
             <Button type="button" onClick={emitir} disabled={enviando}>
-              {enviando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{enviando ? "Emitindo..." : "Confirmar e emitir"}
+              {enviando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{enviando ? `Emitindo ${rotulo}...` : `Confirmar e emitir ${rotulo}`}
             </Button>
           </div>
         </DialogFooter>

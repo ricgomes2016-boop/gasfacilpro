@@ -4,10 +4,13 @@ import path from "node:path";
 import { chromium, type BrowserContext, type Page } from "playwright-core";
 
 const VENDER_GAS_URL = "https://app.vendergas.com.br";
-const EMISSAO_URL = `${VENDER_GAS_URL}/notaFiscal/emitir?tipoNota=nfe&tipoEntradaSaida=1&cfe=false`;
+function urlEmissao(tipo: "nfe" | "nfce") {
+  return `${VENDER_GAS_URL}/notaFiscal/emitir?tipoNota=${tipo}&tipoEntradaSaida=1&cfe=${tipo === "nfce" ? "true" : "false"}`;
+}
 let contexto: BrowserContext | null = null;
 
 export interface EmissaoVenderGas {
+  tipoDocumento: "nfe" | "nfce";
   cnpjEmitente: string;
   pedidoId: string;
   numeroPedido: string;
@@ -82,15 +85,17 @@ export async function abrirLoginVenderGas() {
 }
 
 export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
+  const tipo = payload.tipoDocumento === "nfce" ? "nfce" : "nfe";
+  const rotulo = tipo === "nfce" ? "NFC-e" : "NF-e";
   if (!payload.pedidoId || !payload.destinatario?.nome || !payload.itens?.length) {
-    return { ok: false, motivo: "dados_incompletos", mensagem: "Pedido, cliente e itens são obrigatórios para emitir a NF-e." };
+    return { ok: false, motivo: "dados_incompletos", mensagem: `Pedido, cliente e itens são obrigatórios para emitir a ${rotulo}.` };
   }
   const page = await pagina();
   await page.bringToFront();
   const login = await garantirLogin(page);
   if (!login.ok) return login;
 
-  await page.goto(EMISSAO_URL, { waitUntil: "domcontentloaded", timeout: 45_000 });
+  await page.goto(urlEmissao(tipo), { waitUntil: "domcontentloaded", timeout: 45_000 });
   await page.waitForTimeout(1500);
   const operacao = page.getByLabel(/opera[cç][aã]o fiscal/i).first();
   if (await operacao.count()) {
@@ -104,7 +109,7 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
   }
   const corpo = (await page.locator("body").innerText()).toUpperCase();
   if (!corpo.includes("EMITIR NOTA FISCAL")) {
-    return { ok: false, motivo: "tela_emissao_indisponivel", mensagem: "O Vender Gás não abriu a tela de emissão de NF-e." };
+    return { ok: false, motivo: "tela_emissao_indisponivel", mensagem: `O Vender Gás não abriu a tela de emissão de ${rotulo}.` };
   }
 
   // Falha fechada: nunca emite por uma operação de estorno/devolução selecionada.
@@ -147,10 +152,10 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
 
   const resultado = await page.locator("body").innerText();
   const chave = resultado.match(/\b\d{44}\b/)?.[0];
-  const numero = resultado.match(/(?:NF-e|Nota Fiscal)\D{0,20}(\d{1,12})/i)?.[1];
+  const numero = resultado.match(/(?:NFC-e|NF-e|Nota Fiscal)\D{0,20}(\d{1,12})/i)?.[1];
   const sucesso = /autorizad[ao]|nota fiscal emitida|emiss[aã]o conclu[ií]da/i.test(resultado);
   if (!sucesso) {
     return { ok: false, motivo: "emissao_nao_confirmada", etapa: "vendergas", url: page.url(), mensagem: "O Vender Gás não confirmou a autorização. Confira a mensagem exibida na janela; o GasFácil não registrou a nota como emitida." };
   }
-  return { ok: true, etapa: "autorizada", numero, chaveAcesso: chave, url: page.url(), mensagem: "NF-e autorizada no Vender Gás." };
+  return { ok: true, etapa: "autorizada", numero, chaveAcesso: chave, url: page.url(), mensagem: `${rotulo} autorizada no Vender Gás.` };
 }

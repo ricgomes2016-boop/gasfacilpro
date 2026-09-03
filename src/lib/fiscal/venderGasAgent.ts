@@ -8,6 +8,7 @@ export interface VenderGasItem {
 }
 
 export interface VenderGasPayload {
+  tipoDocumento: "nfe" | "nfce";
   unidadeId: string;
   cnpjEmitente: string;
   pedidoId: string;
@@ -77,6 +78,6 @@ export function abrirLoginVenderGas(unidadeId: string, cnpjEmitente: string) {
   return chamar("/vendergas/abrir-login", { unidadeId, cnpj: cnpjEmitente }, 30_000);
 }
 
-export function emitirNfeVenderGas(payload: VenderGasPayload) {
+export function emitirDocumentoVenderGas(payload: VenderGasPayload) {
   return chamar("/vendergas/emitir", payload, 180_000);
 }
