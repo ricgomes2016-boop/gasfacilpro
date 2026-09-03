@@ -359,7 +359,7 @@ export async function rotearPagamentosVendaAntecipada(params: {
       continue;
     }
 
-    if (["cartao_debito", "cartao_credito", "pix_maquininha", "gas_do_povo"].includes(forma)) {
+    if (["cartao_debito", "cartao_credito", "pix_maquininha"].includes(forma)) {
       const parcelas = forma === "cartao_credito" ? Math.max(1, Number(pagamento.parcelas) || 1) : 1;
       const op = await getOperadoraConfig(unidadeId, forma, pagamento.operadora_id, parcelas);
       const taxaBase = op?.taxa || 0;
@@ -376,7 +376,7 @@ export async function rotearPagamentosVendaAntecipada(params: {
       const { error } = await supabase.from("contas_receber").insert({
         cliente: op?.nome || clienteNome,
         cliente_id: clienteId || null,
-        descricao: `${descricao} - ${forma.replaceAll("_", " ")}`,
+        descricao: `${descricao} - ${forma.split("_").join(" ")}`,
         valor: pagamento.valor,
         vencimento: format(addDays(new Date(), prazo), "yyyy-MM-dd"),
         status: liquidaAgora ? "recebida" : "pendente",
