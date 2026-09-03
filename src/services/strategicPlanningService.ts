@@ -134,8 +134,13 @@ export async function fetchStrategicPlanningData(params: {
     .lt("created_at", end)
     .neq("status", "cancelado");
 
-  if (empresaId) pedidosQuery = pedidosQuery.eq("empresa_id", empresaId);
+  // pedidos nao possui empresa_id: o escopo por empresa vem das unidades da empresa.
   if (unidadeId) pedidosQuery = pedidosQuery.eq("unidade_id", unidadeId);
+  else if (empresaId) {
+    const { data: unidadesEmpresa } = await db.from("unidades").select("id").eq("empresa_id", empresaId);
+    const ids = (unidadesEmpresa || []).map((u: any) => u.id);
+    pedidosQuery = pedidosQuery.in("unidade_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+  }
 
   const { data: pedidos = [] } = await pedidosQuery;
 
