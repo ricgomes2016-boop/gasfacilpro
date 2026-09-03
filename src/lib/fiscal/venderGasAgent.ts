@@ -13,11 +13,12 @@ export interface VenderGasPayload {
   cnpjEmitente: string;
   pedidoId: string;
   numeroPedido: string;
+  somentePreparar?: boolean;
   destinatario: {
     nome: string;
-    cpfCnpj: string;
+    cpfCnpj?: string;
     inscricaoEstadual?: string;
-    endereco: string;
+    endereco?: string;
     numero?: string;
     bairro?: string;
     cep?: string;

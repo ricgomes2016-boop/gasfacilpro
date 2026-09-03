@@ -40,16 +40,22 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange, tipoDocum
     setErro(null);
     let notaId: string | null = null;
     try {
-      if (!pedido.cliente_id) throw new Error(`Este pedido não possui um cliente cadastrado. Vincule o cliente antes de emitir a ${rotulo}.`);
-      const { data: cliente, error: clienteError } = await supabase
-        .from("clientes")
-        .select("nome, razao_social, cpf, cnpj, inscricao_estadual, endereco, numero, bairro, cep, cidade, estado, codigo_municipio, telefone")
-        .eq("id", pedido.cliente_id)
-        .single();
-      if (clienteError || !cliente) throw new Error("Não foi possível carregar os dados fiscais do cliente.");
-      const documento = String(cliente.cnpj || cliente.cpf || "").replace(/\D/g, "");
-      if (![11, 14].includes(documento.length)) throw new Error("Informe CPF ou CNPJ válido no cadastro do cliente.");
-      if (!cliente.endereco || !cliente.numero || !cliente.cep || !cliente.cidade || !cliente.estado) {
+      const exigeDestinatario = tipoDocumento === "nfe";
+      if (exigeDestinatario && !pedido.cliente_id) throw new Error("A NF-e exige um cliente cadastrado com CPF ou CNPJ.");
+      let cliente: any = null;
+      if (pedido.cliente_id) {
+        const { data, error: clienteError } = await supabase
+          .from("clientes")
+          .select("nome, razao_social, cpf, cnpj, inscricao_estadual, endereco, numero, bairro, cep, cidade, estado, codigo_municipio, telefone")
+          .eq("id", pedido.cliente_id)
+          .single();
+        if (clienteError && exigeDestinatario) throw new Error("Não foi possível carregar os dados fiscais do cliente.");
+        cliente = data;
+      }
+      const documento = String(cliente?.cnpj || cliente?.cpf || "").replace(/\D/g, "");
+      if (exigeDestinatario && ![11, 14].includes(documento.length)) throw new Error("A NF-e exige CPF ou CNPJ válido no cadastro do cliente.");
+      const documentoFiscal = [11, 14].includes(documento.length) ? documento : "";
+      if (exigeDestinatario && (!cliente?.endereco || !cliente?.numero || !cliente?.cep || !cliente?.cidade || !cliente?.estado)) {
         throw new Error("Complete endereço, número, CEP, cidade e UF no cadastro do cliente antes de emitir.");
       }
       if (!pedido.itens.length) throw new Error("O pedido não possui itens para faturamento.");
@@ -60,18 +66,19 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange, tipoDocum
         cnpjEmitente: empresa.cnpj,
         pedidoId: pedido.id,
         numeroPedido: String(pedido.numero_sequencial ?? pedido.id.slice(0, 8)),
+        somentePreparar: true,
         destinatario: {
-          nome: cliente.razao_social || cliente.nome,
-          cpfCnpj: documento,
-          inscricaoEstadual: cliente.inscricao_estadual || undefined,
-          endereco: cliente.endereco,
-          numero: cliente.numero,
-          bairro: cliente.bairro || undefined,
-          cep: cliente.cep,
-          cidade: cliente.cidade,
-          uf: cliente.estado,
-          codigoMunicipio: cliente.codigo_municipio || undefined,
-          telefone: cliente.telefone || undefined,
+          nome: cliente?.razao_social || cliente?.nome || pedido.cliente || "Consumidor final",
+          cpfCnpj: documentoFiscal || undefined,
+          inscricaoEstadual: cliente?.inscricao_estadual || undefined,
+          endereco: cliente?.endereco || undefined,
+          numero: cliente?.numero || undefined,
+          bairro: cliente?.bairro || undefined,
+          cep: cliente?.cep || undefined,
+          cidade: cliente?.cidade || undefined,
+          uf: cliente?.estado || undefined,
+          codigoMunicipio: cliente?.codigo_municipio || undefined,
+          telefone: cliente?.telefone || undefined,
         },
         itens: pedido.itens.map((item) => ({
           produtoId: item.produto_id,
@@ -93,9 +100,11 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange, tipoDocum
         const { data: criada, error: criarError } = await db.from("notas_fiscais").insert({
           tipo: tipoDocumento, status: "rascunho", pedido_id: pedido.id, provedor: "vendergas",
           provedor_status: "aguardando_agente", destinatario_nome: payload.destinatario.nome,
-          destinatario_cpf_cnpj: documento, destinatario_endereco: `${cliente.endereco}, ${cliente.numero}`,
-          destinatario_cidade_uf: `${cliente.cidade}/${cliente.estado}`, destinatario_ie: cliente.inscricao_estadual,
-          destinatario_cep: cliente.cep, destinatario_telefone: cliente.telefone, valor_total: pedido.valor,
+          destinatario_cpf_cnpj: documentoFiscal || null,
+          destinatario_endereco: cliente?.endereco ? `${cliente.endereco}${cliente.numero ? `, ${cliente.numero}` : ""}` : null,
+          destinatario_cidade_uf: cliente?.cidade ? `${cliente.cidade}${cliente.estado ? `/${cliente.estado}` : ""}` : null,
+          destinatario_ie: cliente?.inscricao_estadual || null,
+          destinatario_cep: cliente?.cep || null, destinatario_telefone: cliente?.telefone || null, valor_total: pedido.valor,
           forma_pagamento: pedido.forma_pagamento, natureza_operacao: "Venda de mercadoria",
           observacoes: pedido.observacoes, unidade_id: unidadeAtual.id, created_by: user?.id,
           integracao_payload: payload,
@@ -110,6 +119,15 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange, tipoDocum
       if (!resposta.ok) {
         await db.from("notas_fiscais").update({ provedor_status: resposta.motivo || "falha", motivo_rejeicao: resposta.mensagem, integracao_resultado: resposta }).eq("id", notaId);
         throw new Error(resposta.mensagem);
+      }
+      if (resposta.etapa === "pronta_para_revisao") {
+        await db.from("notas_fiscais").update({
+          status: "rascunho", provedor_status: "pronta_para_revisao",
+          motivo_rejeicao: null, integracao_resultado: resposta,
+        }).eq("id", notaId);
+        toast.success(resposta.mensagem);
+        onOpenChange(false);
+        return;
       }
       await db.from("notas_fiscais").update({
         status: "autorizada", provedor_status: "autorizada", numero: resposta.numero || null,
@@ -134,9 +152,9 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange, tipoDocum
         </DialogHeader>
         <Alert>
           <ShieldCheck className="h-4 w-4" />
-          <AlertTitle>Confirmação fiscal</AlertTitle>
+          <AlertTitle>Primeira emissão assistida</AlertTitle>
           <AlertDescription>
-            Você está preparando uma <strong>{rotulo}</strong>. O agente abrirá a conta da Forte Gás, preencherá a venda e somente transmitirá após esta confirmação. Confira cliente, itens e valor de <strong>R$ {Number(pedido?.valor || 0).toFixed(2)}</strong>. O mesmo modelo fiscal não poderá ser emitido duas vezes para este pedido.
+            O agente abrirá a conta da Forte Gás e preencherá a <strong>{rotulo}</strong>, mas não transmitirá a nota. Você assumirá a janela para conferir cliente, itens e o valor de <strong>R$ {Number(pedido?.valor || 0).toFixed(2)}</strong>. Na NFC-e, CPF/CNPJ é opcional; na NF-e, é obrigatório.
           </AlertDescription>
         </Alert>
         {erro && <Alert variant="destructive"><AlertTitle>Emissão interrompida</AlertTitle><AlertDescription>{erro}</AlertDescription></Alert>}
@@ -145,7 +163,7 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange, tipoDocum
           <div className="flex gap-2">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={enviando}>Cancelar</Button>
             <Button type="button" onClick={emitir} disabled={enviando}>
-              {enviando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{enviando ? `Emitindo ${rotulo}...` : `Confirmar e emitir ${rotulo}`}
+              {enviando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{enviando ? `Preparando ${rotulo}...` : `Preparar ${rotulo} para revisão`}
             </Button>
           </div>
         </DialogFooter>

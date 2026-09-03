@@ -14,8 +14,9 @@ export interface EmissaoVenderGas {
   cnpjEmitente: string;
   pedidoId: string;
   numeroPedido: string;
+  somentePreparar?: boolean;
   destinatario: {
-    nome: string; cpfCnpj: string; inscricaoEstadual?: string; endereco: string;
+    nome: string; cpfCnpj?: string; inscricaoEstadual?: string; endereco?: string;
     numero?: string; bairro?: string; cep?: string; cidade?: string; uf?: string;
     codigoMunicipio?: string; telefone?: string;
   };
@@ -147,6 +148,15 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
 
   const botao = page.getByRole("button", { name: /^emitir nota fiscal$/i }).first();
   if (!await botao.count()) return { ok: false, motivo: "botao_emitir_indisponivel", mensagem: "O formulário foi preenchido, mas o botão Emitir Nota Fiscal não foi encontrado." };
+  if (payload.somentePreparar) {
+    await page.bringToFront();
+    return {
+      ok: true,
+      etapa: "pronta_para_revisao",
+      url: page.url(),
+      mensagem: `${rotulo} preenchida no Vender Gás e pronta para sua conferência. Nenhuma nota foi transmitida.`,
+    };
+  }
   await botao.click();
   await page.waitForTimeout(1800);
 
