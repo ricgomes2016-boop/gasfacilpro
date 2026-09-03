@@ -91,15 +91,15 @@ async function abrirFluxoNfce(page: Page) {
   await page.goto(VENDER_GAS_URL, { waitUntil: "domcontentloaded", timeout: 45_000 });
   await page.waitForTimeout(800);
   for (const etapa of [/^vendas$/i, /^nota fiscal$/i, /^nfc-?e$/i, /sa[ií]da\s*-?\s*venda de mercadoria/i]) {
-    const item = page.locator('a, button, [role="menuitem"]')
-      .filter({ hasText: etapa, visible: true })
-      .last();
-    if (!await item.count()) return false;
+    const texto = page.getByText(etapa, { exact: true }).filter({ visible: true }).last();
+    if (!await texto.count()) return { ok: false as const, etapa: etapa.source };
+    const ancestral = texto.locator('xpath=ancestor-or-self::*[self::a or self::button or self::mat-list-item or self::mat-expansion-panel-header or @role="menuitem"][1]');
+    const item = await ancestral.count() ? ancestral : texto;
     await item.click();
     await page.waitForTimeout(500);
   }
   await page.waitForTimeout(1200);
-  return true;
+  return { ok: true as const };
 }
 
 async function garantirLogin(page: Page) {
@@ -136,8 +136,9 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
   if (!login.ok) return login;
 
   if (tipo === "nfce") {
-    if (!await abrirFluxoNfce(page)) {
-      return { ok: false, motivo: "menu_nfce_indisponivel", mensagem: "Não encontrei o caminho Vendas > Nota Fiscal > NFC-e > Saída - Venda de Mercadoria." };
+    const navegacao = await abrirFluxoNfce(page);
+    if (!navegacao.ok) {
+      return { ok: false, motivo: "menu_nfce_indisponivel", mensagem: `Não encontrei a etapa “${navegacao.etapa}” no caminho Vendas > Nota Fiscal > NFC-e > Saída - Venda de Mercadoria.` };
     }
   } else {
     await page.goto(urlEmissao(tipo), { waitUntil: "domcontentloaded", timeout: 45_000 });
