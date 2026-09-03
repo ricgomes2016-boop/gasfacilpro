@@ -13,6 +13,7 @@ export type FormaCategoria =
   | "cheque"
   | "fiado"
   | "vale_gas"
+  | "venda_antecipada"
   | "gas_do_povo"
   | "outros";
 
@@ -42,6 +43,7 @@ export function normalizeFormaPagamentoKey(forma: string | null | undefined): st
   if (["dinheiro", "especie", "em_dinheiro"].includes(limpa)) return "dinheiro";
   if (["fiado", "a_prazo", "prazo"].includes(limpa)) return "fiado";
   if (["vale_gas", "valegas", "vale_gaz"].includes(limpa)) return "vale_gas";
+  if (["venda_antecipada", "vale_venda_antecipada"].includes(limpa)) return "venda_antecipada";
   if (["gas_do_povo", "gas_povo"].includes(limpa)) return "gas_do_povo";
   if (["transferencia", "transferencia_bancaria", "ted", "doc"].includes(limpa)) return "transferencia";
   return limpa;
@@ -61,6 +63,7 @@ export function getFormaCategoria(forma: string | null | undefined): FormaCatego
   if (f.includes("transfer")) return "transferencia";
   if (f.includes("cheque")) return "cheque";
   if (f.includes("fiado")) return "fiado";
+  if (f.includes("venda_antecipada")) return "venda_antecipada";
   if (f.includes("vale")) return "vale_gas";
   if (f.includes("dinheiro") || f.includes("especie")) return "dinheiro";
   return "outros";
@@ -82,6 +85,7 @@ export function getFormaGrupo(forma: string | null | undefined): FormaGrupo {
     cat === "fiado" ||
     cat === "cheque" ||
     cat === "vale_gas" ||
+    cat === "venda_antecipada" ||
     cat === "gas_do_povo" ||
     cat === "transferencia" ||
     cat === "cartao_debito" ||
@@ -112,6 +116,7 @@ export const FORMA_LABELS: Record<FormaCategoria, string> = {
   cheque: "Cheque",
   fiado: "Fiado",
   vale_gas: "Vale Gás",
+  venda_antecipada: "Venda Antecipada",
   gas_do_povo: "Gás do Povo",
   outros: "Outros",
 };
@@ -128,6 +133,7 @@ const BUILTIN_LABELS: Record<string, string> = {
   boleto: "Boleto",
   fiado: "Fiado",
   vale_gas: "Vale Gás",
+  venda_antecipada: "Venda Antecipada",
   gas_do_povo: "Gás do Povo",
   transferencia: "Transferência",
 };

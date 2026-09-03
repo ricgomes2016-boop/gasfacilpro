@@ -19,6 +19,7 @@ import { getOperadoraPadrao } from "@/lib/financeiro/padroesFinanceiros";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { VendaSectionHeader } from "./VendaSectionHeader";
 import { validarValeGasNoBanco } from "@/hooks/useValeGasValidation";
+import { validarValeVendaAntecipada } from "@/hooks/useVendaAntecipadaValidation";
 
 export interface Pagamento {
   id: string;
@@ -42,6 +43,11 @@ export interface Pagamento {
   vale_gas_parceiro_nome?: string;
   vale_gas_numero?: number;
   vale_gas_codigo?: string;
+  venda_antecipada_vale_id?: string;
+  venda_antecipada_id?: string;
+  venda_antecipada_codigo?: string;
+  venda_antecipada_produto_id?: string | null;
+  venda_antecipada_produto_nome?: string;
   // Cobrança extra associada (ex.: taxa de entrega do Gás do Povo)
   // Quando presente, aumenta o total efetivo da venda em `taxa_extra` e
   // um pagamento adicional deve ser lançado para cobrir esse valor.
@@ -60,6 +66,7 @@ interface PaymentSectionProps {
   totalVenda: number;
   unidadeId?: string;
   itens?: Array<{ nome: string; quantidade: number }>;
+  clienteId?: string | null;
   excludedFormas?: string[];
 }
 
@@ -71,13 +78,14 @@ const formasPagamentoBase = [
   { value: "cartao_credito", label: "Cartão Crédito", icon: "💳", Icon: CreditCard, tone: "bg-warning/15 text-warning ring-warning/25", cardTone: "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10", valueTone: "text-warning", quickTone: "text-warning", quickSurface: "bg-warning/15", quickRing: "ring-warning/35" },
   { value: "boleto", label: "Boleto", icon: "📄", Icon: FileText, tone: "bg-muted text-foreground ring-border", cardTone: "border-border bg-muted/25 hover:border-primary/35 hover:bg-muted/45", valueTone: "text-foreground", quickTone: "text-foreground", quickSurface: "bg-muted", quickRing: "ring-border" },
   { value: "vale_gas", label: "Vale Gás", icon: "🔥", Icon: Flame, tone: "bg-destructive/15 text-destructive ring-destructive/25", cardTone: "border-destructive/25 bg-destructive/5 hover:border-destructive/45 hover:bg-destructive/10", valueTone: "text-destructive", quickTone: "text-destructive", quickSurface: "bg-destructive/10", quickRing: "ring-destructive/35" },
+  { value: "venda_antecipada", label: "Venda Antecipada", icon: "🎟️", Icon: WalletCards, tone: "bg-violet-500/15 text-violet-700 ring-violet-500/25", cardTone: "border-violet-500/25 bg-violet-500/5 hover:border-violet-500/45 hover:bg-violet-500/10", valueTone: "text-violet-700", quickTone: "text-violet-700", quickSurface: "bg-violet-500/10", quickRing: "ring-violet-500/35" },
   { value: "cheque", label: "Cheque", icon: "🧾", Icon: ReceiptText, tone: "bg-secondary/10 text-secondary ring-secondary/25", cardTone: "border-secondary/25 bg-secondary/5 hover:border-primary/35 hover:bg-secondary/10", valueTone: "text-secondary", quickTone: "text-secondary", quickSurface: "bg-secondary/10", quickRing: "ring-secondary/35" },
   { value: "fiado", label: "Fiado / A Prazo", icon: "📝", Icon: AlertCircle, tone: "bg-warning/15 text-warning ring-warning/25", cardTone: "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10", valueTone: "text-warning", quickTone: "text-warning", quickSurface: "bg-warning/15", quickRing: "ring-warning/35" },
 ];
 
 const GAS_DO_POVO_FORMA = { value: "gas_do_povo", label: "Gás do Povo", icon: "🏛️", Icon: Flame, tone: "bg-info/15 text-info ring-info/25", cardTone: "border-info/25 bg-info/5 hover:border-info/45 hover:bg-info/10", valueTone: "text-info", quickTone: "text-info", quickSurface: "bg-info/10", quickRing: "ring-info/35" };
 
-export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, itens = [], excludedFormas = [] }: PaymentSectionProps) {
+export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, itens = [], clienteId, excludedFormas = [] }: PaymentSectionProps) {
   const [forma, setForma] = useState("");
   const [valorDisplay, setValorDisplay] = useState("");
   const [chequeNumero, setChequeNumero] = useState("");
@@ -101,6 +109,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   const [pendingTaxaTotalPercentual, setPendingTaxaTotalPercentual] = useState(0);
   const [valeGasNumero, setValeGasNumero] = useState("");
   const [validandoValeGas, setValidandoValeGas] = useState(false);
+  const [vendaAntecipadaCodigo, setVendaAntecipadaCodigo] = useState("");
 
   const { unidadeAtual } = useUnidade();
   const effectiveUnidadeNome = unidadeId ? undefined : unidadeAtual?.nome;
@@ -219,6 +228,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     setPendingTaxaDescontoPercentual(0);
     setPendingTaxaTotalPercentual(0);
     setValeGasNumero("");
+    setVendaAntecipadaCodigo("");
   };
 
   const addPagamento = async () => {
@@ -243,6 +253,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
 
 
     let valeGasValidado: Awaited<ReturnType<typeof validarValeGasNoBanco>> | null = null;
+    let vendaAntecipadaValidada: Awaited<ReturnType<typeof validarValeVendaAntecipada>> | null = null;
     if (forma === "vale_gas") {
       const numeroVale = valeGasNumero.trim();
       if (!numeroVale) {
@@ -260,6 +271,26 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
       if (!valeGasValidado.valido || !valeGasValidado.valeId) {
         toast.error(valeGasValidado.erro || "Vale Gás não encontrado ou indisponível");
         return;
+      }
+    }
+    if (forma === "venda_antecipada") {
+      const codigo = vendaAntecipadaCodigo.trim();
+      if (!codigo) { toast.error("Informe o código da venda antecipada"); return; }
+      setValidandoValeGas(true);
+      try { vendaAntecipadaValidada = await validarValeVendaAntecipada(codigo, clienteId); }
+      finally { setValidandoValeGas(false); }
+      if (!vendaAntecipadaValidada.valido || !vendaAntecipadaValidada.valeId) {
+        toast.error(vendaAntecipadaValidada.erro || "Venda antecipada inválida"); return;
+      }
+      const itemCompativel = itens.some((item: any) =>
+        (vendaAntecipadaValidada!.produtoId && item.produto_id === vendaAntecipadaValidada!.produtoId) ||
+        item.nome?.trim().toLowerCase() === vendaAntecipadaValidada!.produtoNome?.trim().toLowerCase()
+      );
+      if (itens.length && !itemCompativel) {
+        toast.error(`Este vale é para ${vendaAntecipadaValidada.produtoNome || "outro produto"}.`); return;
+      }
+      if (Math.abs(valorNum - vendaAntecipadaValidada.valor) > 0.01) {
+        toast.error(`O valor deste vale é R$ ${vendaAntecipadaValidada.valor.toFixed(2)}.`); return;
       }
     }
 
@@ -302,6 +333,13 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
       novoPagamento.vale_gas_parceiro_nome = valeGasValidado.parceiro;
       novoPagamento.vale_gas_numero = valeGasValidado.numero;
       novoPagamento.vale_gas_codigo = valeGasValidado.codigo;
+    }
+    if (vendaAntecipadaValidada) {
+      novoPagamento.venda_antecipada_vale_id = vendaAntecipadaValidada.valeId;
+      novoPagamento.venda_antecipada_id = vendaAntecipadaValidada.vendaAntecipadaId;
+      novoPagamento.venda_antecipada_codigo = vendaAntecipadaValidada.codigo;
+      novoPagamento.venda_antecipada_produto_id = vendaAntecipadaValidada.produtoId;
+      novoPagamento.venda_antecipada_produto_nome = vendaAntecipadaValidada.produtoNome;
     }
 
     const taxaNum = forma === "gas_do_povo" ? parseCurrency(taxaEntregaGasPovo) : 0;
@@ -587,6 +625,23 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
                   <p className="mt-1 text-xs text-muted-foreground">
                     O vale será conferido no banco antes de entrar no pedido.
                   </p>
+                </div>
+              </div>
+            )}
+
+            {forma === "venda_antecipada" && (
+              <div className="venda-modern-surface rounded-lg border border-dashed border-violet-500/30 p-3 space-y-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-violet-700">Retirada de venda antecipada</p>
+                <div>
+                  <Label className="text-xs">Código completo do vale *</Label>
+                  <div className="flex gap-2">
+                    <Input value={vendaAntecipadaCodigo} onChange={(e) => setVendaAntecipadaCodigo(e.target.value.toUpperCase())}
+                      placeholder="Ex: VA-2026-00001-01" className="h-9 text-sm font-mono" data-venda-enter-next />
+                    <Button type="button" variant="outline" className="h-9 shrink-0" onClick={addPagamento} disabled={validandoValeGas}>
+                      {validandoValeGas ? <Loader2 className="h-4 w-4 animate-spin" /> : "Validar"}
+                    </Button>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">A retirada não gera nova entrada no caixa: o pagamento foi registrado quando a venda antecipada foi criada.</p>
                 </div>
               </div>
             )}

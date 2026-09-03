@@ -1148,6 +1148,24 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         throw itensError;
       }
 
+      // Venda antecipada é uma retirada de saldo já pago. Consumimos o vale no
+      // momento em que o pedido nasce, inclusive quando haverá entregador/acerto.
+      for (const pagamento of pagamentos.filter((p) => p.forma === "venda_antecipada")) {
+        if (!pagamento.venda_antecipada_codigo || !pagamento.venda_antecipada_vale_id) {
+          await supabase.from("pedidos").delete().eq("id", pedido.id);
+          throw new Error("Venda antecipada sem código validado.");
+        }
+        const { data: retirada, error: retiradaError } = await supabase.rpc("consumir_vale_venda_antecipada", {
+          _codigo: pagamento.venda_antecipada_codigo,
+          _pedido_id: pedido.id,
+          _observacao: `Retirada no pedido #${(pedido as any).numero_sequencial ?? pedido.id.slice(0, 8)}`,
+        });
+        if (retiradaError || (retirada as any)?.ok !== true) {
+          await supabase.from("pedidos").delete().eq("id", pedido.id);
+          throw new Error(retiradaError?.message || "Não foi possível consumir o vale da venda antecipada.");
+        }
+      }
+
       // #4 - Use shared stock update service
       await atualizarEstoqueVenda(itensValidos.map((item) => ({
         produto_id: item.produto_id,
@@ -1205,7 +1223,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           pedidoNumero: (pedido as any).numero_sequencial ?? null,
           clienteId,
           clienteNome: customer.nome || "Consumidor",
-          pagamentos: pagamentos.map(p => ({
+          pagamentos: pagamentos.filter((p) => p.forma !== "venda_antecipada").map(p => ({
             forma: p.forma,
             valor: p.valor,
             cheque_numero: p.cheque_numero,
@@ -1222,6 +1240,9 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             vale_gas_parceiro_nome: p.vale_gas_parceiro_nome,
             vale_gas_numero: p.vale_gas_numero,
             vale_gas_codigo: p.vale_gas_codigo,
+            venda_antecipada_vale_id: p.venda_antecipada_vale_id,
+            venda_antecipada_id: p.venda_antecipada_id,
+            venda_antecipada_codigo: p.venda_antecipada_codigo,
           })),
           unidadeId: unidadeAtual?.id,
           entregadorId: pedidoJaEntregue ? entregador.id : null,
@@ -1654,7 +1675,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             )}
             {activeStep === "pagamento" && (
               <div className="venda-step-panel venda-tone-pagamento w-full" onKeyDown={handleStepEnterNavigation}>
-                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} />
+                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} clienteId={customer.id} />
               </div>
             )}
             {activeStep === "entregador" && (
@@ -1726,7 +1747,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               </label>
               <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
               <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
-              <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} />
+              <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} clienteId={customer.id} />
             </div>
             <div className="lg:sticky lg:top-4 space-y-3 md:space-y-4 self-start order-2">
               <CustomerHistory clienteId={customer.id} />

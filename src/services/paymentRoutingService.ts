@@ -22,6 +22,9 @@ export interface PagamentoRoteamento {
   vale_gas_parceiro_nome?: string;
   vale_gas_numero?: number;
   vale_gas_codigo?: string;
+  venda_antecipada_vale_id?: string;
+  venda_antecipada_id?: string;
+  venda_antecipada_codigo?: string;
   // Cartão / PIX Maquininha — escolha do atendente/entregador
   operadora_id?: string;
   terminal_id?: string;
@@ -612,6 +615,24 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
             }).in("id", ids);
           })());
         }
+        break;
+      }
+
+      case "venda_antecipada": {
+        // O caixa/conta bancária já recebeu o dinheiro na criação da venda
+        // antecipada. Na retirada apenas consumimos o vale e vinculamos o pedido.
+        if (!pag.venda_antecipada_codigo || !pag.venda_antecipada_vale_id) {
+          throw new Error("Venda antecipada sem código validado.");
+        }
+        promises.push((async () => {
+          const { data, error } = await supabase.rpc("consumir_vale_venda_antecipada", {
+            _codigo: pag.venda_antecipada_codigo,
+            _pedido_id: pedidoId,
+            _observacao: `Retirada no pedido #${pedidoRef}`,
+          });
+          if (error) throw error;
+          if ((data as any)?.ok !== true) throw new Error("O vale da venda antecipada não foi consumido.");
+        })());
         break;
       }
 

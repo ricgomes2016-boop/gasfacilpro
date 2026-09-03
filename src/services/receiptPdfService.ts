@@ -50,6 +50,7 @@ const formatPaymentMethod = (method: string): string => {
     cartao_debito: "Cartão de Débito",
     fiado: "Fiado",
     vale_gas: "Vale Gás",
+    venda_antecipada: "Venda Antecipada",
   };
   return methods[method] || method;
 };
