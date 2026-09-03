@@ -5,7 +5,7 @@ import { chromium, type BrowserContext, type Page } from "playwright-core";
 
 const VENDER_GAS_URL = "https://app.vendergas.com.br";
 function urlEmissao(tipo: "nfe" | "nfce") {
-  return `${VENDER_GAS_URL}/notaFiscal/emitir?tipoNota=${tipo}&tipoEntradaSaida=1&cfe=${tipo === "nfce" ? "true" : "false"}`;
+  return `${VENDER_GAS_URL}/notaFiscal/emitir?tipoNota=${tipo}&tipoEntradaSaida=1&cfe=false`;
 }
 let contexto: BrowserContext | null = null;
 
@@ -67,8 +67,8 @@ async function garantirLogin(page: Page) {
   await page.goto(VENDER_GAS_URL, { waitUntil: "domcontentloaded", timeout: 45_000 });
   await page.waitForTimeout(1200);
   const url = page.url().toLowerCase();
-  const temLogin = await page.getByText(/entrar|login|acessar/i).count();
-  if (url.includes("login") || (temLogin && !url.includes("dashboard"))) {
+  const temCampoSenha = await page.locator('input[type="password"]').count();
+  if (url.includes("login") || temCampoSenha > 0) {
     return { ok: false as const, motivo: "login_necessario", mensagem: "Faça o login da Forte Gás na janela do Vender Gás e tente novamente." };
   }
   const texto = (await page.locator("body").innerText()).toUpperCase();
