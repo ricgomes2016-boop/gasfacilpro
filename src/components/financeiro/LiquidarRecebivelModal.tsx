@@ -39,6 +39,7 @@ import { getOperadoraPadrao } from "@/lib/financeiro/padroesFinanceiros";
 import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
 import {
   liquidarRecebivel,
+  ratearLinhasLiquidacao,
   type LinhaLiquidacao,
   type RecebivelParaLiquidar,
 } from "@/services/liquidarRecebivelService";
@@ -47,8 +48,10 @@ interface LiquidarRecebivelModalProps {
   open: boolean;
   onClose: () => void;
   conta: RecebivelParaLiquidar | null;
+  contas?: RecebivelParaLiquidar[];
   onSuccess?: () => void;
   dataMinima?: string; // ex: data da venda
+  exigirLiquidacaoTotal?: boolean;
 }
 
 type FormaSlug = LinhaLiquidacao["forma"];
@@ -85,9 +88,16 @@ export function LiquidarRecebivelModal({
   open,
   onClose,
   conta,
+  contas,
   onSuccess,
   dataMinima,
+  exigirLiquidacaoTotal = false,
 }: LiquidarRecebivelModalProps) {
+  const contasAtivas = useMemo(
+    () => (contas?.length ? contas : conta ? [conta] : []),
+    [conta, contas]
+  );
+  const contaReferencia = contasAtivas[0] || null;
   const hoje = getBrasiliaDateString();
   const [dataRec, setDataRec] = useState(hoje);
   const [linhas, setLinhas] = useState<Linha[]>([]);
@@ -97,31 +107,33 @@ export function LiquidarRecebivelModal({
   const [contasBancarias, setContasBancarias] = useState<Array<{ id: string; nome: string; banco: string }>>([]);
 
   useEffect(() => {
-    if (!open || !conta) return;
+    if (!open || contasAtivas.length === 0) return;
     setDataRec(hoje);
-    setLinhas([{ ...novaLinha(Number(conta.valor) || 0), _configurado: true }]);
-  }, [open, conta]);
+    const total = contasAtivas.reduce((s, item) => s + (Number(item.valor) || 0), 0);
+    setLinhas([{ ...novaLinha(total), _configurado: true }]);
+  }, [open, contasAtivas]);
 
   useEffect(() => {
-    if (!open || !conta?.unidade_id) return;
+    if (!open || !contaReferencia?.unidade_id) return;
     supabase
       .from("contas_bancarias")
       .select("id, nome, banco")
-      .eq("unidade_id", conta.unidade_id)
+      .eq("unidade_id", contaReferencia.unidade_id)
       .eq("ativo", true)
       .then(({ data }) => setContasBancarias((data as any) || []));
-  }, [open, conta?.unidade_id]);
+  }, [open, contaReferencia?.unidade_id]);
 
   const totalPago = useMemo(() => linhas.reduce((s, l) => s + (Number(l.valor) || 0), 0), [linhas]);
-  const valorConta = Number(conta?.valor) || 0;
+  const valorConta = contasAtivas.reduce((s, item) => s + (Number(item.valor) || 0), 0);
   const parcial = totalPago < valorConta - 0.01;
   const excede = totalPago > valorConta + 0.01;
 
   const podeConfirmar =
-    !!conta &&
+    contasAtivas.length > 0 &&
     !!dataRec &&
     totalPago > 0 &&
     !excede &&
+    (!exigirLiquidacaoTotal || !parcial) &&
     linhas.every((l) => l.valor > 0 && l._configurado);
 
   const addLinha = () => {
@@ -160,7 +172,7 @@ export function LiquidarRecebivelModal({
   };
 
   const handleConfirmar = async () => {
-    if (!conta) return;
+    if (!contaReferencia) return;
     if (dataMinima && dataRec < dataMinima) {
       toast.error(
         `A data do recebimento não pode ser anterior à data da venda (${format(
@@ -181,11 +193,19 @@ export function LiquidarRecebivelModal({
     setSaving(true);
     try {
       const payload: LinhaLiquidacao[] = linhas.map(({ _uid, _configurado, ...rest }) => rest);
-      const res = await liquidarRecebivel(conta, payload, dataRec);
+      const rateio = ratearLinhasLiquidacao(contasAtivas, payload);
+      let res = { parcial: false, totalPago: 0, restante: 0 };
+      for (const item of rateio) {
+        res = await liquidarRecebivel(item.conta, item.linhas, dataRec);
+      }
       if (res.parcial) {
         toast.success(`Recebido parcial R$ ${res.totalPago.toFixed(2)} — Restante R$ ${res.restante.toFixed(2)}`);
       } else {
-        toast.success(`Conta liquidada em ${format(new Date(dataRec + "T12:00:00"), "dd/MM/yyyy")}!`);
+        toast.success(
+          contasAtivas.length > 1
+            ? `${contasAtivas.length} contas liquidadas em ${format(new Date(dataRec + "T12:00:00"), "dd/MM/yyyy")}!`
+            : `Conta liquidada em ${format(new Date(dataRec + "T12:00:00"), "dd/MM/yyyy")}!`
+        );
       }
       onSuccess?.();
       onClose();
@@ -210,15 +230,25 @@ export function LiquidarRecebivelModal({
             </DialogTitle>
           </DialogHeader>
 
-          {conta && (
+          {contaReferencia && (
             <div className="space-y-4 pt-2">
               {/* Cabeçalho */}
               <div className="rounded-xl border bg-muted/30 p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Cliente</p>
-                    <p className="truncate text-base font-semibold">{conta.cliente || "Cliente"}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{conta.descricao}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                      {contasAtivas.length > 1 ? "Contas selecionadas" : "Cliente"}
+                    </p>
+                    <p className="truncate text-base font-semibold">
+                      {contasAtivas.length > 1
+                        ? `${contasAtivas.length} contas de ${new Set(contasAtivas.map((item) => item.cliente)).size} cliente(s)`
+                        : contaReferencia.cliente || "Cliente"}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {contasAtivas.length > 1
+                        ? "As formas abaixo serão rateadas pelas contas na ordem selecionada."
+                        : contaReferencia.descricao}
+                    </p>
                   </div>
                   <div className="text-left sm:text-right">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Total a receber</p>
@@ -466,7 +496,7 @@ export function LiquidarRecebivelModal({
                 </div>
                 {parcial && !excede && (
                   <div className="flex justify-between text-warning">
-                    <span>Restante (fica pendente)</span>
+                    <span>{exigirLiquidacaoTotal ? "Falta informar" : "Restante (fica pendente)"}</span>
                     <span className="font-semibold">
                       R$ {(valorConta - totalPago).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </span>
@@ -510,7 +540,7 @@ export function LiquidarRecebivelModal({
           onClose={() => setCardModal(null)}
           valor={Number(currentCardLinha.valor) || 0}
           tipoCartao={cardModal.tipo}
-          unidadeId={conta?.unidade_id || undefined}
+          unidadeId={contaReferencia?.unidade_id || undefined}
           parcelasInicial={currentCardLinha.parcelas || 1}
           preferredOperator={getOperadoraPadrao(cardModal.tipo)}
           onSelect={(op) => {
@@ -533,8 +563,8 @@ export function LiquidarRecebivelModal({
           open={pixModal !== null}
           onClose={() => setPixModal(null)}
           valor={Number(currentPixLinha.valor) || 0}
-          beneficiario={conta?.cliente || undefined}
-          unidadeId={conta?.unidade_id || undefined}
+          beneficiario={contaReferencia?.cliente || undefined}
+          unidadeId={contaReferencia?.unidade_id || undefined}
           preferredBank="itau"
           onSelect={(chave, contaId) => {
             const uid = currentPixLinha._uid;

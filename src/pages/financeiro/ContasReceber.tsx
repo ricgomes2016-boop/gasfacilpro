@@ -146,9 +146,6 @@ export default function ContasReceber() {
 
   // Bulk liquidation states
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
-  const [bulkFormaPagamento, setBulkFormaPagamento] = useState("");
-  const [bulkDataRecebimento, setBulkDataRecebimento] = useState("");
-  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   // Edit data_recebimento (admin/gestor only)
   const { hasAnyRole, profile, user } = useAuth();
@@ -438,89 +435,6 @@ export default function ContasReceber() {
 
 
 
-
-  // Bulk liquidation handler
-  const handleBulkReceber = async () => {
-    if (!bulkFormaPagamento || selectedContas.length === 0) {
-      toast.error("Selecione a forma de pagamento"); return;
-    }
-    const dataRec = bulkDataRecebimento || getBrasiliaDateString();
-    const hojeStr = getBrasiliaDateString();
-    if (dataRec > hojeStr) {
-      toast.error("A data do recebimento não pode ser posterior a hoje.");
-      return;
-    }
-    const maiorDataVenda = selectedContas.reduce<string>((acc, c) => {
-      const d = (c.data_venda || c.created_at || "").slice(0, 10);
-      return d > acc ? d : acc;
-    }, "");
-    if (maiorDataVenda && dataRec < maiorDataVenda) {
-      toast.error(`A data do recebimento não pode ser anterior à data da venda mais recente (${format(new Date(maiorDataVenda + "T12:00:00"), "dd/MM/yyyy")}).`);
-      return;
-    }
-    setBulkProcessing(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const formaLower = bulkFormaPagamento.toLowerCase();
-      let successCount = 0;
-
-      for (const conta of selectedContas) {
-        if (isStatusRecebida(conta.status)) continue;
-        const valor = Number(conta.valor);
-        const ref = conta.pedido_id?.slice(0, 8) || conta.id.slice(0, 8);
-
-        // Route payment
-        if (formaLower === "dinheiro") {
-          await supabase.from("movimentacoes_caixa").insert({
-            tipo: "entrada",
-            descricao: `Pgto Lote #${ref} - Dinheiro`,
-            valor,
-            categoria: "Recebimento Fiado",
-            status: "aprovada",
-            pedido_id: conta.pedido_id || null,
-            unidade_id: unidadeAtual?.id || null,
-          });
-        } else {
-          // Resolve conta por conta: respeita destino já gravado (boleto→Asaas, etc.)
-          const contaId = await resolverContaDestino({
-            unidadeId: unidadeAtual?.id || null,
-            forma: bulkFormaPagamento,
-            contaExplicita: conta.conta_bancaria_destino_id || null,
-          });
-          if (contaId) {
-            await criarMovimentacaoBancaria({
-              contaBancariaId: contaId,
-              valor,
-              descricao: `Pgto Lote #${ref} - ${bulkFormaPagamento}`,
-              categoria: "recebimento_fiado",
-              unidadeId: unidadeAtual?.id,
-              userId: user?.id,
-              pedidoId: conta.pedido_id || undefined,
-            });
-          }
-        }
-
-        // Mark as received
-        const { error } = await supabase.from("contas_receber").update({
-          status: "recebida",
-          forma_pagamento: bulkFormaPagamento,
-          data_recebimento: dataRec,
-        }).eq("id", conta.id);
-
-        if (!error) successCount++;
-      }
-
-      toast.success(`${successCount} conta(s) liquidada(s) com sucesso!`);
-      setBulkDialogOpen(false);
-      setBulkFormaPagamento("");
-      setSelectedIds(new Set());
-      fetchContas();
-    } catch (err: any) {
-      toast.error("Erro ao liquidar em lote: " + (err.message || "erro"));
-    } finally {
-      setBulkProcessing(false);
-    }
-  };
 
   const openEditDataRecDialog = (conta: ContaReceber) => {
     setEditDataRecConta(conta);
@@ -1506,64 +1420,34 @@ export default function ContasReceber() {
         />
 
 
-        {/* Bulk Liquidation Dialog */}
-        <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader><DialogTitle>Liquidar em Lote</DialogTitle></DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div className="p-3 rounded-lg bg-muted/50 space-y-2">
-                <p className="text-sm font-medium">{selectedContas.length} conta(s) selecionada(s)</p>
-                <div className="max-h-40 overflow-y-auto space-y-1">
-                  {selectedContas.map(c => (
-                    <div key={c.id} className="flex justify-between text-xs">
-                      <span className="truncate mr-2">{c.cliente} — {c.descricao}</span>
-                      <span className="font-medium whitespace-nowrap">R$ {Number(c.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="border-t pt-2 flex justify-between">
-                  <span className="text-sm font-medium">Total</span>
-                  <span className="text-lg font-bold">R$ {selectedTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-                </div>
-              </div>
-              <div>
-                <Label>Forma de Pagamento (aplicada a todas)</Label>
-                <Select value={bulkFormaPagamento} onValueChange={setBulkFormaPagamento}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Data do Recebimento *</Label>
-                <Input
-                  type="date"
-                  className="mt-1"
-                  min={selectedContas.reduce<string>((acc, c) => {
-                    const d = (c.data_venda || c.created_at || "").slice(0, 10);
-                    return d > acc ? d : acc;
-                  }, "") || undefined}
-                  max={getBrasiliaDateString()}
-                  value={bulkDataRecebimento}
-                  onChange={e => setBulkDataRecebimento(e.target.value)}
-                />
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  Entre a data da venda mais recente do lote e hoje.
-                </p>
-              </div>
-              <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                Todas as contas serão marcadas como recebidas e o valor será creditado automaticamente no destino correto (Dinheiro → Caixa, outros → Conta Bancária).
-              </p>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setBulkDialogOpen(false)}>Cancelar</Button>
-                <Button onClick={handleBulkReceber} disabled={bulkProcessing || !bulkFormaPagamento}>
-                  {bulkProcessing ? "Processando..." : `Liquidar ${selectedContas.length} conta(s)`}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* Baixa em lote usa as mesmas regras financeiras da baixa individual. */}
+        <LiquidarRecebivelModal
+          open={bulkDialogOpen}
+          onClose={() => setBulkDialogOpen(false)}
+          conta={null}
+          contas={selectedContas.map((item) => ({
+            id: item.id,
+            cliente: item.cliente,
+            cliente_id: (item as any).cliente_id || null,
+            descricao: item.descricao,
+            pedido_id: item.pedido_id,
+            unidade_id: unidadeAtual?.id || null,
+            valor: Number(item.valor),
+            forma_pagamento: item.forma_pagamento,
+            observacoes: item.observacoes,
+          }))}
+          exigirLiquidacaoTotal
+          dataMinima={
+            selectedContas.reduce<string>((acc, item) => {
+              const data = (item.data_venda || item.created_at || "").slice(0, 10);
+              return data > acc ? data : acc;
+            }, "") || undefined
+          }
+          onSuccess={() => {
+            setSelectedIds(new Set());
+            fetchContas();
+          }}
+        />
 
         {/* Editar data de recebimento (admin/gestor) */}
         <Dialog open={editDataRecDialogOpen} onOpenChange={setEditDataRecDialogOpen}>

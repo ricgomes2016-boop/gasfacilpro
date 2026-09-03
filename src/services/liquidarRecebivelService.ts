@@ -61,6 +61,40 @@ export interface LiquidarResult {
 }
 
 /**
+ * Distribui as formas informadas no lote entre os recebíveis, sem alterar
+ * a ordem nem os metadados da forma (conta, chave PIX, operadora etc.).
+ */
+export function ratearLinhasLiquidacao(
+  contas: RecebivelParaLiquidar[],
+  linhas: LinhaLiquidacao[]
+): Array<{ conta: RecebivelParaLiquidar; linhas: LinhaLiquidacao[] }> {
+  const disponiveis = linhas
+    .filter((linha) => Number(linha.valor) > 0)
+    .map((linha) => ({ ...linha, valor: Number(linha.valor) }));
+  let indiceLinha = 0;
+  let saldoLinha = disponiveis[0]?.valor || 0;
+
+  return contas.map((conta) => {
+    let saldoConta = Number(conta.valor) || 0;
+    const linhasConta: LinhaLiquidacao[] = [];
+
+    while (saldoConta > 0.005 && indiceLinha < disponiveis.length) {
+      const valor = Math.min(saldoConta, saldoLinha);
+      if (valor > 0.005) linhasConta.push({ ...disponiveis[indiceLinha], valor });
+      saldoConta -= valor;
+      saldoLinha -= valor;
+
+      if (saldoLinha <= 0.005) {
+        indiceLinha += 1;
+        saldoLinha = disponiveis[indiceLinha]?.valor || 0;
+      }
+    }
+
+    return { conta, linhas: linhasConta };
+  });
+}
+
+/**
  * Liquida um recebível aplicando múltiplas linhas de pagamento.
  * Persiste os side-effects (caixa/banco/cartão/cheque) e atualiza `contas_receber`.
  */
