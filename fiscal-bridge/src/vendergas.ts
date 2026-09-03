@@ -63,6 +63,43 @@ async function preencher(page: Page, rotulo: RegExp, valor?: string) {
   }
 }
 
+async function clicarOpcao(page: Page, campo: RegExp, opcao: RegExp) {
+  const porLabel = page.getByLabel(campo).first();
+  const porTexto = page.getByText(campo).last();
+  const seletor = await porLabel.count() ? porLabel : porTexto;
+  if (!await seletor.count()) return false;
+  await seletor.click();
+  await page.waitForTimeout(350);
+  const item = page.getByText(opcao, { exact: false }).last();
+  if (!await item.count()) return false;
+  await item.click();
+  await page.waitForTimeout(350);
+  return true;
+}
+
+function opcaoPagamento(forma?: string) {
+  const normalizada = (forma ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (normalizada.includes("credito")) return /cart[aã]o.*cr[eé]dito/i;
+  if (normalizada.includes("debito")) return /cart[aã]o.*d[eé]bito/i;
+  if (normalizada.includes("pix")) return /pix/i;
+  if (normalizada.includes("dinheiro")) return /dinheiro/i;
+  if (normalizada.includes("fiado") || normalizada.includes("prazo")) return /fiado|a prazo/i;
+  return forma?.trim() ? new RegExp(forma.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") : null;
+}
+
+async function abrirFluxoNfce(page: Page) {
+  await page.goto(VENDER_GAS_URL, { waitUntil: "domcontentloaded", timeout: 45_000 });
+  await page.waitForTimeout(800);
+  for (const etapa of [/^vendas$/i, /^nota fiscal$/i, /^nfc-?e$/i, /sa[ií]da\s*-?\s*venda de mercadoria/i]) {
+    const item = page.getByText(etapa, { exact: false }).last();
+    if (!await item.count()) return false;
+    await item.click();
+    await page.waitForTimeout(500);
+  }
+  await page.waitForTimeout(1200);
+  return true;
+}
+
 async function garantirLogin(page: Page) {
   await page.goto(VENDER_GAS_URL, { waitUntil: "domcontentloaded", timeout: 45_000 });
   await page.waitForTimeout(1200);
@@ -96,17 +133,13 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
   const login = await garantirLogin(page);
   if (!login.ok) return login;
 
-  await page.goto(urlEmissao(tipo), { waitUntil: "domcontentloaded", timeout: 45_000 });
-  await page.waitForTimeout(1500);
-  const operacao = page.getByLabel(/opera[cç][aã]o fiscal/i).first();
-  if (await operacao.count()) {
-    await operacao.click();
-    const venda = page.getByText(/sa[ií]da\s*-?\s*venda de mercadoria/i).last();
-    if (!await venda.count()) {
-      return { ok: false, motivo: "operacao_fiscal_indisponivel", mensagem: "A operação fiscal Saída - Venda de Mercadoria não está cadastrada no Vender Gás." };
+  if (tipo === "nfce") {
+    if (!await abrirFluxoNfce(page)) {
+      return { ok: false, motivo: "menu_nfce_indisponivel", mensagem: "Não encontrei o caminho Vendas > Nota Fiscal > NFC-e > Saída - Venda de Mercadoria." };
     }
-    await venda.click();
-    await page.waitForTimeout(500);
+  } else {
+    await page.goto(urlEmissao(tipo), { waitUntil: "domcontentloaded", timeout: 45_000 });
+    await page.waitForTimeout(1500);
   }
   const corpo = (await page.locator("body").innerText()).toUpperCase();
   if (!corpo.includes("EMITIR NOTA FISCAL")) {
@@ -116,6 +149,16 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
   // Falha fechada: nunca emite por uma operação de estorno/devolução selecionada.
   if (/ESTORNO|DEVOLU[CÇ][AÃ]O/.test(corpo) && !/VENDA DE MERCADORIA/.test(corpo)) {
     return { ok: false, motivo: "operacao_fiscal_incorreta", mensagem: "A operação fiscal selecionada no Vender Gás não é Venda de Mercadoria. Ajuste-a na janela aberta." };
+  }
+
+  const empresaSelecionada = await clicarOpcao(page, /selecionar empresa|empresa/i, /forte g[aá]s/i);
+  if (!empresaSelecionada && !corpo.includes("FORTE GAS") && !corpo.includes("FORTE GÁS")) {
+    return { ok: false, motivo: "empresa_indisponivel", mensagem: "Não consegui selecionar a empresa Forte Gás na emissão." };
+  }
+
+  const pagamento = opcaoPagamento(payload.formaPagamento);
+  if (pagamento && !await clicarOpcao(page, /forma.*pagamento|pagamento/i, pagamento)) {
+    return { ok: false, motivo: "pagamento_indisponivel", mensagem: `Não consegui selecionar a forma de pagamento “${payload.formaPagamento}”.` };
   }
 
   const d = payload.destinatario;
@@ -142,6 +185,12 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
     if (!await resultado.count()) return { ok: false, motivo: "produto_nao_mapeado", mensagem: `Produto “${item.descricao}” não encontrado no Vender Gás. Cadastre ou iguale o nome antes de emitir.` };
     await resultado.click();
     await page.waitForTimeout(400);
+    const quantidade = page.getByLabel(/quantidade/i).last();
+    if (!await quantidade.count()) return { ok: false, motivo: "quantidade_indisponivel", mensagem: `Não encontrei o campo Quantidade para “${item.descricao}”.` };
+    await quantidade.fill(String(item.quantidade));
+    const valorUnitario = page.getByLabel(/valor unit[aá]rio|pre[cç]o unit[aá]rio/i).last();
+    if (!await valorUnitario.count()) return { ok: false, motivo: "valor_unitario_indisponivel", mensagem: `Não encontrei o campo Valor unitário para “${item.descricao}”.` };
+    await valorUnitario.fill(item.valorUnitario.toFixed(2).replace(".", ","));
   }
 
   await preencher(page, /informa[cç][oõ]es adicionais|observa[cç][oõ]es/i, `Pedido GasFacil #${payload.numeroPedido}. ${payload.observacoes ?? ""}`.trim());
