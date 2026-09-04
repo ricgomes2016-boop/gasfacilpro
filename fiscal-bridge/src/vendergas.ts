@@ -4,8 +4,10 @@ import path from "node:path";
 import { chromium, type BrowserContext, type Page } from "playwright-core";
 
 const VENDER_GAS_URL = "https://app.vendergas.com.br";
+const OPERACAO_NFCE_VENDA_FORTE_GAS = "64bed19844829bd93b5eb6fe";
 function urlEmissao(tipo: "nfe" | "nfce") {
-  return `${VENDER_GAS_URL}/notaFiscal/emitir?tipoNota=${tipo}&tipoEntradaSaida=1&cfe=false`;
+  const operacao = tipo === "nfce" ? `id_operacaoFiscal=${OPERACAO_NFCE_VENDA_FORTE_GAS}&` : "";
+  return `${VENDER_GAS_URL}/notaFiscal/emitir?${operacao}tipoNota=${tipo}&tipoEntradaSaida=1&cfe=false`;
 }
 let contexto: BrowserContext | null = null;
 
@@ -87,21 +89,6 @@ function opcaoPagamento(forma?: string) {
   return forma?.trim() ? new RegExp(forma.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") : null;
 }
 
-async function abrirFluxoNfce(page: Page) {
-  await page.goto(VENDER_GAS_URL, { waitUntil: "domcontentloaded", timeout: 45_000 });
-  await page.waitForTimeout(800);
-  for (const etapa of [/^vendas$/i, /^nota fiscal$/i, /^nfc-?e$/i, /sa[ií]da\s*-?\s*venda de mercadoria/i]) {
-    const texto = page.getByText(etapa, { exact: true }).filter({ visible: true }).last();
-    if (!await texto.count()) return { ok: false as const, etapa: etapa.source };
-    const ancestral = texto.locator('xpath=ancestor-or-self::*[self::a or self::button or self::mat-list-item or self::mat-expansion-panel-header or @role="menuitem"][1]');
-    const item = await ancestral.count() ? ancestral : texto;
-    await item.click();
-    await page.waitForTimeout(500);
-  }
-  await page.waitForTimeout(1200);
-  return { ok: true as const };
-}
-
 async function garantirLogin(page: Page) {
   await page.goto(VENDER_GAS_URL, { waitUntil: "domcontentloaded", timeout: 45_000 });
   await page.waitForTimeout(1200);
@@ -135,15 +122,8 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
   const login = await garantirLogin(page);
   if (!login.ok) return login;
 
-  if (tipo === "nfce") {
-    const navegacao = await abrirFluxoNfce(page);
-    if (!navegacao.ok) {
-      return { ok: false, motivo: "menu_nfce_indisponivel", mensagem: `Não encontrei a etapa “${navegacao.etapa}” no caminho Vendas > Nota Fiscal > NFC-e > Saída - Venda de Mercadoria.` };
-    }
-  } else {
-    await page.goto(urlEmissao(tipo), { waitUntil: "domcontentloaded", timeout: 45_000 });
-    await page.waitForTimeout(1500);
-  }
+  await page.goto(urlEmissao(tipo), { waitUntil: "domcontentloaded", timeout: 45_000 });
+  await page.waitForTimeout(1500);
   const corpo = (await page.locator("body").innerText()).toUpperCase();
   if (!corpo.includes("EMITIR NOTA FISCAL")) {
     return { ok: false, motivo: "tela_emissao_indisponivel", mensagem: `O Vender Gás não abriu a tela de emissão de ${rotulo}.` };
@@ -154,13 +134,13 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
     return { ok: false, motivo: "operacao_fiscal_incorreta", mensagem: "A operação fiscal selecionada no Vender Gás não é Venda de Mercadoria. Ajuste-a na janela aberta." };
   }
 
-  const empresaSelecionada = await clicarOpcao(page, /selecionar empresa|empresa/i, /forte g[aá]s/i);
-  if (!empresaSelecionada && !corpo.includes("FORTE GAS") && !corpo.includes("FORTE GÁS")) {
-    return { ok: false, motivo: "empresa_indisponivel", mensagem: "Não consegui selecionar a empresa Forte Gás na emissão." };
+  if (!corpo.includes("FORTE GAS") && !corpo.includes("FORTE GÁS")) {
+    const empresaSelecionada = await clicarOpcao(page, /selecionar estabelecimento|selecionar empresa|empresa/i, /forte g[aá]s/i);
+    if (!empresaSelecionada) return { ok: false, motivo: "empresa_indisponivel", mensagem: "Não consegui selecionar a empresa Forte Gás na emissão." };
   }
 
   const pagamento = opcaoPagamento(payload.formaPagamento);
-  if (pagamento && !await clicarOpcao(page, /forma.*pagamento|pagamento/i, pagamento)) {
+  if (pagamento && !await clicarOpcao(page, /tipo do pagamento|forma.*pagamento/i, pagamento)) {
     return { ok: false, motivo: "pagamento_indisponivel", mensagem: `Não consegui selecionar a forma de pagamento “${payload.formaPagamento}”.` };
   }
 
@@ -177,12 +157,11 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
   await preencher(page, /telefone/i, d.telefone);
 
   for (const item of payload.itens) {
-    const buscar = page.getByText(/buscar produto/i).last();
+    const buscar = page.locator("#input-buscar-produto");
     if (!await buscar.count()) return { ok: false, motivo: "produto_indisponivel", mensagem: "Não encontrei o botão Buscar Produto no Vender Gás." };
     await buscar.click();
     await page.waitForTimeout(500);
-    const busca = page.getByPlaceholder(/buscar|produto|descri[cç][aã]o/i).last();
-    if (await busca.count()) await busca.fill(item.descricao);
+    await buscar.fill(item.descricao);
     await page.waitForTimeout(700);
     const resultado = page.getByText(item.descricao, { exact: false }).last();
     if (!await resultado.count()) return { ok: false, motivo: "produto_nao_mapeado", mensagem: `Produto “${item.descricao}” não encontrado no Vender Gás. Cadastre ou iguale o nome antes de emitir.` };
