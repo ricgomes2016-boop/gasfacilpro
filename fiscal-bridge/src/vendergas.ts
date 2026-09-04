@@ -134,7 +134,15 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
     return { ok: false, motivo: "operacao_fiscal_incorreta", mensagem: "A operação fiscal selecionada no Vender Gás não é Venda de Mercadoria. Ajuste-a na janela aberta." };
   }
 
-  if (!corpo.includes("FORTE GAS") && !corpo.includes("FORTE GÁS")) {
+  // O estabelecimento vem preenchido em um input desabilitado; por isso seu
+  // valor não aparece no innerText da página.
+  const valorEstabelecimento = await page
+    .locator('#est-selection-2, input[placeholder*="Estabelecimento" i], input[placeholder*="Empresa" i]')
+    .first()
+    .inputValue()
+    .catch(() => "");
+  const empresaVisivel = `${corpo} ${valorEstabelecimento}`.toUpperCase();
+  if (!empresaVisivel.includes("FORTE GAS") && !empresaVisivel.includes("FORTE GÁS")) {
     const empresaSelecionada = await clicarOpcao(page, /selecionar estabelecimento|selecionar empresa|empresa/i, /forte g[aá]s/i);
     if (!empresaSelecionada) return { ok: false, motivo: "empresa_indisponivel", mensagem: "Não consegui selecionar a empresa Forte Gás na emissão." };
   }
