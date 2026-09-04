@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { FileCheck2, Loader2, LogIn, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,9 +26,15 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange, tipoDocum
   const { user } = useAuth();
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [documentoNfce, setDocumentoNfce] = useState("");
   const rotulo = tipoDocumento === "nfce" ? "NFC-e" : "NF-e";
 
-  useEffect(() => { if (open) setErro(null); }, [open, pedido?.id, tipoDocumento]);
+  useEffect(() => {
+    if (open) {
+      setErro(null);
+      setDocumentoNfce("");
+    }
+  }, [open, pedido?.id, tipoDocumento]);
 
   const abrirLogin = async () => {
     if (!unidadeAtual || !empresa?.cnpj) return;
@@ -52,7 +60,13 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange, tipoDocum
         if (clienteError && exigeDestinatario) throw new Error("Não foi possível carregar os dados fiscais do cliente.");
         cliente = data;
       }
-      const documento = String(cliente?.cnpj || cliente?.cpf || "").replace(/\D/g, "");
+      const documentoDigitado = documentoNfce.replace(/\D/g, "");
+      if (tipoDocumento === "nfce" && documentoDigitado && ![11, 14].includes(documentoDigitado.length)) {
+        throw new Error("Informe um CPF com 11 dígitos ou CNPJ com 14 dígitos, ou deixe o campo vazio.");
+      }
+      const documento = tipoDocumento === "nfce"
+        ? documentoDigitado
+        : String(cliente?.cnpj || cliente?.cpf || "").replace(/\D/g, "");
       if (exigeDestinatario && ![11, 14].includes(documento.length)) throw new Error("A NF-e exige CPF ou CNPJ válido no cadastro do cliente.");
       const documentoFiscal = [11, 14].includes(documento.length) ? documento : "";
       if (exigeDestinatario && (!cliente?.endereco || !cliente?.numero || !cliente?.cep || !cliente?.cidade || !cliente?.estado)) {
@@ -161,6 +175,21 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange, tipoDocum
             O agente abrirá a conta da Forte Gás e preencherá a <strong>{rotulo}</strong>, mas não transmitirá a nota. Você assumirá a janela para conferir cliente, itens e o valor de <strong>R$ {Number(pedido?.valor || 0).toFixed(2)}</strong>. Na NFC-e, CPF/CNPJ é opcional; na NF-e, é obrigatório.
           </AlertDescription>
         </Alert>
+        {tipoDocumento === "nfce" && (
+          <div className="space-y-2">
+            <Label htmlFor="documento-nfce">CPF ou CNPJ do consumidor (opcional)</Label>
+            <Input
+              id="documento-nfce"
+              inputMode="numeric"
+              autoComplete="off"
+              value={documentoNfce}
+              onChange={(event) => setDocumentoNfce(event.target.value.replace(/\D/g, "").slice(0, 14))}
+              placeholder="Preencha somente quando o cliente solicitar"
+              disabled={enviando}
+            />
+            <p className="text-xs text-muted-foreground">Os demais dados do destinatário não são necessários para NFC-e.</p>
+          </div>
+        )}
         {erro && <Alert variant="destructive"><AlertTitle>Emissão interrompida</AlertTitle><AlertDescription>{erro}</AlertDescription></Alert>}
         <DialogFooter className="gap-2 sm:justify-between">
           <Button type="button" variant="outline" onClick={abrirLogin} disabled={enviando}><LogIn className="mr-2 h-4 w-4" />Abrir login</Button>

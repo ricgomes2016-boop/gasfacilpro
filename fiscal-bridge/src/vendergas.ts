@@ -96,7 +96,7 @@ function termosProduto(descricao: string) {
   const normalizada = descricao.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
   const termos = [descricao];
   const peso = normalizada.match(/(?:P|GAS\s*)(5|13|20|45)\b/)?.[1];
-  if (peso) termos.unshift(`Gás ${peso} KG`, `GÁS ${peso}`, `GAS ${peso}`);
+  if (peso) termos.unshift(`GAS DE COZINHA ${peso} KG`, `GÁS DE COZINHA ${peso} KG`, `Gás ${peso} KG`, `GÁS ${peso}`, `GAS ${peso}`);
   if (normalizada.includes("AGUA") && normalizada.includes("20")) termos.unshift("ÁGUA 20", "AGUA 20");
   return [...new Set(termos)];
 }
@@ -165,16 +165,20 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
   }
 
   const d = payload.destinatario;
-  await preencher(page, /cnpj.*cpf|cpf.*cnpj/i, d.cpfCnpj);
-  await preencher(page, /nome|raz[aã]o social/i, d.nome);
-  await preencher(page, /inscri[cç][aã]o estadual/i, d.inscricaoEstadual);
-  await preencher(page, /^endere[cç]o/i, d.endereco);
-  await preencher(page, /^n[uú]mero/i, d.numero);
-  await preencher(page, /bairro/i, d.bairro);
-  await preencher(page, /cep/i, d.cep);
-  await preencher(page, /munic[ií]pio|cidade/i, d.cidade);
-  await preencher(page, /^uf$/i, d.uf);
-  await preencher(page, /telefone/i, d.telefone);
+  const documento = (d.cpfCnpj ?? "").replace(/\D/g, "");
+  if (documento.length === 11) await page.locator("#input-cpf").fill(documento);
+  if (documento.length === 14) await page.locator("#input-cnpj").fill(documento);
+  if (tipo === "nfe") {
+    await preencher(page, /nome|raz[aã]o social/i, d.nome);
+    await preencher(page, /inscri[cç][aã]o estadual/i, d.inscricaoEstadual);
+    await preencher(page, /^endere[cç]o/i, d.endereco);
+    await preencher(page, /^n[uú]mero/i, d.numero);
+    await preencher(page, /bairro/i, d.bairro);
+    await preencher(page, /cep/i, d.cep);
+    await preencher(page, /munic[ií]pio|cidade/i, d.cidade);
+    await preencher(page, /^uf$/i, d.uf);
+    await preencher(page, /telefone/i, d.telefone);
+  }
 
   for (const item of payload.itens) {
     const buscar = page.locator("#input-buscar-produto");
