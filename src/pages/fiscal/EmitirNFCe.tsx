@@ -14,6 +14,10 @@ import { Progress } from "@/components/ui/progress";
 import { Plus, Send, Search, Printer, Layers, Play, RotateCcw, CheckCircle2, XCircle, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { listarNotas, criarNota, transmitirParaSefaz, adicionarItem, type NotaFiscal } from "@/services/focusNfeService";
+import { ProductSearch, type ItemVenda } from "@/components/vendas/ProductSearch";
+import { emitirDocumentoVenderGas } from "@/lib/fiscal/venderGasAgent";
+import { useEmpresa } from "@/contexts/EmpresaContext";
+import { useUnidade } from "@/contexts/UnidadeContext";
 
 interface LoteConfig {
   produto: string;
@@ -64,8 +68,14 @@ function distribuirAleatoriamente(totalUnidades: number, totalNotas: number, min
 
 export default function EmitirNFCe() {
   const { toast } = useToast();
+  const { empresa } = useEmpresa();
+  const { unidadeAtual } = useUnidade();
   const [notas, setNotas] = useState<NotaFiscal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [itensNfce, setItensNfce] = useState<ItemVenda[]>([]);
+  const [documentoNfce, setDocumentoNfce] = useState("");
+  const [formaPagamentoNfce, setFormaPagamentoNfce] = useState("dinheiro");
+  const [preparandoNfce, setPreparandoNfce] = useState(false);
 
   // Lote state
   const [loteConfig, setLoteConfig] = useState<LoteConfig>({
@@ -93,18 +103,60 @@ export default function EmitirNFCe() {
   useEffect(() => { carregarNotas(); }, []);
 
   const handleEmitir = async () => {
+    const documento = documentoNfce.replace(/\D/g, "");
+    if (documento && ![11, 14].includes(documento.length)) {
+      toast({ title: "Documento inválido", description: "Informe CPF com 11 dígitos, CNPJ com 14 dígitos ou deixe o campo vazio.", variant: "destructive" });
+      return;
+    }
+    if (!itensNfce.length) {
+      toast({ title: "Adicione um produto", description: "A NFC-e precisa ter ao menos um item.", variant: "destructive" });
+      return;
+    }
+    if (!empresa?.cnpj || !unidadeAtual?.id) {
+      toast({ title: "Empresa não identificada", description: "Selecione a unidade Forte Gás antes de continuar.", variant: "destructive" });
+      return;
+    }
+    setPreparandoNfce(true);
     try {
+      const total = itensNfce.reduce((soma, item) => soma + item.total, 0);
       const nota = await criarNota({
         tipo: "nfce",
         status: "rascunho",
         destinatario_nome: "Consumidor Final",
-        valor_total: 0,
+        destinatario_cpf_cnpj: documento || null,
+        valor_total: total,
+        forma_pagamento: formaPagamentoNfce,
       });
-      const result = await transmitirParaSefaz(nota.id);
-      toast({ title: "NFC-e emitida", description: result.message });
+      for (const item of itensNfce) {
+        await adicionarItem({
+          nota_fiscal_id: nota.id,
+          produto_id: item.produto_id,
+          descricao: item.nome,
+          unidade: "UN",
+          quantidade: item.quantidade,
+          valor_unitario: item.preco_unitario,
+          valor_total: item.total,
+        });
+      }
+      const result = await emitirDocumentoVenderGas({
+        tipoDocumento: "nfce",
+        unidadeId: unidadeAtual.id,
+        cnpjEmitente: empresa.cnpj,
+        pedidoId: nota.id,
+        numeroPedido: nota.numero || nota.id.slice(0, 8),
+        somentePreparar: true,
+        destinatario: { nome: "Consumidor Final", cpfCnpj: documento || undefined },
+        itens: itensNfce.map((item) => ({ produtoId: item.produto_id, descricao: item.nome, quantidade: item.quantidade, valorUnitario: item.preco_unitario })),
+        valorTotal: total,
+        formaPagamento: formaPagamentoNfce,
+      });
+      if (!result.ok) throw new Error(result.mensagem);
+      toast({ title: "NFC-e pronta para revisão", description: result.mensagem });
       carregarNotas();
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setPreparandoNfce(false);
     }
   };
 
@@ -263,34 +315,16 @@ export default function EmitirNFCe() {
               <div className="md:col-span-2 space-y-6">
                 <Card>
                   <CardHeader><CardTitle className="text-lg">Dados do Consumidor (opcional)</CardTitle></CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4">
-                    <div><Label>CPF</Label><Input placeholder="000.000.000-00" /></div>
-                    <div><Label>Nome</Label><Input placeholder="Consumidor Final" /></div>
+                  <CardContent className="space-y-2">
+                    <Label htmlFor="documento-nova-nfce">CPF ou CNPJ</Label>
+                    <Input id="documento-nova-nfce" inputMode="numeric" value={documentoNfce} onChange={(e) => setDocumentoNfce(e.target.value.replace(/\D/g, "").slice(0, 14))} placeholder="Preencha somente quando o consumidor solicitar" />
+                    <p className="text-xs text-muted-foreground">Os demais dados do destinatário não são obrigatórios para NFC-e.</p>
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg">Itens da Venda</CardTitle>
-                    <Button size="sm"><Plus className="h-4 w-4 mr-1" />Adicionar</Button>
-                  </CardHeader>
+                  <CardHeader><CardTitle className="text-lg">Itens da Venda</CardTitle></CardHeader>
                   <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Produto</TableHead>
-                          <TableHead>UN</TableHead>
-                          <TableHead className="text-right">Qtd</TableHead>
-                          <TableHead className="text-right">Valor Unit.</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
-                          <TableHead></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">Adicione itens à venda</TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
+                    <ProductSearch itens={itensNfce} onChange={setItensNfce} unidadeId={unidadeAtual?.id} />
                   </CardContent>
                 </Card>
               </div>
@@ -301,7 +335,7 @@ export default function EmitirNFCe() {
                   <CardContent className="space-y-4">
                     <div>
                       <Label>Forma de Pagamento</Label>
-                      <Select defaultValue="dinheiro">
+                      <Select value={formaPagamentoNfce} onValueChange={setFormaPagamentoNfce}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="dinheiro">Dinheiro</SelectItem>
@@ -314,10 +348,13 @@ export default function EmitirNFCe() {
                     <div className="border-t pt-4">
                       <div className="flex justify-between text-lg font-bold">
                         <span>Total:</span>
-                        <span>R$ 0,00</span>
+                        <span>R$ {itensNfce.reduce((soma, item) => soma + item.total, 0).toFixed(2).replace(".", ",")}</span>
                       </div>
                     </div>
-                    <Button className="w-full" onClick={handleEmitir}><Send className="h-4 w-4 mr-2" />Emitir NFC-e</Button>
+                    <Button className="w-full" onClick={handleEmitir} disabled={preparandoNfce || !itensNfce.length}>
+                      {preparandoNfce ? <RotateCcw className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                      {preparandoNfce ? "Preparando no Vender Gás..." : "Preparar NFC-e para revisão"}
+                    </Button>
                   </CardContent>
                 </Card>
               </div>
