@@ -106,12 +106,19 @@ export function LiquidarRecebivelModal({
   const [pixModal, setPixModal] = useState<{ idx: number } | null>(null);
   const [contasBancarias, setContasBancarias] = useState<Array<{ id: string; nome: string; banco: string }>>([]);
 
+  // Chave estável: evita reinicializar (e travar) quando o array de contas é
+  // recriado a cada render pela tela que abre o modal.
+  const contasKey = contasAtivas.map((item) => `${item.id}:${Number(item.valor) || 0}`).join("|");
+
   useEffect(() => {
-    if (!open || contasAtivas.length === 0) return;
+    if (!open || !contasKey) return;
+    const total = contasKey
+      .split("|")
+      .reduce((s, parte) => s + (Number(parte.split(":")[1]) || 0), 0);
     setDataRec(hoje);
-    const total = contasAtivas.reduce((s, item) => s + (Number(item.valor) || 0), 0);
     setLinhas([{ ...novaLinha(total), _configurado: true }]);
-  }, [open, contasAtivas]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, contasKey]);
 
   useEffect(() => {
     if (!open || !contaReferencia?.unidade_id) return;
