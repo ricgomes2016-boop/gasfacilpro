@@ -89,6 +89,15 @@ function opcaoPagamento(forma?: string) {
   return forma?.trim() ? new RegExp(forma.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") : null;
 }
 
+function termosProduto(descricao: string) {
+  const normalizada = descricao.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  const termos = [descricao];
+  const peso = normalizada.match(/(?:P|GAS\s*)(5|13|20|45)\b/)?.[1];
+  if (peso) termos.unshift(`GÁS ${peso}`, `GAS ${peso}`);
+  if (normalizada.includes("AGUA") && normalizada.includes("20")) termos.unshift("ÁGUA 20", "AGUA 20");
+  return [...new Set(termos)];
+}
+
 async function garantirLogin(page: Page) {
   await page.goto(VENDER_GAS_URL, { waitUntil: "domcontentloaded", timeout: 45_000 });
   await page.waitForTimeout(1200);
@@ -167,12 +176,17 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
   for (const item of payload.itens) {
     const buscar = page.locator("#input-buscar-produto");
     if (!await buscar.count()) return { ok: false, motivo: "produto_indisponivel", mensagem: "Não encontrei o botão Buscar Produto no Vender Gás." };
-    await buscar.click();
-    await page.waitForTimeout(500);
-    await buscar.fill(item.descricao);
-    await page.waitForTimeout(700);
-    const resultado = page.getByText(item.descricao, { exact: false }).last();
-    if (!await resultado.count()) return { ok: false, motivo: "produto_nao_mapeado", mensagem: `Produto “${item.descricao}” não encontrado no Vender Gás. Cadastre ou iguale o nome antes de emitir.` };
+    let resultado: ReturnType<Page["locator"]> | null = null;
+    for (const termo of termosProduto(item.descricao)) {
+      await buscar.click();
+      await buscar.fill(termo);
+      const opcoes = page.locator('mat-option, [role="option"]').filter({ hasText: new RegExp(termo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") });
+      if (await opcoes.first().waitFor({ state: "visible", timeout: 3_000 }).then(() => true).catch(() => false)) {
+        resultado = opcoes.first();
+        break;
+      }
+    }
+    if (!resultado) return { ok: false, motivo: "produto_nao_mapeado", mensagem: `Produto “${item.descricao}” não encontrado no Vender Gás. Cadastre ou iguale o nome antes de emitir.` };
     await resultado.click();
     await page.waitForTimeout(400);
     const quantidade = page.getByLabel(/quantidade/i).last();
