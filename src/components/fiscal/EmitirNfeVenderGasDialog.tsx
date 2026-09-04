@@ -123,12 +123,8 @@ export function EmitirNfeVenderGasDialog({ pedido, open, onOpenChange, tipoDocum
           observacoes: pedido.observacoes, unidade_id: unidadeAtual.id, created_by: user?.id,
           integracao_payload: payload,
         }).select("id").single();
-        if (criarError) {
-          const schemaDesatualizado = /schema cache|column.*notas_fiscais/i.test(String(criarError.message || ""));
-          if (!schemaDesatualizado) throw criarError;
-        } else {
-          notaId = criada.id;
-        }
+        if (criarError) throw criarError;
+        notaId = criada.id;
       } else {
         await db.from("notas_fiscais").update({ status: "rascunho", provedor_status: "aguardando_agente", motivo_rejeicao: null, integracao_payload: payload }).eq("id", notaId);
       }
