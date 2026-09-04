@@ -206,8 +206,6 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
 
   await preencher(page, /informa[cç][oõ]es adicionais|observa[cç][oõ]es/i, `Pedido GasFacil #${payload.numeroPedido}. ${payload.observacoes ?? ""}`.trim());
 
-  const botao = page.getByRole("button", { name: /^emitir nota fiscal$/i }).first();
-  if (!await botao.count()) return { ok: false, motivo: "botao_emitir_indisponivel", mensagem: "O formulário foi preenchido, mas o botão Emitir Nota Fiscal não foi encontrado." };
   if (payload.somentePreparar) {
     await page.bringToFront();
     return {
@@ -217,6 +215,8 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
       mensagem: `${rotulo} preenchida no Vender Gás e pronta para sua conferência. Nenhuma nota foi transmitida.`,
     };
   }
+  const botao = page.getByRole("button", { name: /^emitir nota fiscal$/i }).first();
+  if (!await botao.count()) return { ok: false, motivo: "botao_emitir_indisponivel", mensagem: "O formulário foi preenchido, mas o botão Emitir Nota Fiscal não foi encontrado." };
   await botao.click();
   await page.waitForTimeout(1800);
 
