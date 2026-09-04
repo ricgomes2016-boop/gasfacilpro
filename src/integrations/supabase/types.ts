@@ -7781,6 +7781,8 @@ export type Database = {
           id: string
           info_complementares: string | null
           info_fisco: string | null
+          integracao_payload: Json | null
+          integracao_resultado: Json | null
           marca_volumes: string | null
           modal: string | null
           modalidade_frete: string | null
@@ -7792,12 +7794,16 @@ export type Database = {
           numeracao_volumes: string | null
           numero: string | null
           observacoes: string | null
+          pedido_id: string | null
           peso_bruto: number | null
           peso_liquido: number | null
           placa: string | null
           protocolo: string | null
           protocolo_cancelamento: string | null
           protocolo_carta_correcao: string | null
+          provedor: string | null
+          provedor_referencia: string | null
+          provedor_status: string | null
           quantidade_volumes: number | null
           remetente_cpf_cnpj: string | null
           remetente_endereco: string | null
@@ -7847,6 +7853,8 @@ export type Database = {
           id?: string
           info_complementares?: string | null
           info_fisco?: string | null
+          integracao_payload?: Json | null
+          integracao_resultado?: Json | null
           marca_volumes?: string | null
           modal?: string | null
           modalidade_frete?: string | null
@@ -7858,12 +7866,16 @@ export type Database = {
           numeracao_volumes?: string | null
           numero?: string | null
           observacoes?: string | null
+          pedido_id?: string | null
           peso_bruto?: number | null
           peso_liquido?: number | null
           placa?: string | null
           protocolo?: string | null
           protocolo_cancelamento?: string | null
           protocolo_carta_correcao?: string | null
+          provedor?: string | null
+          provedor_referencia?: string | null
+          provedor_status?: string | null
           quantidade_volumes?: number | null
           remetente_cpf_cnpj?: string | null
           remetente_endereco?: string | null
@@ -7913,6 +7925,8 @@ export type Database = {
           id?: string
           info_complementares?: string | null
           info_fisco?: string | null
+          integracao_payload?: Json | null
+          integracao_resultado?: Json | null
           marca_volumes?: string | null
           modal?: string | null
           modalidade_frete?: string | null
@@ -7924,12 +7938,16 @@ export type Database = {
           numeracao_volumes?: string | null
           numero?: string | null
           observacoes?: string | null
+          pedido_id?: string | null
           peso_bruto?: number | null
           peso_liquido?: number | null
           placa?: string | null
           protocolo?: string | null
           protocolo_cancelamento?: string | null
           protocolo_carta_correcao?: string | null
+          provedor?: string | null
+          provedor_referencia?: string | null
+          provedor_status?: string | null
           quantidade_volumes?: number | null
           remetente_cpf_cnpj?: string | null
           remetente_endereco?: string | null
@@ -7958,6 +7976,13 @@ export type Database = {
           xml_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "notas_fiscais_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notas_fiscais_unidade_id_fkey"
             columns: ["unidade_id"]
