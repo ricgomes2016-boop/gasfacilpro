@@ -633,7 +633,10 @@ export default function ContasReceber() {
       setSelectedIds(new Set(filtered.map(c => c.id)));
     }
   };
-  const selectedContas = filtered.filter(c => selectedIds.has(c.id));
+  const selectedContas = useMemo(
+    () => filtered.filter(c => selectedIds.has(c.id)),
+    [filtered, selectedIds]
+  );
   const selectedTotal = selectedContas.reduce((s, c) => s + Number(c.valor), 0);
   const canBulkReceber = selectedContas.length > 0 && selectedContas.every(c => !isStatusRecebida(c.status));
 
