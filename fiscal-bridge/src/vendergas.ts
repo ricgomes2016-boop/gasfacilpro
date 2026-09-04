@@ -201,7 +201,7 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
     await quantidade.fill(String(item.quantidade));
     const valorUnitario = page.getByLabel(/valor unit[aá]rio|pre[cç]o unit[aá]rio/i).last();
     if (!await valorUnitario.count()) return { ok: false, motivo: "valor_unitario_indisponivel", mensagem: `Não encontrei o campo Valor unitário para “${item.descricao}”.` };
-    await valorUnitario.fill(item.valorUnitario.toFixed(2).replace(".", ","));
+    await valorUnitario.fill(item.valorUnitario.toFixed(2));
   }
 
   await preencher(page, /informa[cç][oõ]es adicionais|observa[cç][oõ]es/i, `Pedido GasFacil #${payload.numeroPedido}. ${payload.observacoes ?? ""}`.trim());
