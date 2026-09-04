@@ -57,11 +57,14 @@ async function pagina(): Promise<Page> {
 async function preencher(page: Page, rotulo: RegExp, valor?: string) {
   if (!valor?.trim()) return;
   const porLabel = page.getByLabel(rotulo).first();
-  if (await porLabel.count()) { await porLabel.fill(valor); return; }
+  if (await porLabel.count()) {
+    if (await porLabel.isEditable().catch(() => false)) await porLabel.fill(valor);
+    return;
+  }
   const label = page.locator("label").filter({ hasText: rotulo }).first();
   if (await label.count()) {
     const alvo = label.locator("xpath=following::input[1]");
-    if (await alvo.count()) await alvo.fill(valor);
+    if (await alvo.count() && await alvo.isEditable().catch(() => false)) await alvo.fill(valor);
   }
 }
 
