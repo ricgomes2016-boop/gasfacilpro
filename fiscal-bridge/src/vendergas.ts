@@ -96,7 +96,7 @@ function termosProduto(descricao: string) {
   const normalizada = descricao.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
   const termos = [descricao];
   const peso = normalizada.match(/(?:P|GAS\s*)(5|13|20|45)\b/)?.[1];
-  if (peso) termos.unshift(`GÁS ${peso}`, `GAS ${peso}`);
+  if (peso) termos.unshift(`Gás ${peso} KG`, `GÁS ${peso}`, `GAS ${peso}`);
   if (normalizada.includes("AGUA") && normalizada.includes("20")) termos.unshift("ÁGUA 20", "AGUA 20");
   return [...new Set(termos)];
 }
