@@ -1,5 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { AlertTriangle, Bot, CheckCircle2, Send, Trash2, MessageSquarePlus, History, ChevronLeft, XCircle, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  Bot,
+  CheckCircle2,
+  Send,
+  Trash2,
+  MessageSquarePlus,
+  History,
+  ChevronLeft,
+  XCircle,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -7,12 +18,33 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  Legend,
+} from "recharts";
 import { VoiceInputButton, TtsButton } from "./VoiceButton";
+import { speakAssistantText } from "@/lib/assistantSpeech";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Conversa = { id: string; titulo: string; created_at: string };
-type PendingAction = { action: string; params: Record<string, unknown>; preview: string };
+type PendingAction = {
+  action: string;
+  params: Record<string, unknown>;
+  preview: string;
+};
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assistant`;
 
@@ -24,12 +56,18 @@ const CHART_COLORS = [
   "hsl(var(--chart-5, 340 75% 55%))",
 ];
 
-function ChartRenderer({ chartMeta }: { chartMeta: { type: string; data: any[] } }) {
+function ChartRenderer({
+  chartMeta,
+}: {
+  chartMeta: { type: string; data: any[] };
+}) {
   if (!chartMeta?.data?.length) return null;
 
   const keys = Object.keys(chartMeta.data[0]);
   const labelKey = keys[0];
-  const valueKeys = keys.slice(1).filter(k => typeof chartMeta.data[0][k] === "number");
+  const valueKeys = keys
+    .slice(1)
+    .filter((k) => typeof chartMeta.data[0][k] === "number");
 
   if (valueKeys.length === 0) return null;
 
@@ -66,7 +104,14 @@ function ChartRenderer({ chartMeta }: { chartMeta: { type: string; data: any[] }
             <YAxis tick={{ fontSize: 11 }} />
             <Tooltip />
             {valueKeys.map((k, i) => (
-              <Line key={k} type="monotone" dataKey={k} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={false} />
+              <Line
+                key={k}
+                type="monotone"
+                dataKey={k}
+                stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                strokeWidth={2}
+                dot={false}
+              />
             ))}
           </LineChart>
         ) : chartMeta.type === "area" ? (
@@ -76,7 +121,14 @@ function ChartRenderer({ chartMeta }: { chartMeta: { type: string; data: any[] }
             <YAxis tick={{ fontSize: 11 }} />
             <Tooltip />
             {valueKeys.map((k, i) => (
-              <Area key={k} type="monotone" dataKey={k} fill={CHART_COLORS[i % CHART_COLORS.length]} stroke={CHART_COLORS[i % CHART_COLORS.length]} fillOpacity={0.3} />
+              <Area
+                key={k}
+                type="monotone"
+                dataKey={k}
+                fill={CHART_COLORS[i % CHART_COLORS.length]}
+                stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                fillOpacity={0.3}
+              />
             ))}
           </AreaChart>
         ) : (
@@ -86,7 +138,12 @@ function ChartRenderer({ chartMeta }: { chartMeta: { type: string; data: any[] }
             <YAxis tick={{ fontSize: 11 }} />
             <Tooltip />
             {valueKeys.map((k, i) => (
-              <Bar key={k} dataKey={k} fill={CHART_COLORS[i % CHART_COLORS.length]} radius={[4, 4, 0, 0]} />
+              <Bar
+                key={k}
+                dataKey={k}
+                fill={CHART_COLORS[i % CHART_COLORS.length]}
+                radius={[4, 4, 0, 0]}
+              />
             ))}
           </BarChart>
         )}
@@ -95,29 +152,44 @@ function ChartRenderer({ chartMeta }: { chartMeta: { type: string; data: any[] }
   );
 }
 
-function parseChartMeta(content: string): { text: string; chart: { type: string; data: any[] } | null } {
+function parseChartMeta(content: string): {
+  text: string;
+  chart: { type: string; data: any[] } | null;
+} {
   const match = content.match(/\[CHART_META\](.*?)\[\/CHART_META\]/s);
   if (!match) return { text: content, chart: null };
   try {
     const chart = JSON.parse(match[1]);
-    const text = content.replace(/\[CHART_META\].*?\[\/CHART_META\]/s, "").trim();
+    const text = content
+      .replace(/\[CHART_META\].*?\[\/CHART_META\]/s, "")
+      .trim();
     return { text, chart };
   } catch {
     return { text: content, chart: null };
   }
 }
 
-function parsePendingActions(content: string): { text: string; pendingActions: PendingAction[] } {
+function parsePendingActions(content: string): {
+  text: string;
+  pendingActions: PendingAction[];
+} {
   const match = content.match(/\[PENDING_ACTIONS\](.*?)\[\/PENDING_ACTIONS\]/s);
   if (!match) return { text: content, pendingActions: [] };
   try {
     const pendingActions = JSON.parse(match[1]);
     return {
-      text: content.replace(/\[PENDING_ACTIONS\].*?\[\/PENDING_ACTIONS\]/s, "").trim(),
+      text: content
+        .replace(/\[PENDING_ACTIONS\].*?\[\/PENDING_ACTIONS\]/s, "")
+        .trim(),
       pendingActions: Array.isArray(pendingActions) ? pendingActions : [],
     };
   } catch {
-    return { text: content.replace(/\[PENDING_ACTIONS\].*?\[\/PENDING_ACTIONS\]/s, "").trim(), pendingActions: [] };
+    return {
+      text: content
+        .replace(/\[PENDING_ACTIONS\].*?\[\/PENDING_ACTIONS\]/s, "")
+        .trim(),
+      pendingActions: [],
+    };
   }
 }
 
@@ -131,15 +203,27 @@ function getDynamicSuggestions(): string[] {
   ];
 
   if (hour < 12) {
-    base.unshift("Qual foi o faturamento de ontem?", "Quantos pedidos estão pendentes agora?");
+    base.unshift(
+      "Qual foi o faturamento de ontem?",
+      "Quantos pedidos estão pendentes agora?",
+    );
   } else if (hour < 18) {
-    base.unshift("Quantos entregadores estão em rota?", "Qual o faturamento de hoje até agora?");
+    base.unshift(
+      "Quantos entregadores estão em rota?",
+      "Qual o faturamento de hoje até agora?",
+    );
   } else {
-    base.unshift("Resumo do dia: vendas, entregas e caixa", "Quais pedidos ainda não foram entregues hoje?");
+    base.unshift(
+      "Resumo do dia: vendas, entregas e caixa",
+      "Quais pedidos ainda não foram entregues hoje?",
+    );
   }
 
   if (day >= 25) {
-    base.push("Quais contas vencem nos próximos 5 dias?", "Resumo financeiro do mês");
+    base.push(
+      "Quais contas vencem nos próximos 5 dias?",
+      "Resumo financeiro do mês",
+    );
   }
 
   return base.slice(0, 6);
@@ -214,9 +298,12 @@ export function AiAssistantChat({
     });
   };
 
-  const createNewConversa = async (firstMessage: string): Promise<string | null> => {
+  const createNewConversa = async (
+    firstMessage: string,
+  ): Promise<string | null> => {
     if (!user) return null;
-    const titulo = firstMessage.slice(0, 60) + (firstMessage.length > 60 ? "..." : "");
+    const titulo =
+      firstMessage.slice(0, 60) + (firstMessage.length > 60 ? "..." : "");
     const { data, error } = await supabase
       .from("ai_conversas")
       .insert({ user_id: user.id, titulo })
@@ -243,7 +330,12 @@ export function AiAssistantChat({
     setShowHistory(false);
   };
 
-  const sendMessage = async (options?: { content?: string; pendingActions?: PendingAction[]; actionConfirmation?: "confirm" | "cancel" }) => {
+  const sendMessage = async (options?: {
+    content?: string;
+    pendingActions?: PendingAction[];
+    actionConfirmation?: "confirm" | "cancel";
+    voice?: boolean;
+  }) => {
     const content = options?.content ?? input.trim();
     if (!content.trim() || isLoading) return;
     const userMsg: Msg = { role: "user", content: content.trim() };
@@ -267,7 +359,11 @@ export function AiAssistantChat({
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
       if (!accessToken) {
-        const errMsg: Msg = { role: "assistant", content: "❌ Sessão expirada. Faça login novamente para usar o Assistente IA." };
+        const errMsg: Msg = {
+          role: "assistant",
+          content:
+            "❌ Sessão expirada. Faça login novamente para usar o Assistente IA.",
+        };
         setMessages((prev) => [...prev, errMsg]);
         if (activeConversa) saveMessage(errMsg, activeConversa);
         setIsLoading(false);
@@ -275,7 +371,11 @@ export function AiAssistantChat({
       }
 
       if (!unidadeAtual?.id) {
-        const errMsg: Msg = { role: "assistant", content: "Selecione uma unidade no topo do sistema antes de usar o Assistente IA." };
+        const errMsg: Msg = {
+          role: "assistant",
+          content:
+            "Selecione uma unidade no topo do sistema antes de usar o Assistente IA.",
+        };
         setMessages((prev) => [...prev, errMsg]);
         if (activeConversa) saveMessage(errMsg, activeConversa);
         setIsLoading(false);
@@ -298,8 +398,13 @@ export function AiAssistantChat({
       });
 
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ error: "Erro na comunicação" }));
-        const errMsg: Msg = { role: "assistant", content: `❌ ${err.error || "Erro inesperado"}` };
+        const err = await resp
+          .json()
+          .catch(() => ({ error: "Erro na comunicação" }));
+        const errMsg: Msg = {
+          role: "assistant",
+          content: `❌ ${err.error || "Erro inesperado"}`,
+        };
         setMessages((prev) => [...prev, errMsg]);
         if (activeConversa) saveMessage(errMsg, activeConversa);
         setIsLoading(false);
@@ -327,18 +432,24 @@ export function AiAssistantChat({
           if (!line.startsWith("data: ")) continue;
 
           const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") { streamDone = true; break; }
+          if (jsonStr === "[DONE]") {
+            streamDone = true;
+            break;
+          }
 
           try {
             const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            const content = parsed.choices?.[0]?.delta?.content as
+              string | undefined;
             if (content) {
               assistantSoFar += content;
               const current = assistantSoFar;
               setMessages((prev) => {
                 const last = prev[prev.length - 1];
                 if (last?.role === "assistant") {
-                  return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: current } : m));
+                  return prev.map((m, i) =>
+                    i === prev.length - 1 ? { ...m, content: current } : m,
+                  );
                 }
                 return [...prev, { role: "assistant", content: current }];
               });
@@ -361,31 +472,49 @@ export function AiAssistantChat({
           if (jsonStr === "[DONE]") continue;
           try {
             const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            const content = parsed.choices?.[0]?.delta?.content as
+              string | undefined;
             if (content) {
               assistantSoFar += content;
               const current = assistantSoFar;
               setMessages((prev) => {
                 const last = prev[prev.length - 1];
                 if (last?.role === "assistant") {
-                  return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: current } : m));
+                  return prev.map((m, i) =>
+                    i === prev.length - 1 ? { ...m, content: current } : m,
+                  );
                 }
                 return [...prev, { role: "assistant", content: current }];
               });
             }
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
         }
       }
 
       // Save final assistant message
       if (assistantSoFar && activeConversa) {
-        saveMessage({ role: "assistant", content: assistantSoFar }, activeConversa);
+        saveMessage(
+          { role: "assistant", content: assistantSoFar },
+          activeConversa,
+        );
         // Update conversa updated_at
-        await supabase.from("ai_conversas").update({ updated_at: new Date().toISOString() }).eq("id", activeConversa);
+        await supabase
+          .from("ai_conversas")
+          .update({ updated_at: new Date().toISOString() })
+          .eq("id", activeConversa);
       }
+      if (options?.voice && assistantSoFar) speakAssistantText(assistantSoFar);
     } catch (e) {
       console.error("Stream error:", e);
-      setMessages((prev) => [...prev, { role: "assistant", content: "❌ Erro ao comunicar com o assistente." }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "❌ Erro ao comunicar com o assistente.",
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -400,7 +529,14 @@ export function AiAssistantChat({
   };
 
   const cancelPendingActions = () => {
-    setMessages((prev) => [...prev, { role: "user", content: "Cancelar ação." }, { role: "assistant", content: "Ação cancelada. Nada foi alterado no sistema." }]);
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: "Cancelar ação." },
+      {
+        role: "assistant",
+        content: "Ação cancelada. Nada foi alterado no sistema.",
+      },
+    ]);
   };
 
   const suggestions = getDynamicSuggestions();
@@ -408,26 +544,48 @@ export function AiAssistantChat({
   // History sidebar
   if (showHistory && fullPage) {
     return (
-      <div className={cn("flex flex-col", fullPage ? fullPageHeightClass || "h-[calc(100vh-120px)]" : "h-full")}>
+      <div
+        className={cn(
+          "flex flex-col",
+          fullPage ? fullPageHeightClass || "h-[calc(100vh-120px)]" : "h-full",
+        )}
+      >
         <div className="flex items-center gap-2 p-3 border-b">
-          <Button variant="ghost" size="icon" onClick={() => setShowHistory(false)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowHistory(false)}
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="font-semibold text-sm">Conversas Anteriores</span>
-          <Button variant="outline" size="sm" className="ml-auto" onClick={newChat}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-auto"
+            onClick={newChat}
+          >
             <MessageSquarePlus className="h-4 w-4 mr-1" /> Nova
           </Button>
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {conversas.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">Nenhuma conversa salva</p>
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Nenhuma conversa salva
+            </p>
           )}
           {conversas.map((c) => (
-            <div key={c.id} className={cn(
-              "flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-accent text-sm group",
-              conversaAtual === c.id && "bg-accent"
-            )}>
-              <button className="flex-1 text-left truncate" onClick={() => loadConversa(c.id)}>
+            <div
+              key={c.id}
+              className={cn(
+                "flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-accent text-sm group",
+                conversaAtual === c.id && "bg-accent",
+              )}
+            >
+              <button
+                className="flex-1 text-left truncate"
+                onClick={() => loadConversa(c.id)}
+              >
                 <span className="font-medium">{c.titulo}</span>
                 <span className="block text-xs text-muted-foreground">
                   {new Date(c.created_at).toLocaleDateString("pt-BR")}
@@ -437,7 +595,10 @@ export function AiAssistantChat({
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                onClick={(e) => { e.stopPropagation(); deleteConversa(c.id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteConversa(c.id);
+                }}
               >
                 <Trash2 className="h-3 w-3" />
               </Button>
@@ -449,23 +610,40 @@ export function AiAssistantChat({
   }
 
   return (
-    <div className={cn("flex flex-col overflow-hidden bg-card", fullPage ? fullPageHeightClass || "h-[calc(100vh-260px)] sm:h-[calc(100vh-220px)]" : "h-full min-h-0")}>
+    <div
+      className={cn(
+        "flex flex-col overflow-hidden bg-card",
+        fullPage
+          ? fullPageHeightClass ||
+              "h-[calc(100vh-260px)] sm:h-[calc(100vh-220px)]"
+          : "h-full min-h-0",
+      )}
+    >
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 min-h-0 bg-gradient-to-b from-muted/20 to-background">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 min-h-0 bg-gradient-to-b from-muted/20 to-background"
+      >
         {messages.length === 0 && (
           <div className="space-y-5 py-4">
             <div className="text-center">
               <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-3 ring-1 ring-primary/20">
                 <Bot className="h-7 w-7 text-primary" />
               </div>
-              <p className="text-base font-semibold text-foreground">Olá! Como posso ajudar?</p>
-              <p className="text-xs text-muted-foreground mt-1">Escolha uma sugestão ou digite sua pergunta.</p>
+              <p className="text-base font-semibold text-foreground">
+                Olá! Como posso ajudar?
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Escolha uma sugestão ou digite sua pergunta.
+              </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {suggestions.map((s) => (
                 <button
                   key={s}
-                  onClick={() => { setInput(s); }}
+                  onClick={() => {
+                    setInput(s);
+                  }}
                   className="group text-left text-xs p-3 rounded-xl border border-border/60 bg-card hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm transition-all"
                 >
                   <div className="flex items-start gap-2">
@@ -479,10 +657,22 @@ export function AiAssistantChat({
         )}
 
         {messages.map((msg, i) => {
-          const parsedPending = msg.role === "assistant" ? parsePendingActions(msg.content) : { text: msg.content, pendingActions: [] };
-          const { text, chart } = msg.role === "assistant" ? parseChartMeta(parsedPending.text) : { text: msg.content, chart: null };
+          const parsedPending =
+            msg.role === "assistant"
+              ? parsePendingActions(msg.content)
+              : { text: msg.content, pendingActions: [] };
+          const { text, chart } =
+            msg.role === "assistant"
+              ? parseChartMeta(parsedPending.text)
+              : { text: msg.content, chart: null };
           return (
-            <div key={i} className={cn("flex gap-2 sm:gap-3", msg.role === "user" ? "justify-end" : "justify-start")}>
+            <div
+              key={i}
+              className={cn(
+                "flex gap-2 sm:gap-3",
+                msg.role === "user" ? "justify-end" : "justify-start",
+              )}
+            >
               {msg.role === "assistant" && (
                 <div className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-sm">
                   <Bot className="h-4 w-4 text-primary-foreground" />
@@ -493,7 +683,7 @@ export function AiAssistantChat({
                   "max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm",
                   msg.role === "user"
                     ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground rounded-br-md"
-                    : "bg-card border border-border/60 text-foreground rounded-bl-md"
+                    : "bg-card border border-border/60 text-foreground rounded-bl-md",
                 )}
               >
                 {msg.role === "assistant" ? (
@@ -507,20 +697,40 @@ export function AiAssistantChat({
                         <div className="flex items-start gap-2">
                           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold text-foreground">Confirmação necessária</p>
+                            <p className="text-sm font-semibold text-foreground">
+                              Confirmação necessária
+                            </p>
                             <div className="mt-2 space-y-1">
-                              {parsedPending.pendingActions.map((action, idx) => (
-                                <p key={`${action.action}-${idx}`} className="break-words text-xs text-muted-foreground">
-                                  {action.preview || action.action}
-                                </p>
-                              ))}
+                              {parsedPending.pendingActions.map(
+                                (action, idx) => (
+                                  <p
+                                    key={`${action.action}-${idx}`}
+                                    className="break-words text-xs text-muted-foreground"
+                                  >
+                                    {action.preview || action.action}
+                                  </p>
+                                ),
+                              )}
                             </div>
                             <div className="mt-3 flex flex-wrap gap-2">
-                              <Button size="sm" onClick={() => confirmPendingActions(parsedPending.pendingActions)} disabled={isLoading}>
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  confirmPendingActions(
+                                    parsedPending.pendingActions,
+                                  )
+                                }
+                                disabled={isLoading}
+                              >
                                 <CheckCircle2 className="mr-1.5 h-4 w-4" />
                                 Confirmar
                               </Button>
-                              <Button size="sm" variant="outline" onClick={cancelPendingActions} disabled={isLoading}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={cancelPendingActions}
+                                disabled={isLoading}
+                              >
                                 <XCircle className="mr-1.5 h-4 w-4" />
                                 Cancelar
                               </Button>
@@ -536,7 +746,9 @@ export function AiAssistantChat({
                     )}
                   </>
                 ) : (
-                  <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">
+                    {msg.content}
+                  </p>
                 )}
               </div>
             </div>
@@ -560,7 +772,7 @@ export function AiAssistantChat({
       </div>
 
       {/* Input */}
-      <div className="border-t border-border/60 bg-card/80 backdrop-blur p-2.5 sm:p-3 flex gap-1.5 sm:gap-2 items-center">
+      <div className="border-t border-border/60 bg-card/80 backdrop-blur px-2.5 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:p-3 flex gap-1.5 sm:gap-2 items-center">
         {fullPage && (
           <Button
             variant="ghost"
@@ -586,14 +798,19 @@ export function AiAssistantChat({
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && void sendMessage()}
+          onKeyDown={(e) =>
+            e.key === "Enter" && !e.shiftKey && void sendMessage()
+          }
           placeholder="Pergunte algo ou peça uma ação..."
           disabled={isLoading}
           className="flex-1 h-10 rounded-xl border-border/60 focus-visible:ring-primary/40"
         />
         {enableVoice && (
           <VoiceInputButton
-            onResult={(text) => { setInput(text); }}
+            onResult={(text) => {
+              setInput("");
+              void sendMessage({ content: text, voice: true });
+            }}
             disabled={isLoading}
           />
         )}

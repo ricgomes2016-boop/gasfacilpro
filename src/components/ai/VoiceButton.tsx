@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { speakAssistantText } from "@/lib/assistantSpeech";
 
 // ─── Speech-to-Text (STT) via Web Speech API ────────────────────────────────
 
@@ -11,12 +12,18 @@ interface VoiceInputProps {
   className?: string;
 }
 
-export function VoiceInputButton({ onResult, disabled, className }: VoiceInputProps) {
+export function VoiceInputButton({
+  onResult,
+  disabled,
+  className,
+}: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   const toggleListening = useCallback(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("Seu navegador não suporta reconhecimento de voz.");
       return;
@@ -55,10 +62,7 @@ export function VoiceInputButton({ onResult, disabled, className }: VoiceInputPr
       size="icon"
       onClick={toggleListening}
       disabled={disabled}
-      className={cn(
-        "shrink-0 relative",
-        className,
-      )}
+      className={cn("shrink-0 relative", className)}
       title={isListening ? "Parar gravação" : "Falar com voz"}
     >
       {isListening ? (
@@ -92,28 +96,8 @@ export function TtsButton({ text, className }: TtsButtonProps) {
       return;
     }
 
-    // Strip markdown
-    const clean = text
-      .replace(/\[CHART_META\].*?\[\/CHART_META\]/gs, "")
-      .replace(/[#*_`~\[\]()>|]/g, "")
-      .replace(/\n+/g, ". ")
-      .slice(0, 2000);
-
-    const utterance = new SpeechSynthesisUtterance(clean);
-    utterance.lang = "pt-BR";
-    utterance.rate = 1.05;
-    utterance.pitch = 1;
-
-    // Try to find a good pt-BR voice
-    const voices = speechSynthesis.getVoices();
-    const ptVoice = voices.find(v => v.lang.startsWith("pt-BR")) || voices.find(v => v.lang.startsWith("pt"));
-    if (ptVoice) utterance.voice = ptVoice;
-
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    speechSynthesis.speak(utterance);
-    setIsSpeaking(true);
+    if (speakAssistantText(text, () => setIsSpeaking(false)))
+      setIsSpeaking(true);
   }, [text, isSpeaking]);
 
   if (!("speechSynthesis" in window)) return null;
@@ -122,11 +106,19 @@ export function TtsButton({ text, className }: TtsButtonProps) {
     <Button
       variant="ghost"
       size="icon"
-      className={cn("h-6 w-6 opacity-50 hover:opacity-100", isSpeaking && "text-primary opacity-100", className)}
+      className={cn(
+        "h-6 w-6 opacity-50 hover:opacity-100",
+        isSpeaking && "text-primary opacity-100",
+        className,
+      )}
       onClick={toggleSpeak}
       title={isSpeaking ? "Parar narração" : "Ouvir resposta"}
     >
-      {isSpeaking ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+      {isSpeaking ? (
+        <VolumeX className="h-3 w-3" />
+      ) : (
+        <Volume2 className="h-3 w-3" />
+      )}
     </Button>
   );
 }

@@ -5,16 +5,24 @@ import { Card } from "@/components/ui/card";
 import { AiAssistantChat } from "./AiAssistantChat";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { PortalToId, FOOTER_ACTIONS_ID } from "@/components/layout/footerPortals";
+import {
+  PortalToId,
+  FOOTER_ACTIONS_ID,
+} from "@/components/layout/footerPortals";
+import { useUnidade } from "@/contexts/UnidadeContext";
 
 interface AiFloatingButtonProps {
   externalOpen?: boolean;
   onExternalClose?: () => void;
 }
 
-export function AiFloatingButton({ externalOpen, onExternalClose }: AiFloatingButtonProps) {
+export function AiFloatingButton({
+  externalOpen,
+  onExternalClose,
+}: AiFloatingButtonProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { unidadeAtual } = useUnidade();
 
   useEffect(() => {
     if (externalOpen) setOpen(true);
@@ -43,30 +51,46 @@ export function AiFloatingButton({ externalOpen, onExternalClose }: AiFloatingBu
 
       {/* Chat panel */}
       {open && (
-        <Card className={cn(
-          "fixed z-50 shadow-2xl border flex flex-col overflow-hidden bg-background",
-          // Mobile: full width sheet above bottom bar
-          "left-2 right-2 bottom-[72px] h-[70svh] max-h-[calc(100svh-96px)] rounded-2xl",
-          // Desktop: fixed panel at bottom-right, above floating chat bubble
-          "md:left-auto md:right-4 md:bottom-36 md:w-[400px] md:h-[560px] md:max-h-[calc(100vh-10rem)] md:rounded-xl"
-        )}>
-
-          <div className="flex items-center justify-between px-4 py-3 border-b bg-primary/5 rounded-t-2xl md:rounded-t-lg">
+        <Card
+          className={cn(
+            "fixed z-50 shadow-2xl border flex flex-col overflow-hidden bg-background",
+            // Mobile: true full-screen assistant; the composer remains above the virtual keyboard.
+            "inset-0 h-[100dvh] w-full rounded-none border-0",
+            // Desktop: fixed panel at bottom-right, above floating chat bubble
+            "md:inset-auto md:right-4 md:bottom-36 md:w-[400px] md:h-[560px] md:max-h-[calc(100vh-10rem)] md:rounded-xl md:border",
+          )}
+        >
+          <div className="flex items-center justify-between px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] border-b bg-primary/5 md:pt-3 md:rounded-t-lg">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-primary" />
-              <span className="font-semibold text-sm">Assistente IA</span>
+              <div className="min-w-0">
+                <span className="block font-semibold text-sm">
+                  Assistente IA
+                </span>
+                <span className="block max-w-[210px] truncate text-[11px] text-muted-foreground">
+                  {unidadeAtual?.nome || "Selecione uma unidade"}
+                </span>
+              </div>
             </div>
             <div className="flex gap-1">
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
-                onClick={() => { handleClose(); navigate("/assistente-ia"); }}
+                onClick={() => {
+                  handleClose();
+                  navigate("/assistente-ia");
+                }}
                 title="Abrir página completa"
               >
                 <Maximize2 className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleClose}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={handleClose}
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>
