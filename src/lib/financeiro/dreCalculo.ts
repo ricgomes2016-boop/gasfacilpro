@@ -13,7 +13,6 @@ import {
 } from "./dreRange";
 import { isDespesaOperacionalResultado } from "./despesasResultado";
 
-
 /**
  * Regras da DRE (regime de competência) — fonte única de verdade.
  *
@@ -27,10 +26,16 @@ import { isDespesaOperacionalResultado } from "./despesasResultado";
  * 5. Período: sempre pela data do fato, nunca pela data do pagamento.
  */
 
-export { STATUS_RECEITA_DRE, mesRangeDre, filtroPeriodoPedidos } from "./dreRange";
+export {
+  STATUS_RECEITA_DRE,
+  mesRangeDre,
+  filtroPeriodoPedidos,
+} from "./dreRange";
 
-const getDataOperacionalPedido = (pedido: { data_entrega?: string | null; created_at?: string | null }) =>
-  (pedido.data_entrega || pedido.created_at || "").slice(0, 10);
+const getDataOperacionalPedido = (pedido: {
+  data_entrega?: string | null;
+  created_at?: string | null;
+}) => (pedido.data_entrega || pedido.created_at || "").slice(0, 10);
 
 export type DreGrupo =
   | "receita"
@@ -82,7 +87,20 @@ export interface DreMes {
   avisos: string[];
 }
 
-const NOMES_MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const NOMES_MESES = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
 
 const norm = (v?: string | null) =>
   (v || "")
@@ -91,7 +109,10 @@ const norm = (v?: string | null) =>
     .replace(/[\u0300-\u036f]/g, "");
 
 /** Movimentações que só transferem dinheiro entre contas próprias. */
-const isTransferenciaInterna = (categoria?: string | null, descricao?: string | null) => {
+const isTransferenciaInterna = (
+  categoria?: string | null,
+  descricao?: string | null,
+) => {
   const t = `${norm(categoria)} ${norm(descricao)}`;
   return (
     t.includes("deposito banc") ||
@@ -103,7 +124,10 @@ const isTransferenciaInterna = (categoria?: string | null, descricao?: string | 
 };
 
 /** Gastos ligados a compra de mercadoria — já refletidos no estoque/CMV. */
-const isCompraMercadoria = (categoria?: string | null, descricao?: string | null) => {
+const isCompraMercadoria = (
+  categoria?: string | null,
+  descricao?: string | null,
+) => {
   const t = `${norm(categoria)} ${norm(descricao)}`;
   return (
     t.includes("compra") ||
@@ -114,7 +138,11 @@ const isCompraMercadoria = (categoria?: string | null, descricao?: string | null
 };
 
 /** Saída que apenas quita um título já reconhecido como despesa/custo. */
-const isLiquidacaoTitulo = (categoria?: string | null, descricao?: string | null, referenciaTipo?: string | null) => {
+const isLiquidacaoTitulo = (
+  categoria?: string | null,
+  descricao?: string | null,
+  referenciaTipo?: string | null,
+) => {
   const t = `${norm(categoria)} ${norm(descricao)}`;
   const ref = norm(referenciaTipo);
   return (
@@ -144,14 +172,41 @@ const isImposto = (categoria?: string | null, descricao?: string | null) => {
   );
 };
 
-const classificarDespesa = (categoria?: string | null, descricao?: string | null): DreGrupo => {
+const classificarDespesa = (
+  categoria?: string | null,
+  descricao?: string | null,
+): DreGrupo => {
   const t = `${norm(categoria)} ${norm(descricao)}`;
   if (isImposto(categoria, descricao)) return "impostos";
-  if (t.includes("pessoal") || t.includes("salario") || t.includes("folha") || t.includes("comiss") || t.includes("vale transporte") || t.includes("ferias") || t.includes("rescis"))
+  if (
+    t.includes("pessoal") ||
+    t.includes("salario") ||
+    t.includes("folha") ||
+    t.includes("comiss") ||
+    t.includes("vale transporte") ||
+    t.includes("ferias") ||
+    t.includes("rescis")
+  )
     return "pessoal";
-  if (t.includes("financ") || t.includes("juros") || t.includes("tarifa") || t.includes("multa") || t.includes("emprestimo") || t.includes("taxa banc"))
+  if (
+    t.includes("financ") ||
+    t.includes("juros") ||
+    t.includes("tarifa") ||
+    t.includes("multa") ||
+    t.includes("emprestimo") ||
+    t.includes("taxa banc")
+  )
     return "financeira";
-  if (t.includes("admin") || t.includes("escrit") || t.includes("contab") || t.includes("aluguel") || t.includes("agua") || t.includes("energia") || t.includes("internet") || t.includes("telefone"))
+  if (
+    t.includes("admin") ||
+    t.includes("escrit") ||
+    t.includes("contab") ||
+    t.includes("aluguel") ||
+    t.includes("agua") ||
+    t.includes("energia") ||
+    t.includes("internet") ||
+    t.includes("telefone")
+  )
     return "administrativa";
   return "operacional";
 };
@@ -166,7 +221,10 @@ const vazioDetalhes = (): Record<DreGrupo, DreLancamento[]> => ({
   financeira: [],
 });
 
-async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes> {
+async function calcularMes(
+  referencia: Date,
+  unidadeId?: string,
+): Promise<DreMes> {
   const range = mesRangeDre(referencia);
   const { inicioDate, fimDate, inicioISO, proximoInicioISO } = range;
 
@@ -195,7 +253,6 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
     .gte("created_at", inicioISO)
     .lt("created_at", proximoInicioISO);
   if (unidadeId) caixaQ = caixaQ.eq("unidade_id", unidadeId);
-
 
   let bancoQ = supabase
     .from("movimentacoes_bancarias")
@@ -231,7 +288,10 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
     .from("categorias_despesa")
     .select("nome, grupo")
     .eq("ativo", true);
-  if (unidadeId) categoriasQ = categoriasQ.or(`unidade_id.is.null,unidade_id.eq.${unidadeId}`);
+  if (unidadeId)
+    categoriasQ = categoriasQ.or(
+      `unidade_id.is.null,unidade_id.eq.${unidadeId}`,
+    );
 
   const [
     pedidosRes,
@@ -242,11 +302,22 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
     dcRes,
     compRes,
     categoriasRes,
-  ] = await Promise.all([pq, cancQ, caixaQ, bancoQ, cpQ, dcQ, compQ, categoriasQ]);
+  ] = await Promise.all([
+    pq,
+    cancQ,
+    caixaQ,
+    bancoQ,
+    cpQ,
+    dcQ,
+    compQ,
+    categoriasQ,
+  ]);
 
   // A receita não pode falhar em silêncio: erro na consulta de pedidos aborta o mês.
   if (pedidosRes.error) {
-    throw new Error(`Falha ao carregar pedidos da DRE: ${pedidosRes.error.message}`);
+    throw new Error(
+      `Falha ao carregar pedidos da DRE: ${pedidosRes.error.message}`,
+    );
   }
 
   const pedidos = pedidosRes.data;
@@ -257,26 +328,34 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
   const despesasContabeis = dcRes.data;
   const comprasAbertas = compRes.data;
   const categoriasFiscais = categoriasRes.data;
-  const mapaCategoriasFiscais = criarMapaCategoriasFiscais(categoriasFiscais || []);
-
+  const mapaCategoriasFiscais = criarMapaCategoriasFiscais(
+    categoriasFiscais || [],
+  );
 
   const detalhes = vazioDetalhes();
   const avisos: string[] = [];
 
-  ([
-    ["movimentações de caixa", caixaRes.error],
-    ["movimentações bancárias", bancoRes.error],
-    ["contas a pagar", cpRes.error],
-    ["despesas contábeis", dcRes.error],
-    ["compras em aberto", compRes.error],
-  ] as const).forEach(([nome, err]) => {
-    if (err) avisos.push(`Não foi possível carregar ${nome} (${err.message}) — as despesas do período podem estar incompletas.`);
+  (
+    [
+      ["movimentações de caixa", caixaRes.error],
+      ["movimentações bancárias", bancoRes.error],
+      ["contas a pagar", cpRes.error],
+      ["despesas contábeis", dcRes.error],
+      ["compras em aberto", compRes.error],
+    ] as const
+  ).forEach(([nome, err]) => {
+    if (err)
+      avisos.push(
+        `Não foi possível carregar ${nome} (${err.message}) — as despesas do período podem estar incompletas.`,
+      );
   });
-
 
   // ---------- Receita ----------
   const listaPedidos = pedidos || [];
-  const receitaBruta = listaPedidos.reduce((s, p: any) => s + Number(p.valor_total || 0), 0);
+  const receitaBruta = listaPedidos.reduce(
+    (s, p: any) => s + Number(p.valor_total || 0),
+    0,
+  );
   listaPedidos.forEach((p: any) => {
     detalhes.receita.push({
       data: getDataOperacionalPedido(p),
@@ -300,24 +379,40 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
       itens.push(...(data || []));
     }
 
-    const ids = Array.from(new Set(itens.map((i) => i.produto_id).filter(Boolean)));
-    const produtosInfo = new Map<string, { nome: string; preco_custo: number | null }>();
+    const ids = Array.from(
+      new Set(itens.map((i) => i.produto_id).filter(Boolean)),
+    );
+    const produtosInfo = new Map<
+      string,
+      { nome: string; preco_custo: number | null }
+    >();
     for (let i = 0; i < ids.length; i += 300) {
       const { data } = await supabase
         .from("produtos")
         .select("id, nome, preco_custo")
         .in("id", ids.slice(i, i + 300));
-      (data || []).forEach((p: any) => produtosInfo.set(p.id, { nome: p.nome, preco_custo: p.preco_custo }));
+      (data || []).forEach((p: any) =>
+        produtosInfo.set(p.id, { nome: p.nome, preco_custo: p.preco_custo }),
+      );
     }
 
+    // O preço exibido no DRE é o preço médio de compra do período selecionado.
+    // Incluir compras anteriores fazia agosto, por exemplo, misturar custos antigos.
     let comprasHistoricasQ = supabase
       .from("compras")
       .select("id, status")
+      .gte("data_compra", inicioDate)
       .lte("data_compra", fimDate);
-    if (unidadeId) comprasHistoricasQ = comprasHistoricasQ.eq("unidade_id", unidadeId);
+    if (unidadeId)
+      comprasHistoricasQ = comprasHistoricasQ.eq("unidade_id", unidadeId);
     const { data: comprasHistoricas } = await comprasHistoricasQ;
     const compraIds = (comprasHistoricas || [])
-      .filter((c: any) => !["cancelada", "cancelado", "rejeitada", "rejeitado"].includes(String(c.status || "").toLowerCase()))
+      .filter(
+        (c: any) =>
+          !["cancelada", "cancelado", "rejeitada", "rejeitado"].includes(
+            String(c.status || "").toLowerCase(),
+          ),
+      )
       .map((c: any) => c.id)
       .filter(Boolean);
     const itensCompra: any[] = [];
@@ -352,7 +447,9 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
     });
   }
 
-  const produtos = Array.from(produtosMap.values()).sort((a, b) => b.quantidade - a.quantidade);
+  const produtos = Array.from(produtosMap.values()).sort(
+    (a, b) => b.quantidade - a.quantidade,
+  );
   const cmv = produtos.reduce((s, p) => s + p.custoTotal, 0);
   produtos.forEach((p) => {
     if (p.custoTotal > 0) {
@@ -371,12 +468,21 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
       `${semCusto.length} produto(s) vendidos sem preço de custo cadastrado (${semCusto
         .slice(0, 3)
         .map((p) => p.nome)
-        .join(", ")}) — o CMV está subestimado.`
+        .join(", ")}) — o CMV está subestimado.`,
     );
   }
 
   // ---------- Despesas (cada gasto uma única vez) ----------
-  type Bruto = { data: string; descricao: string; categoria?: string | null; status?: string | null; valor: number; origem: string; referenciaTipo?: string | null; ehLiquidacao?: boolean };
+  type Bruto = {
+    data: string;
+    descricao: string;
+    categoria?: string | null;
+    status?: string | null;
+    valor: number;
+    origem: string;
+    referenciaTipo?: string | null;
+    ehLiquidacao?: boolean;
+  };
 
   const brutos: Bruto[] = [
     ...(caixa || []).map((d: any) => ({
@@ -418,24 +524,48 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
 
   brutos.forEach((d) => {
     if (!d.valor) return;
-    if (!isDespesaOperacionalResultado({ categoria: d.categoria, descricao: d.descricao, referenciaTipo: d.referenciaTipo, status: d.status })) return;
+    if (
+      !isDespesaOperacionalResultado({
+        categoria: d.categoria,
+        descricao: d.descricao,
+        referenciaTipo: d.referenciaTipo,
+        status: d.status,
+      })
+    )
+      return;
     if (isTransferenciaInterna(d.categoria, d.descricao)) return;
     if (isCompraMercadoria(d.categoria, d.descricao)) return;
     // saída bancária que apenas quita título já reconhecido
-    if (d.ehLiquidacao && isLiquidacaoTitulo(d.categoria, d.descricao, d.referenciaTipo)) return;
+    if (
+      d.ehLiquidacao &&
+      isLiquidacaoTitulo(d.categoria, d.descricao, d.referenciaTipo)
+    )
+      return;
     if (!d.categoria) semCategoria += 1;
 
-    const grupoFiscal = classificarDespesaDRE(d.categoria || d.descricao, mapaCategoriasFiscais);
+    const grupoFiscal = classificarDespesaDRE(
+      d.categoria || d.descricao,
+      mapaCategoriasFiscais,
+    );
     if (grupoFiscal === "mercadorias") return;
     const grupo: DreGrupo =
-      grupoFiscal === "administrativo" ? "administrativa" :
-      grupoFiscal === "financeiro" ? "financeira" :
-      grupoFiscal;
-    detalhes[grupo].push({ data: d.data, descricao: d.descricao, origem: d.origem, valor: d.valor });
+      grupoFiscal === "administrativo"
+        ? "administrativa"
+        : grupoFiscal === "financeiro"
+          ? "financeira"
+          : grupoFiscal;
+    detalhes[grupo].push({
+      data: d.data,
+      descricao: d.descricao,
+      origem: d.origem,
+      valor: d.valor,
+    });
   });
 
   if (semCategoria > 0) {
-    avisos.push(`${semCategoria} lançamento(s) sem categoria foram classificados como despesa operacional.`);
+    avisos.push(
+      `${semCategoria} lançamento(s) sem categoria foram classificados como despesa operacional.`,
+    );
   }
 
   const soma = (g: DreGrupo) => detalhes[g].reduce((s, l) => s + l.valor, 0);
@@ -448,17 +578,23 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
 
   const receitaLiquida = receitaBruta - impostos;
   const lucroBruto = receitaLiquida - cmv;
-  const resultadoOperacional = lucroBruto - despPessoal - despOperacional - despAdministrativa;
+  const resultadoOperacional =
+    lucroBruto - despPessoal - despOperacional - despAdministrativa;
   const resultadoLiquido = resultadoOperacional - despFinanceira;
 
-  const comprasNaoPagas = (comprasAbertas || []).reduce((s: number, c: any) => s + Number(c.valor_total || 0), 0);
+  const comprasNaoPagas = (comprasAbertas || []).reduce(
+    (s: number, c: any) => s + Number(c.valor_total || 0),
+    0,
+  );
   if (comprasNaoPagas > 0) {
     avisos.push(
-      `${comprasNaoPagas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} em compras do mês ainda não pagas (informativo — não afeta o resultado).`
+      `${comprasNaoPagas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} em compras do mês ainda não pagas (informativo — não afeta o resultado).`,
     );
   }
 
-  Object.values(detalhes).forEach((lista) => lista.sort((a, b) => (a.data < b.data ? -1 : 1)));
+  Object.values(detalhes).forEach((lista) =>
+    lista.sort((a, b) => (a.data < b.data ? -1 : 1)),
+  );
 
   return {
     key: format(referencia, "yyyy-MM"),
@@ -485,10 +621,16 @@ async function calcularMes(referencia: Date, unidadeId?: string): Promise<DreMes
   };
 }
 
-export async function calcularDRE(referencia: Date, qtdMeses: number, unidadeId?: string): Promise<DreMes[]> {
+export async function calcularDRE(
+  referencia: Date,
+  qtdMeses: number,
+  unidadeId?: string,
+): Promise<DreMes[]> {
   const datas: Date[] = [];
   for (let i = qtdMeses - 1; i >= 0; i--) {
-    datas.push(new Date(referencia.getFullYear(), referencia.getMonth() - i, 1));
+    datas.push(
+      new Date(referencia.getFullYear(), referencia.getMonth() - i, 1),
+    );
   }
   const resultados: DreMes[] = [];
   for (const d of datas) {
@@ -508,15 +650,75 @@ export interface DreLinhaConfig {
 }
 
 export const DRE_LINHAS: DreLinhaConfig[] = [
-  { categoria: "Receita Bruta de Vendas", tipo: "receita", grupo: "receita", campo: "receitaBruta", ajuda: "Pedidos entregues/finalizados/pagos no mês, pela data de entrega ou criação. Cancelados não entram." },
-  { categoria: "(-) Impostos e deduções", tipo: "deducao", grupo: "impostos", campo: "impostos", negativo: true, indent: true, ajuda: "Somente impostos efetivamente lançados. Sem percentual estimado." },
+  {
+    categoria: "Receita Bruta de Vendas",
+    tipo: "receita",
+    grupo: "receita",
+    campo: "receitaBruta",
+    ajuda:
+      "Pedidos entregues/finalizados/pagos no mês, pela data de entrega ou criação. Cancelados não entram.",
+  },
+  {
+    categoria: "(-) Impostos e deduções",
+    tipo: "deducao",
+    grupo: "impostos",
+    campo: "impostos",
+    negativo: true,
+    indent: true,
+    ajuda: "Somente impostos efetivamente lançados. Sem percentual estimado.",
+  },
   { categoria: "RECEITA LÍQUIDA", tipo: "subtotal", campo: "receitaLiquida" },
-  { categoria: "(-) CMV — custo dos produtos vendidos", tipo: "custo", grupo: "cmv", campo: "cmv", negativo: true, indent: true, ajuda: "Quantidade vendida x preco medio ponderado de compra do produto. Compras do mes viram estoque, nao custo integral." },
+  {
+    categoria: "(-) CMV — custo dos produtos vendidos",
+    tipo: "custo",
+    grupo: "cmv",
+    campo: "cmv",
+    negativo: true,
+    indent: true,
+    ajuda:
+      "Quantidade vendida x preco medio ponderado de compra do produto. Compras do mes viram estoque, nao custo integral.",
+  },
   { categoria: "LUCRO BRUTO", tipo: "subtotal", campo: "lucroBruto" },
-  { categoria: "(-) Despesas com Pessoal", tipo: "despesa", grupo: "pessoal", campo: "despPessoal", negativo: true, indent: true },
-  { categoria: "(-) Despesas Operacionais", tipo: "despesa", grupo: "operacional", campo: "despOperacional", negativo: true, indent: true },
-  { categoria: "(-) Despesas Administrativas", tipo: "despesa", grupo: "administrativa", campo: "despAdministrativa", negativo: true, indent: true },
-  { categoria: "RESULTADO OPERACIONAL", tipo: "subtotal", campo: "resultadoOperacional" },
-  { categoria: "(-) Despesas Financeiras", tipo: "despesa", grupo: "financeira", campo: "despFinanceira", negativo: true, indent: true },
-  { categoria: "RESULTADO LÍQUIDO", tipo: "resultado", campo: "resultadoLiquido" },
+  {
+    categoria: "(-) Despesas com Pessoal",
+    tipo: "despesa",
+    grupo: "pessoal",
+    campo: "despPessoal",
+    negativo: true,
+    indent: true,
+  },
+  {
+    categoria: "(-) Despesas Operacionais",
+    tipo: "despesa",
+    grupo: "operacional",
+    campo: "despOperacional",
+    negativo: true,
+    indent: true,
+  },
+  {
+    categoria: "(-) Despesas Administrativas",
+    tipo: "despesa",
+    grupo: "administrativa",
+    campo: "despAdministrativa",
+    negativo: true,
+    indent: true,
+  },
+  {
+    categoria: "RESULTADO OPERACIONAL",
+    tipo: "subtotal",
+    campo: "resultadoOperacional",
+  },
+  {
+    categoria: "(-) Despesas Financeiras",
+    tipo: "despesa",
+    grupo: "financeira",
+    campo: "despFinanceira",
+    negativo: true,
+    indent: true,
+  },
+  {
+    categoria: "RESULTADO LÍQUIDO",
+    tipo: "resultado",
+    campo: "resultadoLiquido",
+  },
 ];

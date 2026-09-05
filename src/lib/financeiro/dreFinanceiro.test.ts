@@ -18,11 +18,27 @@ describe("dreFinanceiro", () => {
     expect(custos.get("agua")).toBe(8);
   });
 
+  it("mantem o preco exato quando o periodo tem uma unica compra", () => {
+    const custos = calcularPrecoMedioCompraPorProduto([
+      { produto_id: "p13", quantidade: 90, preco_unitario: 88 },
+    ]);
+
+    expect(custos.get("p13")).toBe(88);
+  });
+
   it("calcula lucro bruto por produto vendido", () => {
     const custos = new Map([["p13", 92]]);
-    const margem = calcularMargemProdutos([
-      { produto_id: "p13", quantidade: 3, preco_unitario: 120, produtos: { nome: "Gas P13", preco_custo: 85 } },
-    ], custos);
+    const margem = calcularMargemProdutos(
+      [
+        {
+          produto_id: "p13",
+          quantidade: 3,
+          preco_unitario: 120,
+          produtos: { nome: "Gas P13", preco_custo: 85 },
+        },
+      ],
+      custos,
+    );
 
     expect(margem[0].receita).toBe(360);
     expect(margem[0].custo).toBe(276);
@@ -45,10 +61,14 @@ describe("dreFinanceiro", () => {
   });
 
   it("classifica pro labore com ou sem hifen como pessoal", () => {
-    const mapa = criarMapaCategoriasFiscais([{ nome: "Pro-Labore", grupo: "pessoal" }]);
+    const mapa = criarMapaCategoriasFiscais([
+      { nome: "Pro-Labore", grupo: "pessoal" },
+    ]);
 
     expect(classificarDespesaDRE("Pro-Labore", mapa)).toBe("pessoal");
     expect(classificarDespesaDRE("Pro Labore", mapa)).toBe("pessoal");
-    expect(classificarDespesaDRE("pro labore socios", new Map())).toBe("pessoal");
+    expect(classificarDespesaDRE("pro labore socios", new Map())).toBe(
+      "pessoal",
+    );
   });
 });

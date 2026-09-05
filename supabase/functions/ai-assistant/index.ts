@@ -262,6 +262,42 @@ const ACTION_TOOLS = [
             description: "Itens da compra",
           },
           valor_frete: { type: "number", description: "Valor do frete" },
+          situacao_pagamento: {
+            type: "string",
+            enum: ["avista", "aprazo"],
+            description: "Se a compra será paga à vista ou a prazo",
+          },
+          forma_pagamento: {
+            type: "string",
+            enum: [
+              "dinheiro",
+              "pix",
+              "ted",
+              "debito",
+              "credito",
+              "boleto",
+              "cheque",
+              "vale_central_gas",
+              "vale_ultragaz",
+              "a_prazo",
+            ],
+            description: "Forma usada no pagamento da compra",
+          },
+          conta_bancaria_nome: {
+            type: "string",
+            description:
+              "Nome do banco/conta de origem para pagamentos bancários",
+          },
+          data_vencimento: {
+            type: "string",
+            description: "Vencimento quando a compra for a prazo (YYYY-MM-DD)",
+          },
+          parcelas: {
+            type: "number",
+            description: "Quantidade de parcelas para cartão de crédito",
+          },
+          numero_cheque: { type: "string", description: "Número do cheque" },
+          banco_cheque: { type: "string", description: "Banco do cheque" },
           numero_nota_fiscal: {
             type: "string",
             description: "Número da nota fiscal",
@@ -759,6 +795,8 @@ REGRAS IMPORTANTES:
 - A unidade atual já está selecionada: "${unidadeAutorizada.nome}" (${unidadeId}). Nunca pergunte qual é a unidade.
 - Ao criar pedido, só chame criar_pedido depois de saber: cliente, itens/quantidades, forma de pagamento e se já foi entregue.
 - Se já foi entregue, também saiba se foi por entregador (e qual) ou por portaria/balcão. Se faltar algum desses dados, faça uma pergunta objetiva e não chame a ferramenta ainda.
+- Ao registrar compra, obtenha fornecedor, produtos, quantidades, preço unitário, pagamento à vista/a prazo e forma de pagamento. Para prazo, obtenha vencimento; para banco/cartão, obtenha a conta; para crédito, parcelas; para cheque, número e banco. Se faltar algo, faça uma pergunta objetiva e não invente.
+- Para qualquer ação, conduza uma conversa curta até reunir os dados necessários. Nunca presuma valores ou informações financeiras.
 Filtre por unidade_id = '${unidadeId}' quando a tabela tiver essa coluna.
 Use timezone 'America/Sao_Paulo' para datas. Use NOW() para data atual.
 Limite resultados a no máximo 50 linhas.
@@ -865,7 +903,12 @@ ${TABLES_SCHEMA}`,
             const prepared =
               fnName === "criar_pedido"
                 ? await prepareOrderAction(supabase, args, unidadeId, empresaId)
-                : { params: args, preview: formatActionPreview(fnName, args) };
+                : fnName === "registrar_compra"
+                  ? await preparePurchaseAction(supabase, args, unidadeId)
+                  : {
+                      params: args,
+                      preview: formatActionPreview(fnName, args),
+                    };
             if ("question" in prepared)
               return streamTextResponse(prepared.question, corsHeaders);
             pendingActions.push({
@@ -997,6 +1040,7 @@ Formatação:
 - Ao executar ações, confirme o que foi feito.
 - Para criar pedidos: SEMPRE chame a tool criar_pedido. Quando o usuário disser "amanhã", "sexta", "dia X", "às 8h", calcule a data exata (data_entrega = YYYY-MM-DD) e hora (hora_entrega = HH:MM) e passe nos parâmetros — não invente que está agendado sem usar a tool.
 - Antes de criar pedido, confirme cliente, itens e quantidades, forma de pagamento, se já foi entregue e, quando entregue, quem realizou a entrega. Nunca presuma pagamento, entrega ou entregador.
+- Para registrar compras, confirme fornecedor, cada produto, quantidade, preço unitário, total, situação à vista/a prazo e forma de pagamento. Solicite vencimento, conta bancária, parcelas ou cheque quando aplicável. A confirmação precisa mostrar o preço médio unitário e o valor total.
 - Sempre tente identificar o cliente pelo nome OU telefone informado. Se não houver cadastro, crie o pedido mesmo assim (a tool aceita cliente não-cadastrado).
 - Interprete nomes de produtos com flexibilidade: "p13"/"P13" = Gás P13, "p20" = Gás P20, "p45" = Gás P45, "água" = Água 20L.
 - Se houver acoes pendentes de confirmacao no contexto, diga claramente que nada foi executado ainda e peca confirmacao.
@@ -1134,7 +1178,7 @@ async function getFinancialSummary(supabase: any, unidadeId: string) {
   const startIso = `${startDate}T00:00:00-03:00`;
   const nextIso = `${nextDate}T00:00:00-03:00`;
 
-  const [ordersRes, cashRes, bankRes, payableRes, accountingRes] =
+  const [ordersRes, purchasesRes, cashRes, bankRes, payableRes, accountingRes] =
     await Promise.all([
       supabase
         .from("pedidos")
@@ -1144,6 +1188,12 @@ async function getFinancialSummary(supabase: any, unidadeId: string) {
         .or(
           `and(data_entrega.gte.${startDate},data_entrega.lt.${nextDate}),and(data_entrega.is.null,created_at.gte.${startIso},created_at.lt.${nextIso})`,
         ),
+      supabase
+        .from("compras")
+        .select("id,status")
+        .eq("unidade_id", unidadeId)
+        .gte("data_compra", startDate)
+        .lt("data_compra", nextDate),
       supabase
         .from("movimentacoes_caixa")
         .select("valor")
@@ -1181,14 +1231,32 @@ async function getFinancialSummary(supabase: any, unidadeId: string) {
   const orders = ordersRes.data || [];
   const orderIds = orders.map((row: any) => row.id);
   let items: any[] = [];
+  let purchaseItems: any[] = [];
   if (orderIds.length) {
     const { data, error } = await supabase
       .from("pedido_itens")
-      .select("quantidade, preco_unitario, produtos(preco_custo)")
+      .select("produto_id, quantidade, preco_unitario, produtos(preco_custo)")
       .in("pedido_id", orderIds);
     if (error)
       throw new Error(`Falha ao carregar itens vendidos: ${error.message}`);
     items = data || [];
+  }
+  const purchaseIds = (purchasesRes.data || [])
+    .filter(
+      (row: any) =>
+        !["cancelada", "cancelado", "rejeitada", "rejeitado"].includes(
+          normalizeText(String(row.status || "")),
+        ),
+    )
+    .map((row: any) => row.id);
+  if (purchaseIds.length) {
+    const { data, error } = await supabase
+      .from("compra_itens")
+      .select("produto_id,quantidade,preco_unitario,produtos(nome)")
+      .in("compra_id", purchaseIds);
+    if (error)
+      throw new Error(`Falha ao carregar itens comprados: ${error.message}`);
+    purchaseItems = data || [];
   }
 
   const sum = (rows: any[] | null) =>
@@ -1206,20 +1274,54 @@ async function getFinancialSummary(supabase: any, unidadeId: string) {
       total + Number(row.quantidade || 0) * Number(row.preco_unitario || 0),
     0,
   );
-  const custoMercadorias = items.reduce(
-    (total: number, row: any) =>
-      total +
-      Number(row.quantidade || 0) * Number(row.produtos?.preco_custo || 0),
-    0,
-  );
-  const custosAusentes = items.filter(
-    (row: any) => row.produtos?.preco_custo == null,
-  ).length;
   const despesas =
     sum(cashRes.data) +
     sum(bankRes.data) +
     sum(payableRes.data) +
     sum(accountingRes.data);
+  const purchaseAverageMap = new Map<
+    string,
+    { produto: string; quantidade: number; total: number }
+  >();
+  purchaseItems.forEach((row: any) => {
+    if (!row.produto_id) return;
+    const current = purchaseAverageMap.get(row.produto_id) || {
+      produto: row.produtos?.nome || "Produto",
+      quantidade: 0,
+      total: 0,
+    };
+    current.quantidade += Number(row.quantidade || 0);
+    current.total +=
+      Number(row.quantidade || 0) * Number(row.preco_unitario || 0);
+    purchaseAverageMap.set(row.produto_id, current);
+  });
+  const custoUnitario = (row: any) => {
+    const purchase = row.produto_id
+      ? purchaseAverageMap.get(row.produto_id)
+      : null;
+    return purchase?.quantidade
+      ? purchase.total / purchase.quantidade
+      : Number(row.produtos?.preco_custo || 0);
+  };
+  const custoMercadorias = items.reduce(
+    (total: number, row: any) =>
+      total + Number(row.quantidade || 0) * custoUnitario(row),
+    0,
+  );
+  const custosAusentes = items.filter(
+    (row: any) =>
+      !purchaseAverageMap.has(row.produto_id) &&
+      row.produtos?.preco_custo == null,
+  ).length;
+  const precosMediosCompra = Array.from(purchaseAverageMap.values()).map(
+    (row) => ({
+      produto: row.produto,
+      quantidade_comprada: row.quantidade,
+      preco_medio_compra: Number(
+        (row.quantidade ? row.total / row.quantidade : 0).toFixed(2),
+      ),
+    }),
+  );
 
   return {
     periodo: startDate.slice(0, 7),
@@ -1238,6 +1340,7 @@ async function getFinancialSummary(supabase: any, unidadeId: string) {
     ticket_medio_por_pedido: Number(
       (orders.length ? receita / orders.length : 0).toFixed(2),
     ),
+    precos_medios_compra_no_mes: precosMediosCompra,
     custos_de_produtos_ausentes: custosAusentes,
     observacao: custosAusentes
       ? "O lucro pode estar superestimado porque há itens sem preço de custo cadastrado."
@@ -1411,6 +1514,162 @@ async function prepareOrderAction(
   return {
     params,
     preview: `Pedido para ${client.nome}: ${itemText}. Total R$ ${total.toFixed(2)}; ${params.forma_pagamento}; ${delivery}; endereço: ${params.endereco_entrega || "não informado"}.`,
+  };
+}
+
+async function preparePurchaseAction(
+  supabase: any,
+  original: any,
+  unidadeId: string,
+): Promise<any> {
+  const params = { ...original };
+  if (!params.fornecedor_id && !params.fornecedor_nome) {
+    return { question: "Qual é o fornecedor desta compra?" };
+  }
+  if (!Array.isArray(params.itens) || params.itens.length === 0) {
+    return { question: "Qual produto e qual quantidade foram comprados?" };
+  }
+  if (params.itens.some((item: any) => !(Number(item.preco_unitario) >= 0))) {
+    return { question: "Qual foi o preço unitário de compra de cada produto?" };
+  }
+  if (!params.situacao_pagamento) {
+    return { question: "A compra foi à vista ou a prazo?" };
+  }
+  if (!params.forma_pagamento) {
+    return { question: "Qual foi a forma de pagamento?" };
+  }
+  if (params.situacao_pagamento === "aprazo" && !params.data_vencimento) {
+    return { question: "Qual é a data de vencimento da compra a prazo?" };
+  }
+  if (params.forma_pagamento === "credito" && !(Number(params.parcelas) > 0)) {
+    return {
+      question: "Em quantas parcelas foi feita a compra no cartão de crédito?",
+    };
+  }
+  if (params.forma_pagamento === "cheque" && !params.numero_cheque) {
+    return { question: "Qual é o número do cheque usado na compra?" };
+  }
+
+  let supplier: any = null;
+  if (params.fornecedor_id) {
+    const { data } = await supabase
+      .from("fornecedores")
+      .select("id,razao_social,nome_fantasia")
+      .eq("id", params.fornecedor_id)
+      .eq("unidade_id", unidadeId)
+      .maybeSingle();
+    supplier = data;
+  } else {
+    const { data } = await supabase
+      .from("fornecedores")
+      .select("id,razao_social,nome_fantasia")
+      .eq("unidade_id", unidadeId)
+      .or(
+        `razao_social.ilike.%${params.fornecedor_nome}%,nome_fantasia.ilike.%${params.fornecedor_nome}%`,
+      )
+      .limit(5);
+    if ((data || []).length === 1) supplier = data[0];
+    else if ((data || []).length > 1) {
+      return {
+        question: `Encontrei mais de um fornecedor: ${data.map((row: any) => row.nome_fantasia || row.razao_social).join(", ")}. Qual é o correto?`,
+      };
+    }
+  }
+  if (!supplier)
+    return {
+      question: `Não encontrei o fornecedor "${params.fornecedor_nome}". Confirme o nome ou cadastre o fornecedor antes da compra.`,
+    };
+  params.fornecedor_id = supplier.id;
+  params.fornecedor_nome = supplier.nome_fantasia || supplier.razao_social;
+
+  const resolvedItems: any[] = [];
+  let subtotal = 0;
+  for (const item of params.itens) {
+    const { data: products } = await supabase
+      .from("produtos")
+      .select("id,nome")
+      .eq("unidade_id", unidadeId)
+      .eq("ativo", true)
+      .ilike("nome", `%${item.produto_nome}%`)
+      .limit(8);
+    if (!products?.length)
+      return {
+        question: `Não encontrei o produto "${item.produto_nome}". Qual produto cadastrado devo usar?`,
+      };
+    if (products.length > 1) {
+      return {
+        question: `Qual produto exatamente? Encontrei: ${products.map((row: any) => row.nome).join(", ")}.`,
+      };
+    }
+    const quantity = Number(item.quantidade || 0);
+    const unitPrice = Number(item.preco_unitario);
+    if (!(quantity > 0))
+      return {
+        question: `Qual foi a quantidade comprada de ${products[0].nome}?`,
+      };
+    resolvedItems.push({
+      produto_id: products[0].id,
+      produto_nome: products[0].nome,
+      quantidade: quantity,
+      preco_unitario: unitPrice,
+    });
+    subtotal += quantity * unitPrice;
+  }
+
+  const bankingMethods = [
+    "pix",
+    "ted",
+    "debito",
+    "vale_central_gas",
+    "vale_ultragaz",
+  ];
+  if (
+    params.situacao_pagamento === "avista" &&
+    bankingMethods.includes(params.forma_pagamento)
+  ) {
+    if (!params.conta_bancaria_nome)
+      return { question: "De qual banco/conta saiu o pagamento?" };
+    const { data: accounts } = await supabase
+      .from("contas_bancarias")
+      .select("id,nome,banco")
+      .eq("unidade_id", unidadeId)
+      .eq("ativo", true)
+      .or(
+        `nome.ilike.%${params.conta_bancaria_nome}%,banco.ilike.%${params.conta_bancaria_nome}%`,
+      )
+      .limit(5);
+    if ((accounts || []).length !== 1) {
+      const names = (accounts || [])
+        .map((row: any) => `${row.banco || "Banco"} · ${row.nome}`)
+        .join(", ");
+      return {
+        question: names
+          ? `Qual conta é a correta? ${names}`
+          : `Não encontrei a conta "${params.conta_bancaria_nome}". Qual conta bancária devo usar?`,
+      };
+    }
+    params.conta_bancaria_id = accounts[0].id;
+    params.conta_bancaria_nome = `${accounts[0].banco || "Banco"} · ${accounts[0].nome}`;
+  }
+
+  params.itens = resolvedItems;
+  params.valor_total_confirmado = Number(
+    (subtotal + Number(params.valor_frete || 0)).toFixed(2),
+  );
+  params.idempotency_key ||= crypto.randomUUID();
+  const itemsText = resolvedItems
+    .map(
+      (item) =>
+        `${item.quantidade}x ${item.produto_nome} a R$ ${item.preco_unitario.toFixed(2)}`,
+    )
+    .join(", ");
+  const paymentText =
+    params.situacao_pagamento === "aprazo"
+      ? `a prazo via ${params.forma_pagamento}, vencimento ${params.data_vencimento}`
+      : `à vista via ${params.forma_pagamento}${params.conta_bancaria_nome ? ` (${params.conta_bancaria_nome})` : ""}`;
+  return {
+    params,
+    preview: `Compra de ${params.fornecedor_nome}: ${itemsText}. Total R$ ${params.valor_total_confirmado.toFixed(2)}; ${paymentText}.`,
   };
 }
 
@@ -1742,7 +2001,30 @@ async function executeAction(
           numero_nota_fiscal,
           data_compra,
           observacoes,
+          situacao_pagamento,
+          forma_pagamento,
+          conta_bancaria_id,
+          data_vencimento,
+          parcelas,
+          numero_cheque,
+          banco_cheque,
+          idempotency_key,
         } = params;
+
+        if (!fornecedor_id || !situacao_pagamento || !forma_pagamento) {
+          return "Acao rejeitada: confirme fornecedor, situação e forma de pagamento.";
+        }
+        if (idempotency_key) {
+          const marker = `[AI:${idempotency_key}]`;
+          const { data: existing } = await supabase
+            .from("compras")
+            .select("id")
+            .eq("unidade_id", unidade_id)
+            .ilike("observacoes", `%${marker}%`)
+            .maybeSingle();
+          if (existing)
+            return `Compra já registrada anteriormente (ID: ${existing.id.substring(0, 8)}).`;
+        }
 
         // Find or identify fornecedor
         let fId = fornecedor_id;
@@ -1761,13 +2043,22 @@ async function executeAction(
         const resolvedItens = [];
         let valorTotal = 0;
         for (const item of itens || []) {
-          const { data: prod } = await supabase
-            .from("produtos")
-            .select("id, nome")
-            .ilike("nome", `%${item.produto_nome}%`)
-            .eq("unidade_id", unidade_id)
-            .limit(1)
-            .single();
+          const { data: prod } = item.produto_id
+            ? await supabase
+                .from("produtos")
+                .select("id,nome")
+                .eq("id", item.produto_id)
+                .eq("unidade_id", unidade_id)
+                .maybeSingle()
+            : await supabase
+                .from("produtos")
+                .select("id,nome")
+                .ilike("nome", `%${item.produto_nome}%`)
+                .eq("unidade_id", unidade_id)
+                .limit(1)
+                .maybeSingle();
+          if (!prod)
+            return `Acao rejeitada: produto "${item.produto_nome}" não encontrado.`;
           resolvedItens.push({
             produto_id: prod?.id || null,
             produto_nome: prod?.nome || item.produto_nome,
@@ -1777,6 +2068,20 @@ async function executeAction(
           valorTotal += item.quantidade * item.preco_unitario;
         }
 
+        const compraDate =
+          data_compra ||
+          new Date().toLocaleDateString("en-CA", {
+            timeZone: "America/Sao_Paulo",
+          });
+        const paymentForm =
+          situacao_pagamento === "aprazo" ? "a_prazo" : forma_pagamento;
+        const paymentOrigin =
+          situacao_pagamento === "aprazo" || forma_pagamento === "credito"
+            ? "fatura"
+            : forma_pagamento === "dinheiro"
+              ? "caixa"
+              : "banco";
+        const marker = idempotency_key ? ` [AI:${idempotency_key}]` : "";
         const { data: compra, error: compraErr } = await supabase
           .from("compras")
           .insert({
@@ -1784,9 +2089,23 @@ async function executeAction(
             valor_total: valorTotal + (valor_frete || 0),
             valor_frete: valor_frete || 0,
             status: "recebido",
-            data_compra: data_compra || new Date().toISOString().split("T")[0],
+            data_compra: compraDate,
+            data_recebimento: compraDate,
             numero_nota_fiscal: numero_nota_fiscal || null,
-            observacoes: observacoes || null,
+            observacoes: `${observacoes || "Compra via Assistente IA"}${marker}`,
+            forma_pagamento: paymentForm,
+            origem_pagamento: paymentOrigin,
+            conta_bancaria_id: conta_bancaria_id || null,
+            parcelas: Math.max(1, Number(parcelas || 1)),
+            data_pagamento:
+              situacao_pagamento === "avista" &&
+              !["credito", "cheque"].includes(forma_pagamento)
+                ? compraDate
+                : null,
+            data_vencimento: data_vencimento || null,
+            pago:
+              situacao_pagamento === "avista" &&
+              !["credito", "cheque"].includes(forma_pagamento),
             unidade_id,
           })
           .select("id")
@@ -1830,13 +2149,119 @@ async function executeAction(
           }
         }
 
+        const descricaoFinanceira = `Compra ${numero_nota_fiscal ? `NF ${numero_nota_fiscal}` : compra.id.substring(0, 8)} - ${fornecedor_nome || "Fornecedor"}`;
+        if (situacao_pagamento === "avista" && forma_pagamento === "dinheiro") {
+          const { error } = await supabase.from("movimentacoes_caixa").insert({
+            tipo: "saida",
+            categoria: "compras",
+            valor: valorTotal + Number(valor_frete || 0),
+            descricao: descricaoFinanceira,
+            status: "aprovado",
+            unidade_id,
+            compra_id: compra.id,
+          });
+          if (error) throw error;
+        } else if (
+          situacao_pagamento === "avista" &&
+          [
+            "pix",
+            "ted",
+            "debito",
+            "boleto",
+            "vale_central_gas",
+            "vale_ultragaz",
+          ].includes(forma_pagamento)
+        ) {
+          if (!conta_bancaria_id)
+            throw new Error("Conta bancária não informada para o pagamento.");
+          const { data: account } = await supabase
+            .from("contas_bancarias")
+            .select("saldo_atual")
+            .eq("id", conta_bancaria_id)
+            .eq("unidade_id", unidade_id)
+            .maybeSingle();
+          if (!account) throw new Error("Conta bancária não encontrada.");
+          const amount = valorTotal + Number(valor_frete || 0);
+          const balanceAfter = Number(account.saldo_atual || 0) - amount;
+          const { error } = await supabase
+            .from("movimentacoes_bancarias")
+            .insert({
+              conta_bancaria_id,
+              tipo: "saida",
+              categoria: "compras",
+              valor: amount,
+              descricao: descricaoFinanceira,
+              data: compraDate,
+              saldo_apos: balanceAfter,
+              referencia_id: compra.id,
+              referencia_tipo: "compra",
+              unidade_id,
+            });
+          if (error) throw error;
+          await supabase
+            .from("contas_bancarias")
+            .update({ saldo_atual: balanceAfter })
+            .eq("id", conta_bancaria_id)
+            .eq("unidade_id", unidade_id);
+        } else {
+          const amount = valorTotal + Number(valor_frete || 0);
+          const count =
+            forma_pagamento === "credito"
+              ? Math.max(1, Number(parcelas || 1))
+              : 1;
+          const installment = Number((amount / count).toFixed(2));
+          const groupId = count > 1 ? crypto.randomUUID() : null;
+          const rows = Array.from({ length: count }).map((_, index) => {
+            const due = new Date(`${data_vencimento || compraDate}T12:00:00`);
+            if (count > 1) due.setMonth(due.getMonth() + index);
+            return {
+              descricao:
+                count > 1
+                  ? `${descricaoFinanceira} (${index + 1}/${count})`
+                  : descricaoFinanceira,
+              fornecedor: fornecedor_nome || "Fornecedor",
+              valor:
+                index === count - 1
+                  ? Number((amount - installment * (count - 1)).toFixed(2))
+                  : installment,
+              vencimento: due.toISOString().slice(0, 10),
+              categoria: "compras",
+              status: "pendente",
+              unidade_id,
+              compra_id: compra.id,
+              forma_pagamento,
+              conta_bancaria_id: conta_bancaria_id || null,
+              parcela_numero: count > 1 ? index + 1 : null,
+              parcela_total: count > 1 ? count : null,
+              grupo_parcela_id: groupId,
+            };
+          });
+          const { error } = await supabase.from("contas_pagar").insert(rows);
+          if (error) throw error;
+          if (forma_pagamento === "cheque") {
+            const { error: checkError } = await supabase
+              .from("cheques")
+              .insert({
+                numero_cheque,
+                banco_emitente: banco_cheque || null,
+                valor: amount,
+                data_emissao: compraDate,
+                data_vencimento: data_vencimento || compraDate,
+                status: "emitido",
+                unidade_id,
+                compra_id: compra.id,
+              });
+            if (checkError) throw checkError;
+          }
+        }
+
         const itensStr = resolvedItens
           .map(
             (i) =>
               `${i.quantidade}x ${i.produto_nome} @ R$ ${i.preco_unitario.toFixed(2)}`,
           )
           .join(", ");
-        return `✅ Compra registrada (ID: ${compra.id.substring(0, 8)}): ${itensStr}. Total: R$ ${valorTotal.toFixed(2)}${valor_frete ? ` + Frete R$ ${valor_frete.toFixed(2)}` : ""}. Estoque atualizado.`;
+        return `✅ Compra registrada (ID: ${compra.id.substring(0, 8)}): ${itensStr}. Total: R$ ${(valorTotal + Number(valor_frete || 0)).toFixed(2)}. Estoque e financeiro atualizados.`;
       }
 
       case "registrar_despesa": {

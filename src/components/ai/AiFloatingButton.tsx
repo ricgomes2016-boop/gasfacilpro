@@ -57,7 +57,7 @@ export function AiFloatingButton({
             // Mobile: true full-screen assistant; the composer remains above the virtual keyboard.
             "inset-0 h-[100dvh] w-full rounded-none border-0",
             // Desktop: fixed panel at bottom-right, above floating chat bubble
-            "md:inset-auto md:right-4 md:bottom-36 md:w-[400px] md:h-[560px] md:max-h-[calc(100vh-10rem)] md:rounded-xl md:border",
+            "md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[min(680px,calc(100vw-3rem))] md:h-[min(720px,calc(100vh-4rem))] md:max-h-none md:rounded-2xl md:border",
           )}
         >
           <div className="flex items-center justify-between px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] border-b bg-primary/5 md:pt-3 md:rounded-t-lg">
