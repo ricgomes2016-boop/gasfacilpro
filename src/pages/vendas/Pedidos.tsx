@@ -1272,8 +1272,8 @@ export default function Pedidos() {
         })()}
 
         {/* Table - #3 responsive with hidden columns on mobile */}
-        <Card className="orders-table-card overflow-hidden border border-border bg-card shadow-sm">
-          <CardHeader className="border-b border-border bg-muted/35 px-4 py-2.5">
+        <Card className="orders-table-card overflow-hidden border-0 bg-transparent shadow-none md:border md:border-border md:bg-card md:shadow-sm">
+          <CardHeader className="hidden border-b border-border bg-muted/35 px-4 py-2.5 md:block">
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-sm font-semibold text-foreground">Pedidos <span className="text-muted-foreground font-normal">({pedidosFiltrados.length})</span></CardTitle>
               <DropdownMenu>
@@ -1314,7 +1314,7 @@ export default function Pedidos() {
 
             <>
               {/* Mobile cards - premium compact + expansível */}
-              <div className="md:hidden w-full min-w-0 space-y-2 p-3">
+              <div className="w-full min-w-0 space-y-2 py-1 md:hidden">
                 {pedidosPaginados.map((pedido) => {
                   const expandido = expandidos.has(pedido.id);
                   const bloqueado = isPedidoBloqueado(pedido.status);
@@ -1340,7 +1340,7 @@ export default function Pedidos() {
                   return (
                     <div
                       key={pedido.id}
-                      className={`mobile-record-card transition-all ${pedido.status === "cancelado" ? "opacity-60" : ""} ${expandido ? "ring-1 ring-primary/20" : ""}`}
+                      className={`mobile-record-card !p-0 overflow-hidden transition-all ${pedido.status === "cancelado" ? "opacity-60" : ""} ${expandido ? "ring-1 ring-primary/20" : ""}`}
                     >
                       {/* Header do card */}
                       <div className="flex items-start gap-2 p-3 pb-2">
