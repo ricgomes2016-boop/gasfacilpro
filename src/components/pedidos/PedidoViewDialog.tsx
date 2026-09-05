@@ -2,9 +2,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Printer, MessageCircle, XCircle, Clock, Truck, CheckCircle } from "lucide-react";
+import { Printer, MessageCircle, XCircle, Clock, Truck, CheckCircle, CreditCard, LoaderCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { PedidoFormatado } from "@/types/pedido";
+import { PedidoFormatado, PedidoStatus } from "@/types/pedido";
 import { esc } from "@/lib/escapeHtml";
 
 interface PedidoViewDialogProps {
@@ -14,11 +14,20 @@ interface PedidoViewDialogProps {
   onCancelar: (pedidoId: string) => void;
 }
 
-const statusConfig = {
+const statusConfig: Record<PedidoStatus, {
+  label: string;
+  variant: "default" | "secondary" | "outline" | "destructive" | "success" | "warning" | "info";
+  icon: typeof Clock;
+}> = {
   pendente: { label: "Pendente", variant: "secondary" as const, icon: Clock },
   em_rota: { label: "Em Rota", variant: "default" as const, icon: Truck },
   entregue: { label: "Entregue", variant: "outline" as const, icon: CheckCircle },
   cancelado: { label: "Cancelado", variant: "destructive" as const, icon: XCircle },
+  finalizado: { label: "Finalizado", variant: "success", icon: CheckCircle },
+  aguardando_pagamento_cartao: { label: "Aguardando cartão", variant: "warning", icon: CreditCard },
+  pagamento_em_processamento: { label: "Pagamento em processamento", variant: "info", icon: LoaderCircle },
+  pago_cartao: { label: "Pago no cartão", variant: "success", icon: CheckCircle },
+  pagamento_negado: { label: "Pagamento negado", variant: "destructive", icon: AlertCircle },
 };
 
 export function PedidoViewDialog({ pedido, open, onOpenChange, onCancelar }: PedidoViewDialogProps) {
@@ -26,8 +35,10 @@ export function PedidoViewDialog({ pedido, open, onOpenChange, onCancelar }: Ped
 
   if (!pedido) return null;
 
-  const config = statusConfig[pedido.status];
+  // O fallback evita que registros legados com um status inesperado derrubem a tela inteira.
+  const config = statusConfig[pedido.status] ?? { label: "Status não identificado", variant: "secondary" as const, icon: AlertCircle };
   const StatusIcon = config.icon;
+  const itens = pedido.itens ?? [];
 
   // Número de exibição: usa numero_sequencial quando disponível, com fallback para UUID curto
   const idCurto = pedido.numero_sequencial != null
@@ -35,7 +46,7 @@ export function PedidoViewDialog({ pedido, open, onOpenChange, onCancelar }: Ped
     : pedido.id.substring(0, 8).toUpperCase();
 
   const handlePrint = () => {
-    const itensHtml = pedido.itens
+    const itensHtml = itens
       .map((item) => `<div class="info">${item.quantidade}x ${esc(item.produto?.nome || 'Produto')} - R$ ${(item.preco_unitario * item.quantidade).toFixed(2)}</div>`)
       .join("");
 
@@ -85,7 +96,7 @@ export function PedidoViewDialog({ pedido, open, onOpenChange, onCancelar }: Ped
   };
 
   const handleWhatsApp = () => {
-    const itensTexto = pedido.itens
+    const itensTexto = itens
       .map((item) => `  • ${item.quantidade}x ${item.produto?.nome || 'Produto'}`)
       .join("\n");
 
@@ -144,9 +155,9 @@ export function PedidoViewDialog({ pedido, open, onOpenChange, onCancelar }: Ped
 
           <div className="space-y-2">
             <h4 className="font-medium">Produtos</h4>
-            {pedido.itens.length > 0 ? (
+            {itens.length > 0 ? (
               <ul className="text-sm space-y-1">
-                {pedido.itens.map((item) => (
+                {itens.map((item) => (
                   <li key={item.id} className="flex justify-between">
                     <span>{item.quantidade}x {item.produto?.nome || 'Produto'}</span>
                     <span className="text-muted-foreground">R$ {(item.preco_unitario * item.quantidade).toFixed(2)}</span>
