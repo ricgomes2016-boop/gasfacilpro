@@ -1144,7 +1144,7 @@ export default function Produtos() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent className="p-3 sm:p-6">
             {isLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5].map((i) => (
@@ -1158,7 +1158,119 @@ export default function Produtos() {
                   : "Nenhum produto cadastrado. Clique em 'Novo Produto' para adicionar."}
               </div>
             ) : (
-              <Table>
+              <>
+                <div className="grid gap-3 md:hidden">
+                  {produtosFiltrados.map((produto) => (
+                    <div
+                      key={produto.id}
+                      className="min-w-0 overflow-hidden rounded-2xl border bg-card p-3.5 shadow-sm"
+                    >
+                      <div className="flex min-w-0 items-start gap-3">
+                        {produto.image_url ? (
+                          <img
+                            src={produto.image_url}
+                            alt={produto.nome}
+                            className="h-11 w-11 shrink-0 rounded-xl border object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted">
+                            <Package className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold text-foreground">{produto.nome}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {produto.categoria || "Sem categoria"}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={produto.ativo ? "default" : "destructive"}
+                          className="shrink-0"
+                        >
+                          {produto.ativo ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-3 divide-x rounded-xl border bg-muted/20 py-2.5">
+                        <div className="min-w-0 px-2.5">
+                          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                            Venda
+                          </p>
+                          <p className="whitespace-nowrap text-[13px] font-semibold tabular-nums">
+                            R$ {produto.preco.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div className="min-w-0 px-2.5">
+                          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                            Custo
+                          </p>
+                          <p className="whitespace-nowrap text-[13px] font-semibold tabular-nums">
+                            {produto.preco_custo != null
+                              ? `R$ ${produto.preco_custo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                              : "—"}
+                          </p>
+                        </div>
+                        <div className="min-w-0 px-2.5">
+                          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                            Estoque
+                          </p>
+                          <p
+                            className={`text-[13px] font-semibold tabular-nums ${
+                              (produto.estoque || 0) < 10 ? "text-destructive" : ""
+                            }`}
+                          >
+                            {produto.estoque || 0}
+                          </p>
+                        </div>
+                      </div>
+
+                      {((!produto.ncm ||
+                        (produto.categoria === "gas" && !produto.codigo_anp)) ||
+                        produto.monofasico) && (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {(!produto.ncm ||
+                            (produto.categoria === "gas" && !produto.codigo_anp)) && (
+                            <Badge variant="warning" className="gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              Fiscal incompleto
+                            </Badge>
+                          )}
+                          {produto.monofasico && (
+                            <Badge variant="info" className="gap-1">
+                              <Receipt className="h-3 w-3" />
+                              Monofásico
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="mt-3 flex gap-2 border-t pt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 flex-1 gap-2"
+                          onClick={() => handleEditar(produto)}
+                        >
+                          <Edit className="h-4 w-4" />
+                          Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-10 border-destructive/30"
+                          aria-label={`Excluir ${produto.nome}`}
+                          onClick={() => handleExcluir(produto)}
+                          disabled={excluirProduto.isPending}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="hidden md:block">
+                  <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-16 hidden sm:table-cell">Imagem</TableHead>
@@ -1254,6 +1366,7 @@ export default function Produtos() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label={`Editar ${produto.nome}`}
                             onClick={() => handleEditar(produto)}
                           >
                             <Edit className="h-4 w-4" />
@@ -1261,6 +1374,7 @@ export default function Produtos() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label={`Excluir ${produto.nome}`}
                             onClick={() => handleExcluir(produto)}
                             disabled={excluirProduto.isPending}
                           >
@@ -1271,7 +1385,9 @@ export default function Produtos() {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
