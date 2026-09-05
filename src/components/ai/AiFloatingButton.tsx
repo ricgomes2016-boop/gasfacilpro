@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Bot, X, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,14 +25,31 @@ export function AiFloatingButton({
   const navigate = useNavigate();
   const { unidadeAtual } = useUnidade();
 
+  const handleClose = useCallback(() => {
+    setOpen(false);
+    onExternalClose?.();
+  }, [onExternalClose]);
+
   useEffect(() => {
     if (externalOpen) setOpen(true);
   }, [externalOpen]);
 
-  const handleClose = () => {
-    setOpen(false);
-    onExternalClose?.();
-  };
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [handleClose, open]);
 
   return (
     <>
@@ -50,54 +68,62 @@ export function AiFloatingButton({
       )}
 
       {/* Chat panel */}
-      {open && (
-        <Card
-          className={cn(
-            "fixed z-50 shadow-2xl border flex flex-col overflow-hidden bg-background",
-            // Mobile: true full-screen assistant; the composer remains above the virtual keyboard.
-            "inset-0 h-[100dvh] w-full rounded-none border-0",
-            // Desktop: fixed panel at bottom-right, above floating chat bubble
-            "md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[min(680px,calc(100vw-3rem))] md:h-[min(720px,calc(100vh-4rem))] md:max-h-none md:rounded-2xl md:border",
-          )}
-        >
-          <div className="flex items-center justify-between px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] border-b bg-primary/5 md:pt-3 md:rounded-t-lg">
-            <div className="flex items-center gap-2">
-              <Bot className="h-5 w-5 text-primary" />
-              <div className="min-w-0">
-                <span className="block font-semibold text-sm">
-                  Assistente IA
-                </span>
-                <span className="block max-w-[210px] truncate text-[11px] text-muted-foreground">
-                  {unidadeAtual?.nome || "Selecione uma unidade"}
-                </span>
+      {open &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 md:p-6"
+            role="presentation"
+          >
+            <Card
+              role="dialog"
+              aria-modal="true"
+              aria-label="Assistente IA"
+              className={cn(
+                "flex h-[100dvh] w-full flex-col overflow-hidden rounded-none border-0 bg-background shadow-2xl",
+                "md:h-[min(720px,calc(100dvh-3rem))] md:w-[min(680px,calc(100vw-3rem))] md:rounded-2xl md:border",
+              )}
+            >
+              <div className="flex items-center justify-between px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] border-b bg-primary/5 md:pt-3 md:rounded-t-lg">
+                <div className="flex items-center gap-2">
+                  <Bot className="h-5 w-5 text-primary" />
+                  <div className="min-w-0">
+                    <span className="block font-semibold text-sm">
+                      Assistente IA
+                    </span>
+                    <span className="block max-w-[210px] truncate text-[11px] text-muted-foreground">
+                      {unidadeAtual?.nome || "Selecione uma unidade"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => {
+                      handleClose();
+                      navigate("/assistente-ia");
+                    }}
+                    title="Abrir página completa"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={handleClose}
+                    aria-label="Fechar assistente"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => {
-                  handleClose();
-                  navigate("/assistente-ia");
-                }}
-                title="Abrir página completa"
-              >
-                <Maximize2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={handleClose}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          <AiAssistantChat enableVoice />
-        </Card>
-      )}
+              <AiAssistantChat enableVoice />
+            </Card>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
