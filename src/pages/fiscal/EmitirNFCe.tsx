@@ -126,6 +126,7 @@ export default function EmitirNFCe() {
         destinatario_cpf_cnpj: documento || null,
         valor_total: total,
         forma_pagamento: formaPagamentoNfce,
+        unidade_id: unidadeAtual.id,
       });
       for (const item of itensNfce) {
         await adicionarItem({
@@ -192,6 +193,10 @@ export default function EmitirNFCe() {
 
   const emitirLote = async () => {
     if (lotePreview.length === 0) return;
+    if (!unidadeAtual?.id) {
+      toast({ title: "Selecione a unidade", description: "Escolha a unidade antes de emitir em lote.", variant: "destructive" });
+      return;
+    }
     setLoteEmitindo(true);
     setLoteProgresso(0);
     setLoteConcluido(false);
@@ -209,6 +214,7 @@ export default function EmitirNFCe() {
           destinatario_nome: "Consumidor Final",
           valor_total: updated[i].valorTotal,
           forma_pagamento: loteConfig.formaPagamento,
+          unidade_id: unidadeAtual.id,
         });
 
         await adicionarItem({
