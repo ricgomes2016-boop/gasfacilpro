@@ -762,6 +762,14 @@ serve(async (req) => {
             ? e.message
             : "Erro ao calcular o resumo financeiro";
       }
+    } else if (wantsTodaySales && !hasConfirmedPendingActions) {
+      try {
+        queryData = [await getTodaySalesSummary(supabase, unidadeId)];
+        queryDescription = "Resumo de vendas de hoje";
+      } catch (e) {
+        queryError =
+          e instanceof Error ? e.message : "Erro ao consultar vendas de hoje";
+      }
     } else if (safeQuery && !hasConfirmedPendingActions) {
       try {
         const { data, error } = await supabase.rpc("execute_readonly_query", {
