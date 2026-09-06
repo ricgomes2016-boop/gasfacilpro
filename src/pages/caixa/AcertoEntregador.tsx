@@ -1476,7 +1476,91 @@ export default function AcertoEntregador() {
                     </p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <>
+                    <div className="space-y-2 px-2 pb-2 sm:hidden">
+                      {entregas.map((e) => {
+                        const itensStr =
+                          (e.pedido_itens || [])
+                            .map(
+                              (i: any) =>
+                                `${i.quantidade}x ${i.produtos?.nome || "?"}`,
+                            )
+                            .join(", ") || "—";
+                        const isAcertado = e.status === "finalizado";
+                        const numeroStr = e.numero_sequencial
+                          ? `#${e.numero_sequencial}`
+                          : `#${String(e.id).slice(-6)}`;
+                        const dataStr = e.data_entrega
+                          ? format(
+                              parseISO(`${e.data_entrega}T12:00:00`),
+                              "dd/MM/yyyy",
+                            )
+                          : format(parseISO(e.created_at), "dd/MM/yyyy");
+
+                        return (
+                          <div
+                            key={e.id}
+                            className={cn(
+                              "rounded-xl bg-card p-3 shadow-[0_1px_3px_hsl(var(--foreground)/0.09)]",
+                              isAcertado && "opacity-75",
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                  <span className="font-mono">{numeroStr}</span>
+                                  <span>{dataStr}</span>
+                                </div>
+                                <p className="mt-1 truncate text-sm font-semibold">
+                                  {e.clientes?.nome || "Cliente não informado"}
+                                </p>
+                              </div>
+                              {isAcertado ? (
+                                <Badge className="shrink-0 gap-1 border-success/30 bg-success/15 text-[10px] text-success">
+                                  <CheckCircle className="h-3 w-3" /> Acertado
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="shrink-0 gap-1 text-[10px]">
+                                  <Clock className="h-3 w-3" /> Pendente
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                              {itensStr}
+                            </p>
+                            <div className="mt-3 flex items-end justify-between gap-2 border-t border-border/40 pt-2.5">
+                              <Badge
+                                variant="outline"
+                                className="max-w-[60%] truncate text-[11px]"
+                                title={formaLabel(e.forma_pagamento)}
+                              >
+                                {formaLabel(e.forma_pagamento)}
+                              </Badge>
+                              <div className="flex items-center gap-1.5">
+                                <span className="whitespace-nowrap text-base font-bold tabular-nums">
+                                  {formatCurrency(Number(e.valor_total || 0))}
+                                </span>
+                                {podeEditar &&
+                                  filtroStatus !== "acertados" &&
+                                  !isAcertado && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      aria-label={`Editar entrega ${numeroStr}`}
+                                      className="h-9 w-9"
+                                      onClick={() => abrirEdicao(e)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="hidden overflow-x-auto sm:block">
                     <Table className="min-w-[560px]">
                       <TableHeader>
                         <TableRow>
@@ -1538,8 +1622,8 @@ export default function AcertoEntregador() {
                         })}
                       </TableBody>
                     </Table>
-
-                  </div>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
