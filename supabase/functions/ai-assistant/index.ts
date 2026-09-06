@@ -720,6 +720,11 @@ serve(async (req) => {
     }> = [];
     const wantsFinancialSummary = isFinancialSummaryIntent(lastUserMessage);
     const safeQuery = buildSafeQuery(lastUserMessage, unidadeId);
+    console.log("ai-assistant routing", {
+      msg: lastUserMessage,
+      wantsFinancialSummary,
+      safeQuery: safeQuery?.description ?? null,
+    });
     const hasConfirmedPendingActions =
       Array.isArray(pending_actions) &&
       pending_actions.length > 0 &&
