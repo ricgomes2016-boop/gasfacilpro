@@ -721,14 +721,16 @@ export default function ContasReceber() {
     <>
       {/* Bulk action bar */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20 mb-3">
-          <CheckSquare className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">
-            {selectedIds.size} selecionado(s) — R$ {selectedTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-          </span>
-          <div className="ml-auto flex gap-2">
+        <div className="mb-3 flex flex-col gap-2 rounded-xl border border-primary/20 bg-primary/10 p-3 sm:flex-row sm:items-center sm:gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <CheckSquare className="h-4 w-4 shrink-0 text-primary" />
+            <span className="truncate text-sm font-medium">
+              {selectedIds.size} selecionado(s) — R$ {selectedTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div className="flex w-full gap-2 sm:ml-auto sm:w-auto">
             {canBulkReceber && (
-              <Button size="sm" variant="default" className="gap-1.5" onClick={() => {
+              <Button size="sm" variant="default" className="flex-1 gap-1.5 sm:flex-none" onClick={() => {
                 if (selectedContas.length === 1) {
                   openReceberDialog(selectedContas[0]);
                 } else {
@@ -738,7 +740,7 @@ export default function ContasReceber() {
                 <DollarSign className="h-4 w-4" />Liquidar ({selectedContas.length})
               </Button>
             )}
-            <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
+            <Button size="sm" variant="outline" className="flex-1 sm:flex-none" onClick={() => setSelectedIds(new Set())}>
               <X className="h-3.5 w-3.5 mr-1" />Limpar seleção
             </Button>
           </div>
@@ -756,14 +758,14 @@ export default function ContasReceber() {
       ) : (
         <>
           {/* Mobile cards */}
-          <div className="space-y-3 md:hidden">
+          <div className="space-y-2 md:hidden">
             {filtered.map(conta => {
               const vencida = conta.status === "pendente" && conta.vencimento < hoje;
               const displayStatus = vencida ? "Vencida" : isStatusRecebida(conta.status) ? "Recebida" : "Pendente";
               return (
                 <div
                   key={conta.id}
-                  className="mobile-record-card transition hover:border-primary/40 hover:shadow-md data-[state=selected]:border-primary/50 data-[state=selected]:bg-primary/5"
+                  className="mobile-record-card !rounded-xl !border-0 shadow-[0_1px_3px_hsl(var(--foreground)/0.09)] transition data-[state=selected]:bg-primary/5 data-[state=selected]:ring-1 data-[state=selected]:ring-primary/40"
                   data-state={selectedIds.has(conta.id) ? "selected" : undefined}
                   onClick={() => setDetalheConta(conta)}
                 >
@@ -787,7 +789,7 @@ export default function ContasReceber() {
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={(e) => e.stopPropagation()}><MoreHorizontal className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" aria-label={`Mais ações de ${conta.cliente}`} className="h-8 w-8 shrink-0" onClick={(e) => e.stopPropagation()}><MoreHorizontal className="h-4 w-4" /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50" onClick={(e) => e.stopPropagation()}>
                         {!isStatusRecebida(conta.status) && <DropdownMenuItem onClick={() => openReceberDialog(conta)}><DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber</DropdownMenuItem>}

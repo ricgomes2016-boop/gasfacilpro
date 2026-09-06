@@ -614,12 +614,12 @@ export default function ContasPagar() {
                     </div>
 
                     {/* Mobile cards */}
-                    <div className="space-y-2 p-3 sm:hidden">
+                    <div className="space-y-2 p-2 sm:hidden">
                       {visibleContas.map(conta => {
                         const st = statusDe(conta);
                         const meta = STATUS_META[st];
                         return (
-                          <div key={conta.id} className="rounded-xl border bg-card p-3">
+                          <div key={conta.id} className="rounded-xl bg-card p-3 shadow-[0_1px_3px_hsl(var(--foreground)/0.09)]">
                             <div className="flex items-start gap-2">
                               <Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={isContaPaga(conta)} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} className="mt-1 shrink-0" />
                               <div className="min-w-0 flex-1">
@@ -627,7 +627,7 @@ export default function ContasPagar() {
                                 <p className="line-clamp-2 text-xs text-muted-foreground">{conta.descricao}</p>
                               </div>
                               <DropdownMenu>
-                                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label={`Mais ações de ${conta.descricao}`} className="h-8 w-8 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">{rowActions(conta)}</DropdownMenuContent>
                               </DropdownMenu>
                             </div>
