@@ -762,9 +762,10 @@ serve(async (req) => {
     } else if (safeQuery && !hasConfirmedPendingActions) {
       try {
         const { data, error } = await supabase.rpc("execute_readonly_query", {
-          query_text: safeQuery.sql,
+          query_text: safeQuery.sql.trim(),
         });
         if (error) {
+          console.error("safeQuery rpc error", error);
           queryError = error.message;
         } else {
           queryData = data;
@@ -876,7 +877,7 @@ ${TABLES_SCHEMA}`,
               try {
                 const { data, error } = await supabase.rpc(
                   "execute_readonly_query",
-                  { query_text: sqlQuery },
+                  { query_text: sqlQuery.trim() },
                 );
                 if (error) {
                   queryError = error.message;
