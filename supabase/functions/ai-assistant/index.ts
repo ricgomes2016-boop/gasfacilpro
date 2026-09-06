@@ -719,7 +719,10 @@ serve(async (req) => {
       preview: string;
     }> = [];
     const wantsFinancialSummary = isFinancialSummaryIntent(lastUserMessage);
-    const safeQuery = buildSafeQuery(lastUserMessage, unidadeId);
+    const wantsTodaySales = isTodaySalesIntent(lastUserMessage);
+    const safeQuery = wantsTodaySales
+      ? null
+      : buildSafeQuery(lastUserMessage, unidadeId);
     const hasConfirmedPendingActions =
       Array.isArray(pending_actions) &&
       pending_actions.length > 0 &&
