@@ -720,11 +720,6 @@ serve(async (req) => {
     }> = [];
     const wantsFinancialSummary = isFinancialSummaryIntent(lastUserMessage);
     const safeQuery = buildSafeQuery(lastUserMessage, unidadeId);
-    console.log("ai-assistant routing", {
-      msg: lastUserMessage,
-      wantsFinancialSummary,
-      safeQuery: safeQuery?.description ?? null,
-    });
     const hasConfirmedPendingActions =
       Array.isArray(pending_actions) &&
       pending_actions.length > 0 &&
@@ -882,7 +877,7 @@ ${TABLES_SCHEMA}`,
               try {
                 const { data, error } = await supabase.rpc(
                   "execute_readonly_query",
-                  { query_text: sqlQuery },
+                  { query_text: sqlQuery.trim() },
                 );
                 if (error) {
                   queryError = error.message;
