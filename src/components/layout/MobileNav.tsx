@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   LogOut,
@@ -17,17 +17,18 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { menuItems } from "./menuItems";
+import { MENU_AREAS, menuItems } from "./menuItems";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import { UnidadeSelector } from "./UnidadeSelector";
+import { usePlanoAccess } from "@/hooks/usePlanoAccess";
 
 const menuIconColors: Record<string, string> = {
-  "Dashboard": "text-sidebar-foreground",
+  Dashboard: "text-sidebar-foreground",
   "Assistente IA": "text-sidebar-foreground",
-  "Atendimento": "text-sidebar-foreground",
-  "Vendas": "text-sidebar-foreground",
-  "Caixa": "text-sidebar-foreground",
+  Atendimento: "text-sidebar-foreground",
+  Vendas: "text-sidebar-foreground",
+  Caixa: "text-sidebar-foreground",
   "Gestão Operacional": "text-sidebar-foreground",
   "Gestão de Clientes": "text-sidebar-foreground",
   "Gestão de Estoque": "text-sidebar-foreground",
@@ -35,13 +36,16 @@ const menuIconColors: Record<string, string> = {
   "Gestão de Frota": "text-sidebar-foreground",
   "Gestão de RH": "text-sidebar-foreground",
   "Gestão Fiscal": "text-sidebar-foreground",
-  "Marketing": "text-sidebar-foreground",
-  "Configurações": "text-sidebar-foreground/80",
+  Marketing: "text-sidebar-foreground",
+  Configurações: "text-sidebar-foreground/80",
 };
 
-const subMenuIconColors: Record<string, string> = new Proxy({}, {
-  get: () => "text-sidebar-foreground/85",
-}) as Record<string, string>;
+const subMenuIconColors: Record<string, string> = new Proxy(
+  {},
+  {
+    get: () => "text-sidebar-foreground/85",
+  },
+) as Record<string, string>;
 
 const favoriteItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -50,29 +54,75 @@ const favoriteItems = [
   { icon: ClipboardList, label: "Pedidos", path: "/vendas/pedidos" },
   { icon: UserPlus, label: "Clientes", path: "/clientes/cadastro" },
   { icon: PackageOpen, label: "Estoque", path: "/estoque" },
-  { icon: Wallet, label: "Financeiro", path: "/financeiro/fluxo" },
+  { icon: Wallet, label: "Financeiro", path: "/financeiro/fluxo-caixa" },
 ];
 
 export function MobileNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, profile } = useAuth();
+  const { canAccessPath } = usePlanoAccess();
   const { themeClass, brandTheme } = useDashboardTheme();
   const [open, setOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>([]);
 
+  const visibleMenuItems = useMemo(() => {
+    const filtered = menuItems
+      .map((item) => {
+        if (item.submenu) {
+          const submenu = item.submenu.filter(
+            (subItem) => !subItem.path || canAccessPath(subItem.path),
+          );
+          return submenu.length > 0 ? { ...item, submenu } : null;
+        }
+
+        return canAccessPath(item.path) ? item : null;
+      })
+      .filter(Boolean) as typeof menuItems;
+
+    const areaOrder = MENU_AREAS.map((area) => area.id);
+    return filtered
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => {
+        const aIndex = areaOrder.indexOf(
+          (a.item.area ?? "configurar") as never,
+        );
+        const bIndex = areaOrder.indexOf(
+          (b.item.area ?? "configurar") as never,
+        );
+        return aIndex === bIndex ? a.index - b.index : aIndex - bIndex;
+      })
+      .map(({ item }) => item);
+  }, [canAccessPath]);
+
+  const areaHeadings = useMemo(() => {
+    const headings: Record<string, string> = {};
+    let previousArea: string | undefined;
+
+    visibleMenuItems.forEach((item) => {
+      const area = item.area ?? "configurar";
+      if (area !== previousArea) {
+        headings[item.label] =
+          MENU_AREAS.find((entry) => entry.id === area)?.label ?? "";
+        previousArea = area;
+      }
+    });
+
+    return headings;
+  }, [visibleMenuItems]);
+
   // Auto-open active submenu
   useEffect(() => {
     if (open) {
-      menuItems.forEach((item) => {
+      visibleMenuItems.forEach((item) => {
         if (item.submenu?.some((sub) => location.pathname === sub.path)) {
           setOpenMenus((prev) =>
-            prev.includes(item.label) ? prev : [...prev, item.label]
+            prev.includes(item.label) ? prev : [...prev, item.label],
           );
         }
       });
     }
-  }, [open, location.pathname]);
+  }, [open, location.pathname, visibleMenuItems]);
 
   // Allow other components (e.g., MobileBottomBar) to open the drawer
   useEffect(() => {
@@ -83,9 +133,7 @@ export function MobileNav() {
 
   const toggleMenu = (label: string) => {
     setOpenMenus((prev) =>
-      prev.includes(label)
-        ? prev.filter((l) => l !== label)
-        : [...prev, label]
+      prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label],
     );
   };
 
@@ -102,11 +150,21 @@ export function MobileNav() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="xl:hidden h-9 w-9 rounded-xl">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="xl:hidden h-9 w-9 rounded-xl"
+        >
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className={cn(themeClass, "app-sidebar-premium app-mobile-sidebar-modern w-[min(88vw,330px)] overflow-hidden rounded-r-2xl border-r border-sidebar-border/15 p-0 text-sidebar-foreground shadow-2xl")}>
+      <SheetContent
+        side="left"
+        className={cn(
+          themeClass,
+          "app-sidebar-premium app-mobile-sidebar-modern w-[min(88vw,330px)] overflow-hidden rounded-r-2xl border-r border-sidebar-border/15 p-0 text-sidebar-foreground shadow-2xl",
+        )}
+      >
         <div className="relative z-10 h-full flex flex-col">
           {/* Header */}
           <div className="flex h-16 items-center border-b border-sidebar-border/15 px-4 py-2">
@@ -117,7 +175,11 @@ export function MobileNav() {
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 className="shrink-0"
               >
-                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-10 w-10 shrink-0 object-contain" />
+                <img
+                  src={brandTheme.logoMark}
+                  alt="Gás Fácil"
+                  className="h-10 w-10 shrink-0 object-contain"
+                />
               </motion.div>
               <div className="flex min-w-0 flex-col justify-center leading-none">
                 <span className="truncate text-[15px] font-extrabold tracking-[-0.03em] text-sidebar-foreground">
@@ -153,7 +215,7 @@ export function MobileNav() {
                         "flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors",
                         favActive
                           ? "bg-primary/10 text-primary ring-1 ring-primary/15"
-                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
                       )}
                     >
                       <FavIcon className="h-[15px] w-[15px] shrink-0" />
@@ -164,15 +226,15 @@ export function MobileNav() {
               </div>
             </div>
 
-            <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
-              Navegação
-            </p>
             <div className="space-y-1">
-              {menuItems.map((item, idx) => {
+              {visibleMenuItems.map((item, idx) => {
                 const Icon = item.icon;
                 const hasSubmenu = !!item.submenu;
                 const isSubmenuOpen = openMenus.includes(item.label);
-                const hasActiveChild = item.submenu?.some((sub) => isActive(sub.path));
+                const hasActiveChild = item.submenu?.some((sub) =>
+                  isActive(sub.path),
+                );
+                const areaHeading = areaHeadings[item.label];
 
                 if (hasSubmenu) {
                   return (
@@ -182,21 +244,29 @@ export function MobileNav() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.02, duration: 0.2 }}
                     >
+                      {areaHeading && (
+                        <p className="mb-1 mt-3 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
+                          {areaHeading}
+                        </p>
+                      )}
                       <button
                         onClick={() => toggleMenu(item.label)}
                         className={cn(
                           "group flex w-full items-center justify-between rounded-xl px-3 py-2 text-[13px] font-medium transition-colors duration-150",
                           hasActiveChild
                             ? "bg-primary/10 text-primary ring-1 ring-primary/15"
-                            : "text-sidebar-foreground/75 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                            : "text-sidebar-foreground/75 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
                         )}
                       >
                         <div className="flex items-center gap-3">
-                          <Icon className={cn(
-                            "h-[18px] w-[18px] transition-transform duration-200 stroke-[2.25]",
-                            !hasActiveChild && "group-hover:scale-110",
-                            !hasActiveChild && (menuIconColors[item.label] || "")
-                          )} />
+                          <Icon
+                            className={cn(
+                              "h-[18px] w-[18px] transition-transform duration-200 stroke-[2.25]",
+                              !hasActiveChild && "group-hover:scale-110",
+                              !hasActiveChild &&
+                                (menuIconColors[item.label] || ""),
+                            )}
+                          />
                           <span className="min-w-0 truncate">{item.label}</span>
                         </div>
                         <motion.div
@@ -225,7 +295,10 @@ export function MobileNav() {
                                     key={sub.path}
                                     initial={{ opacity: 0, x: -6 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: subIdx * 0.02, duration: 0.15 }}
+                                    transition={{
+                                      delay: subIdx * 0.02,
+                                      duration: 0.15,
+                                    }}
                                   >
                                     {sub.externalUrl ? (
                                       <a
@@ -235,12 +308,16 @@ export function MobileNav() {
                                         onClick={() => setOpen(false)}
                                         className="group flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[12.5px] font-medium text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
                                       >
-                                        <SubIcon className={cn(
-                                          "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
-                                          "group-hover:scale-110",
-                                          subMenuIconColors[sub.label] || ""
-                                        )} />
-                                        <span className="min-w-0 truncate">{sub.label}</span>
+                                        <SubIcon
+                                          className={cn(
+                                            "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
+                                            "group-hover:scale-110",
+                                            subMenuIconColors[sub.label] || "",
+                                          )}
+                                        />
+                                        <span className="min-w-0 truncate">
+                                          {sub.label}
+                                        </span>
                                       </a>
                                     ) : (
                                       <Link
@@ -250,15 +327,22 @@ export function MobileNav() {
                                           "group flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150",
                                           subActive
                                             ? "bg-primary/10 text-primary ring-1 ring-primary/15"
-                                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
                                         )}
                                       >
-                                        <SubIcon className={cn(
-                                          "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
-                                          !subActive && "group-hover:scale-110",
-                                          !subActive && (subMenuIconColors[sub.label] || "")
-                                        )} />
-                                        <span className="min-w-0 truncate">{sub.label}</span>
+                                        <SubIcon
+                                          className={cn(
+                                            "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
+                                            !subActive &&
+                                              "group-hover:scale-110",
+                                            !subActive &&
+                                              (subMenuIconColors[sub.label] ||
+                                                ""),
+                                          )}
+                                        />
+                                        <span className="min-w-0 truncate">
+                                          {sub.label}
+                                        </span>
                                       </Link>
                                     )}
                                   </motion.div>
@@ -279,6 +363,11 @@ export function MobileNav() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.02, duration: 0.2 }}
                   >
+                    {areaHeading && (
+                      <p className="mb-1 mt-3 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/45">
+                        {areaHeading}
+                      </p>
+                    )}
                     <Link
                       to={item.path!}
                       onClick={() => setOpen(false)}
@@ -286,14 +375,17 @@ export function MobileNav() {
                         "group flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors duration-150",
                         isActive(item.path!)
                           ? "bg-primary/10 text-primary ring-1 ring-primary/15"
-                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground",
                       )}
                     >
-                      <Icon className={cn(
-                        "h-[18px] w-[18px] transition-transform duration-200 stroke-[2.25]",
-                        !isActive(item.path!) && "group-hover:scale-110",
-                        !isActive(item.path!) && (menuIconColors[item.label] || "")
-                      )} />
+                      <Icon
+                        className={cn(
+                          "h-[18px] w-[18px] transition-transform duration-200 stroke-[2.25]",
+                          !isActive(item.path!) && "group-hover:scale-110",
+                          !isActive(item.path!) &&
+                            (menuIconColors[item.label] || ""),
+                        )}
+                      />
                       <span className="min-w-0 truncate">{item.label}</span>
                     </Link>
                   </motion.div>
@@ -306,11 +398,17 @@ export function MobileNav() {
           <div className="flex-shrink-0 border-t border-sidebar-border/15 bg-sidebar-accent/5 p-3">
             <div className="flex items-center gap-3 rounded-3xl border border-sidebar-border/15 bg-sidebar-accent/10 p-3 shadow-none backdrop-blur-sm">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent/90 flex-shrink-0 shadow-sm shadow-foreground/10">
-                <span className="text-xs font-bold text-sidebar-accent-foreground">{userInitial}</span>
+                <span className="text-xs font-bold text-sidebar-accent-foreground">
+                  {userInitial}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-extrabold text-sidebar-foreground truncate">{userName}</p>
-                <p className="text-[10px] font-bold text-sidebar-foreground uppercase tracking-wider">Administrador</p>
+                <p className="text-[13px] font-extrabold text-sidebar-foreground truncate">
+                  {userName}
+                </p>
+                <p className="text-[10px] font-bold text-sidebar-foreground uppercase tracking-wider">
+                  Administrador
+                </p>
               </div>
               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                 <Button
