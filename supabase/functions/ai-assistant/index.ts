@@ -947,6 +947,14 @@ ${TABLES_SCHEMA}`,
       return streamTextResponse(content, corsHeaders);
     }
 
+    // Built-in operational queries are already validated and executed above.
+    // Answer them deterministically so the language model cannot ask for a
+    // second, unnecessary confirmation after the data has been loaded.
+    if (!queryError && !hasConfirmedPendingActions) {
+      const directAnswer = formatDirectQueryAnswer(queryDescription, queryData);
+      if (directAnswer) return streamTextResponse(directAnswer, corsHeaders);
+    }
+
     // Step 2: Generate final natural language response
     const now = new Date();
     const brHour = parseInt(
@@ -1027,6 +1035,8 @@ Ações disponíveis:
 ${actionsList}
 
 REGRAS ANTI-ALUCINAÇÃO (obrigatórias):
+- Consultas de leitura nunca exigem confirmação. Se o resultado da consulta estiver disponível, responda imediatamente com esses dados.
+- Peça confirmação somente antes de ações que cadastram, alteram, liquidam ou excluem informações.
 - NUNCA invente números, valores, quantidades, horários, nomes de clientes, produtos ou datas. Só cite o que estiver em "Resultado da consulta" abaixo.
 - Se não houver dados na consulta (ou aparecer "Nenhuma consulta ou ação foi necessária"), diga explicitamente que não consultou / não há dados e ofereça consultar. Não estime, não arredonde, não presuma.
 - Se a consulta retornou vazio ou zero, informe "0" ou "nenhum registro" — não substitua por valores plausíveis.
@@ -1119,6 +1129,64 @@ function streamTextResponse(
   return new Response(stream, {
     headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
   });
+}
+
+function formatMoney(value: unknown): string {
+  const number = Number(value || 0);
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(Number.isFinite(number) ? number : 0);
+}
+
+function formatDirectQueryAnswer(
+  description: string,
+  data: any[] | null,
+): string | null {
+  if (!description || !Array.isArray(data)) return null;
+
+  if (description === "Resumo de vendas de hoje") {
+    const row = data[0] || {};
+    const pedidos = Number(row.pedidos || 0);
+    return `Até agora, o faturamento de hoje é **${formatMoney(row.faturamento)}**, em **${pedidos} ${pedidos === 1 ? "pedido" : "pedidos"}**. Ticket médio: **${formatMoney(row.ticket_medio)}**.`;
+  }
+
+  if (description === "Resumo financeiro real do mês atual") {
+    const row = data[0] || {};
+    let answer = `No mês atual, a receita é **${formatMoney(row.receita)}**, com **${Number(row.pedidos || 0)} pedidos**. O custo das mercadorias vendidas é **${formatMoney(row.custo_mercadorias)}**, as despesas somam **${formatMoney(row.despesas)}** e o lucro líquido operacional é **${formatMoney(row.lucro_liquido_operacional)}**.`;
+    if (Number(row.custos_de_produtos_ausentes || 0) > 0) {
+      answer += ` Atenção: há **${Number(row.custos_de_produtos_ausentes)} item(ns)** sem preço de custo cadastrado, então o lucro pode estar superestimado.`;
+    }
+    return answer;
+  }
+
+  if (description === "Produtos com estoque baixo") {
+    if (data.length === 0)
+      return "Não há produtos com estoque baixo nesta unidade.";
+    const rows = data
+      .slice(0, 20)
+      .map(
+        (row) =>
+          `- **${row.nome || "Produto"}**: ${Number(row.estoque || 0)} em estoque; mínimo ${Number(row.estoque_minimo || 0)}`,
+      )
+      .join("\n");
+    return `Encontrei **${data.length} produto(s)** com estoque baixo:\n\n${rows}`;
+  }
+
+  if (description === "Contas vencidas a pagar e a receber") {
+    if (data.length === 0)
+      return "Não há contas vencidas a pagar ou a receber nesta unidade.";
+    const rows = data
+      .slice(0, 30)
+      .map(
+        (row) =>
+          `- **${row.tipo === "pagar" ? "A pagar" : "A receber"}** — ${row.pessoa || row.descricao || "Sem identificação"}: ${formatMoney(row.valor)}, vencimento ${row.vencimento || "não informado"}`,
+      )
+      .join("\n");
+    return `Encontrei **${data.length} conta(s) vencida(s)**:\n\n${rows}`;
+  }
+
+  return null;
 }
 
 function isActionConfirmed(message: string): boolean {
