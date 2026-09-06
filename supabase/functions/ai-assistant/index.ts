@@ -719,7 +719,10 @@ serve(async (req) => {
       preview: string;
     }> = [];
     const wantsFinancialSummary = isFinancialSummaryIntent(lastUserMessage);
-    const safeQuery = buildSafeQuery(lastUserMessage, unidadeId);
+    const wantsTodaySales = isTodaySalesIntent(lastUserMessage);
+    const safeQuery = wantsTodaySales
+      ? null
+      : buildSafeQuery(lastUserMessage, unidadeId);
     const hasConfirmedPendingActions =
       Array.isArray(pending_actions) &&
       pending_actions.length > 0 &&
@@ -758,6 +761,14 @@ serve(async (req) => {
           e instanceof Error
             ? e.message
             : "Erro ao calcular o resumo financeiro";
+      }
+    } else if (wantsTodaySales && !hasConfirmedPendingActions) {
+      try {
+        queryData = [await getTodaySalesSummary(supabase, unidadeId)];
+        queryDescription = "Resumo de vendas de hoje";
+      } catch (e) {
+        queryError =
+          e instanceof Error ? e.message : "Erro ao consultar vendas de hoje";
       }
     } else if (safeQuery && !hasConfirmedPendingActions) {
       try {
@@ -1753,6 +1764,53 @@ async function preparePurchaseAction(
   };
 }
 
+function isTodaySalesIntent(message: string): boolean {
+  const normalized = message
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+  return (
+    /\b(vendas?|faturamento|pedidos?)\b/.test(normalized) &&
+    /\b(hoje|dia)\b/.test(normalized)
+  );
+}
+
+// Consulta tipada (sem RPC) alinhada ao Dashboard: pedidos da unidade com
+// data_entrega de hoje (ou created_at de hoje quando data_entrega é nula)
+// e status de venda concluída (entregue, finalizado, pago_cartao).
+async function getTodaySalesSummary(supabase: any, unidadeId: string) {
+  const now = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }),
+  );
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const nextDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+  const startIso = `${today}T00:00:00-03:00`;
+  const nextIso = `${nextDate}T00:00:00-03:00`;
+
+  const { data, error } = await supabase
+    .from("pedidos")
+    .select("valor_total")
+    .eq("unidade_id", unidadeId)
+    .in("status", ["entregue", "finalizado", "pago_cartao"])
+    .or(
+      `and(data_entrega.gte.${today},data_entrega.lt.${nextDate}),and(data_entrega.is.null,created_at.gte.${startIso},created_at.lt.${nextIso})`,
+    );
+  if (error) throw new Error(error.message);
+
+  const rows = data || [];
+  const pedidos = rows.length;
+  const faturamento = rows.reduce(
+    (sum: number, row: any) => sum + Number(row.valor_total || 0),
+    0,
+  );
+  return {
+    pedidos,
+    faturamento,
+    ticket_medio: pedidos > 0 ? faturamento / pedidos : 0,
+  };
+}
+
 function buildSafeQuery(
   message: string,
   unidadeId: string,
@@ -1762,23 +1820,9 @@ function buildSafeQuery(
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-  if (
-    /\b(vendas?|faturamento|pedidos?)\b/.test(normalized) &&
-    /\b(hoje|dia)\b/.test(normalized)
-  ) {
-    return {
-      description: "Resumo de vendas de hoje",
-      sql: `
-        select
-          count(*)::int as pedidos,
-          coalesce(sum(valor_total), 0)::numeric as faturamento,
-          coalesce(avg(valor_total), 0)::numeric as ticket_medio
-        from pedidos
-        where unidade_id = '${unidadeId}'
-          and created_at::date = (now() at time zone 'America/Sao_Paulo')::date
-          and coalesce(status, '') <> 'cancelado'
-      `,
-    };
+  if (isTodaySalesIntent(message)) {
+    // Tratado por getTodaySalesSummary via API tipada (sem RPC).
+    return null;
   }
 
   if (/\b(estoque|ruptura|baixo|critico|critico)\b/.test(normalized)) {
