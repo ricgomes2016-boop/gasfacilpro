@@ -69,6 +69,7 @@ interface Produto {
   id: string;
   nome: string;
   preco: number;
+  preco_custo: number | null;
 }
 
 interface ItemFiscal {
@@ -258,7 +259,7 @@ export default function Compras() {
   };
 
   const fetchProdutos = async () => {
-    let query = supabase.from("produtos").select("id, nome, preco").eq("ativo", true);
+    let query = supabase.from("produtos").select("id, nome, preco, preco_custo").eq("ativo", true);
     if (unidadeAtual?.id) {
       query = query.eq("unidade_id", unidadeAtual.id);
     }
@@ -277,9 +278,11 @@ export default function Compras() {
   };
 
   const fetchHistoricoPrecos = async () => {
+    const inicioMes = `${getBrasiliaDateString().slice(0, 7)}-01`;
     let q = (supabase as any)
       .from("compra_itens")
       .select("produto_id, preco_unitario, quantidade, compras!inner(fornecedor_id, unidade_id, data_compra, created_at)")
+      .gte("compras.data_compra", inicioMes)
       .order("created_at", { ascending: false, foreignTable: "compras" })
       .limit(2000);
     if (unidadeAtual?.id) q = q.eq("compras.unidade_id", unidadeAtual.id);
@@ -418,6 +421,7 @@ export default function Compras() {
         const { data: newProd, error: prodError } = await (supabase as any).from("produtos").insert({
           nome: item.produto_nome,
           preco: item.preco_unitario,
+          preco_custo: item.preco_unitario,
           ativo: true,
           unidade_id: unidadeAtual?.id || null,
           categoria: isGas ? "gas" : null,
@@ -509,6 +513,19 @@ export default function Compras() {
       }));
       const { error: itensError } = await (supabase as any).from("compra_itens").insert(itensData);
       if (itensError) { toast.error("Erro nos itens: " + itensError.message); }
+
+      // O cadastro guarda o custo de reposição mais recente. Relatórios continuam
+      // calculando a média ponderada pelos itens comprados dentro do período.
+      if (!itensError) {
+        await Promise.all(
+          resolvedItens.map((item) =>
+            supabase
+              .from("produtos")
+              .update({ preco_custo: item.preco_unitario })
+              .eq("id", item.produto_id),
+          ),
+        );
+      }
 
       // Atualizar estoque dos produtos comprados
       await atualizarEstoqueCompra(
@@ -1479,7 +1496,7 @@ export default function Compras() {
       const isAgua = /[aá]gua|gal[ãa]o/i.test(n);
       const categoria = isGas ? "gas" : isAgua ? "agua" : null;
       const payload: any = {
-        nome: xProd, preco: it.preco_unitario, ativo: true, unidade_id: unidadeAtual.id,
+        nome: xProd, preco: it.preco_unitario, preco_custo: it.preco_unitario, ativo: true, unidade_id: unidadeAtual.id,
         categoria,
         ncm: f.ncm || null, cest: f.cest || null,
         cfop_entrada_padrao: f.cfop || null, codigo_anp: f.codigo_anp || null,
@@ -1492,7 +1509,7 @@ export default function Compras() {
       let { data: novo, error } = await supabase.from("produtos").insert(payload).select("id").single();
       if (error) {
         // fallback minimal
-        const min = { nome: xProd, preco: it.preco_unitario, ativo: true, unidade_id: unidadeAtual.id, categoria };
+        const min = { nome: xProd, preco: it.preco_unitario, preco_custo: it.preco_unitario, ativo: true, unidade_id: unidadeAtual.id, categoria };
         const r2 = await supabase.from("produtos").insert(min).select("id").single();
         if (r2.error) { toast.error(`Falha ao cadastrar "${xProd}": ${r2.error.message}`); lista.splice(i, 1); continue; }
         novo = r2.data;
@@ -1795,10 +1812,10 @@ export default function Compras() {
                       <Label className="text-xs">Produto</Label>
                       <Select value={novoItem.produto_id} onValueChange={v => {
                         const prod = produtos.find(p => p.id === v);
-                        // Preferir último preço deste fornecedor; senão média histórica; senão preço cadastrado
+                        // Preferir último preço deste fornecedor; senão média do mês; senão custo cadastrado.
                         const ultimo = form.fornecedor_id ? ultimoPrecoForn[`${form.fornecedor_id}__${v}`] : undefined;
                         const media = precoMedioMap[v];
-                        const precoBase = ultimo?.preco ?? media?.avg ?? (prod ? Number(prod.preco) : 0);
+                        const precoBase = ultimo?.preco ?? media?.avg ?? (prod ? Number(prod.preco_custo || 0) : 0);
                         setNovoItem({
                           ...novoItem,
                           produto_id: v,
@@ -1813,8 +1830,10 @@ export default function Compras() {
                               <SelectItem key={p.id} value={p.id}>
                                 {p.nome}
                                 {media
-                                  ? ` · média R$ ${media.avg.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                  : ` · venda R$ ${Number(p.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                                  ? ` · média do mês R$ ${media.avg.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  : p.preco_custo
+                                    ? ` · custo R$ ${Number(p.preco_custo).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                                    : " · sem custo informado"}
                               </SelectItem>
                             );
                           })}
@@ -1834,7 +1853,7 @@ export default function Compras() {
                               </>
                             )}
                             {media && (
-                              <>Média geral: <b className="text-foreground">R$ {media.avg.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</b></>
+                              <>Média do mês: <b className="text-foreground">R$ {media.avg.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</b></>
                             )}
                           </p>
                         );
