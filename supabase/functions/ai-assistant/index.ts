@@ -761,14 +761,19 @@ serve(async (req) => {
       }
     } else if (safeQuery && !hasConfirmedPendingActions) {
       try {
-        const { data, error } = await supabase.rpc("execute_readonly_query", {
-          query_text: safeQuery.sql,
-        });
-        if (error) {
-          queryError = error.message;
-        } else {
-          queryData = data;
+        if (safeQuery.description === "Resumo de vendas de hoje") {
+          queryData = [await getTodaySalesSummary(supabase, unidadeId)];
           queryDescription = safeQuery.description;
+        } else {
+          const { data, error } = await supabase.rpc("execute_readonly_query", {
+            query_text: safeQuery.sql,
+          });
+          if (error) {
+            queryError = error.message;
+          } else {
+            queryData = data;
+            queryDescription = safeQuery.description;
+          }
         }
       } catch (e) {
         queryError =
@@ -1241,6 +1246,36 @@ function isFinancialSummaryIntent(message: string): boolean {
     metric &&
     (!productNamed || /\b(mes|mensal|atual|este|deste|hoje)\b/.test(text))
   );
+}
+
+async function getTodaySalesSummary(supabase: any, unidadeId: string) {
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const { data, error } = await supabase
+    .from("pedidos")
+    .select("valor_total,status")
+    .eq("unidade_id", unidadeId)
+    .eq("data_entrega", today)
+    .in("status", ["entregue", "finalizado", "pago_cartao"]);
+
+  if (error)
+    throw new Error(`Falha ao carregar vendas de hoje: ${error.message}`);
+  const pedidos = data || [];
+  const faturamento = pedidos.reduce(
+    (total: number, row: any) => total + Number(row.valor_total || 0),
+    0,
+  );
+  return {
+    pedidos: pedidos.length,
+    faturamento: Number(faturamento.toFixed(2)),
+    ticket_medio: Number(
+      (pedidos.length ? faturamento / pedidos.length : 0).toFixed(2),
+    ),
+  };
 }
 
 async function getFinancialSummary(supabase: any, unidadeId: string) {
