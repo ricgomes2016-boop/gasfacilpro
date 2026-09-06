@@ -4,9 +4,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { CreditCard, Plus, Trash2, AlertCircle, CheckCircle2, Camera, ImageIcon, Loader2, Info, Banknote, Smartphone, ReceiptText, Flame, FileText, WalletCards } from "lucide-react";
+import {
+  CreditCard,
+  Plus,
+  Trash2,
+  AlertCircle,
+  CheckCircle2,
+  Camera,
+  ImageIcon,
+  Loader2,
+  Info,
+  Banknote,
+  Smartphone,
+  ReceiptText,
+  Flame,
+  FileText,
+  WalletCards,
+} from "lucide-react";
 import { cn, getBrasiliaDateString } from "@/lib/utils";
 import { formatCurrency, parseCurrency } from "@/hooks/useInputMasks";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,7 +75,10 @@ export interface Pagamento {
 }
 
 /** Soma o total efetivo a cobrar considerando taxas extras (Gás do Povo etc.). */
-export function calcTotalEfetivoVenda(baseTotal: number, pagamentos: Pagamento[]): number {
+export function calcTotalEfetivoVenda(
+  baseTotal: number,
+  pagamentos: Pagamento[],
+): number {
   const extra = pagamentos.reduce((a, p) => a + (Number(p.taxa_extra) || 0), 0);
   return Number(baseTotal || 0) + extra;
 }
@@ -71,21 +94,160 @@ interface PaymentSectionProps {
 }
 
 const formasPagamentoBase = [
-  { value: "dinheiro", label: "Dinheiro", icon: "💵", Icon: Banknote, tone: "bg-success/15 text-success ring-success/25", cardTone: "border-success/25 bg-success/5 hover:border-success/45 hover:bg-success/10", valueTone: "text-success", quickTone: "text-success", quickSurface: "bg-success/10", quickRing: "ring-success/35" },
-  { value: "pix", label: "PIX", icon: "📱", Icon: Smartphone, tone: "bg-success/15 text-success ring-success/25", cardTone: "border-success/25 bg-success/5 hover:border-success/45 hover:bg-success/10", valueTone: "text-success", quickTone: "text-info", quickSurface: "bg-info/10", quickRing: "ring-info/35" },
-  { value: "pix_maquininha", label: "PIX Maquininha", icon: "📱", Icon: CreditCard, tone: "bg-accent/15 text-accent ring-accent/25", cardTone: "border-accent/25 bg-accent/5 hover:border-accent/45 hover:bg-accent/10", valueTone: "text-accent", quickTone: "text-primary", quickSurface: "bg-primary/10", quickRing: "ring-primary/35" },
-  { value: "cartao_debito", label: "Cartão Débito", icon: "💳", Icon: WalletCards, tone: "bg-primary/15 text-primary ring-primary/25", cardTone: "border-primary/25 bg-primary/5 hover:border-primary/45 hover:bg-primary/10", valueTone: "text-primary", quickTone: "text-secondary", quickSurface: "bg-secondary/10", quickRing: "ring-secondary/35" },
-  { value: "cartao_credito", label: "Cartão Crédito", icon: "💳", Icon: CreditCard, tone: "bg-warning/15 text-warning ring-warning/25", cardTone: "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10", valueTone: "text-warning", quickTone: "text-warning", quickSurface: "bg-warning/15", quickRing: "ring-warning/35" },
-  { value: "boleto", label: "Boleto", icon: "📄", Icon: FileText, tone: "bg-muted text-foreground ring-border", cardTone: "border-border bg-muted/25 hover:border-primary/35 hover:bg-muted/45", valueTone: "text-foreground", quickTone: "text-foreground", quickSurface: "bg-muted", quickRing: "ring-border" },
-  { value: "vale_gas", label: "Vale Gás", icon: "🔥", Icon: Flame, tone: "bg-destructive/15 text-destructive ring-destructive/25", cardTone: "border-destructive/25 bg-destructive/5 hover:border-destructive/45 hover:bg-destructive/10", valueTone: "text-destructive", quickTone: "text-destructive", quickSurface: "bg-destructive/10", quickRing: "ring-destructive/35" },
-  { value: "venda_antecipada", label: "Venda Antecipada", icon: "🎟️", Icon: WalletCards, tone: "bg-violet-500/15 text-violet-700 ring-violet-500/25", cardTone: "border-violet-500/25 bg-violet-500/5 hover:border-violet-500/45 hover:bg-violet-500/10", valueTone: "text-violet-700", quickTone: "text-violet-700", quickSurface: "bg-violet-500/10", quickRing: "ring-violet-500/35" },
-  { value: "cheque", label: "Cheque", icon: "🧾", Icon: ReceiptText, tone: "bg-secondary/10 text-secondary ring-secondary/25", cardTone: "border-secondary/25 bg-secondary/5 hover:border-primary/35 hover:bg-secondary/10", valueTone: "text-secondary", quickTone: "text-secondary", quickSurface: "bg-secondary/10", quickRing: "ring-secondary/35" },
-  { value: "fiado", label: "Fiado / A Prazo", icon: "📝", Icon: AlertCircle, tone: "bg-warning/15 text-warning ring-warning/25", cardTone: "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10", valueTone: "text-warning", quickTone: "text-warning", quickSurface: "bg-warning/15", quickRing: "ring-warning/35" },
+  {
+    value: "dinheiro",
+    label: "Dinheiro",
+    icon: "💵",
+    Icon: Banknote,
+    tone: "bg-success/15 text-success ring-success/25",
+    cardTone:
+      "border-success/25 bg-success/5 hover:border-success/45 hover:bg-success/10",
+    valueTone: "text-success",
+    quickTone: "text-success",
+    quickSurface: "bg-success/10",
+    quickRing: "ring-success/35",
+  },
+  {
+    value: "pix",
+    label: "PIX",
+    icon: "📱",
+    Icon: Smartphone,
+    tone: "bg-success/15 text-success ring-success/25",
+    cardTone:
+      "border-success/25 bg-success/5 hover:border-success/45 hover:bg-success/10",
+    valueTone: "text-success",
+    quickTone: "text-info",
+    quickSurface: "bg-info/10",
+    quickRing: "ring-info/35",
+  },
+  {
+    value: "pix_maquininha",
+    label: "PIX Maquininha",
+    icon: "📱",
+    Icon: CreditCard,
+    tone: "bg-accent/15 text-accent ring-accent/25",
+    cardTone:
+      "border-accent/25 bg-accent/5 hover:border-accent/45 hover:bg-accent/10",
+    valueTone: "text-accent",
+    quickTone: "text-primary",
+    quickSurface: "bg-primary/10",
+    quickRing: "ring-primary/35",
+  },
+  {
+    value: "cartao_debito",
+    label: "Cartão Débito",
+    icon: "💳",
+    Icon: WalletCards,
+    tone: "bg-primary/15 text-primary ring-primary/25",
+    cardTone:
+      "border-primary/25 bg-primary/5 hover:border-primary/45 hover:bg-primary/10",
+    valueTone: "text-primary",
+    quickTone: "text-secondary",
+    quickSurface: "bg-secondary/10",
+    quickRing: "ring-secondary/35",
+  },
+  {
+    value: "cartao_credito",
+    label: "Cartão Crédito",
+    icon: "💳",
+    Icon: CreditCard,
+    tone: "bg-warning/15 text-warning ring-warning/25",
+    cardTone:
+      "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10",
+    valueTone: "text-warning",
+    quickTone: "text-warning",
+    quickSurface: "bg-warning/15",
+    quickRing: "ring-warning/35",
+  },
+  {
+    value: "boleto",
+    label: "Boleto",
+    icon: "📄",
+    Icon: FileText,
+    tone: "bg-muted text-foreground ring-border",
+    cardTone:
+      "border-border bg-muted/25 hover:border-primary/35 hover:bg-muted/45",
+    valueTone: "text-foreground",
+    quickTone: "text-foreground",
+    quickSurface: "bg-muted",
+    quickRing: "ring-border",
+  },
+  {
+    value: "vale_gas",
+    label: "Vale Gás",
+    icon: "🔥",
+    Icon: Flame,
+    tone: "bg-destructive/15 text-destructive ring-destructive/25",
+    cardTone:
+      "border-destructive/25 bg-destructive/5 hover:border-destructive/45 hover:bg-destructive/10",
+    valueTone: "text-destructive",
+    quickTone: "text-destructive",
+    quickSurface: "bg-destructive/10",
+    quickRing: "ring-destructive/35",
+  },
+  {
+    value: "venda_antecipada",
+    label: "Venda Antecipada",
+    icon: "🎟️",
+    Icon: WalletCards,
+    tone: "bg-violet-500/15 text-violet-700 ring-violet-500/25",
+    cardTone:
+      "border-violet-500/25 bg-violet-500/5 hover:border-violet-500/45 hover:bg-violet-500/10",
+    valueTone: "text-violet-700",
+    quickTone: "text-violet-700",
+    quickSurface: "bg-violet-500/10",
+    quickRing: "ring-violet-500/35",
+  },
+  {
+    value: "cheque",
+    label: "Cheque",
+    icon: "🧾",
+    Icon: ReceiptText,
+    tone: "bg-secondary/10 text-secondary ring-secondary/25",
+    cardTone:
+      "border-secondary/25 bg-secondary/5 hover:border-primary/35 hover:bg-secondary/10",
+    valueTone: "text-secondary",
+    quickTone: "text-secondary",
+    quickSurface: "bg-secondary/10",
+    quickRing: "ring-secondary/35",
+  },
+  {
+    value: "fiado",
+    label: "Fiado / A Prazo",
+    icon: "📝",
+    Icon: AlertCircle,
+    tone: "bg-warning/15 text-warning ring-warning/25",
+    cardTone:
+      "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10",
+    valueTone: "text-warning",
+    quickTone: "text-warning",
+    quickSurface: "bg-warning/15",
+    quickRing: "ring-warning/35",
+  },
 ];
 
-const GAS_DO_POVO_FORMA = { value: "gas_do_povo", label: "Gás do Povo", icon: "🏛️", Icon: Flame, tone: "bg-info/15 text-info ring-info/25", cardTone: "border-info/25 bg-info/5 hover:border-info/45 hover:bg-info/10", valueTone: "text-info", quickTone: "text-info", quickSurface: "bg-info/10", quickRing: "ring-info/35" };
+const GAS_DO_POVO_FORMA = {
+  value: "gas_do_povo",
+  label: "Gás do Povo",
+  icon: "🏛️",
+  Icon: Flame,
+  tone: "bg-info/15 text-info ring-info/25",
+  cardTone: "border-info/25 bg-info/5 hover:border-info/45 hover:bg-info/10",
+  valueTone: "text-info",
+  quickTone: "text-info",
+  quickSurface: "bg-info/10",
+  quickRing: "ring-info/35",
+};
 
-export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, itens = [], clienteId, excludedFormas = [] }: PaymentSectionProps) {
+export function PaymentSection({
+  pagamentos,
+  onChange,
+  totalVenda,
+  unidadeId,
+  itens = [],
+  clienteId,
+  excludedFormas = [],
+}: PaymentSectionProps) {
   const [forma, setForma] = useState("");
   const [valorDisplay, setValorDisplay] = useState("");
   const [chequeNumero, setChequeNumero] = useState("");
@@ -101,12 +263,21 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   // Selector modals
   const [pixModalOpen, setPixModalOpen] = useState(false);
   const [cardModalOpen, setCardModalOpen] = useState(false);
-  const [pendingOperadora, setPendingOperadora] = useState<{ id: string; nome: string } | null>(null);
-  const [pendingContaBancaria, setPendingContaBancaria] = useState<string | null>(null);
+  const [pendingOperadora, setPendingOperadora] = useState<{
+    id: string;
+    nome: string;
+  } | null>(null);
+  const [pendingContaBancaria, setPendingContaBancaria] = useState<
+    string | null
+  >(null);
   const [pendingCardInfo, setPendingCardInfo] = useState<string | null>(null);
-  const [pendingParcelas, setPendingParcelas] = useState<number | undefined>(undefined);
-  const [pendingTaxaDescontoPercentual, setPendingTaxaDescontoPercentual] = useState(0);
-  const [pendingTaxaTotalPercentual, setPendingTaxaTotalPercentual] = useState(0);
+  const [pendingParcelas, setPendingParcelas] = useState<number | undefined>(
+    undefined,
+  );
+  const [pendingTaxaDescontoPercentual, setPendingTaxaDescontoPercentual] =
+    useState(0);
+  const [pendingTaxaTotalPercentual, setPendingTaxaTotalPercentual] =
+    useState(0);
   const [valeGasNumero, setValeGasNumero] = useState("");
   const [validandoValeGas, setValidandoValeGas] = useState(false);
   const [vendaAntecipadaCodigo, setVendaAntecipadaCodigo] = useState("");
@@ -115,15 +286,20 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   const effectiveUnidadeNome = unidadeId ? undefined : unidadeAtual?.nome;
 
   const gasDoPovoHabilitado = !!(unidadeAtual as any)?.gas_do_povo_habilitado;
-  const gasDoPovoValor = Number((unidadeAtual as any)?.gas_do_povo_valor ?? 101.08);
-  const { data: formasCustom = [] } = useFormasPagamentoCustom({ onlyActive: true });
+  const gasDoPovoValor = Number(
+    (unidadeAtual as any)?.gas_do_povo_valor ?? 101.08,
+  );
+  const { data: formasCustom = [] } = useFormasPagamentoCustom({
+    onlyActive: true,
+  });
   const customEntries = formasCustom.map((c) => ({
     value: c.slug,
     label: c.nome,
     icon: c.icone,
     Icon: c.grupo === "a_vista" ? Banknote : FileText,
     tone: "bg-primary/15 text-primary ring-primary/25",
-    cardTone: "border-primary/25 bg-primary/5 hover:border-primary/45 hover:bg-primary/10",
+    cardTone:
+      "border-primary/25 bg-primary/5 hover:border-primary/45 hover:bg-primary/10",
     valueTone: "text-primary",
     quickTone: "text-primary",
     quickSurface: "bg-primary/10",
@@ -147,7 +323,6 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   const totalEfetivo = calcTotalEfetivoVenda(totalVenda, pagamentos);
   const diferenca = totalEfetivo - totalPago;
 
-
   const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCurrency(e.target.value);
     setValorDisplay(formatted);
@@ -158,22 +333,32 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     try {
       const compressed = await compressImage(file);
       const blob = await (await fetch(compressed)).blob();
-      const { data: empresaId, error: empErr } = await supabase.rpc("get_user_empresa_id");
-      if (empErr || !empresaId) throw empErr || new Error("Não foi possível identificar a empresa do usuário");
+      const { data: empresaId, error: empErr } = await supabase.rpc(
+        "get_user_empresa_id",
+      );
+      if (empErr || !empresaId)
+        throw (
+          empErr ||
+          new Error("Não foi possível identificar a empresa do usuário")
+        );
       const fileName = `${empresaId}/cheques/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-      const { error } = await supabase.storage.from("cheques-docs").upload(fileName, blob, { cacheControl: "3600" });
+      const { error } = await supabase.storage
+        .from("cheques-docs")
+        .upload(fileName, blob, { cacheControl: "3600" });
       if (error) throw error;
       const { data: urlData, error: signErr } = await supabase.storage
         .from("cheques-docs")
         .createSignedUrl(fileName, 60 * 60 * 24 * 365 * 5);
-      if (signErr || !urlData?.signedUrl) throw signErr || new Error("Erro ao gerar link do cheque");
+      if (signErr || !urlData?.signedUrl)
+        throw signErr || new Error("Erro ao gerar link do cheque");
       setChequeFotoUrl(urlData.signedUrl);
       toast.success("Foto enviada! Extraindo dados...");
 
       try {
-        const { data: ocrData, error: ocrError } = await supabase.functions.invoke("parse-cheque-photo", {
-          body: { image_url: urlData.signedUrl },
-        });
+        const { data: ocrData, error: ocrError } =
+          await supabase.functions.invoke("parse-cheque-photo", {
+            body: { image_url: urlData.signedUrl },
+          });
         if (!ocrError && ocrData?.success && ocrData.data) {
           const d = ocrData.data;
           if (d.numero_cheque) setChequeNumero(d.numero_cheque);
@@ -246,14 +431,19 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
         return;
       }
       if (Math.abs(valorNum - gasDoPovoValor) > 0.01) {
-        toast.error(`Valor do Gás do Povo é fixo em R$ ${gasDoPovoValor.toFixed(2)}.`);
+        toast.error(
+          `Valor do Gás do Povo é fixo em R$ ${gasDoPovoValor.toFixed(2)}.`,
+        );
         return;
       }
     }
 
-
-    let valeGasValidado: Awaited<ReturnType<typeof validarValeGasNoBanco>> | null = null;
-    let vendaAntecipadaValidada: Awaited<ReturnType<typeof validarValeVendaAntecipada>> | null = null;
+    let valeGasValidado: Awaited<
+      ReturnType<typeof validarValeGasNoBanco>
+    > | null = null;
+    let vendaAntecipadaValidada: Awaited<
+      ReturnType<typeof validarValeVendaAntecipada>
+    > | null = null;
     if (forma === "vale_gas") {
       const numeroVale = valeGasNumero.trim();
       if (!numeroVale) {
@@ -269,28 +459,51 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
       }
 
       if (!valeGasValidado.valido || !valeGasValidado.valeId) {
-        toast.error(valeGasValidado.erro || "Vale Gás não encontrado ou indisponível");
+        toast.error(
+          valeGasValidado.erro || "Vale Gás não encontrado ou indisponível",
+        );
         return;
       }
     }
     if (forma === "venda_antecipada") {
       const codigo = vendaAntecipadaCodigo.trim();
-      if (!codigo) { toast.error("Informe o código da venda antecipada"); return; }
-      setValidandoValeGas(true);
-      try { vendaAntecipadaValidada = await validarValeVendaAntecipada(codigo, clienteId); }
-      finally { setValidandoValeGas(false); }
-      if (!vendaAntecipadaValidada.valido || !vendaAntecipadaValidada.valeId) {
-        toast.error(vendaAntecipadaValidada.erro || "Venda antecipada inválida"); return;
+      if (!codigo) {
+        toast.error("Informe o código da venda antecipada");
+        return;
       }
-      const itemCompativel = itens.some((item: any) =>
-        (vendaAntecipadaValidada!.produtoId && item.produto_id === vendaAntecipadaValidada!.produtoId) ||
-        item.nome?.trim().toLowerCase() === vendaAntecipadaValidada!.produtoNome?.trim().toLowerCase()
+      setValidandoValeGas(true);
+      try {
+        vendaAntecipadaValidada = await validarValeVendaAntecipada(
+          codigo,
+          clienteId,
+        );
+      } finally {
+        setValidandoValeGas(false);
+      }
+      if (!vendaAntecipadaValidada.valido || !vendaAntecipadaValidada.valeId) {
+        toast.error(
+          vendaAntecipadaValidada.erro || "Venda antecipada inválida",
+        );
+        return;
+      }
+      const itemCompativel = itens.some(
+        (item: any) =>
+          (vendaAntecipadaValidada!.produtoId &&
+            item.produto_id === vendaAntecipadaValidada!.produtoId) ||
+          item.nome?.trim().toLowerCase() ===
+            vendaAntecipadaValidada!.produtoNome?.trim().toLowerCase(),
       );
       if (itens.length && !itemCompativel) {
-        toast.error(`Este vale é para ${vendaAntecipadaValidada.produtoNome || "outro produto"}.`); return;
+        toast.error(
+          `Este vale é para ${vendaAntecipadaValidada.produtoNome || "outro produto"}.`,
+        );
+        return;
       }
       if (Math.abs(valorNum - vendaAntecipadaValidada.valor) > 0.01) {
-        toast.error(`O valor deste vale é R$ ${vendaAntecipadaValidada.valor.toFixed(2)}.`); return;
+        toast.error(
+          `O valor deste vale é R$ ${vendaAntecipadaValidada.valor.toFixed(2)}.`,
+        );
+        return;
       }
     }
 
@@ -307,7 +520,8 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     }
 
     if (forma === "fiado") {
-      novoPagamento.data_vencimento_fiado = dataVencimentoFiado || format(addDays(new Date(), 30), "yyyy-MM-dd");
+      novoPagamento.data_vencimento_fiado =
+        dataVencimentoFiado || format(addDays(new Date(), 30), "yyyy-MM-dd");
     }
 
     // Attach operator/PIX info
@@ -336,13 +550,17 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     }
     if (vendaAntecipadaValidada) {
       novoPagamento.venda_antecipada_vale_id = vendaAntecipadaValidada.valeId;
-      novoPagamento.venda_antecipada_id = vendaAntecipadaValidada.vendaAntecipadaId;
+      novoPagamento.venda_antecipada_id =
+        vendaAntecipadaValidada.vendaAntecipadaId;
       novoPagamento.venda_antecipada_codigo = vendaAntecipadaValidada.codigo;
-      novoPagamento.venda_antecipada_produto_id = vendaAntecipadaValidada.produtoId;
-      novoPagamento.venda_antecipada_produto_nome = vendaAntecipadaValidada.produtoNome;
+      novoPagamento.venda_antecipada_produto_id =
+        vendaAntecipadaValidada.produtoId;
+      novoPagamento.venda_antecipada_produto_nome =
+        vendaAntecipadaValidada.produtoNome;
     }
 
-    const taxaNum = forma === "gas_do_povo" ? parseCurrency(taxaEntregaGasPovo) : 0;
+    const taxaNum =
+      forma === "gas_do_povo" ? parseCurrency(taxaEntregaGasPovo) : 0;
     if (taxaNum > 0) {
       // Marca a taxa no próprio pagamento do Gás do Povo. O parent usa
       // calcTotalEfetivoVenda para ajustar total; um pagamento separado
@@ -360,13 +578,14 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     }
   };
 
-
   const removePagamento = (id: string) => {
     onChange(pagamentos.filter((p) => p.id !== id));
   };
 
   const getFormaLabel = (formaValue: string) => {
-    return formasPagamento.find((f) => f.value === formaValue)?.label || formaValue;
+    return (
+      formasPagamento.find((f) => f.value === formaValue)?.label || formaValue
+    );
   };
 
   const getFormaIcon = (formaValue: string) => {
@@ -374,10 +593,15 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   };
 
   const getFormaConfig = (formaValue: string) => {
-    return formasPagamento.find((f) => f.value === formaValue) || formasPagamento[0];
+    return (
+      formasPagamento.find((f) => f.value === formaValue) || formasPagamento[0]
+    );
   };
 
-  const preselectPreferredOperator = async (preferredOperator: string, fallbackInfo?: string) => {
+  const preselectPreferredOperator = async (
+    preferredOperator: string,
+    fallbackInfo?: string,
+  ) => {
     const resolvedUnidadeId = unidadeId || unidadeAtual?.id;
     if (!resolvedUnidadeId) {
       if (fallbackInfo) setPendingCardInfo(fallbackInfo);
@@ -391,12 +615,19 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
       .eq("ativo", true);
 
     const normalize = (text: string) =>
-      text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const op = ((data || []) as any[]).find((item) => normalize(item.nome || "").includes(normalize(preferredOperator)));
+      text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    const op = ((data || []) as any[]).find((item) =>
+      normalize(item.nome || "").includes(normalize(preferredOperator)),
+    );
     if (op) {
       setPendingOperadora({ id: op.id, nome: op.nome });
       if (op.conta_bancaria_id) setPendingContaBancaria(op.conta_bancaria_id);
-      setPendingCardInfo(`${op.nome} • Gás do Povo • D+${Number(op.prazo_credito) || 2}`);
+      setPendingCardInfo(
+        `${op.nome} • Gás do Povo • D+${Number(op.prazo_credito) || 2}`,
+      );
     } else if (fallbackInfo) {
       setPendingCardInfo(fallbackInfo);
     }
@@ -405,14 +636,23 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   const handleFormaChange = async (value: string) => {
     if (value === "gas_do_povo") {
       if (!cartoElegivelGasDoPovo) {
-        toast.error("Gás do Povo aceito apenas para venda de exatamente 1× Gás P13.");
+        toast.error(
+          "Gás do Povo aceito apenas para venda de exatamente 1× Gás P13.",
+        );
         return;
       }
       setForma(value);
       resetExtraFields();
-      setValorDisplay(formatCurrency(gasDoPovoValor.toFixed(2).replace(".", ",")));
-      setPendingCardInfo(`Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2, taxa 0%)`);
-      await preselectPreferredOperator("azulzinha", `Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2, taxa 0%)`);
+      setValorDisplay(
+        formatCurrency(gasDoPovoValor.toFixed(2).replace(".", ",")),
+      );
+      setPendingCardInfo(
+        `Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2, taxa 0%)`,
+      );
+      await preselectPreferredOperator(
+        "azulzinha",
+        `Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2, taxa 0%)`,
+      );
       return;
     }
     setForma(value);
@@ -424,7 +664,11 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
     // Auto-open selector modals
     if (value === "pix") {
       setPixModalOpen(true);
-    } else if (value === "cartao_debito" || value === "cartao_credito" || value === "pix_maquininha") {
+    } else if (
+      value === "cartao_debito" ||
+      value === "cartao_credito" ||
+      value === "pix_maquininha"
+    ) {
       setCardModalOpen(true);
     }
   };
@@ -456,50 +700,79 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
                 const formaConfig = getFormaConfig(pag.forma);
                 const Icon = formaConfig.Icon;
                 return (
-                <div
-                  key={pag.id}
-                  className={cn(
-                    "flex items-center justify-between gap-3 rounded-lg border p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
-                    formaConfig.cardTone
-                  )}
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1", formaConfig.tone)}>
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0">
-                      <span className="font-medium text-sm">{getFormaLabel(pag.forma)}</span>
-                      {pag.cheque_numero && (
-                        <p className="text-xs text-muted-foreground">Cheque #{pag.cheque_numero} • {pag.cheque_banco}</p>
+                  <div
+                    key={pag.id}
+                    className={cn(
+                      "flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md sm:flex-nowrap sm:gap-3",
+                      formaConfig.cardTone,
+                    )}
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <span
+                        className={cn(
+                          "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1",
+                          formaConfig.tone,
+                        )}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0">
+                        <span className="font-medium text-sm">
+                          {getFormaLabel(pag.forma)}
+                        </span>
+                        {pag.cheque_numero && (
+                          <p className="text-xs text-muted-foreground">
+                            Cheque #{pag.cheque_numero} • {pag.cheque_banco}
+                          </p>
+                        )}
+                        {pag.data_vencimento_fiado && (
+                          <p className="text-xs text-muted-foreground">
+                            Venc:{" "}
+                            {format(
+                              new Date(pag.data_vencimento_fiado + "T12:00:00"),
+                              "dd/MM/yyyy",
+                            )}
+                          </p>
+                        )}
+                        {pag.operadora_nome && (
+                          <p className="text-xs text-muted-foreground">
+                            Operadora: {pag.operadora_nome}
+                            {pag.forma === "cartao_credito" && pag.parcelas
+                              ? ` · Crédito ${pag.parcelas}x`
+                              : ""}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="ml-12 flex items-center gap-2 sm:ml-0">
+                      {pag.cheque_foto_url && (
+                        <a
+                          href={pag.cheque_foto_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <img
+                            src={pag.cheque_foto_url}
+                            alt="Cheque"
+                            className="h-6 w-8 rounded object-cover border"
+                          />
+                        </a>
                       )}
-                      {pag.data_vencimento_fiado && (
-                        <p className="text-xs text-muted-foreground">Venc: {format(new Date(pag.data_vencimento_fiado + "T12:00:00"), "dd/MM/yyyy")}</p>
-                      )}
-                      {pag.operadora_nome && (
-                        <p className="text-xs text-muted-foreground">
-                          Operadora: {pag.operadora_nome}
-                          {pag.forma === "cartao_credito" && pag.parcelas ? ` · Crédito ${pag.parcelas}x` : ""}
-                        </p>
-                      )}
+                      <span
+                        className={cn("font-semibold", formaConfig.valueTone)}
+                      >
+                        R$ {pag.valor.toFixed(2)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => removePagamento(pag.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {pag.cheque_foto_url && (
-                      <a href={pag.cheque_foto_url} target="_blank" rel="noopener noreferrer">
-                        <img src={pag.cheque_foto_url} alt="Cheque" className="h-6 w-8 rounded object-cover border" />
-                      </a>
-                    )}
-                    <span className={cn("font-semibold", formaConfig.valueTone)}>R$ {pag.valor.toFixed(2)}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => removePagamento(pag.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
                 );
               })}
             </div>
@@ -507,7 +780,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
 
           {/* Adicionar novo pagamento */}
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 shadow-sm shadow-primary/10 space-y-3">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9">
+            <div className="grid grid-cols-3 gap-2 md:grid-cols-5 xl:grid-cols-9">
               {formasPagamento.map((fp) => {
                 const Icon = fp.Icon;
                 const selected = forma === fp.value;
@@ -519,24 +792,42 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
                     onClick={() => handleFormaChange(fp.value)}
                     data-selected={selected}
                     className={cn(
-                      "venda-payment-shortcut group flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border p-2 text-center transition-all duration-200 hover:scale-[1.02] hover:border-primary/35 hover:bg-primary/5 hover:shadow-lg active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-                      selected ? "ring-2 ring-offset-2 ring-primary/40 shadow-xl" : fp.quickRing
+                      "venda-payment-shortcut group flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-xl border p-1.5 text-center transition-all duration-200 hover:scale-[1.02] hover:border-primary/35 hover:bg-primary/5 hover:shadow-lg active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:min-h-[92px] sm:gap-2 sm:p-2",
+                      selected
+                        ? "ring-2 ring-offset-2 ring-primary/40 shadow-xl"
+                        : fp.quickRing,
                     )}
                   >
-                    <span className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-lg ring-1 transition-transform group-hover:scale-105",
-                      selected ? "bg-primary-foreground/15 text-primary-foreground ring-primary-foreground/30" : `${fp.quickSurface} ${fp.quickTone} ${fp.quickRing}`
-                    )}>
-                      <Icon className="h-5 w-5 drop-shadow-sm" strokeWidth={2.25} />
+                    <span
+                      className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-lg ring-1 transition-transform group-hover:scale-105 sm:h-10 sm:w-10",
+                        selected
+                          ? "bg-primary-foreground/15 text-primary-foreground ring-primary-foreground/30"
+                          : `${fp.quickSurface} ${fp.quickTone} ${fp.quickRing}`,
+                      )}
+                    >
+                      <Icon
+                        className="h-4 w-4 drop-shadow-sm sm:h-5 sm:w-5"
+                        strokeWidth={2.25}
+                      />
                     </span>
-                    <span className={cn("text-[11px] font-bold leading-tight text-center", selected ? "text-primary-foreground" : "text-foreground")}>{fp.label}</span>
+                    <span
+                      className={cn(
+                        "text-[10px] font-bold leading-tight text-center sm:text-[11px]",
+                        selected
+                          ? "text-primary-foreground"
+                          : "text-foreground",
+                      )}
+                    >
+                      {fp.label}
+                    </span>
                   </button>
                 );
               })}
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_7rem_2.75rem] gap-2 sm:flex sm:flex-wrap">
               <Select value={forma} onValueChange={handleFormaChange}>
-                <SelectTrigger className="h-11 flex-1 min-w-[180px] bg-background">
+                <SelectTrigger className="h-11 min-w-0 bg-background sm:min-w-[180px] sm:flex-1">
                   <SelectValue placeholder="Forma de pagamento" />
                 </SelectTrigger>
                 <SelectContent>
@@ -550,7 +841,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
                   ))}
                 </SelectContent>
               </Select>
-              <div className="relative flex-shrink-0 w-32 sm:w-36">
+              <div className="relative w-full flex-shrink-0 sm:w-36">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                   R$
                 </span>
@@ -562,8 +853,17 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
                   data-venda-enter-next
                 />
               </div>
-              <Button onClick={addPagamento} size="icon" className="h-11 w-11 shrink-0 bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30" disabled={validandoValeGas}>
-                {validandoValeGas ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              <Button
+                onClick={addPagamento}
+                size="icon"
+                className="h-11 w-11 shrink-0 bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30"
+                disabled={validandoValeGas}
+              >
+                {validandoValeGas ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
               </Button>
             </div>
 
@@ -577,29 +877,89 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
 
             {/* Cheque extra fields */}
             {forma === "cheque" && (
-                <div className="venda-modern-surface p-3 rounded-lg space-y-2 border border-dashed">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dados do Cheque</p>
+              <div className="venda-modern-surface p-3 rounded-lg space-y-2 border border-dashed">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Dados do Cheque
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs">Nº Cheque *</Label>
-                    <Input value={chequeNumero} onChange={e => setChequeNumero(e.target.value)} placeholder="000001" className="h-8 text-sm" data-venda-enter-next />
+                    <Input
+                      value={chequeNumero}
+                      onChange={(e) => setChequeNumero(e.target.value)}
+                      placeholder="000001"
+                      className="h-8 text-sm"
+                      data-venda-enter-next
+                    />
                   </div>
                   <div>
                     <Label className="text-xs">Banco *</Label>
-                    <Input value={chequeBanco} onChange={e => setChequeBanco(e.target.value)} placeholder="Itaú, BB..." className="h-8 text-sm" data-venda-enter-next />
+                    <Input
+                      value={chequeBanco}
+                      onChange={(e) => setChequeBanco(e.target.value)}
+                      placeholder="Itaú, BB..."
+                      className="h-8 text-sm"
+                      data-venda-enter-next
+                    />
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button type="button" variant="import" size="sm" className="text-xs" onClick={() => chequePhotoRef.current?.click()} disabled={isUploadingCheque}>
-                    {isUploadingCheque ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                  <Button
+                    type="button"
+                    variant="import"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => chequePhotoRef.current?.click()}
+                    disabled={isUploadingCheque}
+                  >
+                    {isUploadingCheque ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ImageIcon className="h-4 w-4" />
+                    )}
                     Foto
                   </Button>
-                  <Button type="button" variant="photo" size="sm" className="text-xs" onClick={() => chequeCameraRef.current?.click()} disabled={isUploadingCheque}>
-                    <Camera className="h-4 w-4" />Câmera
+                  <Button
+                    type="button"
+                    variant="photo"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => chequeCameraRef.current?.click()}
+                    disabled={isUploadingCheque}
+                  >
+                    <Camera className="h-4 w-4" />
+                    Câmera
                   </Button>
-                  {chequeFotoUrl && <img src={chequeFotoUrl} alt="Cheque" className="h-8 w-12 rounded border object-cover" />}
-                  <input ref={chequePhotoRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleChequeFoto(f); e.target.value = ""; }} />
-                  <input ref={chequeCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleChequeFoto(f); e.target.value = ""; }} />
+                  {chequeFotoUrl && (
+                    <img
+                      src={chequeFotoUrl}
+                      alt="Cheque"
+                      className="h-8 w-12 rounded border object-cover"
+                    />
+                  )}
+                  <input
+                    ref={chequePhotoRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleChequeFoto(f);
+                      e.target.value = "";
+                    }}
+                  />
+                  <input
+                    ref={chequeCameraRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleChequeFoto(f);
+                      e.target.value = "";
+                    }}
+                  />
                 </div>
               </div>
             )}
@@ -607,9 +967,13 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
             {/* Vale Gas extra fields */}
             {forma === "vale_gas" && (
               <div className="venda-modern-surface rounded-lg border border-dashed p-3 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dados do Vale Gás</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Dados do Vale Gás
+                </p>
                 <div>
-                  <Label className="text-xs">Número ou código do Vale Gás *</Label>
+                  <Label className="text-xs">
+                    Número ou código do Vale Gás *
+                  </Label>
                   <div className="flex gap-2">
                     <Input
                       value={valeGasNumero}
@@ -618,8 +982,18 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
                       className="h-9 text-sm"
                       data-venda-enter-next
                     />
-                    <Button type="button" variant="outline" className="h-9 shrink-0" onClick={addPagamento} disabled={validandoValeGas}>
-                      {validandoValeGas ? <Loader2 className="h-4 w-4 animate-spin" /> : "Validar"}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-9 shrink-0"
+                      onClick={addPagamento}
+                      disabled={validandoValeGas}
+                    >
+                      {validandoValeGas ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Validar"
+                      )}
                     </Button>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -631,37 +1005,64 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
 
             {forma === "venda_antecipada" && (
               <div className="venda-modern-surface rounded-lg border border-dashed border-violet-500/30 p-3 space-y-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-violet-700">Retirada de venda antecipada</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-violet-700">
+                  Retirada de venda antecipada
+                </p>
                 <div>
                   <Label className="text-xs">Código completo do vale *</Label>
                   <div className="flex gap-2">
-                    <Input value={vendaAntecipadaCodigo} onChange={(e) => setVendaAntecipadaCodigo(e.target.value.toUpperCase())}
-                      placeholder="Ex: VA-0000101 ou 0000101" className="h-9 text-sm font-mono" data-venda-enter-next />
-                    <Button type="button" variant="outline" className="h-9 shrink-0" onClick={addPagamento} disabled={validandoValeGas}>
-                      {validandoValeGas ? <Loader2 className="h-4 w-4 animate-spin" /> : "Validar"}
+                    <Input
+                      value={vendaAntecipadaCodigo}
+                      onChange={(e) =>
+                        setVendaAntecipadaCodigo(e.target.value.toUpperCase())
+                      }
+                      placeholder="Ex: VA-0000101 ou 0000101"
+                      className="h-9 text-sm font-mono"
+                      data-venda-enter-next
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-9 shrink-0"
+                      onClick={addPagamento}
+                      disabled={validandoValeGas}
+                    >
+                      {validandoValeGas ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Validar"
+                      )}
                     </Button>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">A retirada não gera nova entrada no caixa: o pagamento foi registrado quando a venda antecipada foi criada.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    A retirada não gera nova entrada no caixa: o pagamento foi
+                    registrado quando a venda antecipada foi criada.
+                  </p>
                 </div>
               </div>
             )}
 
             {/* Fiado extra fields */}
             {forma === "fiado" && (
-                <div className="venda-modern-surface p-3 rounded-lg space-y-2 border border-dashed">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dados do Fiado</p>
+              <div className="venda-modern-surface p-3 rounded-lg space-y-2 border border-dashed">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Dados do Fiado
+                </p>
                 <div>
                   <Label className="text-xs">Data de Vencimento</Label>
                   <Input
                     type="date"
                     value={dataVencimentoFiado}
-                    onChange={e => setDataVencimentoFiado(e.target.value)}
+                    onChange={(e) => setDataVencimentoFiado(e.target.value)}
                     min={getBrasiliaDateString()}
                     className="h-8 text-sm"
                     placeholder={format(addDays(new Date(), 30), "yyyy-MM-dd")}
                     data-venda-enter-next
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Se não informado, vencimento será em 30 dias ({format(addDays(new Date(), 30), "dd/MM/yyyy")})</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Se não informado, vencimento será em 30 dias (
+                    {format(addDays(new Date(), 30), "dd/MM/yyyy")})
+                  </p>
                 </div>
               </div>
             )}
@@ -669,23 +1070,29 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
             {/* Gás do Povo - Taxa de entrega */}
             {forma === "gas_do_povo" && (
               <div className="venda-modern-surface p-3 rounded-lg space-y-2 border border-dashed">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Taxa de entrega (opcional)</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Taxa de entrega (opcional)
+                </p>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                    R$
+                  </span>
                   <Input
                     placeholder="0,00"
                     value={taxaEntregaGasPovo}
-                    onChange={(e) => setTaxaEntregaGasPovo(formatCurrency(e.target.value))}
+                    onChange={(e) =>
+                      setTaxaEntregaGasPovo(formatCurrency(e.target.value))
+                    }
                     className="h-9 pl-9 text-sm"
                   />
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Cobrada à parte do Gás do Povo. Após adicionar, escolha a forma de recebimento da taxa (dinheiro, PIX, cartão…).
+                  Cobrada à parte do Gás do Povo. Após adicionar, escolha a
+                  forma de recebimento da taxa (dinheiro, PIX, cartão…).
                 </p>
               </div>
             )}
           </div>
-
 
           {/* Status do pagamento */}
           {totalVenda > 0 && (
@@ -694,7 +1101,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
                 "rounded-lg border p-3 flex items-center gap-2 text-sm font-medium shadow-sm",
                 diferenca > 0 && "bg-destructive/10 text-destructive",
                 diferenca < 0 && "bg-warning/10 text-warning",
-                diferenca === 0 && "bg-success/10 text-success"
+                diferenca === 0 && "bg-success/10 text-success",
               )}
             >
               {diferenca > 0 ? (
@@ -744,14 +1151,22 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
         applyInstallmentSurcharge
         onSelect={(op) => {
           setPendingOperadora({ id: op.id, nome: op.nome });
-          if (op.conta_bancaria_id) setPendingContaBancaria(op.conta_bancaria_id);
+          if (op.conta_bancaria_id)
+            setPendingContaBancaria(op.conta_bancaria_id);
           setPendingParcelas(op.parcelas);
           setPendingTaxaDescontoPercentual(op.taxaParcelamentoPercentual || 0);
           setPendingTaxaTotalPercentual(op.taxaTotal || op.taxa || 0);
-          const parcelasInfo = forma === "cartao_credito" ? ` • Crédito ${op.parcelas || 1}x` : "";
-          const descontoInfo = op.taxaParcelamentoPercentual && op.taxaParcelamentoPercentual > 0 ? ` • Desc. parc. ${op.taxaParcelamentoPercentual.toFixed(2)}%` : "";
-          const taxaInfo = op.taxaTotal && op.taxaTotal > op.taxa ? op.taxaTotal : op.taxa;
-          setPendingCardInfo(`${op.nome}${parcelasInfo}${descontoInfo} • Taxa total ${taxaInfo.toFixed(2)}% • D+${op.prazo} • Líq. R$ ${op.valorLiquido.toFixed(2)}`);
+          const parcelasInfo =
+            forma === "cartao_credito" ? ` • Crédito ${op.parcelas || 1}x` : "";
+          const descontoInfo =
+            op.taxaParcelamentoPercentual && op.taxaParcelamentoPercentual > 0
+              ? ` • Desc. parc. ${op.taxaParcelamentoPercentual.toFixed(2)}%`
+              : "";
+          const taxaInfo =
+            op.taxaTotal && op.taxaTotal > op.taxa ? op.taxaTotal : op.taxa;
+          setPendingCardInfo(
+            `${op.nome}${parcelasInfo}${descontoInfo} • Taxa total ${taxaInfo.toFixed(2)}% • D+${op.prazo} • Líq. R$ ${op.valorLiquido.toFixed(2)}`,
+          );
         }}
       />
     </>

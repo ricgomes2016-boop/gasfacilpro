@@ -1,4 +1,10 @@
-import { useState, useRef, useCallback, useEffect, type KeyboardEvent } from "react";
+import {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  type KeyboardEvent,
+} from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -17,15 +23,59 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
-import { Calendar, ShoppingBag, Sparkles, Loader2, Send, Mic, MicOff, Camera, ImageIcon, PlusCircle, Check, User, Package as PackageIcon, CreditCard, CheckCircle, CalendarClock, Keyboard, ChevronLeft, ChevronRight, MoreVertical, HelpCircle, UserRound, Flame, Wallet, Truck, BadgeCheck } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import {
+  Calendar,
+  ShoppingBag,
+  Sparkles,
+  Loader2,
+  Send,
+  Mic,
+  MicOff,
+  Camera,
+  ImageIcon,
+  PlusCircle,
+  Check,
+  User,
+  Package as PackageIcon,
+  CreditCard,
+  CheckCircle,
+  CalendarClock,
+  Keyboard,
+  ChevronLeft,
+  ChevronRight,
+  MoreVertical,
+  HelpCircle,
+  UserRound,
+  Flame,
+  Wallet,
+  Truck,
+  BadgeCheck,
+} from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { useNovaVendaWindows } from "@/contexts/NovaVendaWindowsContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { generateReceiptPdf, EmpresaConfig } from "@/services/receiptPdfService";
+import {
+  generateReceiptPdf,
+  EmpresaConfig,
+} from "@/services/receiptPdfService";
 import { atualizarEstoqueVenda } from "@/services/estoqueService";
 import { rotearPagamentosVenda } from "@/services/paymentRoutingService";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -35,7 +85,11 @@ import { CaixaBloqueadoBanner } from "@/components/caixa/CaixaBloqueadoBanner";
 
 import { CustomerSearch } from "@/components/vendas/CustomerSearch";
 import { ProductSearch, ItemVenda } from "@/components/vendas/ProductSearch";
-import { PaymentSection, Pagamento, calcTotalEfetivoVenda } from "@/components/vendas/PaymentSection";
+import {
+  PaymentSection,
+  Pagamento,
+  calcTotalEfetivoVenda,
+} from "@/components/vendas/PaymentSection";
 import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 import { OrderSummary } from "@/components/vendas/OrderSummary";
 import { CustomerHistory } from "@/components/vendas/CustomerHistory";
@@ -45,7 +99,11 @@ import { markOrderNotified } from "@/lib/novoPedidoDedupe";
 
 import { VendedorSelect } from "@/components/vendas/VendedorSelect";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
-import { PortalToId, FOOTER_CENTER_ID, useFooterCenterOverride } from "@/components/layout/footerPortals";
+import {
+  PortalToId,
+  FOOTER_CENTER_ID,
+  useFooterCenterOverride,
+} from "@/components/layout/footerPortals";
 
 interface CustomerData {
   id: string | null;
@@ -73,8 +131,15 @@ const initialCustomerData: CustomerData = {
 
 const DRAFT_KEY = "nova-venda-rascunho";
 const VIEW_KEY = "nova-venda-view-mode";
-type VendaStepId = "cliente" | "produtos" | "pagamento" | "entregador" | "confirmar";
-const VENDA_STEPS: VendaStepId[] = ["cliente", "produtos", "pagamento", "entregador", "confirmar"];
+type VendaStepId =
+  "cliente" | "produtos" | "pagamento" | "entregador" | "confirmar";
+const VENDA_STEPS: VendaStepId[] = [
+  "cliente",
+  "produtos",
+  "pagamento",
+  "entregador",
+  "confirmar",
+];
 const STEP_TONE_CLASS: Record<VendaStepId, string> = {
   cliente: "venda-tone-cliente",
   produtos: "venda-tone-produtos",
@@ -102,7 +167,13 @@ function saveViewMode(useNewView: boolean) {
   } catch {}
 }
 
-function saveDraft(data: { customer: CustomerData; itens: ItemVenda[]; pagamentos: Pagamento[]; canalVenda: string; entregador: { id: string | null; nome: string | null } }) {
+function saveDraft(data: {
+  customer: CustomerData;
+  itens: ItemVenda[];
+  pagamentos: Pagamento[];
+  canalVenda: string;
+  entregador: { id: string | null; nome: string | null };
+}) {
   try {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
   } catch {}
@@ -124,12 +195,19 @@ function toBrasiliaNoonISOString(dateValue: string) {
   return `${dateValue}T12:00:00-03:00`;
 }
 
-function getValidSaleItems<T extends { produto_id?: string | null; quantidade?: number; preco_unitario?: number }>(items: T[]) {
-  return items.filter((item) =>
-    !!item.produto_id &&
-    Number(item.quantidade) > 0 &&
-    Number.isFinite(Number(item.preco_unitario)) &&
-    Number(item.preco_unitario) >= 0
+function getValidSaleItems<
+  T extends {
+    produto_id?: string | null;
+    quantidade?: number;
+    preco_unitario?: number;
+  },
+>(items: T[]) {
+  return items.filter(
+    (item) =>
+      !!item.produto_id &&
+      Number(item.quantidade) > 0 &&
+      Number.isFinite(Number(item.preco_unitario)) &&
+      Number(item.preco_unitario) >= 0,
   );
 }
 
@@ -141,8 +219,14 @@ function NovaVendaFooterStepper({ children }: { children: React.ReactNode }) {
 
 // Reusable stepper bar (prev arrow + stepper + next arrow)
 function StepperFooterBar({
-  activeStep, canOpenStep, setActiveStep,
-  customer, itens, pagamentos, totalVenda, entregadorPreenchido,
+  activeStep,
+  canOpenStep,
+  setActiveStep,
+  customer,
+  itens,
+  pagamentos,
+  totalVenda,
+  entregadorPreenchido,
 }: {
   activeStep: VendaStepId;
   canOpenStep: (s: VendaStepId) => boolean;
@@ -195,14 +279,20 @@ function StepperFooterBar({
         <ChevronRight className="h-5 w-5 sm:h-4 sm:w-4" />
       </Button>
     </div>
-
   );
 }
 
-
-
 // Stepper component
-function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelecionado = false, activeStep, onStepClick, compact = false }: {
+function VendaStepper({
+  customer,
+  itens,
+  pagamentos,
+  totalVenda,
+  entregadorSelecionado = false,
+  activeStep,
+  onStepClick,
+  compact = false,
+}: {
   customer: CustomerData;
   itens: ItemVenda[];
   pagamentos: Pagamento[];
@@ -218,12 +308,48 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
   const produtosOk = itens.length > 0;
   const pagamentoOk = totalPago >= totalEfetivo && totalEfetivo > 0;
 
-  const steps: Array<{ id: VendaStepId; label: string; done: boolean; enabled: boolean; icon: typeof User }> = [
-    { id: "cliente", label: "Cliente", done: clienteOk, enabled: true, icon: UserRound },
-    { id: "produtos", label: "Produtos", done: produtosOk, enabled: true, icon: Flame },
-    { id: "pagamento", label: "Pagamento", done: pagamentoOk, enabled: true, icon: Wallet },
-    { id: "entregador", label: "Entregador", done: entregadorSelecionado, enabled: true, icon: Truck },
-    { id: "confirmar", label: "Confirmar", done: pagamentoOk && produtosOk && entregadorSelecionado, enabled: true, icon: BadgeCheck },
+  const steps: Array<{
+    id: VendaStepId;
+    label: string;
+    done: boolean;
+    enabled: boolean;
+    icon: typeof User;
+  }> = [
+    {
+      id: "cliente",
+      label: "Cliente",
+      done: clienteOk,
+      enabled: true,
+      icon: UserRound,
+    },
+    {
+      id: "produtos",
+      label: "Produtos",
+      done: produtosOk,
+      enabled: true,
+      icon: Flame,
+    },
+    {
+      id: "pagamento",
+      label: "Pagamento",
+      done: pagamentoOk,
+      enabled: true,
+      icon: Wallet,
+    },
+    {
+      id: "entregador",
+      label: "Entregador",
+      done: entregadorSelecionado,
+      enabled: true,
+      icon: Truck,
+    },
+    {
+      id: "confirmar",
+      label: "Confirmar",
+      done: pagamentoOk && produtosOk && entregadorSelecionado,
+      enabled: true,
+      icon: BadgeCheck,
+    },
   ];
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -252,12 +378,25 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
   };
 
   return (
-    <div className={cn("flex items-center", compact ? "gap-1" : "justify-between gap-1")} role="tablist" aria-label="Etapas da venda">
+    <div
+      className={cn(
+        "flex items-center",
+        compact ? "gap-1" : "justify-between gap-1",
+      )}
+      role="tablist"
+      aria-label="Etapas da venda"
+    >
       {steps.map((step, i) => {
         const Icon = step.icon;
         const isActive = activeStep === step.id;
         return (
-          <div key={step.label} className={cn("flex items-center", compact ? "gap-1 shrink-0" : "gap-1 flex-1")}>
+          <div
+            key={step.label}
+            className={cn(
+              "flex items-center",
+              compact ? "gap-1 shrink-0" : "gap-1 flex-1",
+            )}
+          >
             <button
               ref={(el) => (tabRefs.current[i] = el)}
               type="button"
@@ -270,7 +409,11 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
               disabled={!step.enabled || !onStepClick}
               onClick={() => onStepClick?.(step.id)}
               onKeyDown={(e) => handleKeyDown(e, i)}
-              title={onStepClick && !isActive ? `Clique ou use ← → para ir para ${step.label}` : undefined}
+              title={
+                onStepClick && !isActive
+                  ? `Clique ou use ← → para ir para ${step.label}`
+                  : undefined
+              }
               aria-label={`Etapa ${step.label}${step.done ? " (preenchida)" : ""}`}
               className={cn(
                 "flex items-center gap-1.5 rounded-full font-semibold transition-all disabled:cursor-not-allowed whitespace-nowrap",
@@ -281,26 +424,40 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
                 isActive
                   ? "bg-primary text-primary-foreground ring-primary shadow-sm"
                   : step.done
-                  ? "bg-success/12 text-success ring-success/25"
-                  : "bg-muted text-muted-foreground ring-border",
-                step.enabled && onStepClick && !isActive && "cursor-pointer hover:bg-muted/80"
+                    ? "bg-success/12 text-success ring-success/25"
+                    : "bg-muted text-muted-foreground ring-border",
+                step.enabled &&
+                  onStepClick &&
+                  !isActive &&
+                  "cursor-pointer hover:bg-muted/80",
               )}
             >
-              {step.done ? <Check className={compact ? "h-3.5 w-3.5" : "h-3.5 w-3.5"} /> : <Icon className={compact ? "h-3.5 w-3.5" : "h-3.5 w-3.5"} />}
-              <span className={compact ? "hidden sm:inline" : "hidden sm:inline"}>{step.label}</span>
+              {step.done ? (
+                <Check className={compact ? "h-3.5 w-3.5" : "h-3.5 w-3.5"} />
+              ) : (
+                <Icon className={compact ? "h-3.5 w-3.5" : "h-3.5 w-3.5"} />
+              )}
+              <span
+                className={compact ? "hidden sm:inline" : "hidden sm:inline"}
+              >
+                {step.label}
+              </span>
             </button>
             {i < steps.length - 1 && (
-              <div className={cn("h-0.5 rounded-full", compact ? "w-3 min-w-3" : "flex-1", step.done ? "bg-success/40" : "bg-border")} />
+              <div
+                className={cn(
+                  "h-0.5 rounded-full",
+                  compact ? "w-3 min-w-3" : "flex-1",
+                  step.done ? "bg-success/40" : "bg-border",
+                )}
+              />
             )}
           </div>
         );
       })}
-
     </div>
   );
 }
-
-
 
 interface NovaVendaProps {
   embedded?: boolean;
@@ -308,23 +465,36 @@ interface NovaVendaProps {
   onClose?: () => void;
 }
 
-export default function NovaVenda({ embedded = false, initialClienteId, onClose }: NovaVendaProps) {
+export default function NovaVenda({
+  embedded = false,
+  initialClienteId,
+  onClose,
+}: NovaVendaProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
   const { isGasmais } = useDashboardTheme();
 
-  const [dataEntrega, setDataEntrega] = useState(() => { const d = getBrasiliaDate(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; });
+  const [dataEntrega, setDataEntrega] = useState(() => {
+    const d = getBrasiliaDate();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
   const [canalVenda, setCanalVenda] = useState("");
   const [customer, setCustomer] = useState<CustomerData>(initialCustomerData);
   const [itens, setItens] = useState<ItemVenda[]>([]);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
-  const [entregador, setEntregador] = useState<{ id: string | null; nome: string | null }>({
+  const [entregador, setEntregador] = useState<{
+    id: string | null;
+    nome: string | null;
+  }>({
     id: null,
     nome: null,
   });
-  const [vendedor, setVendedor] = useState<{ id: string | null; nome: string | null }>({
+  const [vendedor, setVendedor] = useState<{
+    id: string | null;
+    nome: string | null;
+  }>({
     id: null,
     nome: null,
   });
@@ -336,7 +506,9 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     queryKey: ["proximo-numero-pedido", empresa?.id, isLoading],
     queryFn: async () => {
       if (!empresa?.id) return null;
-      const { data, error } = await supabase.rpc("proximo_numero_pedido", { _empresa_id: empresa.id });
+      const { data, error } = await supabase.rpc("proximo_numero_pedido", {
+        _empresa_id: empresa.id,
+      });
       if (error) return null;
       return data as number;
     },
@@ -390,7 +562,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const draftLoaded = useRef(false);
-  const previousStepState = useRef({ cliente: false, produtos: false, pagamento: false, entregador: false });
+  const previousStepState = useRef({
+    cliente: false,
+    produtos: false,
+    pagamento: false,
+    entregador: false,
+  });
 
   useEffect(() => {
     if (!getSavedViewMode() && isGasmais) setUseNewView(true);
@@ -423,7 +600,10 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       setPagamentos(draft.pagamentos || []);
       setCanalVenda(draft.canalVenda || "");
       setEntregador(draft.entregador || { id: null, nome: null });
-      toast({ title: "Rascunho restaurado", description: "Sua venda em andamento foi recuperada." });
+      toast({
+        title: "Rascunho restaurado",
+        description: "Sua venda em andamento foi recuperada.",
+      });
     }
   }, []);
 
@@ -449,7 +629,6 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     },
   });
 
-
   // Fixed channels + dynamic ones
   const fixedChannels = [
     { value: "telefone", label: "📞 Telefone" },
@@ -465,11 +644,14 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   // Voice recognition
   const startListening = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       toast({
         title: "Não suportado",
-        description: "Seu navegador não suporta reconhecimento de voz. Use Chrome ou Edge.",
+        description:
+          "Seu navegador não suporta reconhecimento de voz. Use Chrome ou Edge.",
         variant: "destructive",
       });
       return;
@@ -496,7 +678,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       if (event.error === "not-allowed") {
         toast({
           title: "Microfone bloqueado",
-          description: "Permita o acesso ao microfone nas configurações do navegador.",
+          description:
+            "Permita o acesso ao microfone nas configurações do navegador.",
           variant: "destructive",
         });
       }
@@ -521,7 +704,10 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     setIsListening(false);
   };
 
-  const applyParsedSale = async (data: any, opts: { fromVoice?: boolean } = {}) => {
+  const applyParsedSale = async (
+    data: any,
+    opts: { fromVoice?: boolean } = {},
+  ) => {
     // Se for uma consulta de fiado/notinhas, mostra resultado e não cria venda
     if (data?.tipo === "consulta_fiado") {
       toast({
@@ -604,7 +790,14 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           description: `${data.cliente_nome} foi adicionado automaticamente ao sistema.`,
         });
       }
-    } else if (data.endereco || data.numero || data.complemento || data.bairro || data.cliente_telefone || data.observacoes) {
+    } else if (
+      data.endereco ||
+      data.numero ||
+      data.complemento ||
+      data.bairro ||
+      data.cliente_telefone ||
+      data.observacoes
+    ) {
       // Fallback: comando sem nome de cliente mas com endereço/telefone → preenche aba Cliente mesmo assim
       setCustomer({
         ...initialCustomerData,
@@ -635,10 +828,17 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     const hasPagamento = !!data.forma_pagamento;
     if (hasPagamento) {
       const totalItens = (data.itens || []).reduce(
-        (a: number, i: any) => a + (i.quantidade || 1) * (Number(i.preco_unitario) || 0),
-        0
+        (a: number, i: any) =>
+          a + (i.quantidade || 1) * (Number(i.preco_unitario) || 0),
+        0,
       );
-      setPagamentos([{ id: crypto.randomUUID(), forma: data.forma_pagamento, valor: totalItens }]);
+      setPagamentos([
+        {
+          id: crypto.randomUUID(),
+          forma: data.forma_pagamento,
+          valor: totalItens,
+        },
+      ]);
     }
 
     if (data.canal_venda) {
@@ -666,9 +866,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     if (!aiCommand.trim()) return;
     setAiLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("parse-sales-command", {
-        body: { comando: aiCommand, unidade_id: unidadeAtual?.id || null },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "parse-sales-command",
+        {
+          body: { comando: aiCommand, unidade_id: unidadeAtual?.id || null },
+        },
+      );
 
       if (error) throw error;
       await applyParsedSale(data, { fromVoice: true });
@@ -734,15 +937,22 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     try {
       const imageData = await compressImage(file);
 
-      const { data, error } = await supabase.functions.invoke("parse-sales-photo", {
-        body: { image: imageData },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "parse-sales-photo",
+        {
+          body: { image: imageData },
+        },
+      );
 
       if (error) throw error;
 
       const vendas = data.vendas || [data];
       if (!vendas.length) {
-        toast({ title: "Nenhuma venda encontrada", description: "Não foi possível identificar vendas na imagem.", variant: "destructive" });
+        toast({
+          title: "Nenhuma venda encontrada",
+          description: "Não foi possível identificar vendas na imagem.",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -750,8 +960,13 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       for (const venda of vendas) {
         try {
           const itensValidos = getValidSaleItems(venda.itens || []);
-          if (itensValidos.length === 0 || itensValidos.length !== (venda.itens || []).length) {
-            throw new Error("Venda ignorada: adicione pelo menos um produto válido.");
+          if (
+            itensValidos.length === 0 ||
+            itensValidos.length !== (venda.itens || []).length
+          ) {
+            throw new Error(
+              "Venda ignorada: adicione pelo menos um produto válido.",
+            );
           }
 
           let clienteId = venda.cliente_id;
@@ -766,7 +981,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             if (found) {
               clienteId = found.id;
             } else {
-          const { data: created } = await supabase
+              const { data: created } = await supabase
                 .from("clientes")
                 .insert({
                   nome: venda.cliente_nome,
@@ -797,9 +1012,14 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             venda.numero && `Nº ${venda.numero}`,
             venda.complemento,
             venda.bairro,
-          ].filter(Boolean).join(", ");
+          ]
+            .filter(Boolean)
+            .join(", ");
 
-          const valorTotal = itensValidos.reduce((a: number, i: any) => a + (i.quantidade || 1) * i.preco_unitario, 0);
+          const valorTotal = itensValidos.reduce(
+            (a: number, i: any) => a + (i.quantidade || 1) * i.preco_unitario,
+            0,
+          );
 
           const { data: pedido, error: pedidoError } = await supabase
             .from("pedidos")
@@ -820,8 +1040,11 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             .single();
 
           if (pedidoError) throw pedidoError;
-          if (pedido?.id) markOrderNotified(pedido.id, venda.telefone_entrega || venda.cliente_telefone || null);
-
+          if (pedido?.id)
+            markOrderNotified(
+              pedido.id,
+              venda.telefone_entrega || venda.cliente_telefone || null,
+            );
 
           const itensInsert = itensValidos.map((item: any) => ({
             pedido_id: pedido.id,
@@ -829,7 +1052,9 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             quantidade: item.quantidade || 1,
             preco_unitario: item.preco_unitario,
           }));
-          const { error: itensError } = await supabase.from("pedido_itens").insert(itensInsert);
+          const { error: itensError } = await supabase
+            .from("pedido_itens")
+            .insert(itensInsert);
           if (itensError) {
             await supabase.from("pedidos").delete().eq("id", pedido.id);
             throw itensError;
@@ -841,12 +1066,15 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               produto_id: item.produto_id,
               quantidade: item.quantidade || 1,
             })),
-            unidadeAtual?.id
+            unidadeAtual?.id,
           );
 
           successCount++;
         } catch (err: any) {
-          console.error(`Erro ao lançar venda para ${venda.cliente_nome}:`, err);
+          console.error(
+            `Erro ao lançar venda para ${venda.cliente_nome}:`,
+            err,
+          );
         }
       }
 
@@ -863,7 +1091,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       console.error("Erro OCR:", error);
       toast({
         title: "Erro ao processar foto",
-        description: error.message || "Não foi possível interpretar a anotação.",
+        description:
+          error.message || "Não foi possível interpretar a anotação.",
         variant: "destructive",
       });
     } finally {
@@ -876,18 +1105,19 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const totalEfetivoVenda = calcTotalEfetivoVenda(totalVenda, pagamentos);
   const clientePreenchido = !!customer.nome.trim();
   const produtosPreenchidos = itens.length > 0;
-  const pagamentoPreenchido = totalPagoVenda >= totalEfetivoVenda && totalEfetivoVenda > 0;
+  const pagamentoPreenchido =
+    totalPagoVenda >= totalEfetivoVenda && totalEfetivoVenda > 0;
   const entregadorPreenchido = !!entregador.id;
 
   const firstPendingStep: VendaStepId = !clientePreenchido
     ? "cliente"
     : !produtosPreenchidos
-    ? "produtos"
-    : !pagamentoPreenchido
-    ? "pagamento"
-    : !entregadorPreenchido
-    ? "entregador"
-    : "confirmar";
+      ? "produtos"
+      : !pagamentoPreenchido
+        ? "pagamento"
+        : !entregadorPreenchido
+          ? "entregador"
+          : "confirmar";
 
   useEffect(() => {
     // Navegação entre etapas é 100% manual via clique nas abas do stepper.
@@ -898,7 +1128,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       pagamento: pagamentoPreenchido,
       entregador: entregadorPreenchido,
     };
-  }, [clientePreenchido, produtosPreenchidos, pagamentoPreenchido, entregadorPreenchido]);
+  }, [
+    clientePreenchido,
+    produtosPreenchidos,
+    pagamentoPreenchido,
+    entregadorPreenchido,
+  ]);
 
   const canOpenStep = (step: VendaStepId) => {
     return VENDA_STEPS.includes(step);
@@ -909,7 +1144,6 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     setUseNewView(next);
     saveViewMode(next);
   };
-
 
   // Floating windows manager (multi-instância)
   const { openWindow: openNovaVendaWindow } = useNovaVendaWindows();
@@ -923,13 +1157,15 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     });
   };
 
-  const handleVendedorAuto = (vendedorUserId: string | null, nome: string | null) => {
+  const handleVendedorAuto = (
+    vendedorUserId: string | null,
+    nome: string | null,
+  ) => {
     // Só auto-preenche se ainda não há vendedor escolhido manualmente
     if (!vendedor.id && vendedorUserId) {
       setVendedor({ id: vendedorUserId, nome });
     }
   };
-
 
   const advanceStep = useCallback(() => {
     const currentIdx = VENDA_STEPS.indexOf(activeStep);
@@ -940,22 +1176,47 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   }, [activeStep]);
 
   const handleStepEnterNavigation = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.defaultPrevented || event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (
+      event.defaultPrevented ||
+      event.key !== "Enter" ||
+      event.shiftKey ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey
+    )
+      return;
     const target = event.target as HTMLElement;
-    if (target.closest("#ai-send-btn") || target.closest("[data-venda-enter-skip]") || target.closest('[role="combobox"]') || target.closest("button")) return;
+    if (
+      target.closest("#ai-send-btn") ||
+      target.closest("[data-venda-enter-skip]") ||
+      target.closest('[role="combobox"]') ||
+      target.closest("button")
+    )
+      return;
     if (target instanceof HTMLTextAreaElement) return;
 
     const isNavigableInput =
-      (target instanceof HTMLInputElement || target instanceof HTMLSelectElement) &&
+      (target instanceof HTMLInputElement ||
+        target instanceof HTMLSelectElement) &&
       target.matches("[data-venda-enter-next]") &&
-      !(target instanceof HTMLInputElement && (target.type === "file" || target.type === "checkbox" || target.type === "radio"));
+      !(
+        target instanceof HTMLInputElement &&
+        (target.type === "file" ||
+          target.type === "checkbox" ||
+          target.type === "radio")
+      );
 
     if (isNavigableInput) {
       const panel = target.closest(".venda-step-panel");
       if (panel) {
         const focusables = Array.from(
-          panel.querySelectorAll<HTMLElement>('[data-venda-enter-next]:not([disabled])')
-        ).filter((el) => el.offsetParent !== null && !el.closest('[aria-hidden="true"]'));
+          panel.querySelectorAll<HTMLElement>(
+            "[data-venda-enter-next]:not([disabled])",
+          ),
+        ).filter(
+          (el) =>
+            el.offsetParent !== null && !el.closest('[aria-hidden="true"]'),
+        );
         const index = focusables.indexOf(target);
         const next = focusables[index + 1];
 
@@ -972,7 +1233,10 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     }
 
     // Enter fora de um input navegável (ex: painel Entregador/Confirmar) também avança
-    if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) {
+    if (
+      !(target instanceof HTMLInputElement) &&
+      !(target instanceof HTMLSelectElement)
+    ) {
       event.preventDefault();
       advanceStep();
     }
@@ -981,46 +1245,68 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const handleFinalizar = async () => {
     const itensValidos = getValidSaleItems(itens);
     if (itensValidos.length === 0) {
-      toast({ title: "Produto obrigatório", description: "Adicione pelo menos um produto antes de finalizar.", variant: "destructive" });
+      toast({
+        title: "Produto obrigatório",
+        description: "Adicione pelo menos um produto antes de finalizar.",
+        variant: "destructive",
+      });
       setActiveStep("produtos");
       return;
     }
     if (itensValidos.length !== itens.length) {
-      toast({ title: "Produto inválido", description: "Revise os produtos da venda antes de finalizar.", variant: "destructive" });
+      toast({
+        title: "Produto inválido",
+        description: "Revise os produtos da venda antes de finalizar.",
+        variant: "destructive",
+      });
       setActiveStep("produtos");
       return;
     }
 
     if (pagamentos.length === 0) {
-      toast({ title: "Forma de pagamento obrigatória", description: "Selecione pelo menos uma forma de pagamento antes de finalizar.", variant: "destructive" });
+      toast({
+        title: "Forma de pagamento obrigatória",
+        description:
+          "Selecione pelo menos uma forma de pagamento antes de finalizar.",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!canalVenda) {
-      toast({ title: "Canal de venda obrigatório", description: "Selecione o canal de venda antes de finalizar.", variant: "destructive" });
+      toast({
+        title: "Canal de venda obrigatório",
+        description: "Selecione o canal de venda antes de finalizar.",
+        variant: "destructive",
+      });
       return;
     }
-
 
     const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
     const totalCobrar = calcTotalEfetivoVenda(totalVenda, pagamentos);
     if (totalPago < totalCobrar) {
-      toast({ title: "Pagamento incompleto", description: `Falta pagar R$ ${(totalCobrar - totalPago).toFixed(2)}`, variant: "destructive" });
+      toast({
+        title: "Pagamento incompleto",
+        description: `Falta pagar R$ ${(totalCobrar - totalPago).toFixed(2)}`,
+        variant: "destructive",
+      });
       return;
     }
-
 
     // Regra Empenho: se parceiro com empenho selecionado, exigir nº vale físico
     if (parceiroEmpenhoId !== "nenhum") {
       const n = parseInt(valeNumero, 10);
       if (!n || n <= 0) {
-        toast({ title: "Vale físico obrigatório", description: "Informe o número do vale físico para este empenho.", variant: "destructive" });
+        toast({
+          title: "Vale físico obrigatório",
+          description: "Informe o número do vale físico para este empenho.",
+          variant: "destructive",
+        });
         return;
       }
     }
 
     setIsLoading(true);
-
 
     try {
       // Auto-cadastrar cliente se não estiver cadastrado
@@ -1042,7 +1328,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           })
           .select("id")
           .single();
-        
+
         if (!clienteError && novoCliente) {
           clienteId = novoCliente.id;
           // Associate with current unidade
@@ -1052,7 +1338,10 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               unidade_id: unidadeAtual.id,
             });
           }
-          toast({ title: "Cliente cadastrado automaticamente!", description: `${customer.nome} foi adicionado ao sistema.` });
+          toast({
+            title: "Cliente cadastrado automaticamente!",
+            description: `${customer.nome} foi adicionado ao sistema.`,
+          });
         }
       }
 
@@ -1061,22 +1350,32 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         customer.numero && `Nº ${customer.numero}`,
         customer.complemento,
         customer.bairro,
-      ].filter(Boolean).join(", ");
+      ]
+        .filter(Boolean)
+        .join(", ");
 
       // Extract cheque/fiado data from pagamentos
-      const chequePag = pagamentos.find(p => p.forma === "cheque");
-      const fiadoPag = pagamentos.find(p => p.forma === "fiado");
+      const chequePag = pagamentos.find((p) => p.forma === "cheque");
+      const fiadoPag = pagamentos.find((p) => p.forma === "fiado");
       const encodePagamentoMarker = (p: any) => {
         const parts: string[] = [];
         if (p.operadora_id) parts.push(`op:${p.operadora_id}`);
         if (p.conta_bancaria_id) parts.push(`cta:${p.conta_bancaria_id}`);
-        if (p.forma === "cartao_credito" && p.parcelas && p.parcelas > 1) parts.push(`par:${p.parcelas}`);
-        if (p.forma === "cartao_credito" && p.taxa_total_percentual) parts.push(`tx:${Number(p.taxa_total_percentual).toFixed(2)}`);
+        if (p.forma === "cartao_credito" && p.parcelas && p.parcelas > 1)
+          parts.push(`par:${p.parcelas}`);
+        if (p.forma === "cartao_credito" && p.taxa_total_percentual)
+          parts.push(`tx:${Number(p.taxa_total_percentual).toFixed(2)}`);
         return parts.length ? ` [${parts.join("|")}]` : "";
       };
-      const formaPagamentoResumo = pagamentos.length === 1
-        ? `${pagamentos[0].forma}${encodePagamentoMarker(pagamentos[0])}`
-        : pagamentos.map((p) => `${p.forma} R$${p.valor.toFixed(2)}${encodePagamentoMarker(p)}`).join(", ");
+      const formaPagamentoResumo =
+        pagamentos.length === 1
+          ? `${pagamentos[0].forma}${encodePagamentoMarker(pagamentos[0])}`
+          : pagamentos
+              .map(
+                (p) =>
+                  `${p.forma} R$${p.valor.toFixed(2)}${encodePagamentoMarker(p)}`,
+              )
+              .join(", ");
 
       const pedidoJaEntregue = jaEntregue && !!entregador.id;
       const pedidoInsert: any = {
@@ -1105,7 +1404,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       }
 
       if (fiadoPag) {
-        pedidoInsert.data_vencimento_fiado = fiadoPag.data_vencimento_fiado || null;
+        pedidoInsert.data_vencimento_fiado =
+          fiadoPag.data_vencimento_fiado || null;
       }
 
       const { data: pedido, error: pedidoError } = await supabase
@@ -1115,25 +1415,35 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         .single();
 
       if (pedidoError) throw pedidoError;
-      if (pedido?.id) markOrderNotified(pedido.id, (pedidoInsert as any)?.telefone_entrega || customer?.telefone || null);
-
+      if (pedido?.id)
+        markOrderNotified(
+          pedido.id,
+          (pedidoInsert as any)?.telefone_entrega || customer?.telefone || null,
+        );
 
       // Regra Empenho: consumir vale físico vinculado ao empenho do parceiro
       if (parceiroEmpenhoId !== "nenhum" && valeNumero) {
-        const { data: rpcData, error: rpcErr } = await (supabase as any).rpc("consumir_vale_empenho", {
-          _parceiro_id: parceiroEmpenhoId,
-          _numero_vale: parseInt(valeNumero, 10),
-          _cliente_final_id: clienteId,
-          _pedido_id: pedido.id,
-        });
+        const { data: rpcData, error: rpcErr } = await (supabase as any).rpc(
+          "consumir_vale_empenho",
+          {
+            _parceiro_id: parceiroEmpenhoId,
+            _numero_vale: parseInt(valeNumero, 10),
+            _cliente_final_id: clienteId,
+            _pedido_id: pedido.id,
+          },
+        );
         if (rpcErr) {
           // rollback pedido para não deixar venda órfã
           await supabase.from("pedidos").delete().eq("id", pedido.id);
-          throw new Error(rpcErr.message || "Falha ao consumir vale do empenho");
+          throw new Error(
+            rpcErr.message || "Falha ao consumir vale do empenho",
+          );
         }
-        toast({ title: "Vale consumido", description: `Vale ${valeNumero} vinculado ao empenho. Saldo: ${(rpcData as any)?.saldo_restante ?? "—"}` });
+        toast({
+          title: "Vale consumido",
+          description: `Vale ${valeNumero} vinculado ao empenho. Saldo: ${(rpcData as any)?.saldo_restante ?? "—"}`,
+        });
       }
-
 
       const itensInsert = itensValidos.map((item) => ({
         pedido_id: pedido.id,
@@ -1142,7 +1452,9 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         preco_unitario: item.preco_unitario,
       }));
 
-      const { error: itensError } = await supabase.from("pedido_itens").insert(itensInsert);
+      const { error: itensError } = await supabase
+        .from("pedido_itens")
+        .insert(itensInsert);
       if (itensError) {
         await supabase.from("pedidos").delete().eq("id", pedido.id);
         throw itensError;
@@ -1150,27 +1462,41 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
       // Venda antecipada é uma retirada de saldo já pago. Consumimos o vale no
       // momento em que o pedido nasce, inclusive quando haverá entregador/acerto.
-      for (const pagamento of pagamentos.filter((p) => p.forma === "venda_antecipada")) {
-        if (!pagamento.venda_antecipada_codigo || !pagamento.venda_antecipada_vale_id) {
+      for (const pagamento of pagamentos.filter(
+        (p) => p.forma === "venda_antecipada",
+      )) {
+        if (
+          !pagamento.venda_antecipada_codigo ||
+          !pagamento.venda_antecipada_vale_id
+        ) {
           await supabase.from("pedidos").delete().eq("id", pedido.id);
           throw new Error("Venda antecipada sem código validado.");
         }
-        const { data: retirada, error: retiradaError } = await supabase.rpc("consumir_vale_venda_antecipada", {
-          _codigo: pagamento.venda_antecipada_codigo,
-          _pedido_id: pedido.id,
-          _observacao: `Retirada no pedido #${(pedido as any).numero_sequencial ?? pedido.id.slice(0, 8)}`,
-        });
+        const { data: retirada, error: retiradaError } = await supabase.rpc(
+          "consumir_vale_venda_antecipada",
+          {
+            _codigo: pagamento.venda_antecipada_codigo,
+            _pedido_id: pedido.id,
+            _observacao: `Retirada no pedido #${(pedido as any).numero_sequencial ?? pedido.id.slice(0, 8)}`,
+          },
+        );
         if (retiradaError || (retirada as any)?.ok !== true) {
           await supabase.from("pedidos").delete().eq("id", pedido.id);
-          throw new Error(retiradaError?.message || "Não foi possível consumir o vale da venda antecipada.");
+          throw new Error(
+            retiradaError?.message ||
+              "Não foi possível consumir o vale da venda antecipada.",
+          );
         }
       }
 
       // #4 - Use shared stock update service
-      await atualizarEstoqueVenda(itensValidos.map((item) => ({
-        produto_id: item.produto_id,
-        quantidade: item.quantidade,
-      })), unidadeAtual?.id);
+      await atualizarEstoqueVenda(
+        itensValidos.map((item) => ({
+          produto_id: item.produto_id,
+          quantidade: item.quantidade,
+        })),
+        unidadeAtual?.id,
+      );
 
       // Prepare receipt data: prioriza dados da unidade/loja atual
       let empresaConfig: EmpresaConfig | undefined;
@@ -1185,9 +1511,13 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         const enderecoUnidade = [
           unidadeAtual?.endereco,
           unidadeAtual?.bairro,
-          [unidadeAtual?.cidade, unidadeAtual?.estado].filter(Boolean).join("/"),
+          [unidadeAtual?.cidade, unidadeAtual?.estado]
+            .filter(Boolean)
+            .join("/"),
           unidadeAtual?.cep,
-        ].filter(Boolean).join(", ");
+        ]
+          .filter(Boolean)
+          .join(", ");
 
         empresaConfig = {
           nome_empresa: unidadeAtual?.nome || empresa?.nome || "Empresa",
@@ -1198,14 +1528,20 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         };
       } catch (e) {
         console.warn("Não foi possível carregar configurações da empresa");
-        empresaConfig = { nome_empresa: unidadeAtual?.nome || empresa?.nome || "Empresa" };
+        empresaConfig = {
+          nome_empresa: unidadeAtual?.nome || empresa?.nome || "Empresa",
+        };
       }
 
       const receiptData = {
         pedidoId: pedido.id,
         pedidoNumero: (pedido as any).numero_sequencial ?? null,
         data: new Date(toBrasiliaNoonISOString(dataEntrega)),
-        cliente: { nome: customer.nome, telefone: customer.telefone, endereco: enderecoCompleto },
+        cliente: {
+          nome: customer.nome,
+          telefone: customer.telefone,
+          endereco: enderecoCompleto,
+        },
         itens,
         pagamentos,
         entregadorNome: entregador.nome,
@@ -1223,27 +1559,29 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           pedidoNumero: (pedido as any).numero_sequencial ?? null,
           clienteId,
           clienteNome: customer.nome || "Consumidor",
-          pagamentos: pagamentos.filter((p) => p.forma !== "venda_antecipada").map(p => ({
-            forma: p.forma,
-            valor: p.valor,
-            cheque_numero: p.cheque_numero,
-            cheque_banco: p.cheque_banco,
-            cheque_foto_url: p.cheque_foto_url,
-            data_vencimento_fiado: p.data_vencimento_fiado,
-            operadora_id: (p as any).operadora_id,
-            conta_bancaria_id: (p as any).conta_bancaria_id,
-            parcelas: (p as any).parcelas,
-            taxa_desconto_percentual: (p as any).taxa_desconto_percentual,
-            taxa_total_percentual: (p as any).taxa_total_percentual,
-            vale_gas_id: p.vale_gas_id,
-            vale_gas_parceiro_id: p.vale_gas_parceiro_id,
-            vale_gas_parceiro_nome: p.vale_gas_parceiro_nome,
-            vale_gas_numero: p.vale_gas_numero,
-            vale_gas_codigo: p.vale_gas_codigo,
-            venda_antecipada_vale_id: p.venda_antecipada_vale_id,
-            venda_antecipada_id: p.venda_antecipada_id,
-            venda_antecipada_codigo: p.venda_antecipada_codigo,
-          })),
+          pagamentos: pagamentos
+            .filter((p) => p.forma !== "venda_antecipada")
+            .map((p) => ({
+              forma: p.forma,
+              valor: p.valor,
+              cheque_numero: p.cheque_numero,
+              cheque_banco: p.cheque_banco,
+              cheque_foto_url: p.cheque_foto_url,
+              data_vencimento_fiado: p.data_vencimento_fiado,
+              operadora_id: (p as any).operadora_id,
+              conta_bancaria_id: (p as any).conta_bancaria_id,
+              parcelas: (p as any).parcelas,
+              taxa_desconto_percentual: (p as any).taxa_desconto_percentual,
+              taxa_total_percentual: (p as any).taxa_total_percentual,
+              vale_gas_id: p.vale_gas_id,
+              vale_gas_parceiro_id: p.vale_gas_parceiro_id,
+              vale_gas_parceiro_nome: p.vale_gas_parceiro_nome,
+              vale_gas_numero: p.vale_gas_numero,
+              vale_gas_codigo: p.vale_gas_codigo,
+              venda_antecipada_vale_id: p.venda_antecipada_vale_id,
+              venda_antecipada_id: p.venda_antecipada_id,
+              venda_antecipada_codigo: p.venda_antecipada_codigo,
+            })),
           unidadeId: unidadeAtual?.id,
           entregadorId: pedidoJaEntregue ? entregador.id : null,
         });
@@ -1255,7 +1593,9 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       if (temBoleto) {
         const { data: cr } = await supabase
           .from("contas_receber")
-          .select("id, cliente, descricao, valor, vencimento, pedido_id, asaas_charge_id, linha_digitavel, boleto_url, pix_copia_cola")
+          .select(
+            "id, cliente, descricao, valor, vencimento, pedido_id, asaas_charge_id, linha_digitavel, boleto_url, pix_copia_cola",
+          )
           .eq("pedido_id", pedido.id)
           .eq("forma_pagamento", "boleto")
           .order("created_at", { ascending: false })
@@ -1279,7 +1619,11 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       setPrintDialogOpen(true);
     } catch (error: any) {
       console.error("Erro ao salvar venda:", error);
-      toast({ title: "Erro ao salvar", description: error.message || "Ocorreu um erro ao finalizar a venda.", variant: "destructive" });
+      toast({
+        title: "Erro ao salvar",
+        description: error.message || "Ocorreu um erro ao finalizar a venda.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -1288,64 +1632,101 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const handleAgendar = () => {
     const itensValidos = getValidSaleItems(itens);
     if (itensValidos.length === 0) {
-      toast({ title: "Produto obrigatório", description: "Adicione pelo menos um produto antes de agendar.", variant: "destructive" });
+      toast({
+        title: "Produto obrigatório",
+        description: "Adicione pelo menos um produto antes de agendar.",
+        variant: "destructive",
+      });
       setActiveStep("produtos");
       return;
     }
     if (itensValidos.length !== itens.length) {
-      toast({ title: "Produto inválido", description: "Revise os produtos da venda antes de agendar.", variant: "destructive" });
+      toast({
+        title: "Produto inválido",
+        description: "Revise os produtos da venda antes de agendar.",
+        variant: "destructive",
+      });
       setActiveStep("produtos");
       return;
     }
     if (!canalVenda) {
-      toast({ title: "Canal de venda obrigatório", description: "Selecione o canal de venda antes de agendar.", variant: "destructive" });
+      toast({
+        title: "Canal de venda obrigatório",
+        description: "Selecione o canal de venda antes de agendar.",
+        variant: "destructive",
+      });
       return;
     }
     setAgendarOpen(true);
   };
 
-
   const handleConfirmarAgendamento = async () => {
     const itensValidos = getValidSaleItems(itens);
     if (itensValidos.length === 0 || itensValidos.length !== itens.length) {
-      toast({ title: "Produto obrigatório", description: "Adicione pelo menos um produto válido antes de agendar.", variant: "destructive" });
+      toast({
+        title: "Produto obrigatório",
+        description: "Adicione pelo menos um produto válido antes de agendar.",
+        variant: "destructive",
+      });
       setAgendarOpen(false);
       setActiveStep("produtos");
       return;
     }
     if (!dataAgendamento) {
-      toast({ title: "Selecione a data", variant: "destructive" }); return;
+      toast({ title: "Selecione a data", variant: "destructive" });
+      return;
     }
     setIsLoading(true);
     try {
       const enderecoCompleto = [
-        customer.endereco, customer.numero && `Nº ${customer.numero}`,
-        customer.complemento, customer.bairro,
-      ].filter(Boolean).join(", ");
+        customer.endereco,
+        customer.numero && `Nº ${customer.numero}`,
+        customer.complemento,
+        customer.bairro,
+      ]
+        .filter(Boolean)
+        .join(", ");
 
-      const agendamentoDate = new Date(`${dataAgendamento}T${horaAgendamento}:00`);
+      const agendamentoDate = new Date(
+        `${dataAgendamento}T${horaAgendamento}:00`,
+      );
       const encodePagamentoMarker = (p: any) => {
         const parts: string[] = [];
         if (p.operadora_id) parts.push(`op:${p.operadora_id}`);
         if (p.conta_bancaria_id) parts.push(`cta:${p.conta_bancaria_id}`);
-        if (p.forma === "cartao_credito" && p.parcelas && p.parcelas > 1) parts.push(`par:${p.parcelas}`);
-        if (p.forma === "cartao_credito" && p.taxa_total_percentual) parts.push(`tx:${Number(p.taxa_total_percentual).toFixed(2)}`);
+        if (p.forma === "cartao_credito" && p.parcelas && p.parcelas > 1)
+          parts.push(`par:${p.parcelas}`);
+        if (p.forma === "cartao_credito" && p.taxa_total_percentual)
+          parts.push(`tx:${Number(p.taxa_total_percentual).toFixed(2)}`);
         return parts.length ? ` [${parts.join("|")}]` : "";
       };
-      const formaPagamentoResumo = pagamentos.length === 1
-        ? `${pagamentos[0].forma}${encodePagamentoMarker(pagamentos[0])}`
-        : pagamentos.map((p) => `${p.forma} R$${p.valor.toFixed(2)}${encodePagamentoMarker(p)}`).join(", ");
+      const formaPagamentoResumo =
+        pagamentos.length === 1
+          ? `${pagamentos[0].forma}${encodePagamentoMarker(pagamentos[0])}`
+          : pagamentos
+              .map(
+                (p) =>
+                  `${p.forma} R$${p.valor.toFixed(2)}${encodePagamentoMarker(p)}`,
+              )
+              .join(", ");
 
       const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert({
-          cliente_id: customer.id, entregador_id: entregador.id, vendedor_id: vendedor.id,
-          endereco_entrega: enderecoCompleto, valor_total: totalEfetivoVenda,
+          cliente_id: customer.id,
+          entregador_id: entregador.id,
+          vendedor_id: vendedor.id,
+          endereco_entrega: enderecoCompleto,
+          valor_total: totalEfetivoVenda,
           forma_pagamento: formaPagamentoResumo,
-          canal_venda: canalVenda, origem_pedido: "erp", observacoes: customer.observacao,
-          status: "pendente", unidade_id: unidadeAtual?.id,
+          canal_venda: canalVenda,
+          origem_pedido: "erp",
+          observacoes: customer.observacao,
+          status: "pendente",
+          unidade_id: unidadeAtual?.id,
           data_entrega: dataAgendamento,
-          agendado: true, data_agendamento: agendamentoDate.toISOString(),
+          agendado: true,
+          data_agendamento: agendamentoDate.toISOString(),
         } as any)
         .select("id, numero_sequencial")
         .single();
@@ -1353,12 +1734,15 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       if (pedidoError) throw pedidoError;
       if (pedido?.id) markOrderNotified(pedido.id, customer?.telefone || null);
 
-
       const itensInsert = itensValidos.map((item) => ({
-        pedido_id: pedido.id, produto_id: item.produto_id,
-        quantidade: item.quantidade, preco_unitario: item.preco_unitario,
+        pedido_id: pedido.id,
+        produto_id: item.produto_id,
+        quantidade: item.quantidade,
+        preco_unitario: item.preco_unitario,
       }));
-      const { error: itensError } = await supabase.from("pedido_itens").insert(itensInsert);
+      const { error: itensError } = await supabase
+        .from("pedido_itens")
+        .insert(itensInsert);
       if (itensError) {
         await supabase.from("pedidos").delete().eq("id", pedido.id);
         throw itensError;
@@ -1373,7 +1757,11 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       navigate("/vendas/pedidos");
     } catch (error: any) {
       console.error(error);
-      toast({ title: "Erro ao agendar", description: error.message, variant: "destructive" });
+      toast({
+        title: "Erro ao agendar",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -1381,7 +1769,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   const handleCancelar = () => {
     if (itens.length > 0 || pagamentos.length > 0) {
-      if (!confirm("Deseja realmente cancelar esta venda? Os dados serão perdidos.")) return;
+      if (
+        !confirm(
+          "Deseja realmente cancelar esta venda? Os dados serão perdidos.",
+        )
+      )
+        return;
     }
     clearDraft();
     if (embedded && onClose) {
@@ -1396,10 +1789,18 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const handleAgendarRef = useRef(handleAgendar);
   const openNovaVendaWindowRef = useRef(openNovaVendaWindow);
   const isLoadingRef = useRef(isLoading);
-  useEffect(() => { handleFinalizarRef.current = handleFinalizar; });
-  useEffect(() => { handleAgendarRef.current = handleAgendar; });
-  useEffect(() => { openNovaVendaWindowRef.current = openNovaVendaWindow; });
-  useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
+  useEffect(() => {
+    handleFinalizarRef.current = handleFinalizar;
+  });
+  useEffect(() => {
+    handleAgendarRef.current = handleAgendar;
+  });
+  useEffect(() => {
+    openNovaVendaWindowRef.current = openNovaVendaWindow;
+  });
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
 
   // Atalhos de teclado: F2 novo pedido, F3 finalizar, F4 agendar, F5 cadastro cliente
   useEffect(() => {
@@ -1420,15 +1821,17 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           break;
         case "F5":
           e.preventDefault();
-          window.open("/clientes/cadastro", "_blank", "noopener,noreferrer,width=1200,height=800");
+          window.open(
+            "/clientes/cadastro",
+            "_blank",
+            "noopener,noreferrer,width=1200,height=800",
+          );
           break;
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
-
-
 
   // Load initial client when in embedded mode (e.g., from CallerIdPopup) OR via URL ?cliente_id=
   const urlClienteId = searchParams.get("cliente_id");
@@ -1475,13 +1878,15 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             total: it.quantidade * Number(it.preco_unitario),
           }));
           setItens(novos);
-          toast({ title: "Pedido replicado", description: `${novos.length} item(ns) carregado(s) do pedido anterior.` });
+          toast({
+            title: "Pedido replicado",
+            description: `${novos.length} item(ns) carregado(s) do pedido anterior.`,
+          });
         }
       }
     };
     loadCliente();
   }, [effectiveClienteId, urlRepetirPedido]);
-
 
   const metaCard = (
     <Card className="venda-card venda-gasmais-card venda-tone-cliente border-border bg-card shadow-[0_4px_20px_rgba(15,23,42,0.05)] rounded-[20px] overflow-hidden">
@@ -1493,9 +1898,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               <ShoppingBag className="h-4 w-4" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Pedido</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Pedido
+              </p>
               <p className="text-sm font-bold text-foreground truncate leading-tight">
-                Nova Venda <span className="text-primary">#{proximoNumero ?? "—"}</span>
+                Nova Venda{" "}
+                <span className="text-primary">#{proximoNumero ?? "—"}</span>
               </p>
             </div>
           </div>
@@ -1511,7 +1919,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground" aria-label="Mais ações">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg text-muted-foreground"
+                  aria-label="Mais ações"
+                >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -1546,15 +1959,27 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               <Calendar className="h-3 w-3" />
               Data de Entrega
             </Label>
-            <Input type="date" value={dataEntrega} onChange={(e) => setDataEntrega(e.target.value)} className="mt-1 h-11 rounded-xl" data-venda-enter-next />
+            <Input
+              type="date"
+              value={dataEntrega}
+              onChange={(e) => setDataEntrega(e.target.value)}
+              className="mt-1 h-11 rounded-xl"
+              data-venda-enter-next
+            />
           </div>
           <div>
-            <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Canal de Venda</Label>
+            <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Canal de Venda
+            </Label>
             <Select value={canalVenda} onValueChange={setCanalVenda}>
-              <SelectTrigger className="mt-1 h-11 rounded-xl"><SelectValue placeholder="Selecione o canal" /></SelectTrigger>
+              <SelectTrigger className="mt-1 h-11 rounded-xl">
+                <SelectValue placeholder="Selecione o canal" />
+              </SelectTrigger>
               <SelectContent>
                 {allChannels.map((ch) => (
-                  <SelectItem key={ch.value} value={ch.value}>{ch.label}</SelectItem>
+                  <SelectItem key={ch.value} value={ch.value}>
+                    {ch.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -1564,20 +1989,34 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         {parceirosComEmpenho.length > 0 && (
           <div className="grid gap-3 md:grid-cols-2 border-t pt-3">
             <div>
-              <Label className="text-xs font-semibold text-foreground">Empenho / Parceiro (opcional)</Label>
-              <Select value={parceiroEmpenhoId} onValueChange={(v) => { setParceiroEmpenhoId(v); if (v === "nenhum") setValeNumero(""); }}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Sem empenho" /></SelectTrigger>
+              <Label className="text-xs font-semibold text-foreground">
+                Empenho / Parceiro (opcional)
+              </Label>
+              <Select
+                value={parceiroEmpenhoId}
+                onValueChange={(v) => {
+                  setParceiroEmpenhoId(v);
+                  if (v === "nenhum") setValeNumero("");
+                }}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Sem empenho" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="nenhum">Sem empenho</SelectItem>
                   {parceirosComEmpenho.map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nome}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             {parceiroEmpenhoId !== "nenhum" && (
               <div>
-                <Label className="text-xs font-semibold text-foreground">Nº do Vale Físico *</Label>
+                <Label className="text-xs font-semibold text-foreground">
+                  Nº do Vale Físico *
+                </Label>
                 <Input
                   type="number"
                   inputMode="numeric"
@@ -1594,7 +2033,6 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     </Card>
   );
 
-
   const aiCommandPopover = (
     <Dialog open={aiPopoverOpen} onOpenChange={setAiPopoverOpen}>
       <DialogContent className="max-w-[480px] p-4">
@@ -1610,45 +2048,116 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             placeholder='Ex: "2 P13 para Maria, Rua Ceará 30, Centro"'
             value={aiCommand}
             onChange={(e) => setAiCommand(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !aiLoading && handleAiCommand()}
+            onKeyDown={(e) =>
+              e.key === "Enter" && !aiLoading && handleAiCommand()
+            }
             className="bg-background flex-1 min-w-0"
             data-venda-enter-skip
             disabled={aiLoading || isListening}
           />
           <div className="flex items-center gap-1">
-            <Button variant={isListening ? "destructive" : "microphone"} size="icon" onClick={isListening ? stopListening : startListening} disabled={aiLoading} className={`shrink-0 h-9 w-9 ${isListening ? "animate-pulse" : ""}`} title={isListening ? "Parar gravação" : "Comando por voz"}>
-              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            <Button
+              variant={isListening ? "destructive" : "microphone"}
+              size="icon"
+              onClick={isListening ? stopListening : startListening}
+              disabled={aiLoading}
+              className={`shrink-0 h-9 w-9 ${isListening ? "animate-pulse" : ""}`}
+              title={isListening ? "Parar gravação" : "Comando por voz"}
+            >
+              {isListening ? (
+                <MicOff className="h-4 w-4" />
+              ) : (
+                <Mic className="h-4 w-4" />
+              )}
             </Button>
-            <Button variant="import" size="icon" onClick={() => photoInputRef.current?.click()} disabled={aiLoading || photoLoading} className="shrink-0 h-9 w-9" title="Lançar vendas por foto">
-              {photoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+            <Button
+              variant="import"
+              size="icon"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={aiLoading || photoLoading}
+              className="shrink-0 h-9 w-9"
+              title="Lançar vendas por foto"
+            >
+              {photoLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ImageIcon className="h-4 w-4" />
+              )}
             </Button>
-            <Button variant="photo" size="icon" onClick={() => cameraInputRef.current?.click()} disabled={aiLoading || photoLoading} className="shrink-0 h-9 w-9" title="Tirar foto da anotação">
-              {photoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+            <Button
+              variant="photo"
+              size="icon"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={aiLoading || photoLoading}
+              className="shrink-0 h-9 w-9"
+              title="Tirar foto da anotação"
+            >
+              {photoLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
             </Button>
-            <Button id="ai-send-btn" onClick={handleAiCommand} disabled={aiLoading || !aiCommand.trim()} size="sm" className="shrink-0 gap-1">
-              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              <span className="hidden sm:inline">{aiLoading ? "..." : "Enviar"}</span>
+            <Button
+              id="ai-send-btn"
+              onClick={handleAiCommand}
+              disabled={aiLoading || !aiCommand.trim()}
+              size="sm"
+              className="shrink-0 gap-1"
+            >
+              {aiLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">
+                {aiLoading ? "..." : "Enviar"}
+              </span>
             </Button>
           </div>
         </div>
         <p className="text-[11px] font-medium text-muted-foreground mt-2">
-          {photoLoading ? "📸 Processando foto..." : isListening ? "🔴 Ouvindo... Fale o comando." : "💡 Digite, 🎤 dite, ou 📷 tire foto de anotações."}
+          {photoLoading
+            ? "📸 Processando foto..."
+            : isListening
+              ? "🔴 Ouvindo... Fale o comando."
+              : "💡 Digite, 🎤 dite, ou 📷 tire foto de anotações."}
         </p>
       </DialogContent>
     </Dialog>
   );
 
-
   const hiddenAiInputs = (
     <>
-      <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
-      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handlePhotoSales(file);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handlePhotoSales(file);
+          e.target.value = "";
+        }}
+      />
     </>
   );
 
   const vendaContent = (
     <>
-      <div className="min-h-full bg-[hsl(220,14%,96%)] p-3 md:p-6 space-y-3 md:space-y-4"> 
+      <div className="min-h-full space-y-3 bg-[hsl(220,14%,96%)] px-2 py-3 md:space-y-4 md:p-6">
         <CaixaBloqueadoBanner />
 
         {aiCommandPopover}
@@ -1657,11 +2166,15 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         {useNewView ? (
           <div className="space-y-3 md:space-y-4">
             {activeStep === "cliente" && (
-              <div className="venda-step-panel grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]" onKeyDown={handleStepEnterNavigation}>
+              <div
+                className="venda-step-panel grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]"
+                onKeyDown={handleStepEnterNavigation}
+              >
                 <div className="space-y-3 md:space-y-4 min-w-0">
-                  
                   {metaCard}
-                  <div className="venda-tone-cliente"><CustomerSearch value={customer} onChange={setCustomer} /></div>
+                  <div className="venda-tone-cliente">
+                    <CustomerSearch value={customer} onChange={setCustomer} />
+                  </div>
                 </div>
                 <div className="venda-tone-cliente min-w-0 xl:sticky xl:top-4 self-start">
                   <CustomerHistory clienteId={customer.id} />
@@ -1669,22 +2182,46 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               </div>
             )}
             {activeStep === "produtos" && (
-              <div className="venda-step-panel w-full" onKeyDown={handleStepEnterNavigation}>
-                <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
+              <div
+                className="venda-step-panel w-full"
+                onKeyDown={handleStepEnterNavigation}
+              >
+                <ProductSearch
+                  itens={itens}
+                  onChange={setItens}
+                  unidadeId={unidadeAtual?.id}
+                  clienteId={customer.id}
+                />
               </div>
             )}
             {activeStep === "pagamento" && (
-              <div className="venda-step-panel venda-tone-pagamento w-full" onKeyDown={handleStepEnterNavigation}>
-                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} clienteId={customer.id} />
+              <div
+                className="venda-step-panel venda-tone-pagamento w-full"
+                onKeyDown={handleStepEnterNavigation}
+              >
+                <PaymentSection
+                  pagamentos={pagamentos}
+                  onChange={setPagamentos}
+                  totalVenda={totalVenda}
+                  itens={itens}
+                  clienteId={customer.id}
+                />
               </div>
             )}
             {activeStep === "entregador" && (
               <div className="venda-step-panel venda-tone-entregador w-full space-y-3">
-                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} onVendedorAuto={handleVendedorAuto} endereco={customer.endereco} />
+                <DeliveryPersonSelect
+                  value={entregador.id}
+                  onChange={handleSelecionarEntregador}
+                  onVendedorAuto={handleVendedorAuto}
+                  endereco={customer.endereco}
+                />
                 <label
                   className={cn(
                     "flex items-start gap-3 rounded-lg border p-3 transition-colors",
-                    entregador.id ? "cursor-pointer bg-muted/40 hover:bg-muted/60" : "cursor-not-allowed opacity-50",
+                    entregador.id
+                      ? "cursor-pointer bg-muted/40 hover:bg-muted/60"
+                      : "cursor-not-allowed opacity-50",
                   )}
                 >
                   <Checkbox
@@ -1696,16 +2233,30 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
                   <div className="text-sm">
                     <div className="font-medium">Pedido já entregue</div>
                     <div className="text-xs text-muted-foreground">
-                      Apenas lançamento — a entrega já aconteceu. Não envia notificação ao app do entregador e o pedido entra como <b>entregue</b>.
+                      Apenas lançamento — a entrega já aconteceu. Não envia
+                      notificação ao app do entregador e o pedido entra como{" "}
+                      <b>entregue</b>.
                     </div>
                   </div>
                 </label>
-                <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
+                <VendedorSelect
+                  value={vendedor.id}
+                  onChange={(id, nome) => setVendedor({ id, nome })}
+                />
               </div>
             )}
             {activeStep === "confirmar" && (
               <div className="venda-step-panel venda-tone-confirmar w-full">
-                <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
+                <OrderSummary
+                  itens={itens}
+                  pagamentos={pagamentos}
+                  entregadorNome={entregador.nome}
+                  canalVenda={canalVenda}
+                  onFinalizar={handleFinalizar}
+                  onCancelar={handleCancelar}
+                  onAgendar={handleAgendar}
+                  isLoading={isLoading}
+                />
               </div>
             )}
           </div>
@@ -1729,7 +2280,9 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               <label
                 className={cn(
                   "flex items-start gap-3 rounded-lg border p-3 transition-colors",
-                  entregador.id ? "cursor-pointer bg-muted/40 hover:bg-muted/60" : "cursor-not-allowed opacity-50",
+                  entregador.id
+                    ? "cursor-pointer bg-muted/40 hover:bg-muted/60"
+                    : "cursor-not-allowed opacity-50",
                 )}
               >
                 <Checkbox
@@ -1741,19 +2294,43 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
                 <div className="text-sm">
                   <div className="font-medium">Pedido já entregue</div>
                   <div className="text-xs text-muted-foreground">
-                    Apenas lançamento — não notifica o app do entregador e o pedido entra como <b>entregue</b>.
+                    Apenas lançamento — não notifica o app do entregador e o
+                    pedido entra como <b>entregue</b>.
                   </div>
                 </div>
               </label>
-              <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
-              <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
-              <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} clienteId={customer.id} />
+              <VendedorSelect
+                value={vendedor.id}
+                onChange={(id, nome) => setVendedor({ id, nome })}
+              />
+              <ProductSearch
+                itens={itens}
+                onChange={setItens}
+                unidadeId={unidadeAtual?.id}
+                clienteId={customer.id}
+              />
+              <PaymentSection
+                pagamentos={pagamentos}
+                onChange={setPagamentos}
+                totalVenda={totalVenda}
+                itens={itens}
+                clienteId={customer.id}
+              />
             </div>
             <div className="lg:sticky lg:top-4 space-y-3 md:space-y-4 self-start order-2">
               <CustomerHistory clienteId={customer.id} />
             </div>
             <div className="order-3 lg:col-span-3">
-              <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
+              <OrderSummary
+                itens={itens}
+                pagamentos={pagamentos}
+                entregadorNome={entregador.nome}
+                canalVenda={canalVenda}
+                onFinalizar={handleFinalizar}
+                onCancelar={handleCancelar}
+                onAgendar={handleAgendar}
+                isLoading={isLoading}
+              />
             </div>
           </div>
         )}
@@ -1778,8 +2355,6 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         </NovaVendaFooterStepper>
       )}
 
-
-
       {/* Dialog Atalhos do teclado */}
       <Dialog open={atalhosOpen} onOpenChange={setAtalhosOpen}>
         <DialogContent className="max-w-md">
@@ -1797,34 +2372,55 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               ["Enter", "Avançar para o próximo campo"],
               ["← →", "Navegar entre etapas"],
             ].map(([k, label]) => (
-              <div key={k} className="flex items-center justify-between border-b border-border/40 py-1.5 last:border-0">
+              <div
+                key={k}
+                className="flex items-center justify-between border-b border-border/40 py-1.5 last:border-0"
+              >
                 <span className="text-muted-foreground">{label}</span>
-                <kbd className="rounded-[var(--radius)] border border-border bg-muted px-2 py-0.5 text-xs font-mono">{k}</kbd>
+                <kbd className="rounded-[var(--radius)] border border-border bg-muted px-2 py-0.5 text-xs font-mono">
+                  {k}
+                </kbd>
               </div>
             ))}
           </div>
         </DialogContent>
       </Dialog>
 
-
       {/* Dialog Agendamento */}
       <Dialog open={agendarOpen} onOpenChange={setAgendarOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><CalendarClock className="h-5 w-5" />Agendar Entrega</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarClock className="h-5 w-5" />
+              Agendar Entrega
+            </DialogTitle>
+          </DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
               <Label>Data da Entrega *</Label>
-              <Input type="date" value={dataAgendamento} onChange={e => setDataAgendamento(e.target.value)} min={getBrasiliaDateString()} />
+              <Input
+                type="date"
+                value={dataAgendamento}
+                onChange={(e) => setDataAgendamento(e.target.value)}
+                min={getBrasiliaDateString()}
+              />
             </div>
             <div>
               <Label>Horário Previsto</Label>
-              <Input type="time" value={horaAgendamento} onChange={e => setHoraAgendamento(e.target.value)} />
+              <Input
+                type="time"
+                value={horaAgendamento}
+                onChange={(e) => setHoraAgendamento(e.target.value)}
+              />
             </div>
             <p className="text-sm text-muted-foreground">
-              O pedido será criado com status "pendente" e marcado como agendado.
+              O pedido será criado com status "pendente" e marcado como
+              agendado.
             </p>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setAgendarOpen(false)}>Cancelar</Button>
+              <Button variant="outline" onClick={() => setAgendarOpen(false)}>
+                Cancelar
+              </Button>
               <Button onClick={handleConfirmarAgendamento} disabled={isLoading}>
                 {isLoading ? "Agendando..." : "Confirmar Agendamento"}
               </Button>
@@ -1834,21 +2430,32 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       </Dialog>
 
       {/* Print confirmation dialog */}
-      <Dialog open={printDialogOpen} onOpenChange={(open) => {
-        if (!open) {
-          setPrintDialogOpen(false);
-          setPendingReceiptData(null);
-          if (boletoAsaasConta) return; // não navega ainda — Asaas dialog ainda vai abrir
-          if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
-        }
-      }}>
+      <Dialog
+        open={printDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPrintDialogOpen(false);
+            setPendingReceiptData(null);
+            if (boletoAsaasConta) return; // não navega ainda — Asaas dialog ainda vai abrir
+            if (embedded && onClose) {
+              onClose();
+            } else {
+              navigate("/vendas/pedidos");
+            }
+          }
+        }}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Imprimir comprovante?</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">Deseja imprimir o comprovante desta venda?</p>
+          <p className="text-sm text-muted-foreground">
+            Deseja imprimir o comprovante desta venda?
+          </p>
           {boletoAsaasConta && (
-            <p className="text-xs text-primary">Em seguida abriremos a emissão do boleto Asaas.</p>
+            <p className="text-xs text-primary">
+              Em seguida abriremos a emissão do boleto Asaas.
+            </p>
           )}
           <div className="flex flex-wrap justify-end gap-2 pt-2">
             {boletoAsaasConta && (
@@ -1858,29 +2465,46 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
                   setBoletoAsaasConta(null);
                   setPrintDialogOpen(false);
                   setPendingReceiptData(null);
-                  if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
+                  if (embedded && onClose) {
+                    onClose();
+                  } else {
+                    navigate("/vendas/pedidos");
+                  }
                 }}
               >
                 Pular emissão do boleto
               </Button>
             )}
-            <Button variant="outline" onClick={() => {
-              setPrintDialogOpen(false);
-              setPendingReceiptData(null);
-              if (!boletoAsaasConta) {
-                if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
-              }
-            }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPrintDialogOpen(false);
+                setPendingReceiptData(null);
+                if (!boletoAsaasConta) {
+                  if (embedded && onClose) {
+                    onClose();
+                  } else {
+                    navigate("/vendas/pedidos");
+                  }
+                }
+              }}
+            >
               Não
             </Button>
-            <Button onClick={() => {
-              if (pendingReceiptData) generateReceiptPdf(pendingReceiptData);
-              setPrintDialogOpen(false);
-              setPendingReceiptData(null);
-              if (!boletoAsaasConta) {
-                if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
-              }
-            }}>
+            <Button
+              onClick={() => {
+                if (pendingReceiptData) generateReceiptPdf(pendingReceiptData);
+                setPrintDialogOpen(false);
+                setPendingReceiptData(null);
+                if (!boletoAsaasConta) {
+                  if (embedded && onClose) {
+                    onClose();
+                  } else {
+                    navigate("/vendas/pedidos");
+                  }
+                }
+              }}
+            >
               Sim, Imprimir
             </Button>
           </div>
@@ -1894,7 +2518,11 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           onOpenChange={(o) => {
             if (!o) {
               setBoletoAsaasConta(null);
-              if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
+              if (embedded && onClose) {
+                onClose();
+              } else {
+                navigate("/vendas/pedidos");
+              }
             }
           }}
           conta={boletoAsaasConta}
@@ -1903,15 +2531,16 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     </>
   );
 
-
-
   if (embedded) {
     return vendaContent;
   }
 
   return (
     <MainLayout>
-      <Header title="Nova Venda" subtitle={unidadeAtual?.nome || "Carregando..."} />
+      <Header
+        title="Nova Venda"
+        subtitle={unidadeAtual?.nome || "Carregando..."}
+      />
       {vendaContent}
     </MainLayout>
   );

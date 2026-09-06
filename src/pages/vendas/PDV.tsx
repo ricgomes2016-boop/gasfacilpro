@@ -19,7 +19,10 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { generateReceiptPdf, EmpresaConfig } from "@/services/receiptPdfService";
+import {
+  generateReceiptPdf,
+  EmpresaConfig,
+} from "@/services/receiptPdfService";
 import { atualizarEstoqueVenda } from "@/services/estoqueService";
 import { rotearPagamentosVenda } from "@/services/paymentRoutingService";
 
@@ -59,12 +62,20 @@ export default function PDV() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [now, setNow] = useState<string>(() =>
-    new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+    new Date().toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
   );
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      setNow(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+      setNow(
+        new Date().toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      );
     }, 30_000);
     return () => window.clearInterval(id);
   }, []);
@@ -105,7 +116,9 @@ export default function PDV() {
     try {
       let query = supabase
         .from("produtos")
-        .select("id, nome, preco, estoque, categoria, tipo_botijao, botijao_par_id")
+        .select(
+          "id, nome, preco, estoque, categoria, tipo_botijao, botijao_par_id",
+        )
         .eq("ativo", true)
         .ilike("nome", `%${term}%`)
         .limit(8);
@@ -133,7 +146,8 @@ export default function PDV() {
         const newItens = [...prev];
         newItens[existingIndex].quantidade += 1;
         newItens[existingIndex].total =
-          newItens[existingIndex].quantidade * newItens[existingIndex].preco_unitario;
+          newItens[existingIndex].quantidade *
+          newItens[existingIndex].preco_unitario;
         return newItens;
       }
 
@@ -155,46 +169,55 @@ export default function PDV() {
     setSearchResults([]);
     searchInputRef.current?.focus();
 
-    const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQgAHoTPxaR2J...");
+    const audio = new Audio(
+      "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleQgAHoTPxaR2J...",
+    );
     audio.volume = 0.3;
     audio.play().catch(() => {});
   }, []);
 
-  const handleBarcodeScan = useCallback(async (barcode: string) => {
-    try {
-      let { data, error } = await supabase
-        .from("produtos")
-        .select("id, nome, preco, estoque, categoria, tipo_botijao, botijao_par_id")
-        .eq("ativo", true)
-        .eq("codigo_barras", barcode)
-        .limit(1);
-
-      if (!data || data.length === 0) {
-        const result = await supabase
+  const handleBarcodeScan = useCallback(
+    async (barcode: string) => {
+      try {
+        let { data, error } = await supabase
           .from("produtos")
-          .select("id, nome, preco, estoque, categoria, tipo_botijao, botijao_par_id")
+          .select(
+            "id, nome, preco, estoque, categoria, tipo_botijao, botijao_par_id",
+          )
           .eq("ativo", true)
-          .or(`nome.ilike.%${barcode}%`)
+          .eq("codigo_barras", barcode)
           .limit(1);
-        data = result.data;
-        error = result.error;
-      }
 
-      if (error || !data || data.length === 0) {
-        toast({
-          title: "Produto não encontrado",
-          description: `Código: ${barcode}`,
-          variant: "destructive",
-        });
-        return;
-      }
+        if (!data || data.length === 0) {
+          const result = await supabase
+            .from("produtos")
+            .select(
+              "id, nome, preco, estoque, categoria, tipo_botijao, botijao_par_id",
+            )
+            .eq("ativo", true)
+            .or(`nome.ilike.%${barcode}%`)
+            .limit(1);
+          data = result.data;
+          error = result.error;
+        }
 
-      addProduct(data[0]);
-      toast({ title: "Produto adicionado", description: data[0].nome });
-    } catch (error) {
-      console.error("Erro ao buscar produto por código:", error);
-    }
-  }, [addProduct, toast]);
+        if (error || !data || data.length === 0) {
+          toast({
+            title: "Produto não encontrado",
+            description: `Código: ${barcode}`,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        addProduct(data[0]);
+        toast({ title: "Produto adicionado", description: data[0].nome });
+      } catch (error) {
+        console.error("Erro ao buscar produto por código:", error);
+      }
+    },
+    [addProduct, toast],
+  );
 
   const updateQuantity = (index: number, delta: number) => {
     setItens((prev) => {
@@ -227,8 +250,9 @@ export default function PDV() {
   };
 
   const getQuantidade = useCallback(
-    (produtoId: string) => itens.find((i) => i.produto_id === produtoId)?.quantidade ?? 0,
-    [itens]
+    (produtoId: string) =>
+      itens.find((i) => i.produto_id === produtoId)?.quantidade ?? 0,
+    [itens],
   );
 
   const incrementByProduct = useCallback((produto: PdvProductLike) => {
@@ -237,7 +261,8 @@ export default function PDV() {
       if (idx < 0) return prev;
       const newItens = [...prev];
       newItens[idx].quantidade += 1;
-      newItens[idx].total = newItens[idx].quantidade * newItens[idx].preco_unitario;
+      newItens[idx].total =
+        newItens[idx].quantidade * newItens[idx].preco_unitario;
       return newItens;
     });
   }, []);
@@ -255,13 +280,19 @@ export default function PDV() {
     });
   }, []);
 
-  const finalizeSale = async (pagamentos: PDVPagamento[], _valorRecebidoDinheiro: number) => {
+  const finalizeSale = async (
+    pagamentos: PDVPagamento[],
+    _valorRecebidoDinheiro: number,
+  ) => {
     if (itens.length === 0 || pagamentos.length === 0) return;
 
     setIsLoading(true);
 
     try {
-      const totalTaxasExtras = pagamentos.reduce((acc, p) => acc + (Number((p as any).taxa_extra) || 0), 0);
+      const totalTaxasExtras = pagamentos.reduce(
+        (acc, p) => acc + (Number((p as any).taxa_extra) || 0),
+        0,
+      );
       const valorTotalPedido = total + totalTaxasExtras;
 
       const formaPagamentoLabel =
@@ -293,12 +324,17 @@ export default function PDV() {
         preco_unitario: item.preco_unitario,
       }));
 
-      const { error: itensError } = await supabase.from("pedido_itens").insert(itensInsert);
+      const { error: itensError } = await supabase
+        .from("pedido_itens")
+        .insert(itensInsert);
       if (itensError) throw itensError;
 
       await atualizarEstoqueVenda(
-        itens.map((item) => ({ produto_id: item.produto_id, quantidade: item.quantidade })),
-        unidadeAtual?.id
+        itens.map((item) => ({
+          produto_id: item.produto_id,
+          quantidade: item.quantidade,
+        })),
+        unidadeAtual?.id,
       );
 
       let empresaConfig: EmpresaConfig | undefined;
@@ -313,9 +349,13 @@ export default function PDV() {
         const enderecoUnidade = [
           unidadeAtual?.endereco,
           unidadeAtual?.bairro,
-          [unidadeAtual?.cidade, unidadeAtual?.estado].filter(Boolean).join("/"),
+          [unidadeAtual?.cidade, unidadeAtual?.estado]
+            .filter(Boolean)
+            .join("/"),
           unidadeAtual?.cep,
-        ].filter(Boolean).join(", ");
+        ]
+          .filter(Boolean)
+          .join(", ");
 
         empresaConfig = {
           nome_empresa: unidadeAtual?.nome || empresa?.nome || "Empresa",
@@ -326,16 +366,27 @@ export default function PDV() {
         };
       } catch {
         console.warn("Não foi possível carregar configurações da empresa");
-        empresaConfig = { nome_empresa: unidadeAtual?.nome || empresa?.nome || "Empresa" };
+        empresaConfig = {
+          nome_empresa: unidadeAtual?.nome || empresa?.nome || "Empresa",
+        };
       }
 
       generateReceiptPdf({
         pedidoId: pedido.id,
         pedidoNumero: (pedido as any).numero_sequencial ?? null,
         data: new Date(),
-        cliente: { nome: "Consumidor Final", telefone: "", endereco: "Retirada no local" },
+        cliente: {
+          nome: "Consumidor Final",
+          telefone: "",
+          endereco: "Retirada no local",
+        },
         itens,
-        pagamentos: pagamentos.map((p) => ({ id: p.id, forma: p.forma, valor: p.valor, parcelas: p.parcelas })),
+        pagamentos: pagamentos.map((p) => ({
+          id: p.id,
+          forma: p.forma,
+          valor: p.valor,
+          parcelas: p.parcelas,
+        })),
         entregadorNome: null,
         canalVenda: "portaria",
         observacoes: "",
@@ -381,7 +432,7 @@ export default function PDV() {
   return (
     <MainLayout>
       <div className="min-h-[calc(100vh-0rem)] bg-[hsl(220,14%,96%)]">
-        <div className="mx-auto max-w-[1400px] px-3 md:px-6 pt-3 md:pt-5 pb-40 md:pb-6 space-y-3 md:space-y-4">
+        <div className="mx-auto max-w-[1400px] space-y-3 px-2 pb-40 pt-3 md:space-y-4 md:px-6 md:pb-6 md:pt-5">
           <CaixaBloqueadoBanner />
 
           {/* Compact premium header */}
@@ -400,9 +451,13 @@ export default function PDV() {
                 <ShoppingCart className="h-5 w-5 text-primary" />
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className="text-base md:text-lg font-bold truncate leading-tight">PDV – Portaria</h1>
+                <h1 className="text-base md:text-lg font-bold truncate leading-tight">
+                  PDV – Portaria
+                </h1>
                 <p className="text-[11px] md:text-xs text-muted-foreground truncate">
-                  {unidadeAtual ? `Loja: ${unidadeAtual.nome}` : "Venda rápida para retirada no local"}
+                  {unidadeAtual
+                    ? `Loja: ${unidadeAtual.nome}`
+                    : "Venda rápida para retirada no local"}
                 </p>
               </div>
             </div>
@@ -416,7 +471,7 @@ export default function PDV() {
             {/* Left: Products */}
             <div className="space-y-3 md:space-y-4 min-w-0">
               {/* Search bar */}
-              <Card className="rounded-2xl border-border shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
+              <Card className="rounded-xl border-0 shadow-[0_1px_3px_rgba(15,23,42,0.09)] md:rounded-2xl md:border md:border-border md:shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
                 <CardContent className="p-2.5 md:p-3">
                   <div className="flex items-center gap-2 rounded-2xl border border-border bg-background focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary h-[52px] px-3 relative">
                     <Search className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -455,11 +510,22 @@ export default function PDV() {
                     <Button
                       variant={scannerActive ? "destructive" : "ghost"}
                       size="icon"
-                      className={cn("h-9 w-9 rounded-lg shrink-0", !scannerActive && "text-primary hover:bg-primary/10")}
+                      className={cn(
+                        "h-9 w-9 rounded-lg shrink-0",
+                        !scannerActive && "text-primary hover:bg-primary/10",
+                      )}
                       onClick={() => setScannerActive(!scannerActive)}
-                      aria-label={scannerActive ? "Fechar scanner" : "Escanear código de barras"}
+                      aria-label={
+                        scannerActive
+                          ? "Fechar scanner"
+                          : "Escanear código de barras"
+                      }
                     >
-                      {scannerActive ? <CameraOff className="h-4 w-4" /> : <ScanBarcode className="h-4 w-4" />}
+                      {scannerActive ? (
+                        <CameraOff className="h-4 w-4" />
+                      ) : (
+                        <ScanBarcode className="h-4 w-4" />
+                      )}
                     </Button>
 
                     {showResults && searchResults.length > 0 && (
@@ -471,7 +537,9 @@ export default function PDV() {
                             onClick={() => addProduct(produto)}
                           >
                             <div className="min-w-0 flex-1">
-                              <p className="font-medium text-sm truncate">{produto.nome}</p>
+                              <p className="font-medium text-sm truncate">
+                                {produto.nome}
+                              </p>
                               <p className="text-xs text-muted-foreground">
                                 Estoque: {produto.estoque ?? 0}
                               </p>
@@ -503,10 +571,12 @@ export default function PDV() {
               </Card>
 
               {/* Products grid */}
-              <Card className="rounded-2xl border-border shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
+              <Card className="rounded-xl border-0 shadow-[0_1px_3px_rgba(15,23,42,0.09)] md:rounded-2xl md:border md:border-border md:shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
                 <CardContent className="p-3 md:p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-sm md:text-base font-semibold text-foreground">Produtos rápidos</h2>
+                    <h2 className="text-sm md:text-base font-semibold text-foreground">
+                      Produtos rápidos
+                    </h2>
                   </div>
                   <PDVQuickProducts
                     onSelectProduct={addProduct}
@@ -521,7 +591,7 @@ export default function PDV() {
 
             {/* Right: Cart */}
             <div className="min-w-0 lg:sticky lg:top-4 lg:self-start space-y-3">
-              <Card className="rounded-2xl border-border shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
+              <Card className="rounded-xl border-0 shadow-[0_1px_3px_rgba(15,23,42,0.09)] md:rounded-2xl md:border md:border-border md:shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
                 <CardContent className="p-3 md:p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -529,7 +599,9 @@ export default function PDV() {
                         <ShoppingBag className="h-4 w-4 text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold leading-tight">Carrinho</p>
+                        <p className="text-sm font-semibold leading-tight">
+                          Carrinho
+                        </p>
                         <p className="text-[11px] text-muted-foreground">
                           {totalItens} {totalItens === 1 ? "item" : "itens"}
                         </p>
@@ -551,7 +623,9 @@ export default function PDV() {
                   {carrinhoVazio ? (
                     <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-center">
                       <ShoppingCart className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
-                      <p className="text-sm font-medium text-foreground">Carrinho vazio</p>
+                      <p className="text-sm font-medium text-foreground">
+                        Carrinho vazio
+                      </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Adicione produtos para iniciar a venda.
                       </p>
@@ -570,7 +644,9 @@ export default function PDV() {
                   {/* Desktop summary */}
                   <div className="hidden lg:block mt-3 pt-3 border-t border-border">
                     <div className="flex items-baseline justify-between mb-3">
-                      <span className="text-sm text-muted-foreground">Total</span>
+                      <span className="text-sm text-muted-foreground">
+                        Total
+                      </span>
                       <span className="text-2xl font-bold tabular-nums text-foreground">
                         R$ {total.toFixed(2)}
                       </span>
