@@ -1472,7 +1472,7 @@ export default function Pedidos() {
     <MainLayout>
       {/* #2 - removed duplicate title, kept only Header */}
       <Header title="Pedidos" subtitle="Gerenciar pedidos de venda" />
-      <AppPage className="overflow-x-hidden">
+      <AppPage className="overflow-x-hidden px-2 sm:px-5">
         {/* Top actions - grade 2x2 mobile / 4 col desktop, premium */}
         {(() => {
           const filtrosAtivos =
@@ -1482,7 +1482,7 @@ export default function Pedidos() {
             (filtroOrigem !== "todos" ? 1 : 0) +
             (dataInicio !== hoje || dataFim !== hoje ? 1 : 0);
           const actionBase =
-            "w-full min-h-[64px] rounded-2xl px-4 flex items-center justify-center gap-2 text-sm font-semibold shadow-sm transition-all";
+            "w-full min-h-12 rounded-xl px-3 flex items-center justify-center gap-2 text-sm font-semibold shadow-sm transition-all sm:min-h-[64px] sm:rounded-2xl sm:px-4";
           return (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full min-w-0">
               <Button
@@ -2005,7 +2005,7 @@ export default function Pedidos() {
             ) : (
               <>
                 {/* Mobile cards - premium compact + expansível */}
-                <div className="w-full min-w-0 space-y-2 py-1 md:hidden">
+                <div className="w-full min-w-0 space-y-2 md:hidden">
                   {pedidosPaginados.map((pedido) => {
                     const expandido = expandidos.has(pedido.id);
                     const bloqueado = isPedidoBloqueado(pedido.status);
@@ -2055,10 +2055,10 @@ export default function Pedidos() {
                     return (
                       <div
                         key={pedido.id}
-                        className={`mobile-record-card !p-0 overflow-hidden transition-all ${pedido.status === "cancelado" ? "opacity-60" : ""} ${expandido ? "ring-1 ring-primary/20" : ""}`}
+                        className={`mobile-record-card overflow-hidden !rounded-xl !border-0 !p-0 shadow-[0_1px_3px_hsl(var(--foreground)/0.09)] transition-all ${pedido.status === "cancelado" ? "opacity-60" : ""} ${expandido ? "ring-1 ring-primary/20" : ""}`}
                       >
                         {/* Header do card */}
-                        <div className="flex items-start gap-2 p-3 pb-2">
+                        <div className="flex items-start gap-2.5 px-3 py-3">
                           <Checkbox
                             checked={selecionados.has(pedido.id)}
                             onCheckedChange={() => toggleSelecionado(pedido.id)}
@@ -2080,7 +2080,7 @@ export default function Pedidos() {
                                 }
                               />
                             </div>
-                            <p className="mt-1 text-[15px] font-semibold text-foreground truncate">
+                            <p className="mt-1.5 truncate text-[15px] font-semibold leading-tight text-foreground">
                               {pedido.cliente}
                             </p>
                             <div className="mt-1 flex items-start gap-1.5 text-xs leading-snug text-muted-foreground">
@@ -2089,7 +2089,7 @@ export default function Pedidos() {
                                 {pedido.endereco}
                               </span>
                             </div>
-                            <p className="mt-2 text-xs font-medium text-foreground/80 truncate">
+                            <p className="mt-2 truncate text-xs font-medium text-foreground/80">
                               {itensResumo}
                               {itensExtras > 0 && (
                                 <span className="text-muted-foreground/70">
@@ -2113,7 +2113,7 @@ export default function Pedidos() {
                         </div>
 
                         {/* Linha valor + pagamento + horário */}
-                        <div className="flex items-center justify-between gap-2 px-3 pb-2">
+                        <div className="flex items-center justify-between gap-2 border-t border-border/40 px-3 py-2.5">
                           <span className="text-lg font-bold tabular-nums">
                             R$ {pedido.valor.toFixed(2)}
                           </span>
@@ -2139,7 +2139,7 @@ export default function Pedidos() {
                         </div>
 
                         {/* Entregador */}
-                        <div className="flex items-center justify-between gap-2 border-t border-border/60 px-3 py-2">
+                        <div className="flex min-h-11 items-center justify-between gap-2 border-t border-border/40 px-3 py-2">
                           <div className="flex items-center gap-1.5 min-w-0 text-xs">
                             <Truck className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             {pedido.entregador ? (
@@ -2250,7 +2250,7 @@ export default function Pedidos() {
                         )}
 
                         {/* Ação principal + menu */}
-                        <div className="flex items-center gap-2 border-t border-border/60 p-2">
+                        <div className="flex items-center gap-2 border-t border-border/40 p-2.5">
                           <Button
                             size="sm"
                             onClick={acaoPrincipal.onClick}
@@ -2264,6 +2264,7 @@ export default function Pedidos() {
                               <Button
                                 variant="outline"
                                 size="icon"
+                                aria-label={`Mais ações do pedido ${getNumExib(pedido)}`}
                                 className="h-10 w-10 shrink-0 rounded-xl"
                               >
                                 <MoreHorizontal className="h-4 w-4" />
