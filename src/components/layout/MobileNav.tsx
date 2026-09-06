@@ -11,9 +11,11 @@ import {
   UserPlus,
   PackageOpen,
   Wallet,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -65,6 +67,7 @@ export function MobileNav() {
   const { themeClass, brandTheme } = useDashboardTheme();
   const [open, setOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
 
   const visibleMenuItems = useMemo(() => {
     const filtered = menuItems
@@ -95,11 +98,36 @@ export function MobileNav() {
       .map(({ item }) => item);
   }, [canAccessPath]);
 
+  const accessibleFavorites = useMemo(
+    () => favoriteItems.filter((item) => canAccessPath(item.path)),
+    [canAccessPath],
+  );
+
+  const displayedMenuItems = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase("pt-BR");
+    if (!query) return visibleMenuItems;
+
+    return visibleMenuItems
+      .map((item) => {
+        const itemMatches = item.label
+          .toLocaleLowerCase("pt-BR")
+          .includes(query);
+        if (!item.submenu) return itemMatches ? item : null;
+        const submenu = item.submenu.filter((sub) =>
+          sub.label.toLocaleLowerCase("pt-BR").includes(query),
+        );
+        return itemMatches || submenu.length > 0
+          ? { ...item, submenu: itemMatches ? item.submenu : submenu }
+          : null;
+      })
+      .filter(Boolean) as typeof visibleMenuItems;
+  }, [search, visibleMenuItems]);
+
   const areaHeadings = useMemo(() => {
     const headings: Record<string, string> = {};
     let previousArea: string | undefined;
 
-    visibleMenuItems.forEach((item) => {
+    displayedMenuItems.forEach((item) => {
       const area = item.area ?? "configurar";
       if (area !== previousArea) {
         headings[item.label] =
@@ -109,7 +137,7 @@ export function MobileNav() {
     });
 
     return headings;
-  }, [visibleMenuItems]);
+  }, [displayedMenuItems]);
 
   // Auto-open active submenu
   useEffect(() => {
@@ -132,9 +160,7 @@ export function MobileNav() {
   }, []);
 
   const toggleMenu = (label: string) => {
-    setOpenMenus((prev) =>
-      prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label],
-    );
+    setOpenMenus((prev) => (prev.includes(label) ? [] : [label]));
   };
 
   const handleSignOut = async () => {
@@ -194,6 +220,16 @@ export function MobileNav() {
 
           <div className="border-b border-sidebar-border/15 px-3 py-3">
             <UnidadeSelector variant="sidebar" />
+            <div className="relative mt-3">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sidebar-foreground/45" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar no menu"
+                aria-label="Buscar no menu"
+                className="h-10 border-sidebar-border/20 bg-sidebar-accent/15 pl-9 text-base text-sidebar-foreground placeholder:text-sidebar-foreground/45 focus-visible:ring-primary/40"
+              />
+            </div>
           </div>
 
           {/* Menu */}
@@ -203,7 +239,7 @@ export function MobileNav() {
                 Favoritos
               </p>
               <div className="grid grid-cols-2 gap-1">
-                {favoriteItems.map((fav) => {
+                {accessibleFavorites.map((fav) => {
                   const FavIcon = fav.icon;
                   const favActive = isActive(fav.path);
                   return (
@@ -227,7 +263,7 @@ export function MobileNav() {
             </div>
 
             <div className="space-y-1">
-              {visibleMenuItems.map((item, idx) => {
+              {displayedMenuItems.map((item, idx) => {
                 const Icon = item.icon;
                 const hasSubmenu = !!item.submenu;
                 const isSubmenuOpen = openMenus.includes(item.label);
@@ -391,6 +427,11 @@ export function MobileNav() {
                   </motion.div>
                 );
               })}
+              {displayedMenuItems.length === 0 && (
+                <div className="px-3 py-10 text-center text-sm text-sidebar-foreground/60">
+                  Nenhuma tela encontrada para “{search}”.
+                </div>
+              )}
             </div>
           </nav>
 
