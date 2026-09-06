@@ -25,7 +25,7 @@ Tabelas disponíveis no sistema (distribuidora de gás):
 - contratos_recorrentes: id, cliente_id, cliente_nome, produto_id, produto_nome, quantidade, valor_unitario, frequencia (semanal/quinzenal/mensal), status, proxima_entrega, entregas_realizadas, dia_preferencial, turno_preferencial, unidade_id
 
 == PRODUTOS & ESTOQUE ==
-- produtos: id, nome, preco, estoque, categoria (gas/agua/acessorio/vasilhame/outro), tipo_botijao (cheio/vazio/null), ativo, codigo_barras, unidade_medida, peso, tipo (revenda/producao/insumo), estoque_minimo, custo, unidade_id, descricao
+- produtos: id, nome, preco, estoque, categoria (gas/agua/acessorio/vasilhame/outro), tipo_botijao (cheio/vazio/null), ativo, codigo_barras, unidade_medida, peso, tipo (revenda/producao/insumo), estoque_minimo, preco_custo, unidade_id, descricao
 - compras: id, fornecedor_id, valor_total, valor_frete, status, data_compra, data_recebimento, numero_nota_fiscal, chave_nfe, unidade_id, observacoes
 - compra_itens: id, compra_id, produto_id, quantidade, preco_unitario
 - comodatos: id, cliente_id, produto_id, quantidade, deposito, status (ativo/devolvido/perdido), data_emprestimo, data_devolucao, prazo_devolucao, unidade_id
@@ -1162,6 +1162,13 @@ function isFinancialSummaryIntent(message: string): boolean {
       text,
     );
   const productNamed = /\b(p13|p20|p45|agua|botijao|produto)\b/.test(text);
+  // Períodos diferentes do mês atual precisam de consulta dinâmica (SQL),
+  // pois o resumo financeiro é sempre do mês corrente.
+  const outroPeriodo =
+    /\b(ontem|anteontem|passad[oa]s?|anterior|semana|trimestre|semestre|ano|20\d{2}|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|entre|desde|ate|periodo|ultimos?|ultimas?)\b/.test(
+      text,
+    ) || /\d{1,2}\/\d{1,2}/.test(text);
+  if (outroPeriodo) return false;
   return (
     metric &&
     (!productNamed || /\b(mes|mensal|atual|este|deste|hoje)\b/.test(text))
@@ -1209,12 +1216,16 @@ async function getFinancialSummary(supabase: any, unidadeId: string) {
         .select("valor")
         .eq("unidade_id", unidadeId)
         .eq("tipo", "saida")
+        .or("referencia_tipo.is.null,referencia_tipo.neq.compra")
+        .or("categoria.is.null,categoria.neq.compras")
         .gte("data", startDate)
         .lt("data", nextDate),
       supabase
         .from("contas_pagar")
         .select("valor")
         .eq("unidade_id", unidadeId)
+        .is("compra_id", null)
+        .or("categoria.is.null,categoria.neq.compras")
         .in("status", ["paga", "pago"])
         .gte("data_pagamento", startDate)
         .lt("data_pagamento", nextDate),
@@ -1860,7 +1871,7 @@ async function executeAction(
             categoria,
             tipo_botijao: tipo_botijao || null,
             estoque: estoque || 0,
-            custo: custo || null,
+            preco_custo: custo || null,
             estoque_minimo: estoque_minimo || null,
             descricao: descricao || null,
             codigo_barras: codigo_barras || null,
