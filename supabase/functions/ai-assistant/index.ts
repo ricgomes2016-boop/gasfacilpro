@@ -1765,23 +1765,9 @@ function buildSafeQuery(
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-  if (
-    /\b(vendas?|faturamento|pedidos?)\b/.test(normalized) &&
-    /\b(hoje|dia)\b/.test(normalized)
-  ) {
-    return {
-      description: "Resumo de vendas de hoje",
-      sql: `
-        select
-          count(*)::int as pedidos,
-          coalesce(sum(valor_total), 0)::numeric as faturamento,
-          coalesce(avg(valor_total), 0)::numeric as ticket_medio
-        from pedidos
-        where unidade_id = '${unidadeId}'
-          and created_at::date = (now() at time zone 'America/Sao_Paulo')::date
-          and coalesce(status, '') <> 'cancelado'
-      `,
-    };
+  if (isTodaySalesIntent(message)) {
+    // Tratado por getTodaySalesSummary via API tipada (sem RPC).
+    return null;
   }
 
   if (/\b(estoque|ruptura|baixo|critico|critico)\b/.test(normalized)) {
