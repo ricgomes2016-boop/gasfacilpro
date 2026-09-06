@@ -770,8 +770,10 @@ serve(async (req) => {
           query_text: safeQuery.sql,
         });
         if (error) {
+          console.error("safeQuery rpc error", error);
           queryError = error.message;
         } else {
+          console.log("safeQuery rpc data", JSON.stringify(data));
           queryData = data;
           queryDescription = safeQuery.description;
         }
