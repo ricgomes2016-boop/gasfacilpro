@@ -265,7 +265,7 @@ export function EmitirNfeVenderGasDialog({
 
   return (
     <Dialog open={open} onOpenChange={enviando ? undefined : onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] overflow-y-auto rounded-2xl p-4 sm:max-w-lg sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileCheck2 className="h-5 w-5 text-primary" />
@@ -326,7 +326,7 @@ export function EmitirNfeVenderGasDialog({
             <LogIn className="mr-2 h-4 w-4" />
             Abrir login
           </Button>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex">
             <Button
               type="button"
               variant="ghost"

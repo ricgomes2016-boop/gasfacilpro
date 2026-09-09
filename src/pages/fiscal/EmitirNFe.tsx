@@ -179,12 +179,12 @@ export default function EmitirNFe() {
   return (
     <MainLayout>
       <Header title="NF-e" subtitle="Gestão Fiscal" />
-      <div className="space-y-6 p-4 md:p-6">
+      <div className="space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
         <Tabs defaultValue="consultar">
           <div className="flex items-center justify-between">
-            <TabsList className="h-11">
-              <TabsTrigger value="consultar"><Search className="h-4 w-4 mr-2" />Consultar</TabsTrigger>
-              <TabsTrigger value="emitir"><Plus className="h-4 w-4 mr-2" />Nova NF-e</TabsTrigger>
+            <TabsList className="grid h-11 w-full grid-cols-2 sm:w-auto">
+              <TabsTrigger value="consultar"><Search className="mr-1.5 h-4 w-4" />Consultar</TabsTrigger>
+              <TabsTrigger value="emitir"><Plus className="mr-1.5 h-4 w-4" />Nova NF-e</TabsTrigger>
             </TabsList>
           </div>
 
@@ -192,10 +192,10 @@ export default function EmitirNFe() {
             <Card>
               <CardHeader><CardTitle className="text-lg">Notas Fiscais Eletrônicas</CardTitle></CardHeader>
               <CardContent>
-                <div className="flex gap-3 mb-4">
-                  <Input placeholder="Buscar por destinatário ou número..." className="max-w-sm" value={busca} onChange={e => setBusca(e.target.value)} />
+                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
+                  <Input placeholder="Buscar por destinatário ou número..." className="sm:max-w-sm" value={busca} onChange={e => setBusca(e.target.value)} />
                   <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                    <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todas">Todas</SelectItem>
                       <SelectItem value="autorizada">Autorizadas</SelectItem>
@@ -205,7 +205,7 @@ export default function EmitirNFe() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Table>
+                <div className="hidden md:block"><Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Número</TableHead>
@@ -243,7 +243,38 @@ export default function EmitirNFe() {
                       </TableRow>
                     ))}
                   </TableBody>
-                </Table>
+                </Table></div>
+                <div className="space-y-2 md:hidden">
+                  {loading ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>
+                  ) : notas.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma NF-e encontrada</p>
+                  ) : notas.map((n) => (
+                    <div key={n.id} className="rounded-xl bg-muted/35 p-3 shadow-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold">{n.destinatario_nome || "Destinatário não informado"}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">NF-e {n.numero || "sem número"} · {parseLocalDate(n.data_emissao).toLocaleDateString("pt-BR")}</p>
+                        </div>
+                        <Badge variant={statusColor(n.status)} className="shrink-0 capitalize">{n.status}</Badge>
+                      </div>
+                      <div className="mt-3 flex items-end justify-between gap-2 border-t pt-3">
+                        <div>
+                          <p className="font-mono text-xs text-muted-foreground">{n.destinatario_cpf_cnpj || "CPF/CNPJ não informado"}</p>
+                          <p className="mt-1 text-lg font-bold">R$ {Number(n.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" title="Ver XML" aria-label={`Ver XML da NF-e ${n.numero || "sem número"}`}><FileText className="h-4 w-4" /></Button>
+                          {n.status === "autorizada" && (
+                            <Button variant="ghost" size="icon" title="Cancelar" aria-label={`Cancelar NF-e ${n.numero || "sem número"}`} onClick={() => handleCancelar(n.id)}>
+                              <XCircle className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -417,10 +448,10 @@ export default function EmitirNFe() {
                 </CardContent>
               </Card>
 
-              <div className="flex justify-end gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:gap-3">
                 <Button variant="outline" onClick={() => setForm(initialForm)}>Limpar</Button>
                 <Button variant="outline">Salvar Rascunho</Button>
-                <Button onClick={handleEmitir}><Send className="h-4 w-4 mr-2" />Transmitir para SEFAZ</Button>
+                <Button className="col-span-2 sm:col-span-1" onClick={handleEmitir}><Send className="h-4 w-4 mr-2" />Transmitir para SEFAZ</Button>
               </div>
             </div>
           </TabsContent>
