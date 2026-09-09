@@ -960,7 +960,7 @@ export default function DFeRecebidos() {
 
 
       <Dialog open={configAberta} onOpenChange={setConfigAberta}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-h-[85vh] w-[calc(100vw-2rem)] max-w-md overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Configurar agente local</DialogTitle>
             <DialogDescription>
