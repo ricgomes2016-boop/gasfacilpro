@@ -53,6 +53,12 @@ interface CupomVale {
   dataEmissao: string;
 }
 
+interface EmpresaCupom {
+  nome: string;
+  telefone: string | null;
+  endereco: string | null;
+}
+
 function gerarCuponsDoLote(
   previewVales: Array<{ numero: number; codigo: string; valor: number }>,
   parceiro: { nome: string; cnpj: string | null; telefone: string | null; tipo: string } | undefined,
@@ -74,7 +80,7 @@ function gerarCuponsDoLote(
   }));
 }
 
-function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => void }) {
+function CupomPrint({ cupons, empresa, onClose }: { cupons: CupomVale[]; empresa: EmpresaCupom; onClose: () => void }) {
   const qrContainerRef = useRef<HTMLDivElement>(null);
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set(cupons.map(c => c.numero)));
 
@@ -94,7 +100,7 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
     return firstSel ?? cupons[0];
   }, [cupons, selecionados]);
 
-  const handlePrint = () => {
+  const openPrintView = (autoPrint: boolean) => {
     const cuponsParaImprimir = cupons.filter(c => selecionados.has(c.numero));
     if (cuponsParaImprimir.length === 0) { toast.error("Selecione ao menos um vale"); return; }
 
@@ -115,36 +121,48 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
         @page { size: A4 portrait; margin: 8mm; }
         @media print {
           body { padding: 0 !important; }
-          .print-sheet { gap: 4mm !important; }
+          .print-actions { display: none !important; }
+          .print-sheet { gap: 3mm !important; }
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, Helvetica, sans-serif; padding: 8mm; background: #fff; color: #172033; }
+        body { font-family: Arial, Helvetica, sans-serif; padding: 8mm; background: #f8fafc; color: #172033; }
+        .print-actions { position: sticky; top: 0; z-index: 2; display: flex; justify-content: center; padding: 0 0 5mm; }
+        .print-actions button { border: 0; border-radius: 8px; padding: 10px 18px; background: #0f766e; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
         .print-sheet {
-          display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 4mm; align-items: stretch;
+          display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 3mm; align-items: stretch;
         }
         .cupom {
-          border: 1.5px dashed #64748b; border-radius: 4mm; padding: 4mm;
+          border: 1.2px dashed #64748b; border-radius: 3mm; padding: 2.5mm;
           min-height: 86mm; max-height: 86mm; text-align: center;
           break-inside: avoid; page-break-inside: avoid; background: #fff;
           display: flex; flex-direction: column; justify-content: center;
         }
-        .logo { font-size: 16px; font-weight: 800; color: #0f766e; margin-bottom: 1mm; }
-        .desc { font-size: 9px; color: #64748b; margin-bottom: 1mm; text-transform: uppercase; letter-spacing: .8px; }
+        .empresa { font-size: 12px; font-weight: 800; color: #0f766e; line-height: 1.15; text-transform: uppercase; }
+        .empresa-contato { min-height: 8mm; margin-top: .8mm; font-size: 7px; color: #475569; line-height: 1.25; }
+        .logo { font-size: 13px; font-weight: 800; color: #172033; margin-top: 1mm; }
+        .desc { font-size: 7px; color: #64748b; margin-bottom: .5mm; text-transform: uppercase; letter-spacing: .6px; }
         .qr { margin: 1mm 0; display: flex; justify-content: center; }
-        .qr svg { width: 29mm; height: 29mm; }
-        .numero { font-size: 18px; font-weight: 800; margin: 1mm 0 0; letter-spacing: .5px; }
-        .codigo { font-family: 'Courier New', monospace; font-size: 9px; color: #64748b; margin-bottom: 1mm; }
-        .info { font-size: 9px; color: #334155; line-height: 1.35; text-align: left; padding: 1.5mm 1mm; border-top: 1px dashed #cbd5e1; border-bottom: 1px dashed #cbd5e1; margin: 1mm 0; }
+        .qr svg { width: 21mm; height: 21mm; }
+        .numero { font-size: 15px; font-weight: 800; margin-top: .5mm; letter-spacing: .4px; }
+        .codigo { font-family: 'Courier New', monospace; font-size: 7px; color: #64748b; margin-bottom: .7mm; }
+        .info { font-size: 7px; color: #334155; line-height: 1.25; text-align: left; padding: 1mm .5mm; border-top: 1px dashed #cbd5e1; border-bottom: 1px dashed #cbd5e1; margin: .7mm 0; }
         .info .row { display: flex; justify-content: space-between; gap: 8px; }
         .info .label { font-weight: 700; color: #172033; }
-        .footer { font-size: 8px; color: #64748b; margin-top: 1mm; line-height: 1.3; }
-        .cupom:nth-child(6n) { break-after: page; page-break-after: always; }
+        .footer { font-size: 6.5px; color: #64748b; margin-top: .7mm; line-height: 1.25; }
+        .cupom:nth-child(9n) { break-after: page; page-break-after: always; }
         .cupom:last-child { break-after: auto; page-break-after: auto; }
-      </style></head><body><main class="print-sheet">
+      </style></head><body>
+      ${autoPrint ? "" : '<div class="print-actions"><button type="button" onclick="window.print()">Imprimir vales</button></div>'}
+      <main class="print-sheet">
       ${cuponsParaImprimir.map(c => `
         <div class="cupom">
-          <div class="logo">🔥 VALE GÁS</div>
+          <div class="empresa">${esc(empresa.nome)}</div>
+          <div class="empresa-contato">
+            ${empresa.telefone ? `<div>Telefone: ${esc(empresa.telefone)}</div>` : ""}
+            ${empresa.endereco ? `<div>${esc(empresa.endereco)}</div>` : ""}
+          </div>
+          <div class="logo">VALE GÁS</div>
           <div class="desc">${esc(c.descricao)}</div>
           <div class="qr">${qrMap.get(c.numero) ?? ""}</div>
           <div class="numero">Nº ${esc(c.numero)}</div>
@@ -163,7 +181,7 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
           </div>
         </div>
       `).join("")}</main>
-      <script>window.onload = function() { window.print(); setTimeout(function(){ window.close(); }, 300); }</script>
+      ${autoPrint ? '<script>window.onload = function() { window.print(); setTimeout(function(){ window.close(); }, 300); }</script>' : ""}
       </body></html>
     `);
     printWindow.document.close();
@@ -188,7 +206,12 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
       {previewCupom && (
         <div className="flex justify-center">
           <div className="bg-white border-2 border-dashed border-muted-foreground/40 rounded-xl p-5 w-[300px] text-center">
-            <div className="text-lg font-extrabold text-primary">🔥 VALE GÁS</div>
+            <div className="text-sm font-extrabold uppercase text-primary">{empresa.nome}</div>
+            <div className="mb-2 text-[9px] leading-tight text-muted-foreground">
+              {empresa.telefone && <div>Telefone: {empresa.telefone}</div>}
+              {empresa.endereco && <div>{empresa.endereco}</div>}
+            </div>
+            <div className="text-lg font-extrabold">VALE GÁS</div>
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
               {previewCupom.descricao}
             </div>
@@ -210,7 +233,7 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
       )}
 
       <div className="rounded-xl border bg-muted/30 p-3 text-sm text-muted-foreground">
-        A impressão organiza automaticamente até <strong className="text-foreground">6 vales por folha A4</strong>, sem exibir valores ao cliente.
+        A impressão organiza automaticamente até <strong className="text-foreground">9 vales por folha A4</strong>, com os dados da empresa e sem exibir valores ao cliente.
       </div>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <Label className="text-sm font-semibold sm:text-base">Selecione os vales para imprimir</Label>
@@ -231,7 +254,10 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
       </div>
       <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
         <Button type="button" variant="outline" className="min-h-11" onClick={onClose}>Fechar</Button>
-        <Button type="button" className="min-h-11 gap-2" onClick={handlePrint}>
+        <Button type="button" variant="outline" className="min-h-11 gap-2" onClick={() => openPrintView(false)}>
+          <Eye className="h-4 w-4" /> Visualizar
+        </Button>
+        <Button type="button" className="col-span-2 min-h-11 gap-2 sm:col-span-1" onClick={() => openPrintView(true)}>
           <Printer className="h-4 w-4" /> Imprimir {selecionados.size > 0 ? `(${selecionados.size})` : ""}
         </Button>
       </div>
@@ -466,6 +492,21 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
     valorRecebido: lotesAtivos.reduce((s, l) => s + Number(l.valor_pago), 0),
   }), [lotesAtivos]);
 
+  const empresaCupom = useMemo<EmpresaCupom>(() => {
+    const localidade = [unidadeAtual?.bairro, unidadeAtual?.cidade, unidadeAtual?.estado]
+      .filter(Boolean)
+      .join(" - ");
+    const endereco = [unidadeAtual?.endereco, localidade, unidadeAtual?.cep ? `CEP ${unidadeAtual.cep}` : null]
+      .filter(Boolean)
+      .join(", ");
+
+    return {
+      nome: unidadeAtual?.nome || "Empresa",
+      telefone: unidadeAtual?.telefone || null,
+      endereco: endereco || null,
+    };
+  }, [unidadeAtual]);
+
   const content = (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-end">
@@ -683,7 +724,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
           <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-lg overflow-y-auto rounded-2xl p-4 sm:p-6">
             <DialogHeader><DialogTitle className="flex items-center gap-2"><Printer className="h-5 w-5" /> Cupons Gerados</DialogTitle></DialogHeader>
             {cuponsGerados.length > 0 && (
-              <CupomPrint cupons={cuponsGerados} onClose={() => setCupomDialogOpen(false)} />
+              <CupomPrint cupons={cuponsGerados} empresa={empresaCupom} onClose={() => setCupomDialogOpen(false)} />
             )}
           </DialogContent>
         </Dialog>
