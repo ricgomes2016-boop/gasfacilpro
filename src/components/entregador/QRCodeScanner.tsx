@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { Button } from "@/components/ui/button";
 import { Camera, CameraOff, RefreshCw } from "lucide-react";
@@ -14,6 +14,7 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const readerId = `qr-reader-${useId().replace(/:/g, "")}`;
 
   const startScanning = async () => {
     if (!containerRef.current) return;
@@ -22,7 +23,9 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
       setError(null);
       
       // Create scanner instance
-      const scanner = new Html5Qrcode("qr-reader");
+      // O html5-qrcode manipula diretamente os filhos deste elemento. Ele deve
+      // permanecer vazio e isolado dos elementos renderizados pelo React.
+      const scanner = new Html5Qrcode(readerId);
       scannerRef.current = scanner;
 
       // Get available cameras
@@ -49,9 +52,9 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
           aspectRatio: 1,
         },
         (decodedText) => {
-          // Successfully scanned
-          stopScanning();
-          onScan(decodedText);
+          // Termine a câmera antes de fechar o modal para evitar uma limpeza
+          // concorrente enquanto o elemento do leitor está sendo desmontado.
+          void stopScanning().then(() => onScan(decodedText));
         },
         () => {
           // QR code not found in frame - this is expected during scanning
@@ -64,9 +67,13 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
       const errorMessage =
         err instanceof Error ? err.message : "Erro ao acessar a câmera";
       
-      if (errorMessage.includes("Permission") || errorMessage.includes("permission")) {
+      if (/permission|notallowed/i.test(errorMessage)) {
         setHasPermission(false);
         setError("Permissão de câmera negada. Por favor, permita o acesso à câmera nas configurações do navegador.");
+      } else if (/notfound|requested device not found|nenhuma câmera/i.test(errorMessage)) {
+        setError("Nenhuma câmera disponível. Verifique se o dispositivo possui câmera e tente novamente.");
+      } else if (/notreadable|could not start video source|trackstarterror/i.test(errorMessage)) {
+        setError("A câmera está sendo usada por outro aplicativo. Feche-o e tente novamente.");
       } else {
         setError(errorMessage);
       }
@@ -76,14 +83,15 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
   };
 
   const stopScanning = async () => {
-    if (scannerRef.current) {
+    const scanner = scannerRef.current;
+    scannerRef.current = null;
+    if (scanner) {
       try {
-        await scannerRef.current.stop();
-        await scannerRef.current.clear();
+        if (scanner.isScanning) await scanner.stop();
+        await scanner.clear();
       } catch {
         // Ignore errors when stopping
       }
-      scannerRef.current = null;
     }
     setIsScanning(false);
   };
@@ -97,13 +105,10 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
 
   return (
     <div className="space-y-4">
-      <div
-        ref={containerRef}
-        id="qr-reader"
-        className="w-full aspect-square bg-muted rounded-lg overflow-hidden relative"
-      >
+      <div ref={containerRef} className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
+        <div id={readerId} className="h-full w-full" />
         {!isScanning && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center p-4">
             {error ? (
               <>
                 <CameraOff className="h-16 w-16 text-destructive mb-4" />
