@@ -307,79 +307,73 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
         {/* Items Table */}
         {itens.length > 0 ? (
           <>
-          <div className="venda-modern-surface overflow-hidden rounded-lg border shadow-sm sm:hidden">
-            <div className="grid grid-cols-[minmax(0,1fr)_86px_72px_34px] items-center gap-1 border-b bg-muted/60 px-2 py-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-              <span>Produto</span>
-              <span className="text-center">Qtd</span>
-              <span className="text-right">Unit.</span>
-              <span />
+          <div className="space-y-2 sm:hidden">
+            <div className="flex items-center justify-between px-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              <span>Itens da venda</span>
+              <span>{itens.length} {itens.length === 1 ? "item" : "itens"}</span>
             </div>
-            <div className="divide-y">
+            <div className="space-y-2">
               {itens.map((item, index) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-[minmax(0,1fr)_86px_72px_34px] items-center gap-1 px-2 py-2"
+                  className="venda-modern-surface rounded-xl border p-3 shadow-sm"
                 >
-                  <div className="min-w-0 pr-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{item.nome}</p>
-                    <p className="text-[11px] font-bold text-primary">R$ {item.total.toFixed(2)}</p>
+                  <div className="mb-3 flex min-w-0 items-start justify-between gap-3">
+                    <p className="min-w-0 flex-1 break-words text-sm font-semibold leading-snug text-foreground">{item.nome}</p>
+                    <p className="shrink-0 text-sm font-bold text-primary">R$ {item.total.toFixed(2)}</p>
                   </div>
 
-                  <div className="grid grid-cols-[22px_1fr_22px] items-center rounded-md border bg-background">
+                  <div className="grid grid-cols-[minmax(126px,1.25fr)_minmax(82px,.75fr)_40px] items-end gap-2">
+                    <div>
+                      <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Quantidade</span>
+                      <div className="grid h-10 grid-cols-[34px_1fr_34px] items-center overflow-hidden rounded-lg border bg-background">
+                        <Button variant="ghost" size="icon" className="h-10 w-[34px] rounded-none px-0" onClick={() => updateQuantity(index, -1)} aria-label="Diminuir quantidade">
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={item.quantidade}
+                          onChange={(e) => {
+                            const newQtd = parseInt(e.target.value) || 1;
+                            if (newQtd < 1) return;
+                            const newItens = [...itens];
+                            newItens[index].quantidade = newQtd;
+                            newItens[index].total = newQtd * newItens[index].preco_unitario;
+                            onChange(newItens);
+                          }}
+                          className="h-10 min-w-0 rounded-none border-y-0 px-0 text-center text-sm font-bold shadow-none focus-visible:ring-0"
+                          data-venda-enter-next
+                        />
+                        <Button variant="ghost" size="icon" className="h-10 w-[34px] rounded-none px-0" onClick={() => updateQuantity(index, 1)} aria-label="Aumentar quantidade">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Valor unit.</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={item.preco_unitario}
+                        onChange={(e) => updatePrecoUnitario(index, Number(e.target.value))}
+                        className="h-10 min-w-0 rounded-lg px-2 text-right text-sm font-semibold"
+                        data-venda-enter-next
+                      />
+                    </div>
+
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-6 rounded-r-none px-0"
-                      onClick={() => updateQuantity(index, -1)}
-                      aria-label="Diminuir quantidade"
+                      className="h-10 w-10 rounded-lg border border-destructive/15 bg-destructive/5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => removeItem(index)}
+                      aria-label="Excluir produto"
                     >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={item.quantidade}
-                      onChange={(e) => {
-                        const newQtd = parseInt(e.target.value) || 1;
-                        if (newQtd < 1) return;
-                        const newItens = [...itens];
-                        newItens[index].quantidade = newQtd;
-                        newItens[index].total = newQtd * newItens[index].preco_unitario;
-                        onChange(newItens);
-                      }}
-                      className="h-8 min-w-0 rounded-none border-0 px-0 text-center text-sm font-bold shadow-none focus-visible:ring-0"
-                      data-venda-enter-next
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-6 rounded-l-none px-0"
-                      onClick={() => updateQuantity(index, 1)}
-                      aria-label="Aumentar quantidade"
-                    >
-                      <Plus className="h-3 w-3" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={item.preco_unitario}
-                    onChange={(e) => updatePrecoUnitario(index, Number(e.target.value))}
-                    className="h-8 min-w-0 rounded-md px-1 text-right text-sm font-semibold"
-                    data-venda-enter-next
-                  />
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => removeItem(index)}
-                    aria-label="Excluir produto"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </div>
               ))}
             </div>

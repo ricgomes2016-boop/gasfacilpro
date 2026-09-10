@@ -240,11 +240,11 @@ function StepperFooterBar({
 }) {
   const idx = VENDA_STEPS.indexOf(activeStep);
   return (
-    <div className="flex w-full items-center gap-2 flex-nowrap">
+    <div className="flex min-h-14 w-full items-stretch gap-1.5 sm:min-h-0 sm:items-center sm:gap-2">
       <Button
         variant="outline"
         size="icon"
-        className="h-10 w-10 sm:h-9 sm:w-9 shrink-0 rounded-full"
+        className="h-auto w-11 shrink-0 rounded-lg border-border/70 bg-background/95 shadow-sm sm:h-9 sm:w-9"
         aria-label="Etapa anterior"
         disabled={idx === 0}
         onClick={() => {
@@ -269,7 +269,7 @@ function StepperFooterBar({
       <Button
         variant="outline"
         size="icon"
-        className="h-10 w-10 sm:h-9 sm:w-9 shrink-0 rounded-full"
+        className="h-auto w-11 shrink-0 rounded-lg border-border/70 bg-background/95 shadow-sm sm:h-9 sm:w-9"
         aria-label="Próxima etapa"
         disabled={idx === VENDA_STEPS.length - 1}
         onClick={() => {
@@ -417,11 +417,11 @@ function VendaStepper({
               }
               aria-label={`Etapa ${step.label}${step.done ? " (preenchida)" : ""}`}
               className={cn(
-                "flex items-center gap-1.5 rounded-full font-semibold transition-all disabled:cursor-not-allowed whitespace-nowrap",
+                "relative flex min-h-12 min-w-[52px] flex-col items-center justify-center gap-0.5 rounded-lg font-semibold transition-all disabled:cursor-not-allowed whitespace-nowrap sm:min-h-0 sm:min-w-0 sm:flex-row sm:gap-1.5 sm:rounded-full",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                 "venda-step-tab ring-1 ring-inset",
                 STEP_TONE_CLASS[step.id],
-                compact ? "px-3 py-1.5 text-[11px]" : "px-3 py-1.5 text-xs",
+                compact ? "px-2 py-1 text-[10px] sm:px-3 sm:py-1.5 sm:text-[11px]" : "px-3 py-1.5 text-xs",
                 isActive
                   ? "bg-primary text-primary-foreground ring-primary shadow-sm"
                   : step.done
@@ -433,13 +433,14 @@ function VendaStepper({
                   "cursor-pointer hover:bg-muted/80",
               )}
             >
-              {step.done ? (
-                <Check className={compact ? "h-3.5 w-3.5" : "h-3.5 w-3.5"} />
-              ) : (
-                <Icon className={compact ? "h-3.5 w-3.5" : "h-3.5 w-3.5"} />
+              <Icon className="h-4 w-4" />
+              {step.done && (
+                <span className="absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-success text-success-foreground ring-2 ring-background sm:-right-1 sm:-top-1">
+                  <Check className="h-2.5 w-2.5" />
+                </span>
               )}
               <span
-                className={compact ? "hidden sm:inline" : "hidden sm:inline"}
+                className={compact ? "block max-w-[48px] truncate leading-none sm:max-w-none" : "hidden sm:inline"}
               >
                 {step.label}
               </span>
@@ -448,7 +449,7 @@ function VendaStepper({
               <div
                 className={cn(
                   "h-0.5 rounded-full",
-                  compact ? "w-3 min-w-3" : "flex-1",
+                  compact ? "hidden w-2 min-w-2 sm:block" : "flex-1",
                   step.done ? "bg-success/40" : "bg-border",
                 )}
               />
