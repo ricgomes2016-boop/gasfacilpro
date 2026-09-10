@@ -1148,12 +1148,12 @@ export default function CadastroClientesCad() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 lg:grid-cols-5">
           <FinancialHeroCard title="Total" value={stats.total} subtitle="Clientes cadastrados" color="primary" icon={Users} />
           <FinancialHeroCard title="Ativos" value={stats.ativos} subtitle={`${stats.total > 0 ? Math.round((stats.ativos / stats.total) * 100) : 0}% da base`} color="success" icon={Users} progress={stats.total > 0 ? Math.round((stats.ativos / stats.total) * 100) : 0} />
-          <FinancialHeroCard title="Residenciais" value={stats.residenciais} subtitle="Perfil doméstico" color="info" icon={Users} />
-          <FinancialHeroCard title="Comerciais" value={stats.comerciais} subtitle="Perfil empresarial" color="warning" icon={Users} />
-          <FinancialHeroCard title="Revendedores" value={stats.revendedores} subtitle="Parceiros" color="violet" icon={Store} />
+          <div className="hidden sm:block"><FinancialHeroCard title="Residenciais" value={stats.residenciais} subtitle="Perfil doméstico" color="info" icon={Users} /></div>
+          <div className="hidden sm:block"><FinancialHeroCard title="Comerciais" value={stats.comerciais} subtitle="Perfil empresarial" color="warning" icon={Users} /></div>
+          <div className="hidden sm:block"><FinancialHeroCard title="Revendedores" value={stats.revendedores} subtitle="Parceiros" color="violet" icon={Store} /></div>
         </div>
 
 
@@ -1169,20 +1169,34 @@ export default function CadastroClientesCad() {
                   </Badge>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                  <div className="relative flex-1 sm:w-64 sm:flex-none">
+                  <div className="relative min-w-0 flex-1 sm:w-80 sm:flex-none">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar por nome, telefone, CPF, endereço, bairro ou número..."
+                      placeholder="Nome, telefone, CPF ou endereço"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="h-9 pl-9"
+                      className="h-10 pl-9 pr-9 sm:h-9"
+                      aria-label="Buscar clientes"
                     />
+                    {searchTerm ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+                        onClick={() => setSearchTerm("")}
+                        aria-label="Limpar busca"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    ) : null}
                   </div>
                   <Button
                     variant={showFilters ? "default" : "outline"}
                     size="icon"
                     onClick={() => setShowFilters(!showFilters)}
-                    className="relative h-9 w-9 shrink-0"
+                    className="relative h-10 w-10 shrink-0 sm:h-9 sm:w-9"
+                    aria-label={showFilters ? "Ocultar filtros" : "Exibir filtros"}
                   >
                     <Filter className="h-4 w-4" />
                     {hasActiveFilters && (
@@ -1194,7 +1208,7 @@ export default function CadastroClientesCad() {
 
               {/* Filtros avançados */}
               {showFilters && (
-                <div className="semantic-filter-panel grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="semantic-filter-panel grid grid-cols-1 gap-3 xs:grid-cols-2 md:grid-cols-5">
                   <div>
                     <Label className="text-xs font-medium">Tipo</Label>
                     <Select value={filterTipo} onValueChange={setFilterTipo}>
@@ -1272,7 +1286,7 @@ export default function CadastroClientesCad() {
               )}
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 py-3 sm:p-6">
             {isLoading ? (
               <div className="flex items-center justify-center p-8">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -1352,7 +1366,7 @@ export default function CadastroClientesCad() {
 
       {/* Modal para criar/editar cliente */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-2xl p-3 sm:p-6 overflow-x-hidden max-h-[85vh] flex flex-col">
+        <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] flex-col overflow-x-hidden rounded-2xl p-3 sm:max-w-2xl sm:p-6">
           <DialogHeader className="pr-6">
             <DialogTitle className="text-base sm:text-lg">
               {editingCliente ? "Editar Cliente" : "Novo Cliente"}

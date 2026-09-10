@@ -105,6 +105,21 @@ export function ClientesList({
     <>
       {/* Mobile cards */}
       <div className="space-y-3 md:hidden">
+        <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
+          <label className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <Checkbox
+              checked={allSelected}
+              onCheckedChange={(checked) => onSelectAll?.(!!checked)}
+              aria-label="Selecionar todos os clientes desta página"
+            />
+            Selecionar página
+          </label>
+          {selectedMergeIds.size > 0 ? (
+            <Badge variant="secondary" className="rounded-full text-[10px]">
+              {selectedMergeIds.size} selecionado{selectedMergeIds.size === 1 ? "" : "s"}
+            </Badge>
+          ) : null}
+        </div>
         {clientes.map((cliente) => {
           const telLink = cliente.telefone ? telefoneHref(cliente.telefone) : null;
           const waLink = cliente.telefone ? whatsappHref(cliente.telefone) : null;
@@ -194,11 +209,11 @@ export function ClientesList({
                 ) : null}
               </div>
 
-              <div className="mobile-record-card-footer">
+              <div className="mobile-record-card-footer grid grid-cols-2 gap-1.5">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 gap-1.5 px-2 text-xs font-medium"
+                  className="h-9 w-full gap-1.5 px-2 text-xs font-medium"
                   onClick={() => onVenda(cliente)}
                 >
                   <ShoppingCart className="h-3.5 w-3.5" />
@@ -207,7 +222,7 @@ export function ClientesList({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 gap-1.5 px-2 text-xs font-medium"
+                  className="h-9 w-full gap-1.5 px-2 text-xs font-medium"
                   onClick={() => onHistorico(cliente)}
                 >
                   <History className="h-3.5 w-3.5" />
@@ -216,7 +231,7 @@ export function ClientesList({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 gap-1.5 px-2 text-xs font-medium"
+                  className="h-9 w-full gap-1.5 px-2 text-xs font-medium"
                   onClick={() => onUnidades(cliente)}
                 >
                   <Building2 className="h-3.5 w-3.5" />
@@ -224,8 +239,9 @@ export function ClientesList({
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button variant="ghost" size="sm" className="h-9 w-full gap-1.5 text-xs font-medium" aria-label={`Mais ações para ${cliente.nome}`}>
                       <MoreHorizontal className="h-4 w-4" />
+                      Mais
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44">
