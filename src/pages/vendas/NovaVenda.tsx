@@ -240,11 +240,11 @@ function StepperFooterBar({
 }) {
   const idx = VENDA_STEPS.indexOf(activeStep);
   return (
-    <div className="flex min-h-14 w-full items-stretch gap-1.5 sm:min-h-0 sm:items-center sm:gap-2">
+    <div className="flex min-h-14 w-full items-stretch sm:min-h-0 sm:items-center sm:gap-2">
       <Button
         variant="outline"
         size="icon"
-        className="h-auto w-11 shrink-0 rounded-lg border-border/70 bg-background/95 shadow-sm sm:h-9 sm:w-9"
+        className="hidden h-9 w-9 shrink-0 rounded-lg border-border/70 bg-background/95 shadow-sm sm:inline-flex"
         aria-label="Etapa anterior"
         disabled={idx === 0}
         onClick={() => {
@@ -254,7 +254,7 @@ function StepperFooterBar({
       >
         <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4" />
       </Button>
-      <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar">
+      <div className="min-w-0 flex-1 overflow-hidden">
         <VendaStepper
           customer={customer}
           itens={itens}
@@ -269,7 +269,7 @@ function StepperFooterBar({
       <Button
         variant="outline"
         size="icon"
-        className="h-auto w-11 shrink-0 rounded-lg border-border/70 bg-background/95 shadow-sm sm:h-9 sm:w-9"
+        className="hidden h-9 w-9 shrink-0 rounded-lg border-border/70 bg-background/95 shadow-sm sm:inline-flex"
         aria-label="Próxima etapa"
         disabled={idx === VENDA_STEPS.length - 1}
         onClick={() => {
@@ -312,6 +312,7 @@ function VendaStepper({
   const steps: Array<{
     id: VendaStepId;
     label: string;
+    mobileLabel?: string;
     done: boolean;
     enabled: boolean;
     icon: typeof User;
@@ -340,6 +341,7 @@ function VendaStepper({
     {
       id: "entregador",
       label: "Entregador",
+      mobileLabel: "Entrega",
       done: entregadorSelecionado,
       enabled: true,
       icon: Truck,
@@ -382,7 +384,7 @@ function VendaStepper({
     <div
       className={cn(
         "flex items-center",
-        compact ? "gap-1" : "justify-between gap-1",
+        compact ? "w-full gap-0 sm:gap-1" : "justify-between gap-1",
       )}
       role="tablist"
       aria-label="Etapas da venda"
@@ -395,7 +397,7 @@ function VendaStepper({
             key={step.label}
             className={cn(
               "flex items-center",
-              compact ? "gap-1 shrink-0" : "gap-1 flex-1",
+              compact ? "min-w-0 flex-1 gap-0 sm:flex-none sm:shrink-0 sm:gap-1" : "gap-1 flex-1",
             )}
           >
             <button
@@ -417,11 +419,11 @@ function VendaStepper({
               }
               aria-label={`Etapa ${step.label}${step.done ? " (preenchida)" : ""}`}
               className={cn(
-                "relative flex min-h-12 min-w-[52px] flex-col items-center justify-center gap-0.5 rounded-lg font-semibold transition-all disabled:cursor-not-allowed whitespace-nowrap sm:min-h-0 sm:min-w-0 sm:flex-row sm:gap-1.5 sm:rounded-full",
+                "relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg font-semibold transition-all disabled:cursor-not-allowed whitespace-nowrap sm:min-h-0 sm:flex-row sm:gap-1.5 sm:rounded-full",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                 "venda-step-tab ring-1 ring-inset",
                 STEP_TONE_CLASS[step.id],
-                compact ? "px-2 py-1 text-[10px] sm:px-3 sm:py-1.5 sm:text-[11px]" : "px-3 py-1.5 text-xs",
+                compact ? "w-full px-0.5 py-1 text-[9px] sm:w-auto sm:px-3 sm:py-1.5 sm:text-[11px]" : "px-3 py-1.5 text-xs",
                 isActive
                   ? "bg-primary text-primary-foreground ring-primary shadow-sm"
                   : step.done
@@ -440,10 +442,11 @@ function VendaStepper({
                 </span>
               )}
               <span
-                className={compact ? "block max-w-[48px] truncate leading-none sm:max-w-none" : "hidden sm:inline"}
+                className={compact ? "block w-full text-center leading-none sm:hidden" : "hidden sm:inline"}
               >
-                {step.label}
+                {step.mobileLabel ?? step.label}
               </span>
+              {compact && <span className="hidden sm:inline">{step.label}</span>}
             </button>
             {i < steps.length - 1 && (
               <div
