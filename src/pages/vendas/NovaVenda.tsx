@@ -78,6 +78,7 @@ import {
 } from "@/services/receiptPdfService";
 import { atualizarEstoqueVenda } from "@/services/estoqueService";
 import { rotearPagamentosVenda } from "@/services/paymentRoutingService";
+import { liberarValesGasDoPedido, reservarValesGasDoPedido } from "@/services/valeGasReservaService";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { cn, getBrasiliaDate, getBrasiliaDateString } from "@/lib/utils";
@@ -1307,6 +1308,7 @@ export default function NovaVenda({
     }
 
     setIsLoading(true);
+    let pedidoCriadoId: string | null = null;
 
     try {
       // Auto-cadastrar cliente se não estiver cadastrado
@@ -1415,6 +1417,13 @@ export default function NovaVenda({
         .single();
 
       if (pedidoError) throw pedidoError;
+      pedidoCriadoId = pedido.id;
+      await reservarValesGasDoPedido(
+        pedido.id,
+        pagamentos.filter((pagamento) => pagamento.forma === "vale_gas"),
+        clienteId,
+        customer.nome || null,
+      );
       if (pedido?.id)
         markOrderNotified(
           pedido.id,
@@ -1618,6 +1627,10 @@ export default function NovaVenda({
       setBoletoAsaasConta(contaBoletoAsaas);
       setPrintDialogOpen(true);
     } catch (error: any) {
+      if (pedidoCriadoId) {
+        await liberarValesGasDoPedido(pedidoCriadoId);
+        await supabase.from("pedidos").delete().eq("id", pedidoCriadoId);
+      }
       console.error("Erro ao salvar venda:", error);
       toast({
         title: "Erro ao salvar",
@@ -1677,6 +1690,7 @@ export default function NovaVenda({
       return;
     }
     setIsLoading(true);
+    let pedidoCriadoId: string | null = null;
     try {
       const enderecoCompleto = [
         customer.endereco,
@@ -1732,6 +1746,13 @@ export default function NovaVenda({
         .single();
 
       if (pedidoError) throw pedidoError;
+      pedidoCriadoId = pedido.id;
+      await reservarValesGasDoPedido(
+        pedido.id,
+        pagamentos.filter((pagamento) => pagamento.forma === "vale_gas"),
+        customer.id || null,
+        customer.nome || null,
+      );
       if (pedido?.id) markOrderNotified(pedido.id, customer?.telefone || null);
 
       const itensInsert = itensValidos.map((item) => ({
@@ -1756,6 +1777,10 @@ export default function NovaVenda({
       });
       navigate("/vendas/pedidos");
     } catch (error: any) {
+      if (pedidoCriadoId) {
+        await liberarValesGasDoPedido(pedidoCriadoId);
+        await supabase.from("pedidos").delete().eq("id", pedidoCriadoId);
+      }
       console.error(error);
       toast({
         title: "Erro ao agendar",

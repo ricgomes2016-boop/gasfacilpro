@@ -10,6 +10,9 @@ export interface ValeGasValidationResult {
   valor: number;
   valorVenda: number;
   valeId?: string;
+  produtoId?: string | null;
+  produtoNome?: string | null;
+  vendaId?: string | null;
   erro?: string;
 }
 
@@ -29,7 +32,7 @@ export async function validarValeGasNoBanco(codigo: string, parceiroId?: string)
     const isNumericOnly = !isNaN(numInput) && String(numInput) === trimmed;
 
     const selectFields = `
-      id, numero, codigo, valor, valor_venda, status, parceiro_id,
+      id, numero, codigo, valor, valor_venda, status, parceiro_id, produto_id, produto_nome, venda_id,
       vale_gas_parceiros:parceiro_id (nome)
     `;
 
@@ -72,6 +75,9 @@ export async function validarValeGasNoBanco(codigo: string, parceiroId?: string)
     if (data.status === "cancelado") {
       return fail(parceiro, cod, valor, "Vale cancelado");
     }
+    if (data.venda_id) {
+      return fail(parceiro, cod, valor, "Vale já está vinculado a outro pedido");
+    }
 
     return {
       valido: true,
@@ -82,6 +88,9 @@ export async function validarValeGasNoBanco(codigo: string, parceiroId?: string)
       valor,
       valorVenda,
       valeId: data.id,
+      produtoId: data.produto_id,
+      produtoNome: data.produto_nome,
+      vendaId: data.venda_id,
     };
   } catch (err: any) {
     return fail("", codigo, 0, err.message);

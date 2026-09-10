@@ -90,7 +90,7 @@ interface PaymentSectionProps {
   onChange: (pagamentos: Pagamento[]) => void;
   totalVenda: number;
   unidadeId?: string;
-  itens?: Array<{ nome: string; quantidade: number }>;
+  itens?: Array<{ nome: string; quantidade: number; produto_id?: string | null }>;
   clienteId?: string | null;
   excludedFormas?: string[];
 }
@@ -437,6 +437,7 @@ export function PaymentSection({
         return null;
       }
       setValeGasNumero(resultado.codigo || String(resultado.numero || codigo));
+      setValorDisplay(formatCurrency(resultado.valorVenda.toFixed(2).replace(".", ",")));
       toast.success(`Vale ${resultado.numero} encontrado — ${resultado.parceiro}`);
       return resultado;
     } finally {
@@ -495,6 +496,20 @@ export function PaymentSection({
         toast.error(
           valeGasValidado.erro || "Vale Gás não encontrado ou indisponível",
         );
+        return;
+      }
+      const produtoVale = valeGasValidado.produtoNome?.trim().toLowerCase();
+      const itemCompativel = itens.some((item) =>
+        (valeGasValidado?.produtoId && item.produto_id === valeGasValidado.produtoId) ||
+        (!!produtoVale && item.nome?.trim().toLowerCase() === produtoVale),
+      );
+      if ((valeGasValidado.produtoId || produtoVale) && !itemCompativel) {
+        toast.error(`Este vale é exclusivo para ${valeGasValidado.produtoNome || "outro produto"}.`);
+        return;
+      }
+      if (Math.abs(valorNum - valeGasValidado.valorVenda) > 0.01) {
+        toast.error(`O valor deste vale é R$ ${valeGasValidado.valorVenda.toFixed(2)}.`);
+        setValorDisplay(formatCurrency(valeGasValidado.valorVenda.toFixed(2).replace(".", ",")));
         return;
       }
     }
@@ -1042,7 +1057,9 @@ export function PaymentSection({
                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                        <div>
                          <p className="font-semibold text-foreground">Vale Nº {valeGasEncontrado.numero} disponível</p>
-                         <p className="text-xs text-muted-foreground">Parceiro: {valeGasEncontrado.parceiro}. Agora toque em adicionar pagamento.</p>
+                         <p className="text-xs text-muted-foreground">
+                           {valeGasEncontrado.produtoNome || "Produto livre"} • R$ {valeGasEncontrado.valorVenda.toFixed(2)} • {valeGasEncontrado.parceiro}
+                         </p>
                        </div>
                      </div>
                    )}
