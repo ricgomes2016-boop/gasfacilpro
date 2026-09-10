@@ -15,15 +15,17 @@ export default function ValeGas() {
   return (
     <MainLayout>
       <Header title="Vale Gás" subtitle="Gestão completa de vales gás" />
-      <div className="p-4 md:p-6">
+      <div className="space-y-4 p-3 sm:p-4 md:p-6">
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="flex flex-wrap h-auto gap-1 w-full">
-            <TabsTrigger value="controle" className="gap-1.5 text-xs sm:text-sm"><Package className="h-4 w-4" /><span className="hidden sm:inline">Controle</span><span className="sm:hidden">Ctrl</span></TabsTrigger>
-            <TabsTrigger value="emissao" className="gap-1.5 text-xs sm:text-sm"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Emissão</span><span className="sm:hidden">Emit</span></TabsTrigger>
-            <TabsTrigger value="parceiros" className="gap-1.5 text-xs sm:text-sm"><Building2 className="h-4 w-4" /><span className="hidden sm:inline">Parceiros</span><span className="sm:hidden">Parc</span></TabsTrigger>
-            <TabsTrigger value="acerto" className="gap-1.5 text-xs sm:text-sm"><Banknote className="h-4 w-4" /><span className="hidden sm:inline">Acerto</span><span className="sm:hidden">Acrt</span></TabsTrigger>
-            <TabsTrigger value="relatorio" className="gap-1.5 text-xs sm:text-sm"><BarChart3 className="h-4 w-4" /><span className="hidden sm:inline">Relatório</span><span className="sm:hidden">Rel</span></TabsTrigger>
-          </TabsList>
+          <div className="-mx-3 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0">
+            <TabsList className="h-12 min-w-max justify-start gap-1 rounded-xl bg-muted/70 p-1 sm:w-full sm:min-w-0 sm:justify-center">
+              <TabsTrigger value="controle" className="min-h-10 gap-1.5 rounded-lg px-3 text-xs sm:flex-1 sm:text-sm"><Package className="h-4 w-4" />Controle</TabsTrigger>
+              <TabsTrigger value="emissao" className="min-h-10 gap-1.5 rounded-lg px-3 text-xs sm:flex-1 sm:text-sm"><Plus className="h-4 w-4" />Emissão</TabsTrigger>
+              <TabsTrigger value="parceiros" className="min-h-10 gap-1.5 rounded-lg px-3 text-xs sm:flex-1 sm:text-sm"><Building2 className="h-4 w-4" />Parceiros</TabsTrigger>
+              <TabsTrigger value="acerto" className="min-h-10 gap-1.5 rounded-lg px-3 text-xs sm:flex-1 sm:text-sm"><Banknote className="h-4 w-4" />Acerto</TabsTrigger>
+              <TabsTrigger value="relatorio" className="min-h-10 gap-1.5 rounded-lg px-3 text-xs sm:flex-1 sm:text-sm"><BarChart3 className="h-4 w-4" />Relatório</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="controle"><ValeGasControle embedded /></TabsContent>
           <TabsContent value="emissao"><ValeGasEmissao embedded /></TabsContent>

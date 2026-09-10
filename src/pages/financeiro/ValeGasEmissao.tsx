@@ -112,26 +112,36 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
     printWindow.document.write(`
       <!DOCTYPE html><html><head><title>Cupons Vale Gás</title>
       <style>
-        @media print { @page { margin: 8mm; } }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, Helvetica, sans-serif; padding: 12px; background: #fff; }
-        .cupom {
-          border: 2px dashed #333; border-radius: 12px; padding: 18px 16px;
-          margin: 0 auto 14px; width: 320px; text-align: center;
-          page-break-inside: avoid; background: #fff;
+        @page { size: A4 portrait; margin: 8mm; }
+        @media print {
+          body { padding: 0 !important; }
+          .print-sheet { gap: 4mm !important; }
         }
-        .logo { font-size: 20px; font-weight: 800; color: #2fc2b5; margin-bottom: 4px; }
-        .desc { font-size: 11px; color: #666; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
-        .qr { margin: 10px 0; display: flex; justify-content: center; }
-        .qr svg { width: 180px; height: 180px; }
-        .numero { font-size: 24px; font-weight: 800; margin: 8px 0 2px; letter-spacing: 1px; }
-        .codigo { font-family: 'Courier New', monospace; font-size: 11px; color: #666; margin-bottom: 8px; }
-        .valor { font-size: 30px; font-weight: 800; color: #16a34a; margin: 10px 0; }
-        .info { font-size: 11px; color: #444; line-height: 1.5; text-align: left; padding: 6px 4px; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; margin: 8px 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, Helvetica, sans-serif; padding: 8mm; background: #fff; color: #172033; }
+        .print-sheet {
+          display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 4mm; align-items: stretch;
+        }
+        .cupom {
+          border: 1.5px dashed #64748b; border-radius: 4mm; padding: 4mm;
+          min-height: 86mm; max-height: 86mm; text-align: center;
+          break-inside: avoid; page-break-inside: avoid; background: #fff;
+          display: flex; flex-direction: column; justify-content: center;
+        }
+        .logo { font-size: 16px; font-weight: 800; color: #0f766e; margin-bottom: 1mm; }
+        .desc { font-size: 9px; color: #64748b; margin-bottom: 1mm; text-transform: uppercase; letter-spacing: .8px; }
+        .qr { margin: 1mm 0; display: flex; justify-content: center; }
+        .qr svg { width: 29mm; height: 29mm; }
+        .numero { font-size: 18px; font-weight: 800; margin: 1mm 0 0; letter-spacing: .5px; }
+        .codigo { font-family: 'Courier New', monospace; font-size: 9px; color: #64748b; margin-bottom: 1mm; }
+        .info { font-size: 9px; color: #334155; line-height: 1.35; text-align: left; padding: 1.5mm 1mm; border-top: 1px dashed #cbd5e1; border-bottom: 1px dashed #cbd5e1; margin: 1mm 0; }
         .info .row { display: flex; justify-content: space-between; gap: 8px; }
-        .info .label { font-weight: 700; color: #333; }
-        .footer { font-size: 10px; color: #999; margin-top: 8px; line-height: 1.4; }
-      </style></head><body>
+        .info .label { font-weight: 700; color: #172033; }
+        .footer { font-size: 8px; color: #64748b; margin-top: 1mm; line-height: 1.3; }
+        .cupom:nth-child(6n) { break-after: page; page-break-after: always; }
+        .cupom:last-child { break-after: auto; page-break-after: auto; }
+      </style></head><body><main class="print-sheet">
       ${cuponsParaImprimir.map(c => `
         <div class="cupom">
           <div class="logo">🔥 VALE GÁS</div>
@@ -139,7 +149,6 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
           <div class="qr">${qrMap.get(c.numero) ?? ""}</div>
           <div class="numero">Nº ${esc(c.numero)}</div>
           <div class="codigo">${esc(c.codigo)}</div>
-          <div class="valor">R$ ${esc(c.valor.toFixed(2))}</div>
           <div class="info">
             <div class="row"><span class="label">Parceiro:</span><span>${esc(c.parceiroNome)}</span></div>
             ${c.parceiroCnpj ? `<div class="row"><span class="label">CNPJ:</span><span>${esc(c.parceiroCnpj)}</span></div>` : ""}
@@ -153,7 +162,7 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
             Apresente este QR Code ao entregador para validar seu vale gás.
           </div>
         </div>
-      `).join("")}
+      `).join("")}</main>
       <script>window.onload = function() { window.print(); setTimeout(function(){ window.close(); }, 300); }</script>
       </body></html>
     `);
@@ -188,9 +197,6 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
             </div>
             <div className="text-xl font-extrabold">Nº {previewCupom.numero}</div>
             <div className="font-mono text-[11px] text-muted-foreground">{previewCupom.codigo}</div>
-            <div className="text-2xl font-extrabold text-success my-2">
-              R$ {previewCupom.valor.toFixed(2)}
-            </div>
             <div className="text-[11px] text-left border-t border-dashed pt-2 space-y-0.5">
               <div><strong>Parceiro:</strong> {previewCupom.parceiroNome}</div>
               {previewCupom.produtoNome && <div><strong>Produto:</strong> {previewCupom.produtoNome}</div>}
@@ -203,27 +209,29 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <Label className="text-base font-semibold">Selecione os vales para imprimir</Label>
+      <div className="rounded-xl border bg-muted/30 p-3 text-sm text-muted-foreground">
+        A impressão organiza automaticamente até <strong className="text-foreground">6 vales por folha A4</strong>, sem exibir valores ao cliente.
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Label className="text-sm font-semibold sm:text-base">Selecione os vales para imprimir</Label>
         <Button type="button" variant="outline" size="sm" onClick={toggleAll}>
           {selecionados.size === cupons.length ? "Desmarcar todos" : "Selecionar todos"}
         </Button>
       </div>
       <div className="max-h-60 overflow-y-auto border rounded-lg divide-y">
         {cupons.map(c => (
-          <div key={c.numero} className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer" onClick={() => toggleOne(c.numero)}>
-            <Checkbox checked={selecionados.has(c.numero)} onCheckedChange={() => toggleOne(c.numero)} />
-            <div className="flex-1">
+          <label key={c.numero} className="flex min-h-12 cursor-pointer items-center gap-3 p-3 hover:bg-muted/50" onClick={() => toggleOne(c.numero)}>
+            <Checkbox checked={selecionados.has(c.numero)} onCheckedChange={() => toggleOne(c.numero)} onClick={event => event.stopPropagation()} />
+            <div className="min-w-0 flex-1">
               <span className="font-mono font-bold">Nº {c.numero}</span>
-              <span className="text-muted-foreground text-sm ml-2">{c.codigo}</span>
+              <span className="ml-2 break-all text-xs text-muted-foreground sm:text-sm">{c.codigo}</span>
             </div>
-            <span className="font-medium">R$ {c.valor.toFixed(2)}</span>
-          </div>
+          </label>
         ))}
       </div>
-      <div className="flex gap-2 justify-end">
-        <Button type="button" variant="outline" onClick={onClose}>Fechar</Button>
-        <Button type="button" className="gap-2" onClick={handlePrint}>
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+        <Button type="button" variant="outline" className="min-h-11" onClick={onClose}>Fechar</Button>
+        <Button type="button" className="min-h-11 gap-2" onClick={handlePrint}>
           <Printer className="h-4 w-4" /> Imprimir {selecionados.size > 0 ? `(${selecionados.size})` : ""}
         </Button>
       </div>
@@ -463,15 +471,15 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
         <div className="flex items-center justify-end">
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setPreviewVales([]); }}>
             <DialogTrigger asChild>
-              <Button className="gap-2"><Plus className="h-4 w-4" /> Emitir Vale Gás</Button>
+              <Button className="min-h-11 w-full gap-2 sm:w-auto"><Plus className="h-4 w-4" /> Emitir Vale Gás</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-2xl overflow-y-auto rounded-2xl p-4 sm:p-6">
               <DialogHeader><DialogTitle>Lançamento de Vale Gás</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Modo de emissão */}
                 <div className="border rounded-lg p-4 space-y-3">
                   <Label className="text-sm font-semibold">Modo de Emissão</Label>
-                  <RadioGroup value={modoEmissao} onValueChange={v => { setModoEmissao(v as ModoEmissao); setPreviewVales([]); }} className="grid grid-cols-3 gap-3">
+                  <RadioGroup value={modoEmissao} onValueChange={v => { setModoEmissao(v as ModoEmissao); setPreviewVales([]); }} className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
                     <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50">
                       <RadioGroupItem value="automatico" id="modo-auto" />
                       <Label htmlFor="modo-auto" className="cursor-pointer">
@@ -661,9 +669,9 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                   <Textarea value={formData.observacao} onChange={e => setFormData(p => ({ ...p, observacao: e.target.value }))} placeholder="Observações..." rows={2} />
                 </div>
 
-                <div className="flex gap-2 justify-end pt-4">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-                  <Button type="submit" className="gap-2"><Plus className="h-4 w-4" /> Gravar e Gerar Cupom</Button>
+                <div className="grid grid-cols-2 gap-2 pt-4 sm:flex sm:justify-end">
+                  <Button type="button" variant="outline" className="min-h-11" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+                  <Button type="submit" className="min-h-11 gap-2"><Plus className="h-4 w-4" /> Gravar e Gerar Cupom</Button>
                 </div>
               </form>
             </DialogContent>
@@ -672,7 +680,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
 
         {/* Dialog de Cupom para impressão */}
         <Dialog open={cupomDialogOpen} onOpenChange={setCupomDialogOpen}>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-lg overflow-y-auto rounded-2xl p-4 sm:p-6">
             <DialogHeader><DialogTitle className="flex items-center gap-2"><Printer className="h-5 w-5" /> Cupons Gerados</DialogTitle></DialogHeader>
             {cuponsGerados.length > 0 && (
               <CupomPrint cupons={cuponsGerados} onClose={() => setCupomDialogOpen(false)} />
@@ -681,11 +689,11 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
         </Dialog>
 
         {/* Cards resumo */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><FileText className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">{totais.lotes}</p><p className="text-sm text-muted-foreground">Lotes Ativos</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-info/10"><CreditCard className="h-6 w-6 text-info" /></div><div><p className="text-2xl font-bold">{totais.valesEmitidos}</p><p className="text-sm text-muted-foreground">Vales Emitidos</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-success/10"><Banknote className="h-6 w-6 text-success" /></div><div><p className="text-2xl font-bold">R$ {totais.valorRecebido.toFixed(0)}</p><p className="text-sm text-muted-foreground">Recebido</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-warning/10"><Package className="h-6 w-6 text-warning" /></div><div><p className="text-2xl font-bold">R$ {(totais.valorTotal - totais.valorRecebido).toFixed(0)}</p><p className="text-sm text-muted-foreground">A Receber</p></div></div></CardContent></Card>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+          <Card className="border-0 shadow-sm ring-1 ring-border/60"><CardContent className="p-3 sm:p-5"><div className="flex items-center gap-3"><div className="rounded-xl bg-primary/10 p-2.5"><FileText className="h-5 w-5 text-primary" /></div><div className="min-w-0"><p className="text-xl font-bold sm:text-2xl">{totais.lotes}</p><p className="truncate text-xs text-muted-foreground sm:text-sm">Lotes ativos</p></div></div></CardContent></Card>
+          <Card className="border-0 shadow-sm ring-1 ring-border/60"><CardContent className="p-3 sm:p-5"><div className="flex items-center gap-3"><div className="rounded-xl bg-info/10 p-2.5"><CreditCard className="h-5 w-5 text-info" /></div><div className="min-w-0"><p className="text-xl font-bold sm:text-2xl">{totais.valesEmitidos}</p><p className="truncate text-xs text-muted-foreground sm:text-sm">Vales emitidos</p></div></div></CardContent></Card>
+          <Card className="border-0 shadow-sm ring-1 ring-border/60"><CardContent className="p-3 sm:p-5"><div className="flex items-center gap-3"><div className="rounded-xl bg-success/10 p-2.5"><Banknote className="h-5 w-5 text-success" /></div><div className="min-w-0"><p className="text-lg font-bold sm:text-2xl">R$ {totais.valorRecebido.toFixed(0)}</p><p className="truncate text-xs text-muted-foreground sm:text-sm">Recebido</p></div></div></CardContent></Card>
+          <Card className="border-0 shadow-sm ring-1 ring-border/60"><CardContent className="p-3 sm:p-5"><div className="flex items-center gap-3"><div className="rounded-xl bg-warning/10 p-2.5"><Package className="h-5 w-5 text-warning" /></div><div className="min-w-0"><p className="text-lg font-bold sm:text-2xl">R$ {(totais.valorTotal - totais.valorRecebido).toFixed(0)}</p><p className="truncate text-xs text-muted-foreground sm:text-sm">A receber</p></div></div></CardContent></Card>
         </div>
 
         <Card className="bg-muted/50">
@@ -698,9 +706,10 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
         </Card>
 
         {/* Lista de lotes */}
-        <Card>
-          <CardHeader><CardTitle>Lotes Emitidos</CardTitle><CardDescription>Histórico de emissão</CardDescription></CardHeader>
-          <CardContent>
+        <Card className="border-0 shadow-sm ring-1 ring-border/60">
+          <CardHeader className="p-4 sm:p-6"><CardTitle>Lotes emitidos</CardTitle><CardDescription>Histórico de emissão e situação financeira</CardDescription></CardHeader>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -796,6 +805,39 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                 })}
               </TableBody>
             </Table>
+            </div>
+            <div className="space-y-3 md:hidden">
+              {lotes.length === 0 ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">Nenhum lote emitido</div>
+              ) : lotes.map(lote => {
+                const loteParceiro = parceiros.find(p => p.id === lote.parceiro_id);
+                return (
+                  <article key={lote.id} className={`rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border/70 ${lote.cancelado ? "opacity-60" : ""}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold">{loteParceiro?.nome || "Parceiro"}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">Emitido em {format(new Date(lote.created_at), "dd/MM/yyyy", { locale: ptBR })}</p>
+                      </div>
+                      {lote.cancelado ? <Badge variant="destructive">Cancelado</Badge> : (
+                        <Badge variant={lote.status_pagamento === "pago" ? "default" : lote.status_pagamento === "parcial" ? "secondary" : "destructive"}>
+                          {lote.status_pagamento === "pago" ? "Pago" : lote.status_pagamento === "parcial" ? "Parcial" : "Pendente"}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-3 text-sm">
+                      <div><p className="text-xs text-muted-foreground">Numeração</p><p className="font-mono font-semibold">{lote.numero_inicial}–{lote.numero_final}</p></div>
+                      <div><p className="text-xs text-muted-foreground">Quantidade</p><p className="font-semibold">{lote.quantidade} vales</p></div>
+                      <div><p className="text-xs text-muted-foreground">Produto</p><p className="truncate font-medium">{lote.produto_nome || "Qualquer produto"}</p></div>
+                      <div><p className="text-xs text-muted-foreground">Valor interno</p><p className="font-semibold">R$ {Number(lote.valor_total).toFixed(2)}</p></div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      {!lote.cancelado && <Button variant="outline" className="min-h-11 gap-2" onClick={() => handleReimprimirLote(lote)}><Printer className="h-4 w-4" /> Imprimir</Button>}
+                      {!lote.cancelado && lote.status_pagamento !== "pago" && loteParceiro?.tipo === "prepago" && <Button className="min-h-11" onClick={() => setPagamentoDialog(lote.id)}>Receber</Button>}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
     </div>
