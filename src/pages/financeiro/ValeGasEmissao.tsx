@@ -220,8 +220,8 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
       </div>
       <div className="max-h-60 overflow-y-auto border rounded-lg divide-y">
         {cupons.map(c => (
-          <label key={c.numero} className="flex min-h-12 cursor-pointer items-center gap-3 p-3 hover:bg-muted/50" onClick={() => toggleOne(c.numero)}>
-            <Checkbox checked={selecionados.has(c.numero)} onCheckedChange={() => toggleOne(c.numero)} onClick={event => event.stopPropagation()} />
+          <label key={c.numero} className="flex min-h-12 cursor-pointer items-center gap-3 p-3 hover:bg-muted/50">
+            <Checkbox checked={selecionados.has(c.numero)} onCheckedChange={() => toggleOne(c.numero)} />
             <div className="min-w-0 flex-1">
               <span className="font-mono font-bold">Nº {c.numero}</span>
               <span className="ml-2 break-all text-xs text-muted-foreground sm:text-sm">{c.codigo}</span>
