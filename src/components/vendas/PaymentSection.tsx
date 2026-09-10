@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -40,6 +41,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { VendaSectionHeader } from "./VendaSectionHeader";
 import { validarValeGasNoBanco } from "@/hooks/useValeGasValidation";
 import { validarValeVendaAntecipada } from "@/hooks/useVendaAntecipadaValidation";
+import { QRCodeScanner } from "@/components/entregador/QRCodeScanner";
 
 export interface Pagamento {
   id: string;
@@ -280,6 +282,8 @@ export function PaymentSection({
     useState(0);
   const [valeGasNumero, setValeGasNumero] = useState("");
   const [validandoValeGas, setValidandoValeGas] = useState(false);
+  const [scannerValeOpen, setScannerValeOpen] = useState(false);
+  const [valeGasEncontrado, setValeGasEncontrado] = useState<Awaited<ReturnType<typeof validarValeGasNoBanco>> | null>(null);
   const [vendaAntecipadaCodigo, setVendaAntecipadaCodigo] = useState("");
 
   const { unidadeAtual } = useUnidade();
@@ -413,7 +417,38 @@ export function PaymentSection({
     setPendingTaxaDescontoPercentual(0);
     setPendingTaxaTotalPercentual(0);
     setValeGasNumero("");
+    setValeGasEncontrado(null);
     setVendaAntecipadaCodigo("");
+  };
+
+  const buscarValeGas = async (codigoInformado = valeGasNumero) => {
+    const codigo = codigoInformado.trim();
+    if (!codigo) {
+      toast.error("Informe ou leia o número do Vale Gás");
+      return null;
+    }
+    setValidandoValeGas(true);
+    setValeGasEncontrado(null);
+    try {
+      const resultado = await validarValeGasNoBanco(codigo);
+      setValeGasEncontrado(resultado);
+      if (!resultado.valido || !resultado.valeId) {
+        toast.error(resultado.erro || "Vale Gás não encontrado ou indisponível");
+        return null;
+      }
+      setValeGasNumero(resultado.codigo || String(resultado.numero || codigo));
+      toast.success(`Vale ${resultado.numero} encontrado — ${resultado.parceiro}`);
+      return resultado;
+    } finally {
+      setValidandoValeGas(false);
+    }
+  };
+
+  const handleValeQrScan = async (conteudo: string) => {
+    const codigo = conteudo.trim();
+    setScannerValeOpen(false);
+    setValeGasNumero(codigo);
+    await buscarValeGas(codigo);
   };
 
   const addPagamento = async () => {
@@ -451,14 +486,12 @@ export function PaymentSection({
         return;
       }
 
-      setValidandoValeGas(true);
-      try {
-        valeGasValidado = await validarValeGasNoBanco(numeroVale);
-      } finally {
-        setValidandoValeGas(false);
-      }
+      valeGasValidado = valeGasEncontrado?.valido &&
+        (valeGasEncontrado.codigo === numeroVale.toUpperCase() || String(valeGasEncontrado.numero) === numeroVale)
+        ? valeGasEncontrado
+        : await buscarValeGas(numeroVale);
 
-      if (!valeGasValidado.valido || !valeGasValidado.valeId) {
+      if (!valeGasValidado?.valido || !valeGasValidado.valeId) {
         toast.error(
           valeGasValidado.erro || "Vale Gás não encontrado ou indisponível",
         );
@@ -976,8 +1009,8 @@ export function PaymentSection({
                   </Label>
                   <div className="flex gap-2">
                     <Input
-                      value={valeGasNumero}
-                      onChange={(e) => setValeGasNumero(e.target.value)}
+                       value={valeGasNumero}
+                       onChange={(e) => { setValeGasNumero(e.target.value); setValeGasEncontrado(null); }}
                       placeholder="Ex: 529 ou VG-000529"
                       className="h-9 text-sm"
                       data-venda-enter-next
@@ -986,22 +1019,52 @@ export function PaymentSection({
                       type="button"
                       variant="outline"
                       className="h-9 shrink-0"
-                      onClick={addPagamento}
+                       onClick={() => buscarValeGas()}
                       disabled={validandoValeGas}
                     >
                       {validandoValeGas ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        "Validar"
-                      )}
-                    </Button>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    O vale será conferido no banco antes de entrar no pedido.
-                  </p>
+                         "Buscar"
+                       )}
+                     </Button>
+                   </div>
+                   <Button
+                     type="button"
+                     variant="outline"
+                     className="mt-2 min-h-11 w-full gap-2 sm:w-auto"
+                     onClick={() => setScannerValeOpen(true)}
+                   >
+                     <Camera className="h-4 w-4" /> Ler QR Code
+                   </Button>
+                   {valeGasEncontrado?.valido && (
+                     <div className="mt-2 flex items-start gap-2 rounded-lg border border-success/30 bg-success/10 p-3 text-sm">
+                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                       <div>
+                         <p className="font-semibold text-foreground">Vale Nº {valeGasEncontrado.numero} disponível</p>
+                         <p className="text-xs text-muted-foreground">Parceiro: {valeGasEncontrado.parceiro}. Agora toque em adicionar pagamento.</p>
+                       </div>
+                     </div>
+                   )}
+                   <p className="mt-1 text-xs text-muted-foreground">
+                     Busque o vale para conferir a disponibilidade antes de adicioná-lo ao pedido.
+                   </p>
                 </div>
               </div>
-            )}
+             )}
+
+            <Dialog open={scannerValeOpen} onOpenChange={setScannerValeOpen}>
+              <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-md overflow-y-auto rounded-2xl p-4 sm:p-6">
+                <DialogHeader>
+                  <DialogTitle>Ler QR Code do Vale Gás</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-muted-foreground">Aponte a câmera para o QR Code impresso no vale.</p>
+                <QRCodeScanner
+                  onScan={handleValeQrScan}
+                  onError={(erro) => toast.error(erro || "Não foi possível acessar a câmera")}
+                />
+              </DialogContent>
+            </Dialog>
 
             {forma === "venda_antecipada" && (
               <div className="venda-modern-surface rounded-lg border border-dashed border-violet-500/30 p-3 space-y-2">
