@@ -10,16 +10,22 @@ interface QRCodeScannerProps {
 
 export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
   const [isScanning, setIsScanning] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scanHandledRef = useRef(false);
+  const startingRef = useRef(false);
   const readerId = `qr-reader-${useId().replace(/:/g, "")}`;
 
   const startScanning = async () => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || startingRef.current || scannerRef.current) return;
 
     try {
+      startingRef.current = true;
+      scanHandledRef.current = false;
+      setIsStarting(true);
       setError(null);
       
       // Create scanner instance
@@ -52,6 +58,10 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
           aspectRatio: 1,
         },
         (decodedText) => {
+          // A biblioteca pode reconhecer o mesmo QR em vários frames antes de
+          // concluir o stop(). Apenas o primeiro resultado deve seguir adiante.
+          if (scanHandledRef.current) return;
+          scanHandledRef.current = true;
           // Termine a câmera antes de fechar o modal para evitar uma limpeza
           // concorrente enquanto o elemento do leitor está sendo desmontado.
           void stopScanning().then(() => onScan(decodedText));
@@ -79,6 +89,9 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
       }
       
       onError?.(errorMessage);
+    } finally {
+      startingRef.current = false;
+      setIsStarting(false);
     }
   };
 
@@ -135,6 +148,7 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
 
       <Button
         onClick={isScanning ? stopScanning : startScanning}
+        disabled={isStarting}
         className={`w-full ${isScanning ? "" : "gradient-primary text-white"}`}
         variant={isScanning ? "outline" : "photo"}
       >
@@ -146,7 +160,7 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
         ) : (
           <>
             <Camera className="h-4 w-4 mr-2" />
-            {error ? "Tentar Novamente" : "Iniciar Câmera"}
+            {isStarting ? "Abrindo câmera..." : error ? "Tentar Novamente" : "Iniciar Câmera"}
           </>
         )}
       </Button>
