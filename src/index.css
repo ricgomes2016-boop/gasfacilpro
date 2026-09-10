@@ -1526,6 +1526,12 @@
     box-shadow: 0 6px 16px -10px hsl(var(--venda-tone) / 0.6);
   }
 
+  /* Secondary is a light surface in the default theme, so its own foreground
+     token is required to keep the active Entrega step legible. */
+  .venda-step-tab.venda-tone-entregador[data-active="true"] {
+    color: hsl(var(--secondary-foreground));
+  }
+
   .venda-step-tab[data-done="true"]:not([data-active="true"]) {
     background-color: hsl(var(--venda-tone) / 0.15);
     color: hsl(var(--venda-tone));
