@@ -1924,10 +1924,10 @@ export default function NovaVenda({
               <ShoppingBag className="h-4 w-4" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground md:text-[11px] md:font-bold md:text-foreground/70">
                 Pedido
               </p>
-              <p className="text-sm font-bold text-foreground truncate leading-tight">
+              <p className="truncate text-sm font-bold leading-tight text-foreground md:text-[15px] md:font-extrabold md:tracking-[-0.01em]">
                 Nova Venda{" "}
                 <span className="text-primary">#{proximoNumero ?? "—"}</span>
               </p>
@@ -1979,9 +1979,9 @@ export default function NovaVenda({
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+        <div className="grid items-start gap-3 sm:grid-cols-2">
+          <div className="grid min-w-0 grid-rows-[18px_44px] gap-1">
+            <Label className="flex h-[18px] items-center gap-1 text-[11px] font-semibold uppercase leading-none tracking-wide text-muted-foreground md:text-xs md:font-bold md:text-foreground/75">
               <Calendar className="h-3 w-3" />
               Data de Entrega
             </Label>
@@ -1989,16 +1989,17 @@ export default function NovaVenda({
               type="date"
               value={dataEntrega}
               onChange={(e) => setDataEntrega(e.target.value)}
-              className="mt-1 h-11 rounded-xl"
+              className="h-11 rounded-xl font-medium text-foreground md:text-[15px] md:font-semibold"
               data-venda-enter-next
             />
           </div>
-          <div>
-            <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="grid min-w-0 grid-rows-[18px_44px] gap-1">
+            <Label className="flex h-[18px] items-center gap-1 text-[11px] font-semibold uppercase leading-none tracking-wide text-muted-foreground md:text-xs md:font-bold md:text-foreground/75">
+              <ShoppingBag className="h-3 w-3" />
               Canal de Venda
             </Label>
             <Select value={canalVenda} onValueChange={setCanalVenda}>
-              <SelectTrigger className="mt-1 h-11 rounded-xl">
+              <SelectTrigger className="h-11 rounded-xl font-medium text-foreground md:text-[15px] md:font-semibold">
                 <SelectValue placeholder="Selecione o canal" />
               </SelectTrigger>
               <SelectContent>
