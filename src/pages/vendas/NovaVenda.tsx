@@ -423,7 +423,7 @@ function VendaStepper({
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                 "venda-step-tab ring-1 ring-inset",
                 STEP_TONE_CLASS[step.id],
-                compact ? "w-full px-0.5 py-1 text-[9px] sm:w-auto sm:px-3 sm:py-1.5 sm:text-[11px]" : "px-3 py-1.5 text-xs",
+                compact ? "w-full px-0.5 py-1 text-[9px] sm:w-auto sm:px-4 sm:py-2 sm:text-xs" : "px-3 py-1.5 text-xs",
                 isActive
                   ? "bg-primary text-primary-foreground ring-primary shadow-sm"
                   : step.done

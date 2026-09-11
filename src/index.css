@@ -1517,7 +1517,7 @@
   .venda-tone-cliente { --venda-tone: var(--info); --venda-tone-strong: var(--info); }
   .venda-tone-produtos { --venda-tone: var(--warning); --venda-tone-strong: var(--warning); }
   .venda-tone-pagamento { --venda-tone: var(--success); --venda-tone-strong: var(--success); }
-  .venda-tone-entregador { --venda-tone: var(--secondary); --venda-tone-strong: var(--secondary); }
+  .venda-tone-entregador { --venda-tone: 239 72% 56%; --venda-tone-strong: 239 72% 48%; }
   .venda-tone-confirmar { --venda-tone: var(--destructive); --venda-tone-strong: var(--destructive); }
 
   .venda-step-tab[data-active="true"] {
@@ -1526,10 +1526,9 @@
     box-shadow: 0 6px 16px -10px hsl(var(--venda-tone) / 0.6);
   }
 
-  /* Secondary is a light surface in the default theme, so its own foreground
-     token is required to keep the active Entrega step legible. */
+  /* Entrega uses a solid indigo surface in both themes. */
   .venda-step-tab.venda-tone-entregador[data-active="true"] {
-    color: hsl(var(--secondary-foreground));
+    color: hsl(0 0% 100%);
   }
 
   .venda-step-tab[data-done="true"]:not([data-active="true"]) {
