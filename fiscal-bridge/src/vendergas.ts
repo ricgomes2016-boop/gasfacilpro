@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { chromium, type BrowserContext, type Page } from "playwright-core";
+import { chromium, type BrowserContext, type Page, type Response } from "playwright-core";
 
 const VENDER_GAS_URL = "https://app.vendergas.com.br";
 const OPERACAO_NFCE_VENDA_FORTE_GAS = "64bed19844829bd93b5eb6fe";
@@ -10,6 +10,32 @@ function urlEmissao(tipo: "nfe" | "nfce") {
   return `${VENDER_GAS_URL}/notaFiscal/emitir?${operacao}tipoNota=${tipo}&tipoEntradaSaida=1&cfe=false`;
 }
 let contexto: BrowserContext | null = null;
+
+interface DadosFiscaisCapturados {
+  numero?: string;
+  chaveAcesso?: string;
+  protocolo?: string;
+  url?: string;
+}
+
+function extrairDadosFiscais(texto: string): DadosFiscaisCapturados {
+  const limpo = texto.replace(/\\u002F/gi, "/").replace(/\\\//g, "/");
+  const chaveAcesso = limpo.match(/\b\d{44}\b/)?.[0];
+  const numero = limpo.match(/<nNF>\s*(\d{1,12})\s*<\/nNF>/i)?.[1]
+    || limpo.match(/["'](?:numero|numero_nota|numeroNota|nNF)["']\s*:\s*["']?(\d{1,12})/i)?.[1]
+    || limpo.match(/(?:NFC-e|NF-e|Nota Fiscal|N[úu]mero)\D{0,30}(\d{1,12})/i)?.[1];
+  const protocolo = limpo.match(/<nProt>\s*(\d{10,20})\s*<\/nProt>/i)?.[1]
+    || limpo.match(/["'](?:protocolo|nProt)["']\s*:\s*["']?(\d{10,20})/i)?.[1];
+  const url = limpo.match(/["'](?:danfe_url|url_danfe|urlDanfe|pdf_url|urlPdf)["']\s*:\s*["'](https?:\/\/[^"']+)/i)?.[1];
+  return { numero, chaveAcesso, protocolo, url };
+}
+
+function combinarDadosFiscais(destino: DadosFiscaisCapturados, origem: DadosFiscaisCapturados) {
+  destino.numero ||= origem.numero;
+  destino.chaveAcesso ||= origem.chaveAcesso;
+  destino.protocolo ||= origem.protocolo;
+  destino.url ||= origem.url;
+}
 
 export interface EmissaoVenderGas {
   tipoDocumento: "nfe" | "nfce";
@@ -225,6 +251,19 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
   if (!await botao.isEnabled()) {
     return { ok: false, motivo: "botao_emitir_desabilitado", mensagem: "O botão Emitir Nota Fiscal está desabilitado. Confira os campos obrigatórios destacados no Vender Gás." };
   }
+  const dadosCapturados: DadosFiscaisCapturados = {};
+  const leiturasPendentes: Promise<void>[] = [];
+  const observarResposta = (response: Response) => {
+    const contentType = response.headers()["content-type"] ?? "";
+    if (!/(json|xml|text|javascript)/i.test(contentType)) return;
+    if (!/(nota|fiscal|nfc|nfe|tecnospeed|emit)/i.test(response.url())) return;
+    const leitura = response.text()
+      .then((texto) => combinarDadosFiscais(dadosCapturados, extrairDadosFiscais(texto)))
+      .catch(() => undefined);
+    leiturasPendentes.push(leitura);
+  };
+  page.on("response", observarResposta);
+
   // O Vender Gás pode usar tanto um diálogo nativo do navegador quanto uma
   // janela HTML. O listener precisa existir antes do clique para não perder o
   // diálogo nativo, que aparece imediatamente.
@@ -267,6 +306,7 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
   }
 
   if (!confirmouEmissao) {
+    page.off("response", observarResposta);
     return {
       ok: false,
       motivo: "confirmacao_emissao_indisponivel",
@@ -276,14 +316,25 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
     };
   }
 
-  await page.waitForTimeout(3_000);
+  await page.waitForTimeout(6_000);
+  page.off("response", observarResposta);
+  await Promise.allSettled(leiturasPendentes);
 
   const resultado = await page.locator("body").innerText();
-  const chave = resultado.match(/\b\d{44}\b/)?.[0];
-  const numero = resultado.match(/(?:NFC-e|NF-e|Nota Fiscal)\D{0,20}(\d{1,12})/i)?.[1];
+  combinarDadosFiscais(dadosCapturados, extrairDadosFiscais(resultado));
   const sucesso = /autorizad[ao]|nota fiscal emitida|emiss[aã]o conclu[ií]da/i.test(resultado);
   if (!sucesso) {
     return { ok: false, motivo: "emissao_nao_confirmada", etapa: "vendergas", url: page.url(), mensagem: "O Vender Gás não confirmou a autorização. Confira a mensagem exibida na janela; o GasFácil não registrou a nota como emitida." };
   }
-  return { ok: true, etapa: "autorizada", numero, chaveAcesso: chave, url: page.url(), mensagem: `${rotulo} autorizada no Vender Gás.` };
+  return {
+    ok: true,
+    etapa: "autorizada",
+    numero: dadosCapturados.numero,
+    chaveAcesso: dadosCapturados.chaveAcesso,
+    protocolo: dadosCapturados.protocolo,
+    url: dadosCapturados.url || page.url(),
+    mensagem: dadosCapturados.numero
+      ? `${rotulo} nº ${dadosCapturados.numero} autorizada no Vender Gás.`
+      : `${rotulo} autorizada no Vender Gás. O XML pode ser importado pela Central de XML para completar a numeração.`,
+  };
 }
