@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { ShoppingCart, Truck, CheckCircle, XCircle, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ItemVenda } from "./ProductSearch";
-import type { Pagamento } from "./PaymentSection";
+import { getValeGasReferencia, type Pagamento } from "./PaymentSection";
 import { VendaSectionHeader } from "./VendaSectionHeader";
 
 
@@ -111,9 +111,12 @@ export function OrderSummary({
               </p>
               {pagamentos.map((p) => {
                 const parcelasInfo = p.forma === "cartao_credito" && p.parcelas ? ` ${p.parcelas}x` : "";
+                const valeGasReferencia = getValeGasReferencia(p);
                 return (
                 <div key={p.id} className="flex justify-between gap-2 text-sm w-full min-w-0">
-                  <span className="capitalize truncate min-w-0 flex-1">{p.forma.replace("_", " ")}{parcelasInfo}</span>
+                  <span className="capitalize truncate min-w-0 flex-1">
+                    {p.forma.replaceAll("_", " ")}{parcelasInfo}{valeGasReferencia ? ` ${valeGasReferencia}` : ""}
+                  </span>
                   <span className="shrink-0">R$ {p.valor.toFixed(2)}</span>
                 </div>
                 );

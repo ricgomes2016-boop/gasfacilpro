@@ -76,6 +76,13 @@ export interface Pagamento {
   taxa_extra?: number;
 }
 
+export function getValeGasReferencia(pagamento: Pagamento): string | null {
+  if (pagamento.forma !== "vale_gas") return null;
+  if (pagamento.vale_gas_numero != null) return `nº ${pagamento.vale_gas_numero}`;
+  const codigo = pagamento.vale_gas_codigo?.trim();
+  return codigo ? `nº ${codigo}` : null;
+}
+
 /** Soma o total efetivo a cobrar considerando taxas extras (Gás do Povo etc.). */
 export function calcTotalEfetivoVenda(
   baseTotal: number,
@@ -747,6 +754,7 @@ export function PaymentSection({
               {pagamentos.map((pag) => {
                 const formaConfig = getFormaConfig(pag.forma);
                 const Icon = formaConfig.Icon;
+                const valeGasReferencia = getValeGasReferencia(pag);
                 return (
                   <div
                     key={pag.id}
@@ -767,6 +775,7 @@ export function PaymentSection({
                       <div className="min-w-0">
                         <span className="font-medium text-sm">
                           {getFormaLabel(pag.forma)}
+                          {valeGasReferencia ? ` ${valeGasReferencia}` : ""}
                         </span>
                         {pag.cheque_numero && (
                           <p className="text-xs text-muted-foreground">
