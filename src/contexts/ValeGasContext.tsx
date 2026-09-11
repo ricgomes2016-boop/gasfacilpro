@@ -315,7 +315,7 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
 
   const gerarAcerto = async (parceiroId: string): Promise<AcertoConta | null> => {
     const parceiro = parceiros.find(p => p.id === parceiroId);
-    if (!parceiro || !["consignado", "empenho"].includes(parceiro.tipo)) return null;
+    if (!parceiro) return null;
 
     // Get acerted vale IDs
     const { data: acertoValesData } = await (supabase as any).from("vale_gas_acerto_vales").select("vale_id");
@@ -328,9 +328,25 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
       .not("vale_gas_id", "is", null);
     (contasValeData || []).forEach((c: any) => valesJaAcertados.add(c.vale_gas_id));
 
-    const valesParaAcertar = vales.filter(v =>
-      v.parceiro_id === parceiroId && v.status === "utilizado" && !valesJaAcertados.has(v.id)
+    // Regra financeira por contrato:
+    // - consignado: cobra somente os vales efetivamente utilizados/validados;
+    // - empenho e pré-pago: cobra todo o lote emitido, independentemente da utilização.
+    // A vinculação ao acerto não muda o status operacional do vale.
+    const lotesFinanceiramenteAbertos = new Set(
+      lotes
+        .filter(l =>
+          l.parceiro_id === parceiroId &&
+          !l.cancelado &&
+          Number(l.valor_pago || 0) < Number(l.valor_total || 0) - 0.01
+        )
+        .map(l => l.id)
     );
+
+    const valesParaAcertar = vales.filter(v => {
+      if (v.parceiro_id !== parceiroId || v.status === "cancelado" || valesJaAcertados.has(v.id)) return false;
+      if (parceiro.tipo === "consignado") return v.status === "utilizado";
+      return lotesFinanceiramenteAbertos.has(v.lote_id);
+    });
 
     if (valesParaAcertar.length === 0) return null;
 
@@ -370,7 +386,7 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
 
     const parceiro = parceiros.find(p => p.id === parceiroId);
     let valorPendente = 0;
-    if (parceiro?.tipo === "prepago") {
+    if (parceiro?.tipo === "prepago" || parceiro?.tipo === "empenho") {
       const lotesParceiro = lotes.filter(l => l.parceiro_id === parceiroId && !l.cancelado);
       valorPendente = lotesParceiro.reduce((s, l) => s + (Number(l.valor_total) - Number(l.valor_pago)), 0);
     } else {

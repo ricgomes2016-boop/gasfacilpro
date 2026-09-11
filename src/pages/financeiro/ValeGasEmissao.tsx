@@ -72,7 +72,7 @@ function gerarCuponsDoLote(
     parceiroNome: parceiro.nome,
     parceiroCnpj: parceiro.cnpj,
     parceiroTelefone: parceiro.telefone,
-    parceiroTipo: parceiro.tipo === "prepago" ? "Pré-pago" : "Consignado",
+    parceiroTipo: parceiro.tipo === "prepago" ? "Pré-pago" : parceiro.tipo === "empenho" ? "Empenho" : "Consignado",
     produtoNome,
     clienteNome,
     descricao,
@@ -396,31 +396,12 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
         unidadeId: unidadeAtual?.id || null,
       });
 
-      // Título financeiro do parceiro — só para PRÉ-PAGO.
-      // Consignado/Empenho: o título nasce no Acerto (ValeGasAcerto), após apurar os vales utilizados.
-      if (parceiro && parceiro.tipo === "prepago") {
-        try {
-          const vencimento = formData.dataVencimentoConta || defaultVencConta();
-          const { error: crErr } = await supabase.from("contas_receber").insert({
-            cliente: parceiro.nome,
-            descricao: `Vale Gás - Lote ${lote.numero_inicial}-${lote.numero_final} (${lote.quantidade} vales)`,
-            valor: lote.valor_total,
-            vencimento,
-            status: "pendente",
-            forma_pagamento: "vale_gas",
-            vale_gas_parceiro_id: parceiro.id,
-            origem: "vale_gas_lote",
-            unidade_id: unidadeAtual?.id || null,
-            observacoes: `Lote de ${lote.quantidade} vales emitido para ${parceiro.nome}.`,
-          });
-          if (crErr) throw crErr;
-          toast.success("Conta a receber gerada para o parceiro!");
-        } catch (e: any) {
-          console.error("Erro ao gerar conta a receber do lote:", e);
-          toast.error("Lote emitido, mas falhou ao gerar a conta a receber. Gere manualmente.");
-        }
-      } else if (parceiro) {
-        toast.info("Parceiro consignado: o título será gerado no Acerto.");
+      // O título nasce sempre na aba Acerto para evitar duplicidade e manter uma
+      // única baixa financeira. Pré-pago/empenho: lote integral; consignado: utilizados.
+      if (parceiro) {
+        toast.info(parceiro.tipo === "consignado"
+          ? "Consignado: o acerto considerará somente os vales utilizados."
+          : "O lote completo está disponível para acerto financeiro.");
       }
 
       // Gerar cupons para impressão
@@ -490,13 +471,13 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
     if (lote.status_pagamento === "pago") return { label: "Pago", variant: "default" as const };
     if (lote.status_pagamento === "parcial") return { label: "Acerto parcial", variant: "secondary" as const };
     const parceiroLote = parceiros.find(p => p.id === lote.parceiro_id);
-    if (parceiroLote && ["consignado", "empenho"].includes(parceiroLote.tipo)) {
+    if (parceiroLote?.tipo === "consignado") {
       const utilizados = vales.filter(v => v.lote_id === lote.id && v.status === "utilizado").length;
       return utilizados > 0
         ? { label: "Pendente de acerto", variant: "destructive" as const }
         : { label: "Aguardando utilização", variant: "secondary" as const };
     }
-    return { label: "Pendente", variant: "destructive" as const };
+    return { label: "Lote pendente de acerto", variant: "destructive" as const };
   };
 
   const totais = useMemo(() => ({
@@ -569,7 +550,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                     <SelectTrigger><SelectValue placeholder="Selecione o parceiro" /></SelectTrigger>
                     <SelectContent>
                       {parceiros.filter(p => p.ativo).map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.nome} ({p.tipo === "prepago" ? "Pré-pago" : "Consignado"})</SelectItem>
+                        <SelectItem key={p.id} value={p.id}>{p.nome} ({p.tipo === "prepago" ? "Pré-pago" : p.tipo === "empenho" ? "Empenho" : "Consignado"})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -577,7 +558,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                 {parceiro && (
                   <div className="p-3 bg-muted rounded-lg text-sm">
                     <p className="font-medium">{parceiro.nome}</p>
-                    <p className="text-muted-foreground">Tipo: {parceiro.tipo === "prepago" ? "Pré-pago" : "Consignado"} | CNPJ: {parceiro.cnpj || "N/A"}</p>
+                    <p className="text-muted-foreground">Tipo: {parceiro.tipo === "prepago" ? "Pré-pago" : parceiro.tipo === "empenho" ? "Empenho" : "Consignado"} | CNPJ: {parceiro.cnpj || "N/A"}</p>
                     {parceiro.telefone && <p className="text-muted-foreground">Tel: {parceiro.telefone}</p>}
                   </div>
                 )}
@@ -791,7 +772,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                           {lote.descricao && <p className="font-medium text-xs text-muted-foreground">{lote.descricao}</p>}
                           <p className="font-medium">{loteParceiro?.nome}</p>
                           <Badge variant={loteParceiro?.tipo === "prepago" ? "default" : "secondary"} className="text-xs">
-                            {loteParceiro?.tipo === "prepago" ? "Pré-pago" : "Consignado"}
+                            {loteParceiro?.tipo === "prepago" ? "Pré-pago" : loteParceiro?.tipo === "empenho" ? "Empenho" : "Consignado"}
                           </Badge>
                         </div>
                       </TableCell>

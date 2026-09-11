@@ -46,21 +46,22 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
   const [vencimentoAcerto, setVencimentoAcerto] = useState<string>(defaultVencAcerto());
   const [acertoRecebimento, setAcertoRecebimento] = useState<{ acerto: any; conta: RecebivelParaLiquidar } | null>(null);
 
-  const parceirosConsignados = parceiros.filter(p => ["consignado", "empenho"].includes(p.tipo) && p.ativo);
+  const parceirosAtivos = parceiros.filter(p => p.ativo);
 
   const valesPendentes = useMemo(() => {
     const pendentes: Record<string, { quantidade: number; valor: number }> = {};
-    parceirosConsignados.forEach(parceiro => {
-      const valesNaoAcertados = vales.filter(v => 
-        v.parceiro_id === parceiro.id && v.status === "utilizado"
-      );
+    parceirosAtivos.forEach(parceiro => {
+      const valesNaoAcertados = vales.filter(v => {
+        if (v.parceiro_id !== parceiro.id || v.status === "cancelado") return false;
+        return parceiro.tipo === "consignado" ? v.status === "utilizado" : true;
+      });
       pendentes[parceiro.id] = {
         quantidade: valesNaoAcertados.length,
         valor: valesNaoAcertados.reduce((sum, v) => sum + Number(v.valor), 0),
       };
     });
     return pendentes;
-  }, [parceirosConsignados, vales]);
+  }, [parceirosAtivos, vales]);
 
   const handleGerarAcerto = async () => {
     if (!parceiroSelecionado) { toast.error("Selecione um parceiro"); return; }
@@ -81,7 +82,7 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
             vale_gas_parceiro_id: parceiro?.id,
             origem: "vale_gas_acerto",
             unidade_id: unidadeAtual?.id || null,
-            observacoes: `${acertoMarker(acerto.id)} Acerto de ${acerto.quantidade} vales utilizados.`,
+            observacoes: `${acertoMarker(acerto.id)} ${parceiro?.tipo === "consignado" ? "Acerto de vales utilizados" : "Acerto integral de lote emitido"}.`,
           });
           if (crErr) throw crErr;
         } catch (e: any) {
@@ -158,16 +159,17 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
               <DialogHeader><DialogTitle>Gerar Novo Acerto</DialogTitle></DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Parceiro Consignado</label>
+                  <label className="text-sm font-medium">Parceiro</label>
                   <Select value={parceiroSelecionado} onValueChange={setParceiroSelecionado}>
                     <SelectTrigger><SelectValue placeholder="Selecione o parceiro" /></SelectTrigger>
-                    <SelectContent>{parceirosConsignados.map(p => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}</SelectContent>
+                    <SelectContent>{parceirosAtivos.map(p => <SelectItem key={p.id} value={p.id}>{p.nome} ({p.tipo === "prepago" ? "Pré-pago" : p.tipo === "empenho" ? "Empenho" : "Consignado"})</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 {parceiroInfo && valesPendentes[parceiroInfo.id] && (
                   <div className="p-4 bg-muted rounded-lg space-y-2">
                     <p className="font-medium">{parceiroInfo.nome}</p>
-                    <div className="flex justify-between text-sm"><span>Vales pendentes:</span><span className="font-bold">{valesPendentes[parceiroInfo.id].quantidade}</span></div>
+                    <div className="flex justify-between text-sm"><span>{parceiroInfo.tipo === "consignado" ? "Vales utilizados pendentes:" : "Vales emitidos no acerto:"}</span><span className="font-bold">{valesPendentes[parceiroInfo.id].quantidade}</span></div>
+                    <p className="text-xs text-muted-foreground">{parceiroInfo.tipo === "consignado" ? "O acerto considera somente os vales validados." : "O acerto considera o lote inteiro; a utilização continua sendo baixada vale a vale."}</p>
                     <div className="flex justify-between text-sm"><span>Valor total:</span><span className="font-bold text-success">R$ {valesPendentes[parceiroInfo.id].valor.toFixed(2)}</span></div>
                   </div>
                 )}
@@ -179,7 +181,7 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
                     onChange={e => setVencimentoAcerto(e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Um título será criado em Contas a Receber para o parceiro consignado.
+                    Um título será criado em Contas a Receber conforme a regra do tipo de parceiro.
                   </p>
                 </div>
                 <div className="flex gap-2 justify-end pt-4">
@@ -204,14 +206,14 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-3">
-              {parceirosConsignados.map(parceiro => {
+              {parceirosAtivos.map(parceiro => {
                 const pendente = valesPendentes[parceiro.id];
                 if (!pendente || pendente.quantidade === 0) return null;
                 return (
                   <Card key={parceiro.id} className="bg-warning border-warning dark:bg-warning/20 dark:border-warning">
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between">
-                        <div><p className="font-medium">{parceiro.nome}</p><p className="text-sm text-muted-foreground mt-1">{pendente.quantidade} vales utilizados</p></div>
+                        <div><p className="font-medium">{parceiro.nome}</p><p className="text-sm text-muted-foreground mt-1">{pendente.quantidade} {parceiro.tipo === "consignado" ? "vales utilizados" : "vales emitidos"} · {parceiro.tipo === "prepago" ? "Pré-pago" : parceiro.tipo === "empenho" ? "Empenho" : "Consignado"}</p></div>
                         <Building2 className="h-5 w-5 text-warning" />
                       </div>
                       <p className="text-2xl font-bold text-warning mt-3">R$ {pendente.valor.toFixed(2)}</p>
@@ -281,7 +283,7 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
   if (embedded) return content;
   return (
     <MainLayout>
-      <Header title="Acerto de Contas - Vale Gás" subtitle="Gerencie os acertos com parceiros consignados" />
+      <Header title="Acerto de Contas - Vale Gás" subtitle="Consignado por utilização; pré-pago e empenho pelo lote completo" />
       {content}
     </MainLayout>
   );
