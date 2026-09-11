@@ -219,13 +219,15 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
             </CardDescription>
           </CardHeader>
           <CardContent className="px-4 pb-5 pt-0 sm:px-6 sm:pb-6">
-            <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
               {parceirosAtivos.map(parceiro => {
                 const pendente = valesPendentes[parceiro.id];
                 if (!pendente || pendente.quantidade === 0) return null;
                 return (
-                  <Card key={parceiro.id} className="border-warning/30 bg-warning/[0.04] shadow-none dark:bg-warning/[0.08]">
-                    <CardContent className="p-4 sm:p-5">
+                  <div
+                    key={parceiro.id}
+                    className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-950/[0.03] transition-shadow hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:ring-white/[0.04] sm:p-6"
+                  >
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0 space-y-1.5">
                           <p className="truncate font-semibold text-foreground">{parceiro.nome}</p>
@@ -237,7 +239,7 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
                           <Building2 className="h-4 w-4 text-warning" />
                         </span>
                       </div>
-                      <div className="mt-4 flex items-end justify-between gap-3 border-t border-warning/15 pt-4">
+                      <div className="mt-5 flex items-end justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
                         <div>
                           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Valor do acerto</p>
                           <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">R$ {pendente.valor.toFixed(2)}</p>
@@ -246,8 +248,7 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
                           {parceiro.tipo === "prepago" ? "Pré-pago" : parceiro.tipo === "empenho" ? "Empenho" : "Consignado"}
                         </Badge>
                       </div>
-                    </CardContent>
-                  </Card>
+                  </div>
                 );
               })}
               {Object.values(valesPendentes).every(p => p.quantidade === 0) && (
