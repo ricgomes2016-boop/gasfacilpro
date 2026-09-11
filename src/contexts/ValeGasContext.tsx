@@ -316,6 +316,7 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
   const gerarAcerto = async (parceiroId: string): Promise<AcertoConta | null> => {
     const parceiro = parceiros.find(p => p.id === parceiroId);
     if (!parceiro) return null;
+    if (!unidadeAtual?.id) throw new Error("Selecione uma unidade antes de gerar o acerto.");
 
     // Get acerted vale IDs
     const { data: acertoValesData } = await (supabase as any).from("vale_gas_acerto_vales").select("vale_id");
@@ -357,13 +358,19 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
       parceiro_nome: parceiro.nome,
       quantidade: valesParaAcertar.length,
       valor_total: valorTotal,
+      unidade_id: unidadeAtual.id,
     }).select().single();
 
     if (error) throw error;
 
     // Link vales to acerto
     const links = valesParaAcertar.map(v => ({ acerto_id: acertoData.id, vale_id: v.id }));
-    await (supabase as any).from("vale_gas_acerto_vales").insert(links);
+    const { error: linksError } = await (supabase as any).from("vale_gas_acerto_vales").insert(links);
+    if (linksError) {
+      // Evita deixar um acerto sem os respectivos vales quando o segundo passo falhar.
+      await (supabase as any).from("vale_gas_acertos").delete().eq("id", acertoData.id);
+      throw linksError;
+    }
 
     refetch();
     return acertoData as AcertoConta;
