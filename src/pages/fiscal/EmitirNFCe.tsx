@@ -11,13 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Send, Search, Printer, Layers, Play, RotateCcw, CheckCircle2, XCircle, Eye } from "lucide-react";
+import { Plus, Send, Search, Printer, Layers, Play, RotateCcw, CheckCircle2, XCircle, Eye, Trash2, MessageCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { listarNotas, criarNota, atualizarNota, transmitirParaSefaz, adicionarItem, type NotaFiscal } from "@/services/focusNfeService";
+import { listarNotas, criarNota, atualizarNota, transmitirParaSefaz, adicionarItem, excluirNota, listarItens, type NotaFiscal } from "@/services/focusNfeService";
 import { ProductSearch, type ItemVenda } from "@/components/vendas/ProductSearch";
 import { emitirDocumentoVenderGas } from "@/lib/fiscal/venderGasAgent";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface LoteConfig {
   produto: string;
@@ -76,6 +77,8 @@ export default function EmitirNFCe() {
   const [documentoNfce, setDocumentoNfce] = useState("");
   const [formaPagamentoNfce, setFormaPagamentoNfce] = useState("dinheiro");
   const [preparandoNfce, setPreparandoNfce] = useState(false);
+  const [acaoNotaId, setAcaoNotaId] = useState<string | null>(null);
+  const [notaParaExcluir, setNotaParaExcluir] = useState<NotaFiscal | null>(null);
 
   // Lote state
   const [loteConfig, setLoteConfig] = useState<LoteConfig>({
@@ -101,6 +104,112 @@ export default function EmitirNFCe() {
   };
 
   useEffect(() => { carregarNotas(); }, []);
+
+  const emitirRascunho = async (nota: NotaFiscal) => {
+    if (nota.status !== "rascunho") return;
+    if (!empresa?.cnpj || !nota.unidade_id) {
+      toast({ title: "Empresa não identificada", description: "Selecione a unidade da nota antes de emitir.", variant: "destructive" });
+      return;
+    }
+    setAcaoNotaId(nota.id);
+    try {
+      const itens = await listarItens(nota.id);
+      if (!itens.length) throw new Error("Este rascunho não possui produtos.");
+      const result = await emitirDocumentoVenderGas({
+        tipoDocumento: "nfce",
+        unidadeId: nota.unidade_id,
+        cnpjEmitente: empresa.cnpj,
+        pedidoId: nota.id,
+        numeroPedido: nota.numero || nota.id.slice(0, 8),
+        somentePreparar: false,
+        destinatario: {
+          nome: nota.destinatario_nome || "Consumidor Final",
+          cpfCnpj: nota.destinatario_cpf_cnpj || undefined,
+        },
+        itens: itens.map((item) => ({
+          produtoId: item.produto_id,
+          descricao: item.descricao,
+          quantidade: Number(item.quantidade),
+          valorUnitario: Number(item.valor_unitario),
+        })),
+        valorTotal: Number(nota.valor_total),
+        formaPagamento: nota.forma_pagamento || undefined,
+      });
+      if (!result.ok) throw new Error(result.mensagem);
+      await atualizarNota(nota.id, {
+        status: "autorizada",
+        numero: result.numero || nota.numero,
+        chave_acesso: result.chaveAcesso || nota.chave_acesso,
+        protocolo: result.protocolo || nota.protocolo,
+        danfe_url: result.url || nota.danfe_url,
+      });
+      toast({ title: "NFC-e emitida", description: result.mensagem });
+      await carregarNotas();
+    } catch (e: any) {
+      toast({ title: "Não foi possível emitir", description: e.message, variant: "destructive" });
+    } finally {
+      setAcaoNotaId(null);
+    }
+  };
+
+  const confirmarExclusao = async () => {
+    if (!notaParaExcluir || notaParaExcluir.status !== "rascunho") return;
+    setAcaoNotaId(notaParaExcluir.id);
+    try {
+      await excluirNota(notaParaExcluir.id);
+      toast({ title: "Rascunho excluído" });
+      setNotaParaExcluir(null);
+      await carregarNotas();
+    } catch (e: any) {
+      toast({ title: "Não foi possível excluir", description: e.message, variant: "destructive" });
+    } finally {
+      setAcaoNotaId(null);
+    }
+  };
+
+  const imprimirNota = (nota: NotaFiscal) => {
+    if (!nota.danfe_url) {
+      toast({ title: "Impressão indisponível", description: "A NFC-e ainda não possui DANFE disponível.", variant: "destructive" });
+      return;
+    }
+    window.open(nota.danfe_url, "_blank", "noopener,noreferrer");
+  };
+
+  const enviarWhatsapp = (nota: NotaFiscal) => {
+    if (!nota.danfe_url) {
+      toast({ title: "Envio indisponível", description: "A NFC-e ainda não possui um link de DANFE para compartilhar.", variant: "destructive" });
+      return;
+    }
+    const numero = nota.numero ? ` nº ${nota.numero}` : "";
+    const mensagem = `Olá! Segue a NFC-e${numero}, no valor de R$ ${Number(nota.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}: ${nota.danfe_url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(mensagem)}`, "_blank", "noopener,noreferrer");
+  };
+
+  const AcoesNota = ({ nota, mobile = false }: { nota: NotaFiscal; mobile?: boolean }) => {
+    const processando = acaoNotaId === nota.id;
+    if (nota.status === "rascunho") {
+      return (
+        <div className={`flex gap-2 ${mobile ? "w-full" : ""}`}>
+          <Button size="sm" className={mobile ? "flex-1" : ""} disabled={processando} onClick={() => emitirRascunho(nota)}>
+            {processando ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Send className="mr-1.5 h-4 w-4" />}Emitir
+          </Button>
+          <Button size="sm" variant="outline" className={mobile ? "flex-1 text-destructive" : "text-destructive"} disabled={processando} onClick={() => setNotaParaExcluir(nota)}>
+            <Trash2 className="mr-1.5 h-4 w-4" />Excluir
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className={`flex gap-2 ${mobile ? "w-full" : ""}`}>
+        <Button size="sm" variant="outline" className={mobile ? "flex-1" : ""} onClick={() => imprimirNota(nota)}>
+          <Printer className="mr-1.5 h-4 w-4" />Imprimir
+        </Button>
+        <Button size="sm" variant="outline" className={mobile ? "flex-1 text-emerald-700" : "text-emerald-700"} onClick={() => enviarWhatsapp(nota)}>
+          <MessageCircle className="mr-1.5 h-4 w-4" />WhatsApp
+        </Button>
+      </div>
+    );
+  };
 
   const handleEmitir = async () => {
     const documento = documentoNfce.replace(/\D/g, "");
@@ -311,7 +420,7 @@ export default function EmitirNFCe() {
                         <TableCell className="text-right font-semibold">R$ {Number(c.valor_total).toFixed(2)}</TableCell>
                         <TableCell><Badge variant={c.status === "autorizada" ? "default" : "destructive"}>{c.status}</Badge></TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" title="Reimprimir"><Printer className="h-4 w-4" /></Button>
+                          <AcoesNota nota={c} />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -336,8 +445,8 @@ export default function EmitirNFCe() {
                           <p className="font-mono text-xs text-muted-foreground">{c.destinatario_cpf_cnpj || "Consumidor não identificado"}</p>
                           <p className="mt-1 text-lg font-bold">R$ {Number(c.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
                         </div>
-                        <Button variant="ghost" size="icon" title="Reimprimir" aria-label={`Reimprimir NFC-e ${c.numero || "sem número"}`}><Printer className="h-4 w-4" /></Button>
                       </div>
+                      <div className="mt-3 border-t pt-3"><AcoesNota nota={c} mobile /></div>
                     </div>
                   ))}
                 </div>
@@ -599,6 +708,20 @@ export default function EmitirNFCe() {
           </TabsContent>
         </Tabs>
       </div>
+      <AlertDialog open={!!notaParaExcluir} onOpenChange={(open) => !open && setNotaParaExcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir este rascunho?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O rascunho e seus itens serão removidos. Essa ação não afeta nenhuma NFC-e já autorizada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarExclusao} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir rascunho</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 }
