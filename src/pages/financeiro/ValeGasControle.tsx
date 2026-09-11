@@ -22,6 +22,7 @@ import {
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { ValeGasQRCode } from "@/components/valegas/ValeGasQRCode";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
@@ -30,6 +31,7 @@ const PIE_COLORS = ["hsl(217, 91%, 60%)", "hsl(38, 92%, 50%)", "hsl(142, 71%, 45
 
 export default function ValeGasControle({ embedded }: { embedded?: boolean } = {}) {
   const { vales, parceiros, registrarVendaConsumidor, utilizarVale, isLoading } = useValeGas();
+  const { unidadeAtual } = useUnidade();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [filterParceiro, setFilterParceiro] = useState<string>("todos");
@@ -38,7 +40,7 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
   const [vendaDialogOpen, setVendaDialogOpen] = useState(false);
   const [utilizacaoDialogOpen, setUtilizacaoDialogOpen] = useState(false);
   const [qrCodeDialogOpen, setQrCodeDialogOpen] = useState(false);
-  const [qrCodeVale, setQrCodeVale] = useState<{ numero: number; codigo: string; valor: number; parceiroNome?: string } | null>(null);
+  const [qrCodeVale, setQrCodeVale] = useState<{ numero: number; codigo: string; valor: number; parceiroNome?: string; produtoNome?: string | null } | null>(null);
   
   const [consumidorData, setConsumidorData] = useState({ nome: "", endereco: "", telefone: "" });
 
@@ -362,7 +364,7 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
                         <TableCell>
                           <div className="flex gap-1">
                             <Button size="sm" variant="ghost" onClick={() => {
-                              setQrCodeVale({ numero: vale.numero, codigo: vale.codigo, valor: Number(vale.valor), parceiroNome: parceiro?.nome });
+                              setQrCodeVale({ numero: vale.numero, codigo: vale.codigo, valor: Number(vale.valor), parceiroNome: parceiro?.nome, produtoNome: vale.produto_nome });
                               setQrCodeDialogOpen(true);
                             }}><QrCode className="h-4 w-4" /></Button>
                             {vale.status === "disponivel" && (
@@ -451,7 +453,16 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
         </Dialog>
 
         {qrCodeVale && (
-          <ValeGasQRCode open={qrCodeDialogOpen} onClose={() => { setQrCodeDialogOpen(false); setQrCodeVale(null); }} vale={qrCodeVale} />
+          <ValeGasQRCode
+            open={qrCodeDialogOpen}
+            onClose={() => { setQrCodeDialogOpen(false); setQrCodeVale(null); }}
+            vale={qrCodeVale}
+            empresa={{
+              nome: unidadeAtual?.nome || "Empresa",
+              telefone: unidadeAtual?.telefone || null,
+              endereco: [unidadeAtual?.endereco, unidadeAtual?.bairro, unidadeAtual?.cidade, unidadeAtual?.estado].filter(Boolean).join(" - ") || null,
+            }}
+          />
         )}
     </div>
   );

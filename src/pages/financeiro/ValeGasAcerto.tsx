@@ -25,6 +25,9 @@ import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { LiquidarRecebivelModal } from "@/components/financeiro/LiquidarRecebivelModal";
+import type { LinhaLiquidacao, RecebivelParaLiquidar } from "@/services/liquidarRecebivelService";
+import { formatFormaPagamentoLabel } from "@/lib/financeiro/formaPagamento";
 
 const defaultVencAcerto = () => {
   const d = new Date();
@@ -41,10 +44,9 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
   const [novoAcertoDialog, setNovoAcertoDialog] = useState(false);
   const [parceiroSelecionado, setParceiroSelecionado] = useState<string>("");
   const [vencimentoAcerto, setVencimentoAcerto] = useState<string>(defaultVencAcerto());
-  const [formaPagamento, setFormaPagamento] = useState<string>("");
-  const [pagamentoAcertoId, setPagamentoAcertoId] = useState<string | null>(null);
+  const [acertoRecebimento, setAcertoRecebimento] = useState<{ acerto: any; conta: RecebivelParaLiquidar } | null>(null);
 
-  const parceirosConsignados = parceiros.filter(p => p.tipo === "consignado" && p.ativo);
+  const parceirosConsignados = parceiros.filter(p => ["consignado", "empenho"].includes(p.tipo) && p.ativo);
 
   const valesPendentes = useMemo(() => {
     const pendentes: Record<string, { quantidade: number; valor: number }> = {};
@@ -98,29 +100,44 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
     }
   };
 
-  const handleRegistrarPagamento = async () => {
-    if (!pagamentoAcertoId || !formaPagamento) { toast.error("Selecione a forma de pagamento"); return; }
-    await registrarPagamentoAcerto(pagamentoAcertoId, formaPagamento);
-    // Sincroniza a conta a receber correspondente
-    try {
-      const hoje = new Date().toISOString().split("T")[0];
-      const { error } = await supabase
-        .from("contas_receber")
-        .update({
-          status: "recebida",
-          data_pagamento: hoje,
-          forma_pagamento: formaPagamento,
-        } as any)
-        .eq("origem", "vale_gas_acerto")
-        .eq("status", "pendente")
-        .ilike("observacoes", `%${acertoMarker(pagamentoAcertoId)}%`);
-      if (error) throw error;
-    } catch (e: any) {
-      console.error("Erro ao atualizar conta a receber do acerto:", e);
+  const abrirRecebimento = async (acerto: any) => {
+    const { data, error } = await supabase
+      .from("contas_receber")
+      .select("id, cliente, cliente_id, descricao, pedido_id, unidade_id, valor, forma_pagamento, observacoes")
+      .eq("origem", "vale_gas_acerto")
+      .ilike("observacoes", `%${acertoMarker(acerto.id)}%`)
+      .eq("status", "pendente")
+      .maybeSingle();
+    if (error) { toast.error("Não foi possível carregar o título do acerto: " + error.message); return; }
+    if (!data) { toast.error("Título pendente do acerto não encontrado em Contas a Receber."); return; }
+    setAcertoRecebimento({ acerto, conta: data as RecebivelParaLiquidar });
+  };
+
+  const atualizarFinanceiroDosLotes = async (acertoId: string) => {
+    const { data: links } = await (supabase as any).from("vale_gas_acerto_vales").select("vale_id").eq("acerto_id", acertoId);
+    const ids = (links || []).map((item: any) => item.vale_id);
+    if (!ids.length) return;
+    const { data: valesAcerto } = await (supabase as any).from("vale_gas").select("lote_id, valor").in("id", ids);
+    const porLote = new Map<string, number>();
+    (valesAcerto || []).forEach((vale: any) => porLote.set(vale.lote_id, (porLote.get(vale.lote_id) || 0) + Number(vale.valor || 0)));
+    for (const [loteId, valor] of porLote) {
+      const { data: lote } = await (supabase as any).from("vale_gas_lotes").select("valor_total, valor_pago").eq("id", loteId).single();
+      if (!lote) continue;
+      const pago = Math.min(Number(lote.valor_total), Number(lote.valor_pago || 0) + valor);
+      await (supabase as any).from("vale_gas_lotes").update({
+        valor_pago: pago,
+        status_pagamento: pago >= Number(lote.valor_total) - 0.01 ? "pago" : "parcial",
+      }).eq("id", loteId);
     }
-    toast.success("Pagamento registrado!");
-    setPagamentoAcertoId(null);
-    setFormaPagamento("");
+  };
+
+  const concluirRecebimento = async (detalhes?: { linhas: LinhaLiquidacao[]; dataRecebimento: string }) => {
+    if (!acertoRecebimento) return;
+    const formas = detalhes?.linhas.map(l => formatFormaPagamentoLabel(l.forma)).join(" + ") || "Recebido";
+    await registrarPagamentoAcerto(acertoRecebimento.acerto.id, formas);
+    await atualizarFinanceiroDosLotes(acertoRecebimento.acerto.id);
+    setAcertoRecebimento(null);
+    toast.success("Acerto liquidado e encaminhado para a conta financeira correta.");
   };
 
   const totais = useMemo(() => ({
@@ -243,38 +260,7 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
                       ) : <span className="text-muted-foreground">-</span>}
                     </TableCell>
                     <TableCell>
-                      {acerto.status_pagamento === "pendente" && (
-                        <Dialog open={pagamentoAcertoId === acerto.id} onOpenChange={open => setPagamentoAcertoId(open ? acerto.id : null)}>
-                          <DialogTrigger asChild><Button size="sm">Receber</Button></DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader><DialogTitle>Registrar Recebimento</DialogTitle></DialogHeader>
-                            <div className="space-y-4">
-                              <div className="p-4 bg-muted rounded-lg">
-                                <p className="font-medium">{acerto.parceiro_nome}</p>
-                                <p className="text-sm text-muted-foreground">{acerto.quantidade} vales</p>
-                                <p className="text-2xl font-bold text-success mt-2">R$ {Number(acerto.valor_total).toFixed(2)}</p>
-                              </div>
-                              <div className="space-y-2">
-                                <label className="text-sm font-medium">Forma de Pagamento</label>
-                                <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-                                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Dinheiro">Dinheiro</SelectItem>
-                                    <SelectItem value="PIX">PIX</SelectItem>
-                                    <SelectItem value="Transferência">Transferência</SelectItem>
-                                    <SelectItem value="Cheque">Cheque</SelectItem>
-                                    <SelectItem value="Boleto">Boleto</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="flex gap-2 justify-end pt-4">
-                                <Button variant="outline" onClick={() => setPagamentoAcertoId(null)}>Cancelar</Button>
-                                <Button onClick={handleRegistrarPagamento}>Confirmar</Button>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      )}
+                      {acerto.status_pagamento === "pendente" && <Button size="sm" onClick={() => abrirRecebimento(acerto)}>Receber</Button>}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -282,6 +268,13 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
             </Table>
           </CardContent>
         </Card>
+        <LiquidarRecebivelModal
+          open={!!acertoRecebimento}
+          onClose={() => setAcertoRecebimento(null)}
+          conta={acertoRecebimento?.conta || null}
+          onSuccess={concluirRecebimento}
+          exigirLiquidacaoTotal
+        />
     </div>
   );
 

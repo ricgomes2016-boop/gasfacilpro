@@ -485,6 +485,20 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
 
   const lotesAtivos = lotes.filter(l => !l.cancelado);
 
+  const getStatusFinanceiroLote = (lote: any) => {
+    if (lote.cancelado) return { label: "Cancelado", variant: "destructive" as const };
+    if (lote.status_pagamento === "pago") return { label: "Pago", variant: "default" as const };
+    if (lote.status_pagamento === "parcial") return { label: "Acerto parcial", variant: "secondary" as const };
+    const parceiroLote = parceiros.find(p => p.id === lote.parceiro_id);
+    if (parceiroLote && ["consignado", "empenho"].includes(parceiroLote.tipo)) {
+      const utilizados = vales.filter(v => v.lote_id === lote.id && v.status === "utilizado").length;
+      return utilizados > 0
+        ? { label: "Pendente de acerto", variant: "destructive" as const }
+        : { label: "Aguardando utilização", variant: "secondary" as const };
+    }
+    return { label: "Pendente", variant: "destructive" as const };
+  };
+
   const totais = useMemo(() => ({
     lotes: lotesAtivos.length,
     valesEmitidos: lotesAtivos.reduce((s, l) => s + l.quantidade, 0),
@@ -792,11 +806,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                       <TableCell className="text-center">{lote.quantidade}</TableCell>
                       <TableCell className="text-right">R$ {Number(lote.valor_total).toFixed(2)}</TableCell>
                       <TableCell className="text-center">
-                        {lote.cancelado ? <Badge variant="destructive">Cancelado</Badge> : (
-                          <Badge variant={lote.status_pagamento === "pago" ? "default" : lote.status_pagamento === "parcial" ? "secondary" : "destructive"}>
-                            {lote.status_pagamento === "pago" ? "Pago" : lote.status_pagamento === "parcial" ? "Parcial" : "Pendente"}
-                          </Badge>
-                        )}
+                        {(() => { const status = getStatusFinanceiroLote(lote); return <Badge variant={status.variant}>{status.label}</Badge>; })()}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
@@ -859,11 +869,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                         <p className="truncate font-semibold">{loteParceiro?.nome || "Parceiro"}</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">Emitido em {format(new Date(lote.created_at), "dd/MM/yyyy", { locale: ptBR })}</p>
                       </div>
-                      {lote.cancelado ? <Badge variant="destructive">Cancelado</Badge> : (
-                        <Badge variant={lote.status_pagamento === "pago" ? "default" : lote.status_pagamento === "parcial" ? "secondary" : "destructive"}>
-                          {lote.status_pagamento === "pago" ? "Pago" : lote.status_pagamento === "parcial" ? "Parcial" : "Pendente"}
-                        </Badge>
-                      )}
+                      {(() => { const status = getStatusFinanceiroLote(lote); return <Badge variant={status.variant}>{status.label}</Badge>; })()}
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-3 text-sm">
                       <div><p className="text-xs text-muted-foreground">Numeração</p><p className="font-mono font-semibold">{lote.numero_inicial}–{lote.numero_final}</p></div>

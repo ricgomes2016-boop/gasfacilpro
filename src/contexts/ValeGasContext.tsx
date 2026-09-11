@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { codigoValeGas } from "@/lib/vales/codigoVale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useUnidade } from "@/contexts/UnidadeContext";
 
 // Tipos
 export type TipoParceiro = "prepago" | "consignado" | "empenho";
@@ -19,6 +20,7 @@ export interface Parceiro {
   ativo: boolean;
   user_id: string | null;
   created_at: string;
+  unidade_id?: string | null;
 }
 
 export interface ValeGas {
@@ -42,6 +44,7 @@ export interface ValeGas {
   entregador_nome: string | null;
   venda_id: string | null;
   created_at: string;
+  unidade_id?: string | null;
 }
 
 export interface LoteVales {
@@ -109,12 +112,15 @@ const gerarCodigoVale = (numero: number) => {
 
 export function ValeGasProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const { unidadeAtual } = useUnidade();
 
   // Fetch parceiros
   const { data: parceiros = [], isLoading: loadingParceiros } = useQuery({
-    queryKey: ["vale-gas-parceiros"],
+    queryKey: ["vale-gas-parceiros", unidadeAtual?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("vale_gas_parceiros").select("*").order("nome");
+      let query = (supabase as any).from("vale_gas_parceiros").select("*").order("nome");
+      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as Parceiro[];
     },
@@ -122,9 +128,11 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
 
   // Fetch vales
   const { data: vales = [], isLoading: loadingVales } = useQuery({
-    queryKey: ["vale-gas"],
+    queryKey: ["vale-gas", unidadeAtual?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("vale_gas").select("*").order("numero", { ascending: true });
+      let query = (supabase as any).from("vale_gas").select("*").order("numero", { ascending: true });
+      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as ValeGas[];
     },
@@ -132,9 +140,11 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
 
   // Fetch lotes
   const { data: lotes = [], isLoading: loadingLotes } = useQuery({
-    queryKey: ["vale-gas-lotes"],
+    queryKey: ["vale-gas-lotes", unidadeAtual?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("vale_gas_lotes").select("*").order("created_at", { ascending: false });
+      let query = (supabase as any).from("vale_gas_lotes").select("*").order("created_at", { ascending: false });
+      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as LoteVales[];
     },
@@ -142,9 +152,10 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
 
   // Fetch acertos
   const { data: acertos = [] } = useQuery({
-    queryKey: ["vale-gas-acertos"],
+    queryKey: ["vale-gas-acertos", unidadeAtual?.id, parceiros.map(p => p.id).join(",")],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("vale_gas_acertos").select("*").order("data_acerto", { ascending: false });
+      if (!parceiros.length) return [];
+      const { data, error } = await (supabase as any).from("vale_gas_acertos").select("*").in("parceiro_id", parceiros.map(p => p.id)).order("data_acerto", { ascending: false });
       if (error) throw error;
       return (data || []) as AcertoConta[];
     },
@@ -304,7 +315,7 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
 
   const gerarAcerto = async (parceiroId: string): Promise<AcertoConta | null> => {
     const parceiro = parceiros.find(p => p.id === parceiroId);
-    if (!parceiro || parceiro.tipo !== "consignado") return null;
+    if (!parceiro || !["consignado", "empenho"].includes(parceiro.tipo)) return null;
 
     // Get acerted vale IDs
     const { data: acertoValesData } = await (supabase as any).from("vale_gas_acerto_vales").select("vale_id");

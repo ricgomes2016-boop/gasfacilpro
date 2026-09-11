@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Printer, Download, X } from "lucide-react";
 import { useRef } from "react";
+import html2canvas from "html2canvas";
 
 interface ValeGasQRCodeProps {
   open: boolean;
@@ -17,10 +18,12 @@ interface ValeGasQRCodeProps {
     codigo: string;
     valor: number;
     parceiroNome?: string;
+    produtoNome?: string | null;
   };
+  empresa: { nome: string; telefone?: string | null; endereco?: string | null };
 }
 
-export function ValeGasQRCode({ open, onClose, vale }: ValeGasQRCodeProps) {
+export function ValeGasQRCode({ open, onClose, vale, empresa }: ValeGasQRCodeProps) {
   const printRef = useRef<HTMLDivElement>(null);
 
   const escapeHtml = (str: string | number): string => {
@@ -61,11 +64,12 @@ export function ValeGasQRCode({ open, onClose, vale }: ValeGasQRCodeProps) {
               width: 300px;
               text-align: center;
             }
-            .logo { font-size: 24px; font-weight: bold; margin-bottom: 16px; color: #2fc2b5; }
+            .empresa { font-size: 15px; font-weight: 800; color: #0f766e; text-transform: uppercase; }
+            .contato { min-height: 28px; margin-top: 4px; font-size: 9px; color: #64748b; line-height: 1.3; }
+            .logo { font-size: 20px; font-weight: 800; margin: 8px 0; color: #172033; }
             .qr-container { margin: 16px 0; }
             .numero { font-size: 28px; font-weight: bold; margin: 8px 0; }
             .codigo { font-family: monospace; font-size: 12px; color: #666; margin-bottom: 12px; }
-            .valor { font-size: 32px; font-weight: bold; color: #16a34a; margin: 12px 0; }
             .parceiro { font-size: 14px; color: #666; margin-top: 8px; }
             .instrucao { font-size: 11px; color: #999; margin-top: 16px; border-top: 1px dashed #ccc; padding-top: 12px; }
             @media print {
@@ -76,14 +80,16 @@ export function ValeGasQRCode({ open, onClose, vale }: ValeGasQRCodeProps) {
         </head>
         <body>
           <div class="vale-card">
-            <div class="logo">🔥 Gas Express25</div>
+            <div class="empresa">${escapeHtml(empresa.nome)}</div>
+            <div class="contato">${empresa.telefone ? `Telefone: ${escapeHtml(empresa.telefone)}<br>` : ""}${empresa.endereco ? escapeHtml(empresa.endereco) : ""}</div>
+            <div class="logo">VALE GÁS</div>
             <div class="qr-container">
               ${printContent.querySelector("svg")?.outerHTML || ""}
             </div>
             <div class="numero">Vale Nº ${escapeHtml(vale.numero)}</div>
             <div class="codigo">${escapeHtml(vale.codigo)}</div>
-            <div class="valor">R$ ${escapeHtml(vale.valor.toFixed(2))}</div>
             ${vale.parceiroNome ? `<div class="parceiro">${escapeHtml(vale.parceiroNome)}</div>` : ""}
+            ${vale.produtoNome ? `<div class="parceiro">Produto: ${escapeHtml(vale.produtoNome)}</div>` : ""}
             <div class="instrucao">
               Apresente este QR Code ao entregador para validar seu vale gás.
             </div>
@@ -97,27 +103,13 @@ export function ValeGasQRCode({ open, onClose, vale }: ValeGasQRCodeProps) {
     printWindow.document.close();
   };
 
-  const handleDownload = () => {
-    const svg = printRef.current?.querySelector("svg");
-    if (!svg) return;
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const img = new Image();
-    
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx?.drawImage(img, 0, 0);
-      
-      const link = document.createElement("a");
-      link.download = `vale-gas-${vale.numero}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    };
-    
-    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+  const handleDownload = async () => {
+    if (!printRef.current) return;
+    const canvas = await html2canvas(printRef.current, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
+    const link = document.createElement("a");
+    link.download = `vale-gas-${vale.numero}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
   };
 
   return (
@@ -133,7 +125,12 @@ export function ValeGasQRCode({ open, onClose, vale }: ValeGasQRCodeProps) {
             className="bg-white p-6 rounded-xl border-2 border-dashed border-muted-foreground/30"
           >
             <div className="text-center mb-4">
-              <p className="text-lg font-bold text-primary">🔥 Gas Express25</p>
+              <p className="text-sm font-extrabold uppercase text-primary">{empresa.nome}</p>
+              <p className="text-[9px] leading-tight text-muted-foreground">
+                {empresa.telefone && <>Telefone: {empresa.telefone}<br /></>}
+                {empresa.endereco}
+              </p>
+              <p className="mt-2 text-lg font-extrabold text-foreground">VALE GÁS</p>
             </div>
             
             <QRCodeSVG
@@ -147,12 +144,10 @@ export function ValeGasQRCode({ open, onClose, vale }: ValeGasQRCodeProps) {
             <div className="text-center mt-4 space-y-1">
               <p className="text-2xl font-bold">Vale Nº {vale.numero}</p>
               <p className="font-mono text-xs text-muted-foreground">{vale.codigo}</p>
-              <p className="text-3xl font-bold text-success mt-2">
-                R$ {vale.valor.toFixed(2)}
-              </p>
               {vale.parceiroNome && (
                 <p className="text-sm text-muted-foreground">{vale.parceiroNome}</p>
               )}
+              {vale.produtoNome && <p className="text-sm text-muted-foreground">Produto: {vale.produtoNome}</p>}
             </div>
           </div>
 

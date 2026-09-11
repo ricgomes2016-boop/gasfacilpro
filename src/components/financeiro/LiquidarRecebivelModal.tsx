@@ -49,7 +49,7 @@ interface LiquidarRecebivelModalProps {
   onClose: () => void;
   conta: RecebivelParaLiquidar | null;
   contas?: RecebivelParaLiquidar[];
-  onSuccess?: () => void;
+  onSuccess?: (detalhes?: { linhas: LinhaLiquidacao[]; dataRecebimento: string }) => void;
   dataMinima?: string; // ex: data da venda
   exigirLiquidacaoTotal?: boolean;
 }
@@ -214,7 +214,7 @@ export function LiquidarRecebivelModal({
             : `Conta liquidada em ${format(new Date(dataRec + "T12:00:00"), "dd/MM/yyyy")}!`
         );
       }
-      onSuccess?.();
+      onSuccess?.({ linhas: payload, dataRecebimento: dataRec });
       onClose();
     } catch (err: any) {
       toast.error("Erro ao liquidar: " + (err.message || "erro"));
