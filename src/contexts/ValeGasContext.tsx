@@ -91,7 +91,7 @@ interface ValeGasContextType {
   cancelarLote: (loteId: string) => Promise<void>;
   registrarPagamentoLote: (loteId: string, valor: number) => Promise<void>;
   registrarVendaConsumidor: (valeId: string, consumidor: { nome: string; endereco: string; telefone: string }) => Promise<void>;
-  utilizarVale: (valeId: string, entregadorId: string, entregadorNome: string, vendaId: string) => Promise<{ sucesso: boolean; mensagem: string; vale?: ValeGas }>;
+  utilizarVale: (valeId: string, entregadorId?: string | null, entregadorNome?: string | null, vendaId?: string | null) => Promise<{ sucesso: boolean; mensagem: string; vale?: ValeGas }>;
   getValeByNumero: (numero: number) => ValeGas | undefined;
   getValeByCodigo: (codigo: string) => ValeGas | undefined;
   gerarAcerto: (parceiroId: string) => Promise<AcertoConta | null>;
@@ -278,7 +278,7 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
     refetch();
   };
 
-  const utilizarVale = async (valeId: string, entregadorId: string, entregadorNome: string, vendaId: string) => {
+  const utilizarVale = async (valeId: string, entregadorId?: string | null, entregadorNome?: string | null, vendaId?: string | null) => {
     const vale = vales.find(v => v.id === valeId);
     if (!vale) return { sucesso: false, mensagem: "Vale não encontrado" };
     if (vale.status === "utilizado") return { sucesso: false, mensagem: "Vale já foi utilizado" };
@@ -287,9 +287,9 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
     const { error } = await (supabase as any).from("vale_gas").update({
       status: "utilizado",
       data_utilizacao: new Date().toISOString(),
-      entregador_id: entregadorId,
-      entregador_nome: entregadorNome,
-      venda_id: vendaId,
+      entregador_id: entregadorId || null,
+      entregador_nome: entregadorNome || "Utilização manual",
+      venda_id: vendaId || null,
     }).eq("id", valeId);
 
     if (error) return { sucesso: false, mensagem: error.message };

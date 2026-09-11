@@ -125,7 +125,10 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
 
   const handleUtilizarVale = async () => {
     if (!selectedVale) return;
-    const resultado = await utilizarVale(selectedVale, "ent-demo", "Entregador Demo", "venda-demo");
+    // A utilização feita pelo controle financeiro não está vinculada a uma
+    // entrega ou pedido específico. Esses campos são UUIDs no banco e devem
+    // permanecer nulos neste fluxo manual.
+    const resultado = await utilizarVale(selectedVale, null, "Utilização manual", null);
     if (resultado.sucesso) toast.success(resultado.mensagem);
     else toast.error(resultado.mensagem);
     setUtilizacaoDialogOpen(false);
