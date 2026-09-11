@@ -115,7 +115,7 @@ export function OrderSummary({
                 return (
                 <div key={p.id} className="flex justify-between gap-2 text-sm w-full min-w-0">
                   <span className="capitalize truncate min-w-0 flex-1">
-                    {p.forma.replaceAll("_", " ")}{parcelasInfo}{valeGasReferencia ? ` ${valeGasReferencia}` : ""}
+                    {p.forma.replace(/_/g, " ")}{parcelasInfo}{valeGasReferencia ? ` ${valeGasReferencia}` : ""}
                   </span>
                   <span className="shrink-0">R$ {p.valor.toFixed(2)}</span>
                 </div>
