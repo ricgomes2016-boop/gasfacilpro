@@ -231,7 +231,7 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
   const confirmacaoNativa = page.waitForEvent("dialog", { timeout: 5_000 })
     .then(async (dialog) => {
       const mensagem = dialog.message();
-      const ehConfirmacaoForteGas = /deseja\s+emitir\s+nota\s+fiscal/i.test(mensagem)
+      const ehConfirmacaoForteGas = /deseja(?:\s+realmente)?\s+emitir(?:\s+essa)?\s+nota(?:\s+fiscal)?/i.test(mensagem)
         && /forte\s+g[aá]s/i.test(mensagem);
       if (ehConfirmacaoForteGas) {
         await dialog.accept();
@@ -246,15 +246,22 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
   let confirmouEmissao = await confirmacaoNativa;
 
   if (!confirmouEmissao) {
-    const janela = page.locator('[role="dialog"], mat-dialog-container, .mat-dialog-container, .swal2-popup')
-      .filter({ hasText: /deseja\s+emitir\s+nota\s+fiscal/i })
-      .filter({ hasText: /forte\s+g[aá]s/i })
-      .last();
-    if (await janela.waitFor({ state: "visible", timeout: 5_000 }).then(() => true).catch(() => false)) {
-      const confirmar = janela.getByRole("button", { name: /^(ok|sim|confirmar|sim,? emitir|emitir)$/i }).last();
-      if (await confirmar.count() && await confirmar.isVisible()) {
-        await confirmar.click();
-        confirmouEmissao = true;
+    const padraoPergunta = /deseja(?:\s+realmente)?\s+emitir(?:\s+essa)?\s+nota(?:\s+fiscal)?/i;
+    const pergunta = page.getByText(padraoPergunta).last();
+    if (await pergunta.waitFor({ state: "visible", timeout: 5_000 }).then(() => true).catch(() => false)) {
+      const textoPagina = await page.locator("body").innerText();
+      if (padraoPergunta.test(textoPagina) && /forte\s+g[aá]s/i.test(textoPagina)) {
+        // O modal atual do Vender Gás não expõe role="dialog". Por isso o OK
+        // é localizado globalmente, mas somente depois de validar a pergunta
+        // e a empresa presentes na tela.
+        const confirmarPorRole = page.getByRole("button", { name: /^ok$/i }).last();
+        const confirmarPorTexto = page.locator("button, [role='button']").filter({ hasText: /^\s*ok\s*$/i }).last();
+        const confirmar = await confirmarPorRole.count() ? confirmarPorRole : confirmarPorTexto;
+        if (await confirmar.count() && await confirmar.isVisible() && await confirmar.isEnabled()) {
+          await confirmar.scrollIntoViewIfNeeded();
+          await confirmar.click();
+          confirmouEmissao = true;
+        }
       }
     }
   }
