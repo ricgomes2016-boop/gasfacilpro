@@ -206,29 +206,52 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
           <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><Banknote className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">R$ {totais.valorPago.toFixed(0)}</p><p className="text-sm text-muted-foreground">Total Recebido</p></div></div></CardContent></Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><AlertCircle className="h-5 w-5 text-warning" /> Parceiros com Vales Pendentes</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="px-4 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
+            <CardTitle className="flex items-center gap-2.5 text-base sm:text-lg">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-warning/10">
+                <AlertCircle className="h-5 w-5 text-warning" />
+              </span>
+              Parceiros com Vales Pendentes
+            </CardTitle>
+            <CardDescription className="pl-0 sm:pl-[46px]">
+              Valores disponíveis para gerar acerto conforme o tipo de contrato.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
+          <CardContent className="px-4 pb-5 pt-0 sm:px-6 sm:pb-6">
+            <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
               {parceirosAtivos.map(parceiro => {
                 const pendente = valesPendentes[parceiro.id];
                 if (!pendente || pendente.quantidade === 0) return null;
                 return (
-                  <Card key={parceiro.id} className="bg-warning border-warning dark:bg-warning/20 dark:border-warning">
-                    <CardContent className="pt-6">
-                      <div className="flex items-start justify-between">
-                        <div><p className="font-medium">{parceiro.nome}</p><p className="text-sm text-muted-foreground mt-1">{pendente.quantidade} {parceiro.tipo === "consignado" ? "vales utilizados" : "vales emitidos"} · {parceiro.tipo === "prepago" ? "Pré-pago" : parceiro.tipo === "empenho" ? "Empenho" : "Consignado"}</p></div>
-                        <Building2 className="h-5 w-5 text-warning" />
+                  <Card key={parceiro.id} className="border-warning/30 bg-warning/[0.04] shadow-none dark:bg-warning/[0.08]">
+                    <CardContent className="p-4 sm:p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 space-y-1.5">
+                          <p className="truncate font-semibold text-foreground">{parceiro.nome}</p>
+                          <p className="text-sm leading-5 text-muted-foreground">
+                            {pendente.quantidade} {parceiro.tipo === "consignado" ? "vales utilizados" : "vales emitidos"}
+                          </p>
+                        </div>
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-warning/10">
+                          <Building2 className="h-4 w-4 text-warning" />
+                        </span>
                       </div>
-                      <p className="text-2xl font-bold text-warning mt-3">R$ {pendente.valor.toFixed(2)}</p>
+                      <div className="mt-4 flex items-end justify-between gap-3 border-t border-warning/15 pt-4">
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Valor do acerto</p>
+                          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">R$ {pendente.valor.toFixed(2)}</p>
+                        </div>
+                        <Badge variant="outline" className="shrink-0 border-warning/30 bg-background/70 text-foreground">
+                          {parceiro.tipo === "prepago" ? "Pré-pago" : parceiro.tipo === "empenho" ? "Empenho" : "Consignado"}
+                        </Badge>
+                      </div>
                     </CardContent>
                   </Card>
                 );
               })}
               {Object.values(valesPendentes).every(p => p.quantidade === 0) && (
-                <div className="col-span-3 text-center py-8 text-muted-foreground">Não há vales pendentes</div>
+                <div className="col-span-full rounded-xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">Não há vales pendentes</div>
               )}
             </div>
           </CardContent>
