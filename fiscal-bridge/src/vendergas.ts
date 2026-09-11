@@ -225,12 +225,48 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
   if (!await botao.isEnabled()) {
     return { ok: false, motivo: "botao_emitir_desabilitado", mensagem: "O botão Emitir Nota Fiscal está desabilitado. Confira os campos obrigatórios destacados no Vender Gás." };
   }
-  await botao.click();
+  // O Vender Gás pode usar tanto um diálogo nativo do navegador quanto uma
+  // janela HTML. O listener precisa existir antes do clique para não perder o
+  // diálogo nativo, que aparece imediatamente.
+  const confirmacaoNativa = page.waitForEvent("dialog", { timeout: 5_000 })
+    .then(async (dialog) => {
+      const mensagem = dialog.message();
+      const ehConfirmacaoForteGas = /deseja\s+emitir\s+nota\s+fiscal/i.test(mensagem)
+        && /forte\s+g[aá]s/i.test(mensagem);
+      if (ehConfirmacaoForteGas) {
+        await dialog.accept();
+        return true;
+      }
+      await dialog.dismiss();
+      return false;
+    })
+    .catch(() => false);
 
-  // Algumas versões do Vender Gás exibem uma confirmação antes de transmitir.
-  const confirmar = page.getByRole("button", { name: /^(confirmar|sim,? emitir|emitir)$/i }).last();
-  if (await confirmar.waitFor({ state: "visible", timeout: 2_500 }).then(() => true).catch(() => false)) {
-    await confirmar.click();
+  await botao.click();
+  let confirmouEmissao = await confirmacaoNativa;
+
+  if (!confirmouEmissao) {
+    const janela = page.locator('[role="dialog"], mat-dialog-container, .mat-dialog-container, .swal2-popup')
+      .filter({ hasText: /deseja\s+emitir\s+nota\s+fiscal/i })
+      .filter({ hasText: /forte\s+g[aá]s/i })
+      .last();
+    if (await janela.waitFor({ state: "visible", timeout: 5_000 }).then(() => true).catch(() => false)) {
+      const confirmar = janela.getByRole("button", { name: /^(ok|sim|confirmar|sim,? emitir|emitir)$/i }).last();
+      if (await confirmar.count() && await confirmar.isVisible()) {
+        await confirmar.click();
+        confirmouEmissao = true;
+      }
+    }
+  }
+
+  if (!confirmouEmissao) {
+    return {
+      ok: false,
+      motivo: "confirmacao_emissao_indisponivel",
+      etapa: "confirmacao_vendergas",
+      url: page.url(),
+      mensagem: "O Vender Gás abriu a etapa de confirmação, mas o botão OK para emitir para a Forte Gás não foi encontrado.",
+    };
   }
 
   await page.waitForTimeout(3_000);
