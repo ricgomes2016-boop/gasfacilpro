@@ -38,7 +38,7 @@ const defaultVencAcerto = () => {
 const acertoMarker = (id: string) => `[acerto:${id}]`;
 
 export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {}) {
-  const { parceiros, vales, acertos, gerarAcerto, registrarPagamentoAcerto } = useValeGas();
+  const { parceiros, vales, lotes, acertos, gerarAcerto, registrarPagamentoAcerto } = useValeGas();
   const { unidadeAtual } = useUnidade();
   
   const [novoAcertoDialog, setNovoAcertoDialog] = useState(false);

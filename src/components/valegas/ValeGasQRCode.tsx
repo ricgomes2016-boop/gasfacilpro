@@ -20,11 +20,13 @@ interface ValeGasQRCodeProps {
     parceiroNome?: string;
     produtoNome?: string | null;
   };
-  empresa: { nome: string; telefone?: string | null; endereco?: string | null };
+  empresa?: { nome: string; telefone?: string | null; endereco?: string | null };
 }
 
-export function ValeGasQRCode({ open, onClose, vale, empresa }: ValeGasQRCodeProps) {
+export function ValeGasQRCode({ open, onClose, vale, empresa: empresaProp }: ValeGasQRCodeProps) {
+  const empresa = empresaProp ?? { nome: "", telefone: null, endereco: null };
   const printRef = useRef<HTMLDivElement>(null);
+
 
   const escapeHtml = (str: string | number): string => {
     return String(str)
