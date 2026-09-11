@@ -215,10 +215,25 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
       mensagem: `${rotulo} preenchida no Vender Gás e pronta para sua conferência. Nenhuma nota foi transmitida.`,
     };
   }
-  const botao = page.getByRole("button", { name: /^emitir nota fiscal$/i }).first();
+  const botaoPorAcessibilidade = page.getByRole("button", { name: /emitir nota fiscal/i }).first();
+  const botaoPorTexto = page.locator("button").filter({ hasText: /emitir nota fiscal/i }).first();
+  const botao = await botaoPorAcessibilidade.count() ? botaoPorAcessibilidade : botaoPorTexto;
   if (!await botao.count()) return { ok: false, motivo: "botao_emitir_indisponivel", mensagem: "O formulário foi preenchido, mas o botão Emitir Nota Fiscal não foi encontrado." };
+
+  await botao.scrollIntoViewIfNeeded();
+  await botao.waitFor({ state: "visible", timeout: 10_000 });
+  if (!await botao.isEnabled()) {
+    return { ok: false, motivo: "botao_emitir_desabilitado", mensagem: "O botão Emitir Nota Fiscal está desabilitado. Confira os campos obrigatórios destacados no Vender Gás." };
+  }
   await botao.click();
-  await page.waitForTimeout(1800);
+
+  // Algumas versões do Vender Gás exibem uma confirmação antes de transmitir.
+  const confirmar = page.getByRole("button", { name: /^(confirmar|sim,? emitir|emitir)$/i }).last();
+  if (await confirmar.waitFor({ state: "visible", timeout: 2_500 }).then(() => true).catch(() => false)) {
+    await confirmar.click();
+  }
+
+  await page.waitForTimeout(3_000);
 
   const resultado = await page.locator("body").innerText();
   const chave = resultado.match(/\b\d{44}\b/)?.[0];

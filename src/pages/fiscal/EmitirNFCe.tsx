@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Plus, Send, Search, Printer, Layers, Play, RotateCcw, CheckCircle2, XCircle, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { listarNotas, criarNota, transmitirParaSefaz, adicionarItem, type NotaFiscal } from "@/services/focusNfeService";
+import { listarNotas, criarNota, atualizarNota, transmitirParaSefaz, adicionarItem, type NotaFiscal } from "@/services/focusNfeService";
 import { ProductSearch, type ItemVenda } from "@/components/vendas/ProductSearch";
 import { emitirDocumentoVenderGas } from "@/lib/fiscal/venderGasAgent";
 import { useEmpresa } from "@/contexts/EmpresaContext";
@@ -145,14 +145,20 @@ export default function EmitirNFCe() {
         cnpjEmitente: empresa.cnpj,
         pedidoId: nota.id,
         numeroPedido: nota.numero || nota.id.slice(0, 8),
-        somentePreparar: true,
+        somentePreparar: false,
         destinatario: { nome: "Consumidor Final", cpfCnpj: documento || undefined },
         itens: itensNfce.map((item) => ({ produtoId: item.produto_id, descricao: item.nome, quantidade: item.quantidade, valorUnitario: item.preco_unitario })),
         valorTotal: total,
         formaPagamento: formaPagamentoNfce,
       });
       if (!result.ok) throw new Error(result.mensagem);
-      toast({ title: "NFC-e pronta para revisão", description: result.mensagem });
+      await atualizarNota(nota.id, {
+        status: "autorizada",
+        numero: result.numero || null,
+        chave_acesso: result.chaveAcesso || null,
+        protocolo: result.protocolo || null,
+      } as Partial<NotaFiscal>);
+      toast({ title: "NFC-e emitida", description: result.mensagem });
       carregarNotas();
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
@@ -383,7 +389,7 @@ export default function EmitirNFCe() {
                     </div>
                     <Button className="w-full" onClick={handleEmitir} disabled={preparandoNfce || !itensNfce.length}>
                       {preparandoNfce ? <RotateCcw className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                      {preparandoNfce ? "Preparando no Vender Gás..." : "Preparar NFC-e para revisão"}
+                      {preparandoNfce ? "Emitindo no Vender Gás..." : "Emitir NFC-e"}
                     </Button>
                   </CardContent>
                 </Card>
