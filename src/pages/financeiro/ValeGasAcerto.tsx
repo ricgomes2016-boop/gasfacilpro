@@ -50,10 +50,15 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
 
   const valesPendentes = useMemo(() => {
     const pendentes: Record<string, { quantidade: number; valor: number }> = {};
+    const lotesAbertos = new Set(
+      lotes
+        .filter(l => !l.cancelado && Number(l.valor_pago || 0) < Number(l.valor_total || 0) - 0.01)
+        .map(l => l.id)
+    );
     parceirosAtivos.forEach(parceiro => {
       const valesNaoAcertados = vales.filter(v => {
         if (v.parceiro_id !== parceiro.id || v.status === "cancelado") return false;
-        return parceiro.tipo === "consignado" ? v.status === "utilizado" : true;
+        return parceiro.tipo === "consignado" ? v.status === "utilizado" : lotesAbertos.has(v.lote_id);
       });
       pendentes[parceiro.id] = {
         quantidade: valesNaoAcertados.length,
@@ -61,7 +66,8 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
       };
     });
     return pendentes;
-  }, [parceirosAtivos, vales]);
+  }, [parceirosAtivos, vales, lotes]);
+
 
   const handleGerarAcerto = async () => {
     if (!parceiroSelecionado) { toast.error("Selecione um parceiro"); return; }
