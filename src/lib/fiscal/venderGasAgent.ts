@@ -42,6 +42,9 @@ export interface VenderGasResposta {
   chaveAcesso?: string;
   protocolo?: string;
   url?: string;
+  danfeUrl?: string;
+  danfeBase64?: string;
+  danfeNome?: string;
 }
 
 async function chamar(caminho: string, corpo: unknown, timeout = 120_000): Promise<VenderGasResposta> {

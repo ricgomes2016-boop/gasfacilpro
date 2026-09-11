@@ -252,6 +252,7 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
     return { ok: false, motivo: "botao_emitir_desabilitado", mensagem: "O botão Emitir Nota Fiscal está desabilitado. Confira os campos obrigatórios destacados no Vender Gás." };
   }
   const dadosCapturados: DadosFiscaisCapturados = {};
+  const downloadDanfe = page.waitForEvent("download", { timeout: 15_000 }).catch(() => null);
   const leiturasPendentes: Promise<void>[] = [];
   const observarResposta = (response: Response) => {
     const contentType = response.headers()["content-type"] ?? "";
@@ -319,6 +320,17 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
   await page.waitForTimeout(6_000);
   page.off("response", observarResposta);
   await Promise.allSettled(leiturasPendentes);
+  const download = await downloadDanfe;
+  let danfeBase64: string | undefined;
+  let danfeNome: string | undefined;
+  if (download) {
+    const nome = download.suggestedFilename();
+    const arquivo = await download.path().catch(() => null);
+    if (arquivo && /\.pdf$/i.test(nome)) {
+      danfeBase64 = fs.readFileSync(arquivo).toString("base64");
+      danfeNome = nome;
+    }
+  }
 
   const resultado = await page.locator("body").innerText();
   combinarDadosFiscais(dadosCapturados, extrairDadosFiscais(resultado));
@@ -332,7 +344,10 @@ export async function emitirNoVenderGas(payload: EmissaoVenderGas) {
     numero: dadosCapturados.numero,
     chaveAcesso: dadosCapturados.chaveAcesso,
     protocolo: dadosCapturados.protocolo,
-    url: dadosCapturados.url || page.url(),
+    danfeBase64,
+    danfeNome,
+    danfeUrl: dadosCapturados.url,
+    url: page.url(),
     mensagem: dadosCapturados.numero
       ? `${rotulo} nº ${dadosCapturados.numero} autorizada no Vender Gás.`
       : `${rotulo} autorizada no Vender Gás. O XML pode ser importado pela Central de XML para completar a numeração.`,

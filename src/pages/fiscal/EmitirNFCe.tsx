@@ -19,6 +19,7 @@ import { emitirDocumentoVenderGas } from "@/lib/fiscal/venderGasAgent";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LoteConfig {
   produto: string;
@@ -105,6 +106,32 @@ export default function EmitirNFCe() {
 
   useEffect(() => { carregarNotas(); }, []);
 
+  const salvarDanfe = async (notaId: string, unidadeId: string, base64?: string) => {
+    if (!base64 || !empresa?.id) return null;
+    const binario = atob(base64);
+    const bytes = new Uint8Array(binario.length);
+    for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+    const caminho = `${empresa.id}/${unidadeId}/danfe/${notaId}.pdf`;
+    const { error: uploadError } = await supabase.storage
+      .from("contabil-xmls")
+      .upload(caminho, bytes, { contentType: "application/pdf", upsert: false });
+    if (uploadError && !/already exists|duplicate/i.test(uploadError.message)) throw uploadError;
+    const { data, error: urlError } = await supabase.storage
+      .from("contabil-xmls")
+      .createSignedUrl(caminho, 60 * 60 * 24 * 365 * 5);
+    if (urlError) throw urlError;
+    return data.signedUrl;
+  };
+
+  const tentarSalvarDanfe = async (notaId: string, unidadeId: string, base64?: string) => {
+    try {
+      return await salvarDanfe(notaId, unidadeId, base64);
+    } catch (error) {
+      console.error("NFC-e autorizada, mas não foi possível armazenar o DANFE", error);
+      return null;
+    }
+  };
+
   const emitirRascunho = async (nota: NotaFiscal) => {
     if (nota.status !== "rascunho") return;
     if (!empresa?.cnpj || !nota.unidade_id) {
@@ -136,14 +163,18 @@ export default function EmitirNFCe() {
         formaPagamento: nota.forma_pagamento || undefined,
       });
       if (!result.ok) throw new Error(result.mensagem);
+      const danfeUrl = await tentarSalvarDanfe(nota.id, nota.unidade_id, result.danfeBase64);
       await atualizarNota(nota.id, {
         status: "autorizada",
         numero: result.numero || nota.numero,
         chave_acesso: result.chaveAcesso || nota.chave_acesso,
         protocolo: result.protocolo || nota.protocolo,
-        danfe_url: result.url || nota.danfe_url,
+        danfe_url: danfeUrl || result.danfeUrl || nota.danfe_url,
       });
       toast({ title: "NFC-e emitida", description: result.mensagem });
+      if (result.danfeBase64 && !danfeUrl && !result.danfeUrl) {
+        toast({ title: "DANFE pendente", description: "A nota foi autorizada, mas o PDF não pôde ser armazenado. Tente novamente pela ação Imprimir.", variant: "destructive" });
+      }
       await carregarNotas();
     } catch (e: any) {
       toast({ title: "Não foi possível emitir", description: e.message, variant: "destructive" });
@@ -261,13 +292,18 @@ export default function EmitirNFCe() {
         formaPagamento: formaPagamentoNfce,
       });
       if (!result.ok) throw new Error(result.mensagem);
+      const danfeUrl = await tentarSalvarDanfe(nota.id, unidadeAtual.id, result.danfeBase64);
       await atualizarNota(nota.id, {
         status: "autorizada",
         numero: result.numero || null,
         chave_acesso: result.chaveAcesso || null,
         protocolo: result.protocolo || null,
+        danfe_url: danfeUrl || result.danfeUrl || null,
       } as Partial<NotaFiscal>);
       toast({ title: "NFC-e emitida", description: result.mensagem });
+      if (result.danfeBase64 && !danfeUrl && !result.danfeUrl) {
+        toast({ title: "DANFE pendente", description: "A nota foi autorizada, mas o PDF não pôde ser armazenado. Tente novamente pela ação Imprimir.", variant: "destructive" });
+      }
       carregarNotas();
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
