@@ -8546,6 +8546,123 @@ export type Database = {
           },
         ]
       }
+      pagbank_api_config: {
+        Row: {
+          ambiente: string
+          conta_bancaria_id: string
+          created_at: string
+          id: string
+          status: string
+          token_mascara: string
+          token_secret_id: string
+          ultimo_erro: string | null
+          ultimo_teste_em: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          ambiente?: string
+          conta_bancaria_id: string
+          created_at?: string
+          id?: string
+          status?: string
+          token_mascara: string
+          token_secret_id: string
+          ultimo_erro?: string | null
+          ultimo_teste_em?: string | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          ambiente?: string
+          conta_bancaria_id?: string
+          created_at?: string
+          id?: string
+          status?: string
+          token_mascara?: string
+          token_secret_id?: string
+          ultimo_erro?: string | null
+          ultimo_teste_em?: string | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagbank_api_config_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagbank_api_config_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: true
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagbank_edi_config: {
+        Row: {
+          conta_bancaria_id: string
+          created_at: string
+          estabelecimento_id: string
+          id: string
+          status: string
+          token_mascara: string
+          token_secret_id: string
+          ultima_data_validada: string | null
+          ultima_sincronizacao_em: string | null
+          ultimo_erro: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          conta_bancaria_id: string
+          created_at?: string
+          estabelecimento_id: string
+          id?: string
+          status?: string
+          token_mascara: string
+          token_secret_id: string
+          ultima_data_validada?: string | null
+          ultima_sincronizacao_em?: string | null
+          ultimo_erro?: string | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          conta_bancaria_id?: string
+          created_at?: string
+          estabelecimento_id?: string
+          id?: string
+          status?: string
+          token_mascara?: string
+          token_secret_id?: string
+          ultima_data_validada?: string | null
+          ultima_sincronizacao_em?: string | null
+          ultimo_erro?: string | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagbank_edi_config_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagbank_edi_config_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: true
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedido_itens: {
         Row: {
           created_at: string
@@ -12902,6 +13019,77 @@ export type Database = {
           _unidade_id: string
         }
         Returns: undefined
+      }
+      pagbank_get_api_credentials: {
+        Args: { p_unidade_id: string }
+        Returns: {
+          ambiente: string
+          conta_bancaria_id: string
+          token: string
+        }[]
+      }
+      pagbank_get_edi_credentials: {
+        Args: { p_unidade_id: string }
+        Returns: {
+          conta_bancaria_id: string
+          estabelecimento_id: string
+          token: string
+        }[]
+      }
+      pagbank_save_api_credentials: {
+        Args: {
+          p_ambiente: string
+          p_conta_bancaria_id: string
+          p_token: string
+          p_unidade_id: string
+        }
+        Returns: {
+          ambiente: string
+          conta_bancaria_id: string
+          created_at: string
+          id: string
+          status: string
+          token_mascara: string
+          token_secret_id: string
+          ultimo_erro: string | null
+          ultimo_teste_em: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pagbank_api_config"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      pagbank_save_edi_credentials: {
+        Args: {
+          p_conta_bancaria_id: string
+          p_estabelecimento_id: string
+          p_token: string
+          p_unidade_id: string
+        }
+        Returns: {
+          conta_bancaria_id: string
+          created_at: string
+          estabelecimento_id: string
+          id: string
+          status: string
+          token_mascara: string
+          token_secret_id: string
+          ultima_data_validada: string | null
+          ultima_sincronizacao_em: string | null
+          ultimo_erro: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pagbank_edi_config"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       proximo_numero_pedido: { Args: { _empresa_id: string }; Returns: number }
       proximo_numero_pedido_unidade: {
