@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Settings, CheckCircle2, AlertCircle, ExternalLink, RefreshCcw, Plug, Loader2, Eye, EyeOff } from "lucide-react";
+import { Settings, CheckCircle2, AlertCircle, ExternalLink, Plug, Loader2, Eye, EyeOff, ShieldCheck, CalendarClock, Database } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -61,7 +60,9 @@ export default function IntegracaoBancariaPanel({
         .maybeSingle();
       return (data || null) as IntegracaoRow | null;
     },
-    enabled: !!unidadeId && !!provider,
+    // PagBank usa um endpoint sanitizado; nunca carregue a configuração legada
+    // (que pode conter token antigo) diretamente no navegador.
+    enabled: !!unidadeId && !!provider && provider !== "pagbank",
   });
 
   if (!provider || !info) {
@@ -89,7 +90,9 @@ export default function IntegracaoBancariaPanel({
             <p className="font-semibold leading-tight">Integração {info.label}</p>
             <p className="text-xs text-muted-foreground">{info.description}</p>
           </div>
-          {integracao?.ativo ? (
+          {provider === "pagbank" ? (
+            <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary">API EDI</Badge>
+          ) : integracao?.ativo ? (
             <Badge className="bg-success hover:bg-success">
               <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Conectado
             </Badge>
@@ -124,8 +127,6 @@ export default function IntegracaoBancariaPanel({
         <PagBankForm
           contaId={contaId}
           unidadeId={unidadeId!}
-          integracao={integracao}
-          onSaved={() => queryClient.invalidateQueries({ queryKey: ["integracao-conta", unidadeId, provider] })}
         />
       ) : provider === "asaas" ? (
         <AsaasForm
@@ -145,53 +146,60 @@ export default function IntegracaoBancariaPanel({
 function PagBankForm({
   contaId,
   unidadeId,
-  integracao,
-  onSaved,
 }: {
   contaId: string;
   unidadeId: string;
-  integracao: IntegracaoRow | null;
-  onSaved: () => void;
 }) {
-  const cfg = integracao?.config || {};
-  const [ambiente, setAmbiente] = useState<"sandbox" | "producao">(cfg.ambiente || "sandbox");
-  const [email, setEmail] = useState<string>(cfg.email_conta || "");
+  const queryClient = useQueryClient();
+  const [estabelecimentoId, setEstabelecimentoId] = useState("");
   const [token, setToken] = useState("");
   const [showToken, setShowToken] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [syncing, setSyncing] = useState(false);
 
-  const hasToken = Boolean(cfg.token_mascara);
-  const cleanToken = (value: string) => value.trim().replace(/^Bearer\s+/i, "").trim();
+  const { data: cfg, isLoading } = useQuery({
+    queryKey: ["pagbank-edi-config", unidadeId],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("pagbank-api", {
+        body: { action: "get_edi_config", unidade_id: unidadeId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data?.config || null;
+    },
+    enabled: !!unidadeId,
+  });
+
+  const hasToken = Boolean(cfg?.token_mascara);
+  const status = cfg?.status || "aguardando_credenciais";
+  const statusInfo = status === "conectado"
+    ? { label: "Conectado", className: "border-success/30 bg-success/10 text-success" }
+    : status === "erro"
+      ? { label: "Requer atenção", className: "border-destructive/30 bg-destructive/10 text-destructive" }
+      : status === "configurado"
+        ? { label: "Credenciais salvas", className: "border-warning/30 bg-warning/10 text-warning" }
+        : { label: "Aguardando credenciais", className: "border-muted-foreground/25 bg-muted text-muted-foreground" };
 
   const salvar = async () => {
     setSaving(true);
     try {
-      const newConfig: Record<string, any> = {
-        ...cfg,
-        ambiente,
-        email_conta: email || null,
-        conta_bancaria_id: contaId,
-      };
-      if (token.trim()) {
-        const normalizedToken = cleanToken(token);
-        newConfig.token = normalizedToken;
-        newConfig.token_mascara = `••••${normalizedToken.slice(-4)}`;
-      }
-      const payload = {
-        unidade_id: unidadeId,
-        integracao_id: "pagbank",
-        config: newConfig,
-        ativo: true,
-      };
-      const { error } = await supabase
-        .from("integracoes_config")
-        .upsert(payload, { onConflict: "unidade_id,integracao_id" });
+      const id = (estabelecimentoId || cfg?.estabelecimento_id || "").replace(/\D/g, "");
+      if (!id) throw new Error("Informe o USER/ID do estabelecimento");
+      if (!token.trim()) throw new Error("Informe o Token API EDI recebido do PagBank");
+      const { data, error } = await supabase.functions.invoke("pagbank-api", {
+        body: {
+          action: "save_edi_credentials",
+          unidade_id: unidadeId,
+          conta_bancaria_id: contaId,
+          estabelecimento_id: id,
+          edi_token: token.trim(),
+        },
+      });
       if (error) throw error;
-      toast.success("Configuração salva");
+      if (data?.error) throw new Error(data.error);
+      toast.success("Credenciais EDI protegidas e salvas");
       setToken("");
-      onSaved();
+      setEstabelecimentoId("");
+      await queryClient.invalidateQueries({ queryKey: ["pagbank-edi-config", unidadeId] });
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar");
     } finally {
@@ -199,131 +207,69 @@ function PagBankForm({
     }
   };
 
-  const testar = async () => {
-    setTesting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("pagbank-api", {
-        body: { action: "test_connection", unidade_id: unidadeId },
-      });
-      if (error) throw error;
-      if (data?.success) toast.success("Conexão OK com PagBank");
-      else toast.error(data?.error || "Falha na conexão", { duration: 9000 });
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao testar");
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  const sincronizar = async () => {
-    setSyncing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("pagbank-api", {
-        body: {
-          action: "list_transactions",
-          unidade_id: unidadeId,
-          conta_bancaria_id: contaId,
-          dias: 30,
-        },
-      });
-      if (error) throw error;
-      toast.success(`${data?.importadas ?? 0} movimentações importadas`);
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao sincronizar");
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <Settings className="h-4 w-4" /> Credenciais PagBank
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between rounded-lg border p-3">
+    <Card className="overflow-hidden">
+      <CardHeader className="border-b bg-muted/20">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-medium text-sm">Ambiente</p>
-            <p className="text-xs text-muted-foreground">
-              Sandbox para testes, Produção para cobranças reais.
-            </p>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Settings className="h-4 w-4" /> API EDI PagBank
+            </CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">Conciliação automática das maquininhas e da conta PagBank.</p>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className={ambiente === "sandbox" ? "font-semibold" : "text-muted-foreground"}>Sandbox</span>
-            <Switch
-              checked={ambiente === "producao"}
-              onCheckedChange={(v) => setAmbiente(v ? "producao" : "sandbox")}
-            />
-            <span className={ambiente === "producao" ? "font-semibold" : "text-muted-foreground"}>Produção</span>
-          </div>
+          <Badge variant="outline" className={statusInfo.className}>{statusInfo.label}</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-5 p-4 sm:p-6">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border bg-card p-3.5"><Database className="mb-2 h-4 w-4 text-primary" /><p className="text-sm font-medium">Vendas e recebíveis</p><p className="text-xs text-muted-foreground">Transações, taxas e liquidações.</p></div>
+          <div className="rounded-xl border bg-card p-3.5"><CalendarClock className="mb-2 h-4 w-4 text-primary" /><p className="text-sm font-medium">Dados D+1</p><p className="text-xs text-muted-foreground">Movimentos validados pelo PagBank.</p></div>
+          <div className="rounded-xl border bg-card p-3.5"><ShieldCheck className="mb-2 h-4 w-4 text-primary" /><p className="text-sm font-medium">Credencial protegida</p><p className="text-xs text-muted-foreground">Token armazenado no cofre do sistema.</p></div>
         </div>
 
-        <div>
-          <Label>E-mail da conta PagBank</Label>
-          <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seuemail@pagbank.com" />
+        <div className="rounded-xl border border-warning/25 bg-warning/5 p-4 text-sm">
+          <p className="font-medium">Use as credenciais exclusivas da API EDI</p>
+          <p className="mt-1 text-muted-foreground">O token do Portal do Desenvolvedor em ambiente de teste não funciona aqui. Preencha somente quando o PagBank enviar o USER e o Token API EDI da ativação solicitada.</p>
         </div>
 
-        <div>
-          <Label>Token da API</Label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="pagbank-edi-user">USER / ID do estabelecimento</Label>
+            <Input id="pagbank-edi-user" inputMode="numeric" value={estabelecimentoId} onChange={(e) => setEstabelecimentoId(e.target.value.replace(/\D/g, ""))} placeholder={cfg?.estabelecimento_id || "Informe o USER recebido"} disabled={isLoading} />
+          </div>
+          <div className="space-y-1.5">
+          <Label htmlFor="pagbank-edi-token">Token API EDI</Label>
           {hasToken && !token && (
-            <p className="text-xs text-muted-foreground mb-1">
-              Token atual: <span className="font-mono">{cfg.token_mascara}</span> — preencha abaixo apenas se quiser
-              substituir.
-            </p>
+            <p className="text-xs text-muted-foreground">Token atual: <span className="font-mono">{cfg.token_mascara}</span>. Digite um novo somente para substituir.</p>
           )}
           <div className="flex gap-2">
             <Input
+              id="pagbank-edi-token"
               type={showToken ? "text" : "password"}
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              placeholder={hasToken ? "Deixe vazio para manter o atual" : "Cole seu token aqui"}
+              placeholder={hasToken ? "Digite para substituir" : "Cole o Token API EDI"}
               autoComplete="off"
+              disabled={isLoading}
             />
-            <Button variant="outline" size="icon" type="button" onClick={() => setShowToken((s) => !s)}>
+            <Button variant="outline" size="icon" type="button" aria-label={showToken ? "Ocultar token" : "Mostrar token"} onClick={() => setShowToken((s) => !s)}>
               {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Gere em{" "}
-            <a
-              href="https://acesso.pagseguro.uol.com.br/integracoes"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline"
-            >
-              PagBank → Integrações
-            </a>{" "}
-            (Sandbox usa{" "}
-            <a
-              href="https://acesso.sandbox.pagseguro.uol.com.br"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline"
-            >
-              ambiente de testes
-            </a>
-            ). Sandbox exige o token da aba Tokens no Portal do Desenvolvedor; produção exige token de Venda Online
-            com a conta homologada/liberada para API.
-          </p>
+          </div>
         </div>
 
         <Separator />
 
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={salvar} disabled={saving}>
-            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Salvar
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Button onClick={salvar} disabled={saving || isLoading || !token.trim()}>
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Salvar credenciais EDI
           </Button>
-          <Button variant="outline" onClick={testar} disabled={testing || !hasToken}>
-            {testing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-            Testar conexão
-          </Button>
-          <Button variant="outline" onClick={sincronizar} disabled={syncing || !hasToken}>
-            {syncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCcw className="h-4 w-4 mr-2" />}
-            Sincronizar extrato (30 dias)
-          </Button>
+          <Button variant="outline" disabled title="Será liberado após a ativação das credenciais EDI">Testar conexão</Button>
+          <Button variant="outline" disabled title="Será liberado após a ativação das credenciais EDI">Sincronizar agora</Button>
+          <span className="text-xs text-muted-foreground sm:ml-auto">Conta de destino: esta conta PagBank</span>
         </div>
+        {cfg?.ultimo_erro && <p className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">Último erro: {cfg.ultimo_erro}</p>}
       </CardContent>
     </Card>
   );

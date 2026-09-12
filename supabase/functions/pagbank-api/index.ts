@@ -114,6 +114,53 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ============ configuração segura da API EDI ============
+    if (["get_edi_config", "save_edi_credentials"].includes(action)) {
+      const { data: roleRows } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const podeGerenciar = (roleRows || []).some((r: any) =>
+        ["super_admin", "admin", "gestor", "financeiro"].includes(r.role)
+      );
+      if (!podeGerenciar) return json({ error: "Sem permissão para configurar o PagBank" }, 403);
+    }
+
+    if (action === "get_edi_config") {
+      const { data, error } = await supabase
+        .from("pagbank_edi_config")
+        .select("conta_bancaria_id, estabelecimento_id, token_mascara, status, ultima_sincronizacao_em, ultima_data_validada, ultimo_erro")
+        .eq("unidade_id", unidade_id)
+        .maybeSingle();
+      if (error) throw error;
+      return json({ success: true, config: data || null });
+    }
+
+    if (action === "save_edi_credentials") {
+      const estabelecimentoId = String(body.estabelecimento_id || "").replace(/\D/g, "");
+      const ediToken = String(body.edi_token || "").trim();
+      if (!conta_bancaria_id) return json({ error: "conta_bancaria_id obrigatório" }, 400);
+      if (estabelecimentoId.length < 3) return json({ error: "Informe o USER/ID do estabelecimento" }, 400);
+      if (ediToken.length < 12) return json({ error: "Informe o Token API EDI recebido do PagBank" }, 400);
+
+      const { data, error } = await supabase.rpc("pagbank_save_edi_credentials", {
+        p_unidade_id: unidade_id,
+        p_conta_bancaria_id: conta_bancaria_id,
+        p_estabelecimento_id: estabelecimentoId,
+        p_token: ediToken,
+      });
+      if (error) throw error;
+      return json({
+        success: true,
+        config: data ? {
+          conta_bancaria_id: data.conta_bancaria_id,
+          estabelecimento_id: data.estabelecimento_id,
+          token_mascara: data.token_mascara,
+          status: data.status,
+        } : null,
+      });
+    }
+
 
     const { data: integ } = await supabase
       .from("integracoes_config")
