@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Settings, CheckCircle2, AlertCircle, ExternalLink, Plug, Loader2, Eye, EyeOff, ShieldCheck, CalendarClock, Database } from "lucide-react";
+import { Settings, CheckCircle2, AlertCircle, ExternalLink, Plug, Loader2, Eye, EyeOff, ShieldCheck, CalendarClock, Database, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -91,7 +92,7 @@ export default function IntegracaoBancariaPanel({
             <p className="text-xs text-muted-foreground">{info.description}</p>
           </div>
           {provider === "pagbank" ? (
-            <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary">API EDI</Badge>
+            <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary">APIs PagBank</Badge>
           ) : integracao?.ativo ? (
             <Badge className="bg-success hover:bg-success">
               <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Conectado
@@ -124,10 +125,10 @@ export default function IntegracaoBancariaPanel({
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando configuração…</p>
       ) : provider === "pagbank" ? (
-        <PagBankForm
-          contaId={contaId}
-          unidadeId={unidadeId!}
-        />
+        <>
+          <PagBankOnlineForm contaId={contaId} unidadeId={unidadeId!} />
+          <PagBankForm contaId={contaId} unidadeId={unidadeId!} />
+        </>
       ) : provider === "asaas" ? (
         <AsaasForm
           contaId={contaId}
@@ -137,6 +138,106 @@ export default function IntegracaoBancariaPanel({
         />
       ) : null}
     </div>
+  );
+}
+
+function PagBankOnlineForm({ contaId, unidadeId }: { contaId: string; unidadeId: string }) {
+  const queryClient = useQueryClient();
+  const [ambiente, setAmbiente] = useState<"sandbox" | "producao">("sandbox");
+  const [token, setToken] = useState("");
+  const [showToken, setShowToken] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  const { data: cfg, isLoading } = useQuery({
+    queryKey: ["pagbank-online-config", unidadeId],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("pagbank-api", {
+        body: { action: "get_online_config", unidade_id: unidadeId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data?.config || null;
+    },
+    enabled: !!unidadeId,
+  });
+
+  const effectiveEnvironment = cfg?.ambiente || ambiente;
+  const hasToken = Boolean(cfg?.token_mascara);
+
+  useEffect(() => {
+    if (cfg?.ambiente === "sandbox" || cfg?.ambiente === "producao") setAmbiente(cfg.ambiente);
+  }, [cfg?.ambiente]);
+
+  const salvar = async () => {
+    setSaving(true);
+    try {
+      if (!token.trim()) throw new Error("Informe o token da API PagBank");
+      const { data, error } = await supabase.functions.invoke("pagbank-api", {
+        body: { action: "save_online_credentials", unidade_id: unidadeId,
+          conta_bancaria_id: contaId, ambiente, api_token: token.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setToken("");
+      toast.success("Token da API Pix salvo com segurança");
+      await queryClient.invalidateQueries({ queryKey: ["pagbank-online-config", unidadeId] });
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar");
+    } finally { setSaving(false); }
+  };
+
+  const testar = async () => {
+    setTesting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pagbank-api", {
+        body: { action: "test_connection", unidade_id: unidadeId },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Conexão recusada");
+      toast.success("Conexão validada; o teste já consta nos logs do Sandbox");
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao testar", { duration: 9000 });
+    } finally { setTesting(false); }
+  };
+
+  return (
+    <Card className="overflow-hidden border-primary/20">
+      <CardHeader className="border-b bg-primary/[0.03]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base"><QrCode className="h-4 w-4 text-primary" /> Pix em tempo real</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">Gere QR Code por venda e confirme o pagamento automaticamente.</p>
+          </div>
+          <Badge variant="outline" className={hasToken ? "border-success/30 bg-success/10 text-success" : ""}>
+            {hasToken ? "Configurado" : "Aguardando configuração"}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 p-4 sm:p-6">
+        <div className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div><p className="text-sm font-medium">Ambiente da API Order/Pix</p><p className="text-xs text-muted-foreground">Use Sandbox até a homologação ser aprovada.</p></div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className={ambiente === "sandbox" ? "font-semibold" : "text-muted-foreground"}>Sandbox</span>
+            <Switch checked={ambiente === "producao"} onCheckedChange={(v) => setAmbiente(v ? "producao" : "sandbox")} disabled={isLoading} />
+            <span className={ambiente === "producao" ? "font-semibold" : "text-muted-foreground"}>Produção</span>
+          </div>
+        </div>
+        {hasToken && <p className="text-xs text-muted-foreground">Ambiente salvo: <strong>{effectiveEnvironment === "producao" ? "Produção" : "Sandbox"}</strong> · Token: <span className="font-mono">{cfg.token_mascara}</span></p>}
+        <div className="space-y-1.5">
+          <Label htmlFor="pagbank-online-token">Token da API {ambiente === "sandbox" ? "Sandbox" : "Produção"}</Label>
+          <div className="flex gap-2">
+            <Input id="pagbank-online-token" type={showToken ? "text" : "password"} value={token} onChange={(e) => setToken(e.target.value)} placeholder={hasToken ? "Digite apenas para substituir" : "Cole o token do Portal do Desenvolvedor"} autoComplete="off" />
+            <Button type="button" size="icon" variant="outline" aria-label={showToken ? "Ocultar token" : "Mostrar token"} onClick={() => setShowToken(v => !v)}>{showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</Button>
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button onClick={salvar} disabled={saving || !token.trim()}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar token</Button>
+          <Button variant="outline" onClick={testar} disabled={testing || !hasToken}>{testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Testar conexão</Button>
+        </div>
+        <p className="text-xs text-muted-foreground">No Sandbox, o teste cria uma cobrança técnica de R$ 1,00 para gerar o log exigido pela homologação. Nenhum valor real é movimentado.</p>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
     }
 
     // ============ configuração segura da API EDI ============
-    if (["get_edi_config", "save_edi_credentials"].includes(action)) {
+    if (["get_edi_config", "save_edi_credentials", "get_online_config", "save_online_credentials"].includes(action)) {
       const { data: roleRows } = await supabase
         .from("user_roles")
         .select("role")
@@ -161,7 +161,41 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "get_online_config") {
+      const { data, error } = await supabase
+        .from("pagbank_api_config")
+        .select("conta_bancaria_id, ambiente, token_mascara, status, ultimo_teste_em, ultimo_erro")
+        .eq("unidade_id", unidade_id)
+        .maybeSingle();
+      if (error) throw error;
+      return json({ success: true, config: data || null });
+    }
 
+    if (action === "save_online_credentials") {
+      const apiToken = String(body.api_token || "").trim();
+      const apiAmbiente = body.ambiente === "producao" ? "producao" : "sandbox";
+      if (!conta_bancaria_id) return json({ error: "conta_bancaria_id obrigatório" }, 400);
+      if (apiToken.length < 12) return json({ error: "Informe o token da API PagBank" }, 400);
+      const { data, error } = await supabase.rpc("pagbank_save_api_credentials", {
+        p_unidade_id: unidade_id,
+        p_conta_bancaria_id: conta_bancaria_id,
+        p_ambiente: apiAmbiente,
+        p_token: apiToken,
+      });
+      if (error) throw error;
+      return json({ success: true, config: data ? {
+        conta_bancaria_id: data.conta_bancaria_id,
+        ambiente: data.ambiente,
+        token_mascara: data.token_mascara,
+        status: data.status,
+      } : null });
+    }
+
+    // Credencial segura da API Order/Pix. O fallback legado será removido após
+    // todas as unidades migrarem; ele evita interromper integrações existentes.
+    const { data: secureCredentials } = await supabase
+      .rpc("pagbank_get_api_credentials", { p_unidade_id: unidade_id })
+      .maybeSingle();
     const { data: integ } = await supabase
       .from("integracoes_config")
       .select("config, ativo")
@@ -170,8 +204,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const cfg = (integ?.config || {}) as Record<string, any>;
-    const token = cfg.token as string | undefined;
-    const ambiente = (cfg.ambiente || "sandbox") as string;
+    const token = (secureCredentials?.token || cfg.token) as string | undefined;
+    const ambiente = (secureCredentials?.ambiente || cfg.ambiente || "sandbox") as string;
     if (!token) {
       return json({ error: "Token PagBank não configurado para esta unidade." }, 400);
     }
