@@ -170,6 +170,13 @@ export default function AdminWhatsAppConfig() {
 
   const saveMutation = useMutation({
     mutationFn: async (params: { unidadeId: string; data: Record<string, any> }) => {
+      if (params.data.provedor === "zapi" && params.data.action === "save_config") {
+        const { data: result, error } = await supabase.functions.invoke("zapi-admin", {
+          body: { ...params.data, unidade_id: params.unidadeId },
+        });
+        if (error || !result?.ok) throw new Error(error?.message || result?.error || "Falha ao configurar Z-API");
+        return { webhooksConfigured: true };
+      }
       const existing = getConfigForUnidade(params.unidadeId);
       if (existing) {
         const { error } = await supabase
@@ -442,14 +449,7 @@ export default function AdminWhatsAppConfig() {
 
               if (selectedUnidade) {
                 const existing = getConfigForUnidade(selectedUnidade.id);
-      if (params.data.provedor === "zapi" && params.data.action === "save_config") {
-        const { data: result, error } = await supabase.functions.invoke("zapi-admin", {
-          body: { ...params.data, unidade_id: params.unidadeId },
-        });
-        if (error || !result?.ok) throw new Error(error?.message || result?.error || "Falha ao configurar Z-API");
-        return { webhooksConfigured: true };
-      }
-      if (existing) {
+                if (existing) {
                   await supabase
                     .from("integracoes_whatsapp")
                     .update({
