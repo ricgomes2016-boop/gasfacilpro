@@ -8,6 +8,13 @@ export interface ParceiroInfo {
   cnpj: string | null;
   telefone: string | null;
   tipo: string;
+  unidade_id: string | null;
+}
+
+export interface EmpresaValeInfo {
+  nome: string;
+  telefone: string | null;
+  endereco: string | null;
 }
 
 export interface ValeGasParceiro {
@@ -34,13 +41,31 @@ export function useParceiroDados() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vale_gas_parceiros")
-        .select("id, nome, cnpj, telefone, tipo")
+        .select("id, nome, cnpj, telefone, tipo, unidade_id")
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
       return data as ParceiroInfo;
     },
     enabled: !!user,
+  });
+
+  const { data: empresaVale } = useQuery({
+    queryKey: ["parceiro-empresa-vale", parceiro?.unidade_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("unidades")
+        .select("nome, telefone, endereco, bairro, cidade, estado")
+        .eq("id", parceiro!.unidade_id!)
+        .single();
+      if (error) throw error;
+      return {
+        nome: data.nome,
+        telefone: data.telefone,
+        endereco: [data.endereco, data.bairro, data.cidade, data.estado].filter(Boolean).join(" - ") || null,
+      } as EmpresaValeInfo;
+    },
+    enabled: !!parceiro?.unidade_id,
   });
 
   const { data: vales = [], isLoading: loadingVales, refetch: refetchVales } = useQuery({
@@ -63,6 +88,7 @@ export function useParceiroDados() {
 
   return {
     parceiro,
+    empresaVale,
     vales,
     disponiveis,
     vendidos,

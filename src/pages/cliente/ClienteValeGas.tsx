@@ -18,7 +18,7 @@ import { useState } from "react";
 import { ValeGasQRCode } from "@/components/valegas/ValeGasQRCode";
 
 export default function ClienteValeGas() {
-  const { valesGas } = useCliente();
+  const { valesGas, empresaInfo, lojas, lojaSelecionadaId } = useCliente();
   const [qrCodeOpen, setQrCodeOpen] = useState(false);
   const [selectedVale, setSelectedVale] = useState<{ numero: number; codigo: string; valor: number; parceiroNome?: string } | null>(null);
 
@@ -26,6 +26,16 @@ export default function ClienteValeGas() {
   const usedOrExpiredVales = valesGas.filter(v => v.used || isBefore(v.expiryDate, new Date()));
 
   const totalAvailable = activeVales.reduce((sum, v) => sum + v.value, 0);
+  const lojaSelecionada = lojas.find((loja) => loja.id === lojaSelecionadaId);
+  const empresaVale = {
+    nome: lojaSelecionada?.nome || empresaInfo?.nome || "Empresa",
+    telefone: lojaSelecionada?.telefone || null,
+    endereco: lojaSelecionada
+      ? [lojaSelecionada.endereco, lojaSelecionada.bairro, lojaSelecionada.cidade, lojaSelecionada.estado, lojaSelecionada.cep]
+          .filter(Boolean)
+          .join(" - ") || null
+      : null,
+  };
 
   const handleOpenQRCode = (vale: typeof valesGas[0]) => {
     setSelectedVale({
@@ -189,6 +199,7 @@ export default function ClienteValeGas() {
               setSelectedVale(null);
             }}
             vale={selectedVale}
+            empresa={empresaVale}
           />
         )}
       </div>

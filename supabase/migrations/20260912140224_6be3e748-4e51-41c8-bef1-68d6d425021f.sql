@@ -1,5 +1,20 @@
 CREATE EXTENSION IF NOT EXISTS supabase_vault WITH SCHEMA vault;
 
+-- Migração duplicada aposentada.
+-- A estrutura foi criada por 20260912133432_pagbank_edi_secure_config.sql.
+-- Mantemos este timestamp para não quebrar o histórico de ambientes que já o
+-- registraram, mas sem repetir CREATE TABLE/FUNCTION/TRIGGER.
+DO $$
+BEGIN
+  IF to_regclass('public.pagbank_edi_config') IS NULL
+     OR to_regclass('public.pagbank_api_config') IS NULL THEN
+    RAISE EXCEPTION
+      'A migração 20260912133432_pagbank_edi_secure_config.sql deve ser aplicada antes desta';
+  END IF;
+END
+$$;
+
+/*
 CREATE TABLE public.pagbank_edi_config (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   unidade_id UUID NOT NULL UNIQUE REFERENCES public.unidades(id) ON DELETE CASCADE,
@@ -214,3 +229,4 @@ REVOKE ALL ON FUNCTION public.pagbank_save_api_credentials(UUID, UUID, TEXT, TEX
 REVOKE ALL ON FUNCTION public.pagbank_get_api_credentials(UUID) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.pagbank_save_api_credentials(UUID, UUID, TEXT, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION public.pagbank_get_api_credentials(UUID) TO service_role;
+*/

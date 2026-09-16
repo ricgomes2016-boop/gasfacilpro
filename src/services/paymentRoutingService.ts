@@ -878,3 +878,19 @@ export async function rerotearPagamentosPedido(
 
   await rotearPagamentosVenda(params);
 }
+
+/** Remove lançamentos financeiros parciais de uma venda que falhou. */
+export async function removerEfeitosFinanceirosPedido(pedidoId: string): Promise<void> {
+  const operacoes = await Promise.all([
+    supabase.from("movimentacoes_caixa").delete().eq("pedido_id", pedidoId),
+    supabase.from("movimentacoes_bancarias").delete().eq("referencia_id", pedidoId).eq("referencia_tipo", "pedido"),
+    supabase.from("extrato_bancario").delete().eq("pedido_id", pedidoId),
+    supabase.from("pagamentos_cartao").delete().eq("pedido_id", pedidoId),
+    supabase.from("conferencia_cartao").delete().eq("pedido_id", pedidoId),
+    supabase.from("cheques").delete().eq("pedido_id", pedidoId),
+    supabase.from("contas_receber").delete().eq("pedido_id", pedidoId),
+  ]);
+
+  const falha = operacoes.find((resultado) => resultado.error)?.error;
+  if (falha) throw falha;
+}

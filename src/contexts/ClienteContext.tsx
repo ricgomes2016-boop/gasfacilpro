@@ -49,6 +49,10 @@ export interface LojaOption {
   nome: string;
   cidade: string | null;
   bairro: string | null;
+  telefone: string | null;
+  endereco: string | null;
+  estado: string | null;
+  cep: string | null;
 }
 
 export interface EmpresaInfo {
@@ -183,7 +187,7 @@ export function ClienteProvider({ children }: { children: ReactNode }) {
       
       let query = supabase
         .from("unidades")
-        .select("id, nome, cidade, bairro")
+        .select("id, nome, cidade, bairro, telefone, endereco, estado, cep")
         .eq("ativo", true)
         .order("nome");
       

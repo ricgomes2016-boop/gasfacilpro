@@ -95,7 +95,7 @@ function ValeCard({ vale, onVender, onUtilizar, onQRCode }: { vale: ValeGasParce
 
 export default function ParceiroVales() {
   const navigate = useNavigate();
-  const { vales, disponiveis, vendidos, utilizados, isLoading, refetchVales } = useParceiroDados();
+  const { vales, empresaVale, disponiveis, vendidos, utilizados, isLoading, refetchVales } = useParceiroDados();
   const [busca, setBusca] = useState("");
   const [utilizarVale, setUtilizarVale] = useState<ValeGasParceiro | null>(null);
   const [loadingUtilizar, setLoadingUtilizar] = useState(false);
@@ -223,6 +223,7 @@ export default function ParceiroVales() {
             descricao: qrVale.descricao,
             numeroEmpenho: qrVale.numero_empenho,
           }}
+          empresa={empresaVale}
         />
       )}
     </ParceiroLayout>

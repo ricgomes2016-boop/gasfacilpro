@@ -76,8 +76,11 @@ import {
   generateReceiptPdf,
   EmpresaConfig,
 } from "@/services/receiptPdfService";
-import { atualizarEstoqueVenda } from "@/services/estoqueService";
-import { rotearPagamentosVenda } from "@/services/paymentRoutingService";
+import { atualizarEstoqueVenda, reverterEstoqueVenda } from "@/services/estoqueService";
+import {
+  removerEfeitosFinanceirosPedido,
+  rotearPagamentosVenda,
+} from "@/services/paymentRoutingService";
 import { liberarValesGasDoPedido, reservarValesGasDoPedido } from "@/services/valeGasReservaService";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
@@ -1313,6 +1316,7 @@ export default function NovaVenda({
 
     setIsLoading(true);
     let pedidoCriadoId: string | null = null;
+    let estoqueMovimentado = false;
 
     try {
       // Auto-cadastrar cliente se não estiver cadastrado
@@ -1510,6 +1514,7 @@ export default function NovaVenda({
         })),
         unidadeAtual?.id,
       );
+      estoqueMovimentado = true;
 
       // Prepare receipt data: prioriza dados da unidade/loja atual
       let empresaConfig: EmpresaConfig | undefined;
@@ -1631,14 +1636,36 @@ export default function NovaVenda({
       setBoletoAsaasConta(contaBoletoAsaas);
       setPrintDialogOpen(true);
     } catch (error: any) {
+      let erroExibido = error;
       if (pedidoCriadoId) {
-        await liberarValesGasDoPedido(pedidoCriadoId);
-        await supabase.from("pedidos").delete().eq("id", pedidoCriadoId);
+        try {
+          await removerEfeitosFinanceirosPedido(pedidoCriadoId);
+          if (estoqueMovimentado) {
+            await reverterEstoqueVenda(
+              getValidSaleItems(itens).map((item) => ({
+                produto_id: item.produto_id,
+                quantidade: item.quantidade,
+              })),
+              unidadeAtual?.id,
+            );
+          }
+          await liberarValesGasDoPedido(pedidoCriadoId);
+          const { error: deleteError } = await supabase
+            .from("pedidos")
+            .delete()
+            .eq("id", pedidoCriadoId);
+          if (deleteError) throw deleteError;
+        } catch (rollbackError) {
+          console.error("Falha crítica ao reverter venda incompleta:", rollbackError);
+          erroExibido = new Error(
+            `${error?.message || "Falha ao finalizar a venda"}. A reversão automática não foi concluída; o pedido foi preservado para conferência.`,
+          );
+        }
       }
-      console.error("Erro ao salvar venda:", error);
+      console.error("Erro ao salvar venda:", erroExibido);
       toast({
         title: "Erro ao salvar",
-        description: error.message || "Ocorreu um erro ao finalizar a venda.",
+        description: erroExibido.message || "Ocorreu um erro ao finalizar a venda.",
         variant: "destructive",
       });
     } finally {

@@ -148,6 +148,7 @@ function PagBankOnlineForm({ contaId, unidadeId }: { contaId: string; unidadeId:
   const [showToken, setShowToken] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const { data: cfg, isLoading } = useQuery({
     queryKey: ["pagbank-online-config", unidadeId],
@@ -201,6 +202,33 @@ function PagBankOnlineForm({ contaId, unidadeId }: { contaId: string; unidadeId:
     } finally { setTesting(false); }
   };
 
+  const sincronizarExtrato = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pagbank-api", {
+        body: {
+          action: "list_transactions",
+          unidade_id: unidadeId,
+          conta_bancaria_id: contaId,
+          dias: 30,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`${data?.importadas ?? 0} movimentações novas importadas do PagBank`);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["extrato-tabela", contaId] }),
+        queryClient.invalidateQueries({ queryKey: ["extrato_ofx_conta", contaId] }),
+        queryClient.invalidateQueries({ queryKey: ["visao-geral-movs", contaId] }),
+        queryClient.invalidateQueries({ queryKey: ["conta-bancaria-detalhe", contaId] }),
+      ]);
+    } catch (e: any) {
+      toast.error(e.message || "Não foi possível sincronizar o extrato PagBank", { duration: 9000 });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <Card className="overflow-hidden border-primary/20">
       <CardHeader className="border-b bg-primary/[0.03]">
@@ -234,6 +262,10 @@ function PagBankOnlineForm({ contaId, unidadeId }: { contaId: string; unidadeId:
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button onClick={salvar} disabled={saving || !token.trim()}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar token</Button>
           <Button variant="outline" onClick={testar} disabled={testing || !hasToken}>{testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Testar conexão</Button>
+          <Button variant="outline" onClick={sincronizarExtrato} disabled={syncing || !hasToken}>
+            {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
+            Sincronizar extrato (30 dias)
+          </Button>
         </div>
         <p className="text-xs text-muted-foreground">No Sandbox, o teste cria uma cobrança técnica de R$ 1,00 para gerar o log exigido pela homologação. Nenhum valor real é movimentado.</p>
       </CardContent>
