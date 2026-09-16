@@ -55,6 +55,8 @@ interface WhatsAppConfig {
   meta_webhook_configurado: boolean | null;
   ativo: boolean | null;
   nome_bot: string | null;
+  security_token?: string | null;
+  meta_verify_token?: string | null;
 }
 
 interface Unidade {
