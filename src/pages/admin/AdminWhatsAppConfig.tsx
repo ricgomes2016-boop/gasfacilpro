@@ -189,10 +189,21 @@ export default function AdminWhatsAppConfig() {
           });
         if (error) throw error;
       }
+      if (params.data.provedor === "zapi") {
+        const { data: webhookResult, error: webhookError } = await supabase.functions.invoke("zapi-admin", {
+          body: { action: "configure_webhooks", unidade_id: params.unidadeId },
+        });
+        return { webhooksConfigured: !webhookError && webhookResult?.ok, webhookError: webhookError?.message || webhookResult?.error };
+      }
+      return { webhooksConfigured: true };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["admin-whatsapp-configs"] });
-      toast.success("Configuração salva com sucesso!");
+      if (result?.webhooksConfigured === false) {
+        toast.warning(`Configuração salva, mas os webhooks precisam de atenção: ${result.webhookError || "não configurados"}`);
+      } else {
+        toast.success("Configuração salva e webhooks sincronizados!");
+      }
       setConfigDialogOpen(false);
     },
     onError: (err: any) => toast.error("Erro ao salvar: " + err.message),
@@ -226,6 +237,12 @@ export default function AdminWhatsAppConfig() {
           .eq("id", config.id);
 
         return { status: newStatus, display: result.display_phone_number };
+      } else if (config.provedor === "zapi") {
+        const { data: result, error } = await supabase.functions.invoke("zapi-admin", {
+          body: { action: "status", unidade_id: unidadeId },
+        });
+        if (error || !result?.ok) throw new Error(error?.message || result?.error || "Falha ao consultar Z-API");
+        return { status: result.connected ? "conectado" as StatusConexao : "desconectado" as StatusConexao, display: result.phone };
       } else {
         const url = `https://${PROJECT_ID}.supabase.co/functions/v1/evolution-proxy`;
         const res = await fetch(url, {

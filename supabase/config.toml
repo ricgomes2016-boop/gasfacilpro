@@ -21,6 +21,9 @@ verify_jwt = false
 [functions.zapi-webhook]
 verify_jwt = false
 
+[functions.zapi-admin]
+verify_jwt = true
+
 [functions.bina-webhook]
 verify_jwt = false
 

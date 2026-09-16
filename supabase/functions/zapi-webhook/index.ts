@@ -40,24 +40,117 @@ serve(async (req) => {
       new URL(req.url).searchParams.get("security_token") ||
       "";
 
-    // Skip own messages and non-messages
-    if (body.fromMe === true) return OK({ ok: true, skipped: "fromMe" });
+    const url = new URL(req.url);
+    const config = await resolveConfig(supabase, "zapi", url.searchParams.get("unidade_id"), body.instanceId || body.instance_id || null);
+    let finalConfig: BiaConfig;
+    if (config) {
+      finalConfig = config;
+    } else {
+      const envId = Deno.env.get("ZAPI_INSTANCE_ID");
+      const envToken = Deno.env.get("ZAPI_TOKEN");
+      if (!envId || !envToken) throw new Error("Z-API credentials not configured");
+      finalConfig = {
+        instanceId: envId, token: envToken,
+        securityToken: Deno.env.get("ZAPI_SECURITY_TOKEN") || null,
+        unidadeId: null, descontoEtapa1: 5, descontoEtapa2: 10,
+        precoMinimoP13: null, precoMinimoP20: null, provedor: "zapi",
+      };
+    }
+
+    if (finalConfig.securityToken && incomingToken !== finalConfig.securityToken) {
+      console.warn("Z-API webhook: missing or invalid security token");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (body.type === "ConnectedCallback" || body.type === "DisconnectedCallback") {
+      const connected = body.type === "ConnectedCallback";
+      await supabase.from("integracoes_whatsapp")
+        .update({ status_conexao: connected ? "conectado" : "desconectado" })
+        .eq("unidade_id", finalConfig.unidadeId)
+        .eq("provedor", "zapi");
+      await supabase.from("whatsapp_eventos").insert({
+        unidade_id: finalConfig.unidadeId,
+        event_type: connected ? "zapi_connected" : "zapi_disconnected",
+        event_data: { type: body.type, error: body.error || null, moment: body.momment || null },
+      });
+      return OK({ ok: true, connected });
+    }
+
+    // Webhooks de entrega/leitura usam o mesmo endpoint. Sem este tratamento,
+    // a caixa de entrada fica para sempre com apenas um check.
+    if (body.type === "DeliveryCallback" || body.type === "MessageStatusCallback") {
+      const rawIds = Array.isArray(body.ids) ? body.ids : [body.messageId, body.zaapId];
+      const ids = rawIds
+        .flatMap((value: unknown) => typeof value === "object" && value !== null ? Object.values(value as Record<string, unknown>) : [value])
+        .filter((value: unknown): value is string => typeof value === "string" && value.length > 0);
+      const rawStatus = String(body.error ? "FAILED" : body.status || (body.type === "DeliveryCallback" ? "SENT" : "SENT")).toUpperCase();
+      const status = rawStatus === "READ" || rawStatus === "READ_BY_ME" || rawStatus === "PLAYED"
+        ? "read"
+        : rawStatus === "RECEIVED" ? "delivered"
+        : rawStatus === "FAILED" || body.error ? "failed"
+        : "sent";
+      const eventAt = body.momment ? new Date(Number(body.momment)).toISOString() : new Date().toISOString();
+      if (ids.length) {
+        const patch: Record<string, unknown> = { status };
+        if (status === "sent") patch.sent_at = eventAt;
+        if (status === "delivered") patch.delivered_at = eventAt;
+        if (status === "read") patch.read_at = eventAt;
+        if (status === "failed") patch.error_message = String(body.error || "Falha informada pela Z-API");
+        await supabase.from("ai_mensagens").update(patch).in("wa_message_id", ids);
+      }
+      await supabase.from("whatsapp_eventos").insert({
+        unidade_id: finalConfig.unidadeId,
+        wa_message_id: ids[0] || body.messageId || body.zaapId || null,
+        contato_wa_id: body.phone || null,
+        event_type: `zapi_${status}`,
+        event_data: { type: body.type, status: rawStatus, ids, error: body.error || null },
+      });
+      return OK({ ok: true, updated: ids.length, status });
+    }
+
     const isAudio = body.type === "audio" || body.type === "ptt" || body.isAudio === true || !!body.audio || !!body.audioMessage;
     if (!isAudio && !(body.type === "ReceivedCallback" || body.isNewMsg === true || body.status === "RECEIVED")) return OK({ ok: true, skipped: "not_message" });
 
     const phone = body.phone || body.from || "";
     let messageText = body.text?.message || body.body || body.text || "";
     const senderName = body.senderName || body.chatName || "";
+    const inboundMedia = body.photo?.imageUrl || body.image?.imageUrl
+      ? { media_url: body.photo?.imageUrl || body.image?.imageUrl, media_type: "image", mime_type: body.photo?.mimeType || body.image?.mimeType || "image/jpeg", filename: body.photo?.caption || "imagem" }
+      : body.video?.videoUrl
+      ? { media_url: body.video.videoUrl, media_type: "video", mime_type: body.video.mimeType || "video/mp4", filename: body.video.fileName || "video" }
+      : body.document?.documentUrl
+      ? { media_url: body.document.documentUrl, media_type: "document", mime_type: body.document.mimeType || "application/octet-stream", filename: body.document.fileName || body.document.title || "documento" }
+      : null;
+    if (!messageText && inboundMedia) {
+      messageText = inboundMedia.media_type === "image" ? "[Imagem]" : inboundMedia.media_type === "video" ? "[Vídeo]" : `[Documento: ${inboundMedia.filename}]`;
+    }
     // Robust audio URL extraction for Z-API various payload formats
     const audioUrl = body.audio?.audioUrl || body.audio?.url || body.audioMessage?.url || body.audioMessage?.audioUrl || body.mediaUrl || (typeof body.audio === "string" ? body.audio : null) || null;
     if (isAudio) console.log("Audio detected:", JSON.stringify({ type: body.type, hasAudio: !!body.audio, hasAudioMessage: !!body.audioMessage, audioUrl: audioUrl?.substring(0, 80) }));
     if (body.isGroup === true || !phone) return OK({ ok: true, skipped: "invalid" });
 
+    // Sincroniza mensagens enviadas pelo celular/WhatsApp Web para que o ERP
+    // represente a conversa completa, como no WhatsApp Business.
+    if (body.fromMe === true) {
+      if (!messageText) return OK({ ok: true, skipped: "fromMe_empty" });
+      const normalizedPhone = normalizePhone(phone);
+      const ownConversationId = await generateUUIDFromString(`whatsapp_${normalizedPhone}`);
+      const ownMessageId = String(body.messageId || `${normalizedPhone}_${body.momment || Date.now()}_from_me`);
+      if (await isDuplicate(supabase, ownConversationId, ownMessageId)) return OK({ ok: true, skipped: "duplicate_fromMe" });
+      await upsertConversation(supabase, ownConversationId, `WhatsApp: ${senderName || normalizedPhone}`, normalizedPhone, finalConfig.unidadeId);
+      await saveMessage(supabase, ownConversationId, "human", messageText, {
+        source: "zapi-webhook", message_id: ownMessageId, from_me: true, moment: body.momment ?? null, ...(inboundMedia || {}),
+      });
+      return OK({ ok: true, synced: "fromMe" });
+    }
+
     // Handle audio: transcribe voice note to text
     if (isAudio || (audioUrl && typeof audioUrl === "string" && !messageText)) {
       // Need config first for audio download
-      const url0 = new URL(req.url);
-      const cfg0 = await resolveConfig(supabase, "zapi", url0.searchParams.get("unidade_id"), body.instanceId || body.instance_id || null);
+      const cfg0 = finalConfig;
       if (cfg0 && audioUrl) {
         const audio = await downloadAudio(cfg0, audioUrl);
         if (audio) {
@@ -79,36 +172,6 @@ serve(async (req) => {
     }
 
     if (!messageText) return OK({ ok: true, skipped: "empty" });
-
-    // Resolve config
-    const url = new URL(req.url);
-    const config = await resolveConfig(supabase, "zapi", url.searchParams.get("unidade_id"), body.instanceId || body.instance_id || null);
-
-    // Fallback to env secrets (legacy)
-    let finalConfig: BiaConfig;
-    if (config) {
-      finalConfig = config;
-    } else {
-      const envId = Deno.env.get("ZAPI_INSTANCE_ID");
-      const envToken = Deno.env.get("ZAPI_TOKEN");
-      if (!envId || !envToken) throw new Error("Z-API credentials not configured");
-      finalConfig = {
-        instanceId: envId, token: envToken,
-        securityToken: Deno.env.get("ZAPI_SECURITY_TOKEN") || null,
-        unidadeId: null, descontoEtapa1: 5, descontoEtapa2: 10,
-        precoMinimoP13: null, precoMinimoP20: null, provedor: "zapi",
-      };
-    }
-
-    // Some Z-API deliveries arrive without the client token. Keep accepting tokenless
-    // legitimate callbacks, but reject requests that explicitly send a wrong token.
-    if (finalConfig.securityToken && incomingToken && incomingToken !== finalConfig.securityToken) {
-      console.warn("Z-API webhook: invalid security token");
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     // ===== MODO ENTREGADOR: se o telefone bate com um entregador ativo da
     // unidade da instância, desvia para o handler de lançamento de pedidos
@@ -162,6 +225,7 @@ serve(async (req) => {
       source: "zapi-webhook", message_id: messageKey,
       raw_message_id: body.messageId ?? null, moment: body.momment ?? null,
       tipo_contato: contact.tipo, contato_id: contact.id || null,
+      ...(inboundMedia || {}),
     });
 
     // Hard block: off-hours → fixed message, no AI

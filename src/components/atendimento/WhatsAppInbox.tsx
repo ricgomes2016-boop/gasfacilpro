@@ -130,6 +130,8 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     status: string | null;
   } | null>(null);
   const [profileSyncStatus, setProfileSyncStatus] = useState<"idle" | "syncing" | "offline">("idle");
+  const [zapiHealth, setZapiHealth] = useState<{ connected: boolean; webhooks?: Record<string, boolean> } | null>(null);
+  const [checkingConnection, setCheckingConnection] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -197,6 +199,30 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     })();
     return () => { cancelled = true; };
   }, [unidadeAtual?.id]);
+
+  const checkZapiConnection = async () => {
+    if (!unidadeAtual?.id || (unitIntegration?.provedor || "").toLowerCase() !== "zapi") return;
+    setCheckingConnection(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zapi-admin", {
+        body: { action: "status", unidade_id: unidadeAtual.id },
+      });
+      if (!error && data?.ok) setZapiHealth({ connected: !!data.connected, webhooks: data.webhooks });
+      else setZapiHealth({ connected: false });
+    } catch {
+      setZapiHealth({ connected: false });
+    } finally {
+      setCheckingConnection(false);
+    }
+  };
+
+  useEffect(() => {
+    setZapiHealth(null);
+    void checkZapiConnection();
+    // A integração já faz parte das dependências; o status só precisa ser
+    // reconsultado quando a unidade/provedor mudar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unidadeAtual?.id, unitIntegration?.provedor]);
 
   useEffect(() => {
     const fetchConversas = async () => {
@@ -711,9 +737,10 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     if (p === "zapi") return "Z-API";
     return unitIntegration.provedor.toUpperCase();
   })();
-  const isWhatsAppConnected = Boolean(
-    unitIntegration?.ativo && (unitIntegration.numero || unitIntegration.status === "conectado")
-  );
+  const isWhatsAppConnected = zapiHealth
+    ? zapiHealth.connected
+    : Boolean(unitIntegration?.ativo && unitIntegration.status === "conectado");
+  const webhooksComplete = !zapiHealth?.webhooks || Object.values(zapiHealth.webhooks).every(Boolean);
 
   // Quick replies (apenas inserem texto, não enviam)
   const quickReplies = [
@@ -775,6 +802,9 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                     {unitIntegration?.numero && (
                       <span className="text-[11px] text-[#667781] truncate">{unitIntegration.numero}</span>
                     )}
+                    {!webhooksComplete && (
+                      <span className="text-[10.5px] font-semibold text-[#b54708]">Webhooks incompletos</span>
+                    )}
                   </>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold px-1.5 py-0.5 rounded-md bg-[#fef0c7] text-[#b54708] border border-[#fdb022]/40">
@@ -784,6 +814,17 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                 )}
               </div>
             </div>
+            {(unitIntegration?.provedor || "").toLowerCase() === "zapi" && (
+              <button
+                type="button"
+                onClick={() => void checkZapiConnection()}
+                disabled={checkingConnection}
+                title="Atualizar status real da Z-API"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#dfe5e7] bg-white text-[#54656f] hover:bg-[#f5f6f6] disabled:opacity-50"
+              >
+                <Zap className={cn("h-4 w-4", checkingConnection && "animate-pulse text-[#00a884]")} />
+              </button>
+            )}
             <button
               onClick={() => setNovaOpen(true)}
               title="Nova conversa"
