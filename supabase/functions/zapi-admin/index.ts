@@ -21,18 +21,22 @@ serve(async (req) => {
     if (!unidade_id) return json(400, { ok: false, error: "unidade_id é obrigatório" });
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data: profile } = auth.userId
-      ? await supabase.from("profiles").select("empresa_id").eq("user_id", auth.userId).maybeSingle()
-      : { data: null };
-    const { data: unit } = await supabase.from("unidades").select("id, empresa_id").eq("id", unidade_id).maybeSingle();
-    if (!unit || (!auth.isServiceRole && profile?.empresa_id !== unit.empresa_id)) {
+    const [{ data: profile }, { data: unit }, { data: roles }] = await Promise.all([
+      auth.userId
+        ? supabase.from("profiles").select("empresa_id").eq("user_id", auth.userId).maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabase.from("unidades").select("id, empresa_id").eq("id", unidade_id).maybeSingle(),
+      auth.userId
+        ? supabase.from("user_roles").select("role").eq("user_id", auth.userId)
+        : Promise.resolve({ data: [] }),
+    ]);
+    const roleNames = (roles || []).map((row: any) => row.role);
+    const isSuperAdmin = roleNames.includes("super_admin");
+
+    if (!unit || (!auth.isServiceRole && !isSuperAdmin && profile?.empresa_id !== unit.empresa_id)) {
       return json(403, { ok: false, error: "Unidade não autorizada" });
     }
-
-    const { data: roles } = auth.userId
-      ? await supabase.from("user_roles").select("role").eq("user_id", auth.userId)
-      : { data: [] };
-    if (!auth.isServiceRole && !(roles || []).some((r: any) => ["super_admin", "admin", "gestor"].includes(r.role))) {
+    if (!auth.isServiceRole && !roleNames.some((role: string) => ["super_admin", "admin", "gestor"].includes(role))) {
       return json(403, { ok: false, error: "Sem permissão para administrar a integração" });
     }
 
