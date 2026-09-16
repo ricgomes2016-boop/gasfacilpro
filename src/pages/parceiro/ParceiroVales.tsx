@@ -221,6 +221,7 @@ export default function ParceiroVales() {
             parceiroNome: qrVale.consumidor_nome || undefined,
             produtoNome: qrVale.produto_nome,
             descricao: qrVale.descricao,
+            numeroEmpenho: qrVale.numero_empenho,
           }}
         />
       )}

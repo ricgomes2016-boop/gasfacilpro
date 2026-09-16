@@ -49,6 +49,7 @@ interface CupomVale {
   parceiroTelefone: string | null;
   parceiroTipo: string;
   produtoNome: string | null;
+  numeroEmpenho: string | null;
   clienteNome: string | null;
   descricao: string;
   dataEmissao: string;
@@ -66,6 +67,7 @@ function gerarCuponsDoLote(
   produtoNome: string | null,
   clienteNome: string | null,
   descricao: string,
+  numeroEmpenho: string | null,
 ): CupomVale[] {
   if (!parceiro) return [];
   return previewVales.map(v => ({
@@ -77,6 +79,7 @@ function gerarCuponsDoLote(
     produtoNome,
     clienteNome,
     descricao,
+    numeroEmpenho,
     dataEmissao: format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR }),
   }));
 }
@@ -136,6 +139,7 @@ function CupomPrint({ cupons, empresa, onClose }: { cupons: CupomVale[]; empresa
             ${c.parceiroTelefone ? `<div class="row"><span class="label">Tel:</span><span>${esc(c.parceiroTelefone)}</span></div>` : ""}
             <div class="row"><span class="label">Tipo:</span><span>${esc(c.parceiroTipo)}</span></div>
             ${c.produtoNome ? `<div class="row"><span class="label">Produto:</span><span>${esc(c.produtoNome)}</span></div>` : ""}
+            ${c.numeroEmpenho ? `<div class="row"><span class="label">Empenho:</span><span>${esc(c.numeroEmpenho)}</span></div>` : ""}
             ${c.clienteNome ? `<div class="row"><span class="label">Cliente:</span><span>${esc(c.clienteNome)}</span></div>` : ""}
           </div>
           <div class="footer">
@@ -235,6 +239,7 @@ function CupomPrint({ cupons, empresa, onClose }: { cupons: CupomVale[]; empresa
             <div className="text-[11px] text-left border-t border-dashed pt-2 space-y-0.5">
               <div><strong>Parceiro:</strong> {previewCupom.parceiroNome}</div>
               {previewCupom.produtoNome && <div><strong>Produto:</strong> {previewCupom.produtoNome}</div>}
+              {previewCupom.numeroEmpenho && <div><strong>Empenho:</strong> {previewCupom.numeroEmpenho}</div>}
               {previewCupom.clienteNome && <div><strong>Cliente:</strong> {previewCupom.clienteNome}</div>}
             </div>
             <div className="text-[10px] text-muted-foreground mt-2">
@@ -300,7 +305,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
     observacao: "", descricao: "VALE GÁS", clienteId: "", produtoId: "",
     dataVencimentoConta: defaultVencConta(),
     numeroInicialCustom: "", numeroFinalCustom: "",
-    numeroManual: "",
+    numeroManual: "", numeroEmpenho: "",
   });
 
   const { data: clientes = [] } = useQuery({
@@ -389,6 +394,10 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
     const qtdEfetiva = getQuantidadeEfetiva();
     const numInicial = getNumeroInicial();
     if (!formData.parceiroId || qtdEfetiva <= 0) { toast.error("Preencha todos os campos obrigatórios"); return; }
+    if (parceiro?.tipo === "empenho" && !formData.numeroEmpenho.trim()) {
+      toast.error("Informe o número do empenho");
+      return;
+    }
     if (!validarNumeracaoExterna()) return;
 
     try {
@@ -404,6 +413,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
         clienteNome: clienteSelecionado?.nome || undefined,
         produtoId: formData.produtoId || undefined,
         produtoNome: produtoSelecionado?.nome || undefined,
+        numeroEmpenho: parceiro?.tipo === "empenho" ? formData.numeroEmpenho.trim() : undefined,
         gerarContaReceber: false, // título é criado abaixo, sempre
         unidadeId: unidadeAtual?.id || null,
       });
@@ -431,6 +441,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
         produtoSelecionado?.nome || null,
         clienteSelecionado?.nome || null,
         formData.descricao || "VALE GÁS",
+        parceiro?.tipo === "empenho" ? formData.numeroEmpenho.trim() : null,
       );
       setCuponsGerados(cupons);
 
@@ -442,7 +453,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
         parceiroId: "", quantidade: "", valorUnitario: "105", dataVencimento: "",
         observacao: "", descricao: "VALE GÁS", clienteId: "", produtoId: "",
         dataVencimentoConta: defaultVencConta(),
-        numeroInicialCustom: "", numeroFinalCustom: "", numeroManual: "",
+        numeroInicialCustom: "", numeroFinalCustom: "", numeroManual: "", numeroEmpenho: "",
       });
     } catch (err: any) {
       toast.error(err.message || "Erro ao emitir");
@@ -468,10 +479,17 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
     const loteParceiro = parceiros.find(p => p.id === lote.parceiro_id);
     if (!loteParceiro) { toast.error("Parceiro não encontrado"); return; }
     const { data, error } = await (supabase as any).from("vale_gas")
-      .select("numero, codigo, valor").eq("lote_id", lote.id).order("numero");
+      .select("numero, codigo, valor, numero_empenho").eq("lote_id", lote.id).order("numero");
     if (error || !data?.length) { toast.error("Não foi possível carregar os códigos originais deste lote."); return; }
     const valesDoLote = data.map((vale: any) => ({ numero: vale.numero, codigo: vale.codigo, valor: Number(vale.valor) }));
-    const cupons = gerarCuponsDoLote(valesDoLote, loteParceiro, lote.produto_nome, lote.cliente_nome, lote.descricao || "VALE GÁS");
+    const cupons = gerarCuponsDoLote(
+      valesDoLote,
+      loteParceiro,
+      lote.produto_nome,
+      lote.cliente_nome,
+      lote.descricao || "VALE GÁS",
+      lote.numero_empenho || data[0]?.numero_empenho || null,
+    );
     setCuponsGerados(cupons);
     setCupomDialogOpen(true);
   };
@@ -558,7 +576,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                 </div>
                 <div className="space-y-2">
                   <Label>Parceiro *</Label>
-                  <Select value={formData.parceiroId} onValueChange={v => setFormData(p => ({ ...p, parceiroId: v }))}>
+                  <Select value={formData.parceiroId} onValueChange={v => setFormData(p => ({ ...p, parceiroId: v, numeroEmpenho: "" }))}>
                     <SelectTrigger><SelectValue placeholder="Selecione o parceiro" /></SelectTrigger>
                     <SelectContent>
                       {parceiros.filter(p => p.ativo).map(p => (
@@ -572,6 +590,20 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                     <p className="font-medium">{parceiro.nome}</p>
                     <p className="text-muted-foreground">Tipo: {parceiro.tipo === "prepago" ? "Pré-pago" : parceiro.tipo === "empenho" ? "Empenho" : "Consignado"} | CNPJ: {parceiro.cnpj || "N/A"}</p>
                     {parceiro.telefone && <p className="text-muted-foreground">Tel: {parceiro.telefone}</p>}
+                  </div>
+                )}
+                {parceiro?.tipo === "empenho" && (
+                  <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-3">
+                    <Label htmlFor="numero-empenho" className="font-semibold">Número do empenho *</Label>
+                    <Input
+                      id="numero-empenho"
+                      value={formData.numeroEmpenho}
+                      onChange={e => setFormData(p => ({ ...p, numeroEmpenho: e.target.value }))}
+                      placeholder="Ex: 7082/2026"
+                      autoComplete="off"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">Este número será gravado e impresso em todos os vales deste lote.</p>
                   </div>
                 )}
                 <div className="space-y-2">

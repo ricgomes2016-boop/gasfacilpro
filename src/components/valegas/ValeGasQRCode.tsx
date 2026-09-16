@@ -21,6 +21,7 @@ interface ValeGasQRCodeProps {
     parceiroNome?: string;
     produtoNome?: string | null;
     descricao?: string | null;
+    numeroEmpenho?: string | null;
   };
   empresa?: { nome: string; telefone?: string | null; endereco?: string | null };
 }
@@ -95,6 +96,7 @@ export function ValeGasQRCode({ open, onClose, vale, empresa: empresaProp }: Val
             <div class="codigo">${escapeHtml(vale.codigo)}</div>
             ${vale.parceiroNome ? `<div class="parceiro">${escapeHtml(vale.parceiroNome)}</div>` : ""}
             ${vale.produtoNome ? `<div class="parceiro">Produto: ${escapeHtml(vale.produtoNome)}</div>` : ""}
+            ${vale.numeroEmpenho ? `<div class="parceiro"><strong>Empenho:</strong> ${escapeHtml(vale.numeroEmpenho)}</div>` : ""}
             <div class="instrucao">
               Apresente este QR Code ao entregador para validar este vale.
             </div>
@@ -153,6 +155,7 @@ export function ValeGasQRCode({ open, onClose, vale, empresa: empresaProp }: Val
                 <p className="text-sm text-muted-foreground">{vale.parceiroNome}</p>
               )}
               {vale.produtoNome && <p className="text-sm text-muted-foreground">Produto: {vale.produtoNome}</p>}
+              {vale.numeroEmpenho && <p className="text-sm font-semibold text-foreground">Empenho: {vale.numeroEmpenho}</p>}
             </div>
           </div>
 

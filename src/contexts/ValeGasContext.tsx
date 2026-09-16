@@ -36,6 +36,7 @@ export interface ValeGas {
   cliente_nome: string | null;
   produto_id: string | null;
   produto_nome: string | null;
+  numero_empenho: string | null;
   consumidor_nome: string | null;
   consumidor_endereco: string | null;
   consumidor_telefone: string | null;
@@ -60,6 +61,7 @@ export interface LoteVales {
   cliente_nome: string | null;
   produto_id: string | null;
   produto_nome: string | null;
+  numero_empenho: string | null;
   data_vencimento_pagamento: string | null;
   status_pagamento: string;
   valor_pago: number;
@@ -90,7 +92,7 @@ interface ValeGasContextType {
   isLoading: boolean;
   addParceiro: (parceiro: { nome: string; cnpj: string; telefone: string; email: string; endereco: string; tipo: TipoParceiro; ativo: boolean; latitude?: number | null; longitude?: number | null; unidade_id?: string | null }) => Promise<void>;
   updateParceiro: (id: string, data: Partial<Parceiro>) => Promise<void>;
-  emitirLote: (data: { parceiroId: string; quantidade: number; valorUnitario: number; numeroInicial?: number; dataVencimento?: Date; observacao?: string; descricao?: string; clienteId?: string; clienteNome?: string; produtoId?: string; produtoNome?: string; gerarContaReceber?: boolean; unidadeId?: string | null }) => Promise<LoteVales>;
+  emitirLote: (data: { parceiroId: string; quantidade: number; valorUnitario: number; numeroInicial?: number; dataVencimento?: Date; observacao?: string; descricao?: string; clienteId?: string; clienteNome?: string; produtoId?: string; produtoNome?: string; numeroEmpenho?: string; gerarContaReceber?: boolean; unidadeId?: string | null }) => Promise<LoteVales>;
   cancelarLote: (loteId: string) => Promise<void>;
   registrarPagamentoLote: (loteId: string, valor: number) => Promise<void>;
   registrarVendaConsumidor: (valeId: string, consumidor: { nome: string; endereco: string; telefone: string }) => Promise<void>;
@@ -187,7 +189,7 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
   };
 
   // Emitir lote
-  const emitirLote = async (data: { parceiroId: string; quantidade: number; valorUnitario: number; numeroInicial?: number; dataVencimento?: Date; observacao?: string; descricao?: string; clienteId?: string; clienteNome?: string; produtoId?: string; produtoNome?: string; gerarContaReceber?: boolean; unidadeId?: string | null }): Promise<LoteVales> => {
+  const emitirLote = async (data: { parceiroId: string; quantidade: number; valorUnitario: number; numeroInicial?: number; dataVencimento?: Date; observacao?: string; descricao?: string; clienteId?: string; clienteNome?: string; produtoId?: string; produtoNome?: string; numeroEmpenho?: string; gerarContaReceber?: boolean; unidadeId?: string | null }): Promise<LoteVales> => {
     // Fetch the real max number from the DB to avoid race conditions
     let numeroInicial = data.numeroInicial;
     if (!numeroInicial) {
@@ -226,6 +228,7 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
       cliente_nome: data.clienteNome || null,
       produto_id: data.produtoId || null,
       produto_nome: data.produtoNome || null,
+      numero_empenho: data.numeroEmpenho?.trim() || null,
       data_vencimento_pagamento: data.dataVencimento ? data.dataVencimento.toISOString().split("T")[0] : null,
       observacao: data.observacao || null,
       gerar_conta_receber: data.gerarContaReceber || false,
@@ -249,6 +252,7 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
         cliente_nome: data.clienteNome || null,
         produto_id: data.produtoId || null,
         produto_nome: data.produtoNome || null,
+        numero_empenho: data.numeroEmpenho?.trim() || null,
         unidade_id: data.unidadeId || null,
       });
     }

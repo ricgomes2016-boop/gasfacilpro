@@ -40,7 +40,7 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
   const [vendaDialogOpen, setVendaDialogOpen] = useState(false);
   const [utilizacaoDialogOpen, setUtilizacaoDialogOpen] = useState(false);
   const [qrCodeDialogOpen, setQrCodeDialogOpen] = useState(false);
-  const [qrCodeVale, setQrCodeVale] = useState<{ numero: number; codigo: string; valor: number; parceiroNome?: string; produtoNome?: string | null; descricao?: string | null } | null>(null);
+  const [qrCodeVale, setQrCodeVale] = useState<{ numero: number; codigo: string; valor: number; parceiroNome?: string; produtoNome?: string | null; descricao?: string | null; numeroEmpenho?: string | null } | null>(null);
   
   const [consumidorData, setConsumidorData] = useState({ nome: "", endereco: "", telefone: "" });
 
@@ -364,7 +364,7 @@ export default function ValeGasControle({ embedded }: { embedded?: boolean } = {
                         <TableCell>
                           <div className="flex gap-1">
                             <Button size="sm" variant="ghost" onClick={() => {
-                              setQrCodeVale({ numero: vale.numero, codigo: vale.codigo, valor: Number(vale.valor), parceiroNome: parceiro?.nome, produtoNome: vale.produto_nome, descricao: vale.descricao });
+                              setQrCodeVale({ numero: vale.numero, codigo: vale.codigo, valor: Number(vale.valor), parceiroNome: parceiro?.nome, produtoNome: vale.produto_nome, descricao: vale.descricao, numeroEmpenho: vale.numero_empenho });
                               setQrCodeDialogOpen(true);
                             }}><QrCode className="h-4 w-4" /></Button>
                             {vale.status === "disponivel" && (

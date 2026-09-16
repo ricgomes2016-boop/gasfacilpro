@@ -21,6 +21,7 @@ export interface ValeGasParceiro {
   consumidor_cpf: string | null;
   consumidor_telefone: string | null;
   produto_nome: string | null;
+  numero_empenho: string | null;
   data_utilizacao: string | null;
   created_at: string;
 }
@@ -47,7 +48,7 @@ export function useParceiroDados() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vale_gas")
-        .select("id, numero, codigo, valor, status, descricao, consumidor_nome, consumidor_cpf, consumidor_telefone, produto_nome, data_utilizacao, created_at")
+        .select("id, numero, codigo, valor, status, descricao, consumidor_nome, consumidor_cpf, consumidor_telefone, produto_nome, numero_empenho, data_utilizacao, created_at")
         .eq("parceiro_id", parceiro!.id)
         .order("numero", { ascending: true });
       if (error) throw error;
