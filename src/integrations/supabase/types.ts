@@ -11508,7 +11508,6 @@ export type Database = {
           id: string
           lote_id: string
           numero: number
-          numero_empenho: string | null
           parceiro_id: string
           produto_id: string | null
           produto_nome: string | null
@@ -11537,7 +11536,6 @@ export type Database = {
           id?: string
           lote_id: string
           numero: number
-          numero_empenho?: string | null
           parceiro_id: string
           produto_id?: string | null
           produto_nome?: string | null
@@ -11566,7 +11564,6 @@ export type Database = {
           id?: string
           lote_id?: string
           numero?: number
-          numero_empenho?: string | null
           parceiro_id?: string
           produto_id?: string | null
           produto_nome?: string | null
@@ -11767,7 +11764,6 @@ export type Database = {
           gerar_conta_receber: boolean | null
           id: string
           numero_final: number
-          numero_empenho: string | null
           numero_inicial: number
           observacao: string | null
           parceiro_id: string
@@ -11791,7 +11787,6 @@ export type Database = {
           gerar_conta_receber?: boolean | null
           id?: string
           numero_final: number
-          numero_empenho?: string | null
           numero_inicial: number
           observacao?: string | null
           parceiro_id: string
@@ -11815,7 +11810,6 @@ export type Database = {
           gerar_conta_receber?: boolean | null
           id?: string
           numero_final?: number
-          numero_empenho?: string | null
           numero_inicial?: number
           observacao?: string | null
           parceiro_id?: string
