@@ -39,9 +39,13 @@ serve(async (req) => {
     if (action === "save_config") {
       const instanceId = String(body.instance_id || "").trim();
       const instanceToken = String(body.instance_token || "").trim();
-      const clientToken = String(body.client_token || "").trim();
+      const suppliedClientToken = String(body.client_token || "").trim();
+
+      const { data: existing } = await supabase.from("integracoes_whatsapp")
+        .select("id, security_token").eq("unidade_id", unidade_id).maybeSingle();
+      const clientToken = suppliedClientToken || existing?.security_token || "";
       if (!instanceId || !instanceToken || !clientToken) {
-        return json(400, { ok: false, error: "ID da instância, token da instância e Client-Token são obrigatórios" });
+        return json(400, { ok: false, error: "ID da instância, token da instância e Client-Token são obrigatórios. Se já havia integração, o Client-Token anterior é preservado automaticamente." });
       }
 
       const config = {
@@ -62,8 +66,6 @@ serve(async (req) => {
         updated_at: new Date().toISOString(),
       };
 
-      const { data: existing } = await supabase.from("integracoes_whatsapp")
-        .select("id").eq("unidade_id", unidade_id).maybeSingle();
       const saveResult = existing?.id
         ? await supabase.from("integracoes_whatsapp").update(config).eq("id", existing.id)
         : await supabase.from("integracoes_whatsapp").insert(config);

@@ -1039,7 +1039,7 @@ export default function AdminWhatsAppConfig() {
                       placeholder="Token de segurança da conta Z-API"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Usado somente no backend para autenticar chamadas e webhooks.
+                      Usado somente no backend. Deixe em branco para preservar o token já cadastrado.
                     </p>
                   </div>
                 )}
