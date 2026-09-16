@@ -50,7 +50,6 @@ serve(async (req) => {
 
       const config = {
         unidade_id,
-        empresa_id: unit.empresa_id,
         provedor: "zapi",
         provedor_tipo: "zapi",
         instance_id: instanceId,
