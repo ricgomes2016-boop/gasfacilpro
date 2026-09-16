@@ -11766,8 +11766,8 @@ export type Database = {
           descricao: string | null
           gerar_conta_receber: boolean | null
           id: string
-          numero_final: number
           numero_empenho: string | null
+          numero_final: number
           numero_inicial: number
           observacao: string | null
           parceiro_id: string
@@ -11790,8 +11790,8 @@ export type Database = {
           descricao?: string | null
           gerar_conta_receber?: boolean | null
           id?: string
-          numero_final: number
           numero_empenho?: string | null
+          numero_final: number
           numero_inicial: number
           observacao?: string | null
           parceiro_id: string
@@ -11814,8 +11814,8 @@ export type Database = {
           descricao?: string | null
           gerar_conta_receber?: boolean | null
           id?: string
-          numero_final?: number
           numero_empenho?: string | null
+          numero_final?: number
           numero_inicial?: number
           observacao?: string | null
           parceiro_id?: string
