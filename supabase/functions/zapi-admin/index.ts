@@ -16,7 +16,8 @@ serve(async (req) => {
   if (!auth.ok) return auth.response;
 
   try {
-    const { action = "status", unidade_id } = await req.json();
+    const body = await req.json();
+    const { action = "status", unidade_id } = body;
     if (!unidade_id) return json(400, { ok: false, error: "unidade_id é obrigatório" });
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -35,6 +36,40 @@ serve(async (req) => {
       return json(403, { ok: false, error: "Sem permissão para administrar a integração" });
     }
 
+    if (action === "save_config") {
+      const instanceId = String(body.instance_id || "").trim();
+      const instanceToken = String(body.instance_token || "").trim();
+      const clientToken = String(body.client_token || "").trim();
+      if (!instanceId || !instanceToken || !clientToken) {
+        return json(400, { ok: false, error: "ID da instância, token da instância e Client-Token são obrigatórios" });
+      }
+
+      const config = {
+        unidade_id,
+        empresa_id: unit.empresa_id,
+        provedor: "zapi",
+        provedor_tipo: "zapi",
+        instance_id: instanceId,
+        instancia_nome: instanceId,
+        token: instanceToken,
+        instancia_token: instanceToken,
+        security_token: clientToken,
+        base_url: "https://api.z-api.io",
+        instancia_url: "https://api.z-api.io",
+        numero_telefone: String(body.numero_telefone || "").trim() || null,
+        nome_bot: String(body.nome_bot || "BIA").trim() || "BIA",
+        ativo: true,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: existing } = await supabase.from("integracoes_whatsapp")
+        .select("id").eq("unidade_id", unidade_id).maybeSingle();
+      const saveResult = existing?.id
+        ? await supabase.from("integracoes_whatsapp").update(config).eq("id", existing.id)
+        : await supabase.from("integracoes_whatsapp").insert(config);
+      if (saveResult.error) throw saveResult.error;
+    }
+
     const { data: cfg } = await supabase.from("integracoes_whatsapp")
       .select("id, instance_id, token, security_token, ativo, status_conexao, numero_telefone")
       .eq("unidade_id", unidade_id).eq("provedor", "zapi").eq("ativo", true).maybeSingle();
@@ -46,7 +81,7 @@ serve(async (req) => {
     const meResponse = await fetch(`${base}/me`, { headers });
     const me = await meResponse.json().catch(() => ({}));
 
-    if (action === "configure_webhooks") {
+    if (action === "configure_webhooks" || action === "save_config") {
       if (!cfg.security_token) return json(400, { ok: false, error: "Cadastre o Client-Token antes de configurar webhooks seguros" });
       const functionBase = `${Deno.env.get("SUPABASE_URL")}/functions/v1/zapi-webhook`;
       const callback = `${functionBase}?unidade_id=${encodeURIComponent(unidade_id)}&security_token=${encodeURIComponent(cfg.security_token)}`;

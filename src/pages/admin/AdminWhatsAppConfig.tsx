@@ -298,6 +298,7 @@ export default function AdminWhatsAppConfig() {
       meta_waba_id: config?.meta_waba_id || "",
       meta_access_token: config?.meta_access_token || "",
       meta_app_id: config?.meta_app_id || "",
+      security_token: config?.security_token || "",
       nome_bot: config?.nome_bot || "BIA",
     });
     setConfigDialogOpen(true);
@@ -305,6 +306,21 @@ export default function AdminWhatsAppConfig() {
 
   const handleSave = () => {
     if (!selectedUnidade) return;
+    if (formProvedor === "zapi") {
+      saveMutation.mutate({
+        unidadeId: selectedUnidade.id,
+        data: {
+          provedor: "zapi",
+          action: "save_config",
+          instance_id: formFields.instancia_nome,
+          instance_token: formFields.instancia_token,
+          client_token: formFields.security_token,
+          numero_telefone: formFields.numero_telefone,
+          nome_bot: formFields.nome_bot || "BIA",
+        },
+      });
+      return;
+    }
     const data: Record<string, any> = {
       provedor_tipo: formProvedor,
       provedor: formProvedor,
@@ -426,7 +442,14 @@ export default function AdminWhatsAppConfig() {
 
               if (selectedUnidade) {
                 const existing = getConfigForUnidade(selectedUnidade.id);
-                if (existing) {
+      if (params.data.provedor === "zapi" && params.data.action === "save_config") {
+        const { data: result, error } = await supabase.functions.invoke("zapi-admin", {
+          body: { ...params.data, unidade_id: params.unidadeId },
+        });
+        if (error || !result?.ok) throw new Error(error?.message || result?.error || "Falha ao configurar Z-API");
+        return { webhooksConfigured: true };
+      }
+      if (existing) {
                   await supabase
                     .from("integracoes_whatsapp")
                     .update({
@@ -982,7 +1005,7 @@ export default function AdminWhatsAppConfig() {
                 <p className="text-sm font-medium text-muted-foreground">Credenciais da Instância</p>
 
                 <div className="space-y-2">
-                  <Label>Nome da Instância</Label>
+                  <Label>{formProvedor === "zapi" ? "ID da Instância" : "Nome da Instância"}</Label>
                   <Input
                     value={formFields.instancia_nome || ""}
                     onChange={(e) =>
@@ -1004,6 +1027,23 @@ export default function AdminWhatsAppConfig() {
                   />
                 </div>
 
+                {formProvedor === "zapi" && (
+                  <div className="space-y-2">
+                    <Label>Client-Token (segurança da conta)</Label>
+                    <Input
+                      type="password"
+                      value={formFields.security_token || ""}
+                      onChange={(e) =>
+                        setFormFields((f) => ({ ...f, security_token: e.target.value }))
+                      }
+                      placeholder="Token de segurança da conta Z-API"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Usado somente no backend para autenticar chamadas e webhooks.
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>URL Base da API</Label>
                   <Input
@@ -1011,7 +1051,8 @@ export default function AdminWhatsAppConfig() {
                     onChange={(e) =>
                       setFormFields((f) => ({ ...f, instancia_url: e.target.value }))
                     }
-                    placeholder="https://api.evolution.com.br"
+                    placeholder={formProvedor === "zapi" ? "https://api.z-api.io" : "https://api.evolution.com.br"}
+                    disabled={formProvedor === "zapi"}
                   />
                 </div>
               </>
