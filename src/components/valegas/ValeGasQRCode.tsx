@@ -9,6 +9,7 @@ import {
 import { Printer, Download, X } from "lucide-react";
 import { useRef } from "react";
 import html2canvas from "html2canvas";
+import { obterApresentacaoVale } from "@/lib/vales/apresentacaoVale";
 
 interface ValeGasQRCodeProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface ValeGasQRCodeProps {
     valor: number;
     parceiroNome?: string;
     produtoNome?: string | null;
+    descricao?: string | null;
   };
   empresa?: { nome: string; telefone?: string | null; endereco?: string | null };
 }
@@ -26,6 +28,7 @@ interface ValeGasQRCodeProps {
 export function ValeGasQRCode({ open, onClose, vale, empresa: empresaProp }: ValeGasQRCodeProps) {
   const empresa = empresaProp ?? { nome: "", telefone: null, endereco: null };
   const printRef = useRef<HTMLDivElement>(null);
+  const apresentacao = obterApresentacaoVale(vale.produtoNome, vale.descricao);
 
 
   const escapeHtml = (str: string | number): string => {
@@ -48,7 +51,7 @@ export function ValeGasQRCode({ open, onClose, vale, empresa: empresaProp }: Val
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Vale Gás Nº ${vale.numero}</title>
+          <title>${escapeHtml(apresentacao.titulo)} Nº ${vale.numero}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
@@ -84,7 +87,7 @@ export function ValeGasQRCode({ open, onClose, vale, empresa: empresaProp }: Val
           <div class="vale-card">
             <div class="empresa">${escapeHtml(empresa.nome)}</div>
             <div class="contato">${empresa.telefone ? `Telefone: ${escapeHtml(empresa.telefone)}<br>` : ""}${empresa.endereco ? escapeHtml(empresa.endereco) : ""}</div>
-            <div class="logo">VALE GÁS</div>
+            <div class="logo">${escapeHtml(apresentacao.titulo)}</div>
             <div class="qr-container">
               ${printContent.querySelector("svg")?.outerHTML || ""}
             </div>
@@ -93,7 +96,7 @@ export function ValeGasQRCode({ open, onClose, vale, empresa: empresaProp }: Val
             ${vale.parceiroNome ? `<div class="parceiro">${escapeHtml(vale.parceiroNome)}</div>` : ""}
             ${vale.produtoNome ? `<div class="parceiro">Produto: ${escapeHtml(vale.produtoNome)}</div>` : ""}
             <div class="instrucao">
-              Apresente este QR Code ao entregador para validar seu vale gás.
+              Apresente este QR Code ao entregador para validar este vale.
             </div>
           </div>
           <script>
@@ -109,7 +112,7 @@ export function ValeGasQRCode({ open, onClose, vale, empresa: empresaProp }: Val
     if (!printRef.current) return;
     const canvas = await html2canvas(printRef.current, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
     const link = document.createElement("a");
-    link.download = `vale-gas-${vale.numero}.png`;
+    link.download = `${apresentacao.nomeArquivo}-${vale.numero}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
   };
@@ -132,7 +135,7 @@ export function ValeGasQRCode({ open, onClose, vale, empresa: empresaProp }: Val
                 {empresa.telefone && <>Telefone: {empresa.telefone}<br /></>}
                 {empresa.endereco}
               </p>
-              <p className="mt-2 text-lg font-extrabold text-foreground">VALE GÁS</p>
+              <p className="mt-2 text-lg font-extrabold text-foreground">{apresentacao.titulo}</p>
             </div>
             
             <QRCodeSVG
@@ -154,7 +157,7 @@ export function ValeGasQRCode({ open, onClose, vale, empresa: empresaProp }: Val
           </div>
 
           <p className="text-xs text-muted-foreground text-center mt-4 max-w-[250px]">
-            Apresente este QR Code ao entregador para validar seu vale gás.
+            Apresente este QR Code ao entregador para validar este vale.
           </p>
 
           <div className="flex gap-2 mt-6 w-full">

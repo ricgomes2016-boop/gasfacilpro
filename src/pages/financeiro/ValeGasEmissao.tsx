@@ -36,6 +36,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { esc } from "@/lib/escapeHtml";
+import { obterApresentacaoVale } from "@/lib/vales/apresentacaoVale";
 
 type ModoEmissao = "lote" | "automatico" | "manual";
 
@@ -99,6 +100,10 @@ function CupomPrint({ cupons, empresa, onClose }: { cupons: CupomVale[]; empresa
     const firstSel = cupons.find(c => selecionados.has(c.numero));
     return firstSel ?? cupons[0];
   }, [cupons, selecionados]);
+  const previewApresentacao = useMemo(
+    () => obterApresentacaoVale(previewCupom?.produtoNome, previewCupom?.descricao),
+    [previewCupom],
+  );
 
   const openPrintView = (autoPrint: boolean) => {
     const cuponsParaImprimir = cupons.filter(c => selecionados.has(c.numero));
@@ -111,6 +116,34 @@ function CupomPrint({ cupons, empresa, onClose }: { cupons: CupomVale[]; empresa
       const num = Number(svg.getAttribute("data-vale-numero"));
       qrMap.set(num, svg.outerHTML);
     });
+    const cuponsHtml = cuponsParaImprimir.map(c => {
+      const apresentacao = obterApresentacaoVale(c.produtoNome, c.descricao);
+      return `
+        <div class="cupom">
+          <div class="empresa">${esc(empresa.nome)}</div>
+          <div class="empresa-contato">
+            ${empresa.telefone ? `<div>Telefone: ${esc(empresa.telefone)}</div>` : ""}
+            ${empresa.endereco ? `<div>${esc(empresa.endereco)}</div>` : ""}
+          </div>
+          <div class="logo">${esc(apresentacao.titulo)}</div>
+          ${apresentacao.subtitulo ? `<div class="desc">${esc(apresentacao.subtitulo)}</div>` : ""}
+          <div class="qr">${qrMap.get(c.numero) ?? ""}</div>
+          <div class="numero">Nº ${esc(c.numero)}</div>
+          <div class="codigo">${esc(c.codigo)}</div>
+          <div class="info">
+            <div class="row"><span class="label">Parceiro:</span><span>${esc(c.parceiroNome)}</span></div>
+            ${c.parceiroCnpj ? `<div class="row"><span class="label">CNPJ:</span><span>${esc(c.parceiroCnpj)}</span></div>` : ""}
+            ${c.parceiroTelefone ? `<div class="row"><span class="label">Tel:</span><span>${esc(c.parceiroTelefone)}</span></div>` : ""}
+            <div class="row"><span class="label">Tipo:</span><span>${esc(c.parceiroTipo)}</span></div>
+            ${c.produtoNome ? `<div class="row"><span class="label">Produto:</span><span>${esc(c.produtoNome)}</span></div>` : ""}
+            ${c.clienteNome ? `<div class="row"><span class="label">Cliente:</span><span>${esc(c.clienteNome)}</span></div>` : ""}
+          </div>
+          <div class="footer">
+            Emitido em ${esc(c.dataEmissao)}<br/>
+            Apresente este QR Code ao entregador para validar este vale.
+          </div>
+        </div>`;
+    }).join("");
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) { toast.error("Popup bloqueado. Permita popups."); return; }
@@ -155,32 +188,7 @@ function CupomPrint({ cupons, empresa, onClose }: { cupons: CupomVale[]; empresa
       </style></head><body>
       ${autoPrint ? "" : '<div class="print-actions"><button type="button" onclick="window.print()">Imprimir vales</button></div>'}
       <main class="print-sheet">
-      ${cuponsParaImprimir.map(c => `
-        <div class="cupom">
-          <div class="empresa">${esc(empresa.nome)}</div>
-          <div class="empresa-contato">
-            ${empresa.telefone ? `<div>Telefone: ${esc(empresa.telefone)}</div>` : ""}
-            ${empresa.endereco ? `<div>${esc(empresa.endereco)}</div>` : ""}
-          </div>
-          <div class="logo">VALE GÁS</div>
-          <div class="desc">${esc(c.descricao)}</div>
-          <div class="qr">${qrMap.get(c.numero) ?? ""}</div>
-          <div class="numero">Nº ${esc(c.numero)}</div>
-          <div class="codigo">${esc(c.codigo)}</div>
-          <div class="info">
-            <div class="row"><span class="label">Parceiro:</span><span>${esc(c.parceiroNome)}</span></div>
-            ${c.parceiroCnpj ? `<div class="row"><span class="label">CNPJ:</span><span>${esc(c.parceiroCnpj)}</span></div>` : ""}
-            ${c.parceiroTelefone ? `<div class="row"><span class="label">Tel:</span><span>${esc(c.parceiroTelefone)}</span></div>` : ""}
-            <div class="row"><span class="label">Tipo:</span><span>${esc(c.parceiroTipo)}</span></div>
-            ${c.produtoNome ? `<div class="row"><span class="label">Produto:</span><span>${esc(c.produtoNome)}</span></div>` : ""}
-            ${c.clienteNome ? `<div class="row"><span class="label">Cliente:</span><span>${esc(c.clienteNome)}</span></div>` : ""}
-          </div>
-          <div class="footer">
-            Emitido em ${esc(c.dataEmissao)}<br/>
-            Apresente este QR Code ao entregador para validar seu vale gás.
-          </div>
-        </div>
-      `).join("")}</main>
+      ${cuponsHtml}</main>
       ${autoPrint ? '<script>window.onload = function() { window.print(); setTimeout(function(){ window.close(); }, 300); }</script>' : ""}
       </body></html>
     `);
@@ -211,10 +219,14 @@ function CupomPrint({ cupons, empresa, onClose }: { cupons: CupomVale[]; empresa
               {empresa.telefone && <div>Telefone: {empresa.telefone}</div>}
               {empresa.endereco && <div>{empresa.endereco}</div>}
             </div>
-            <div className="text-lg font-extrabold">VALE GÁS</div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-              {previewCupom.descricao}
+            <div className="text-lg font-extrabold">
+              {previewApresentacao.titulo}
             </div>
+            {previewApresentacao.subtitulo && (
+              <div className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                {previewApresentacao.subtitulo}
+              </div>
+            )}
             <div className="flex justify-center my-2">
               <QRCodeSVG value={previewCupom.codigo} size={160} level="H" includeMargin />
             </div>
