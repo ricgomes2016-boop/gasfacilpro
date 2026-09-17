@@ -376,7 +376,14 @@ serve(async (req) => {
           // Keep the conversation scoped before the message insert so realtime
           // notification triggers can resolve empresa/unidade on the first message.
           await upsertConversation(supabase, conversationId, `${cliente.nome || senderName || normalized}`, normalized, config?.unidadeId || null);
-          await saveMessage(supabase, conversationId, "user", messageText, { source: "meta-webhook", message_id: messageId, tipo_contato: contact.tipo, contato_id: contact.id || null });
+          await supabase.from("ai_conversas").update({
+            whatsapp_canal: "oficial_forte_gas",
+            whatsapp_numero_origem: value?.metadata?.display_phone_number || "5543984328383",
+          }).eq("id", conversationId);
+          const inboundSaved = await saveMessage(supabase, conversationId, "user", messageText, { source: "meta-webhook", message_id: messageId, whatsapp_canal: "oficial_forte_gas", tipo_contato: contact.tipo, contato_id: contact.id || null });
+          if (inboundSaved?.id) {
+            await supabase.from("ai_mensagens").update({ whatsapp_canal: "oficial_forte_gas" }).eq("id", inboundSaved.id);
+          }
 
           // Hard block: off-hours → fixed message, no AI
           if (bh.isOffHours) {

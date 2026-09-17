@@ -221,12 +221,20 @@ serve(async (req) => {
     // Keep the conversation scoped before the message insert so realtime
     // notification triggers can resolve empresa/unidade on the first message.
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized, finalConfig?.unidadeId || null);
-    await saveMessage(supabase, conversationId, "user", messageText, {
+    await supabase.from("ai_conversas").update({
+      whatsapp_canal: "zapi_forte_gas",
+      whatsapp_numero_origem: "5543988709696",
+    }).eq("id", conversationId);
+    const inboundSaved = await saveMessage(supabase, conversationId, "user", messageText, {
       source: "zapi-webhook", message_id: messageKey,
+      whatsapp_canal: "zapi_forte_gas",
       raw_message_id: body.messageId ?? null, moment: body.momment ?? null,
       tipo_contato: contact.tipo, contato_id: contact.id || null,
       ...(inboundMedia || {}),
     });
+    if (inboundSaved?.id) {
+      await supabase.from("ai_mensagens").update({ whatsapp_canal: "zapi_forte_gas" }).eq("id", inboundSaved.id);
+    }
 
     // Hard block: off-hours → fixed message, no AI
     if (bh.isOffHours) {

@@ -41,6 +41,8 @@ interface Conversa {
   last_message?: string | null;
   last_role?: string | null;
   last_message_at?: string | null;
+  whatsapp_canal?: string | null;
+  whatsapp_numero_origem?: string | null;
 }
 
 interface MensagemMetadata {
@@ -110,6 +112,20 @@ function formatChatDateTime(value?: string | null) {
   return dateKey === todayKey
     ? `Hoje ${format(date, "HH:mm")}`
     : format(date, "dd/MM/yyyy HH:mm");
+}
+
+function ChannelBadge({ channel }: { channel?: string | null }) {
+  const official = channel === "oficial_forte_gas";
+  return (
+    <span className={cn(
+      "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide flex-shrink-0",
+      official
+        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+        : "border-violet-200 bg-violet-50 text-violet-700"
+    )}>
+      {official ? "Oficial" : "Z-API"}
+    </span>
+  );
 }
 
 export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
@@ -234,7 +250,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
       let query = supabase
         .from("ai_conversas")
-        .select("id, titulo, updated_at, telefone, foto_url, foto_atualizada_em, unidade_id, empresa_id")
+        .select("id, titulo, updated_at, telefone, foto_url, foto_atualizada_em, unidade_id, empresa_id, whatsapp_canal, whatsapp_numero_origem")
         .is("deleted_at", null)
         .order("updated_at", { ascending: false })
         .limit(200);
@@ -274,7 +290,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       if (missingIds.length) {
         const { data: missingConvs } = await supabase
           .from("ai_conversas")
-          .select("id, titulo, updated_at, telefone, foto_url, foto_atualizada_em, unidade_id, empresa_id")
+          .select("id, titulo, updated_at, telefone, foto_url, foto_atualizada_em, unidade_id, empresa_id, whatsapp_canal, whatsapp_numero_origem")
           .is("deleted_at", null)
           .in("id", missingIds);
 
@@ -418,7 +434,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     try {
       const conv = conversas.find((c) => c.id === selectedId);
       const { data, error } = await supabase.functions.invoke("whatsapp-send", {
-        body: { conversa_id: selectedId, content: newMsg.trim(), unidade_id: conv?.unidade_id || unidadeAtual?.id || null },
+        body: { conversa_id: selectedId, content: newMsg.trim(), unidade_id: conv?.unidade_id || unidadeAtual?.id || null, whatsapp_canal: conv?.whatsapp_canal || null },
       });
       if (error) {
         toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
@@ -469,6 +485,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
         body: {
           conversa_id: selectedId,
           unidade_id: conv.unidade_id || unidadeAtual?.id || null,
+          whatsapp_canal: conv.whatsapp_canal || null,
           media_url: mediaUrl,
           media_type: mediaType,
           mime_type: mimeType,
@@ -966,6 +983,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                       )}>
                         {c.titulo}
                       </p>
+                      <ChannelBadge channel={c.whatsapp_canal} />
                       <span className={cn(
                         "text-[11px] flex-shrink-0 tabular-nums",
                         unread > 0 ? "text-[#00a884] font-semibold" : "text-[#667781]"
@@ -1106,6 +1124,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                     <p className="text-[#111b21] text-[15px] font-semibold truncate">
                       {selectedConversa?.titulo}
                     </p>
+                    <ChannelBadge channel={selectedConversa?.whatsapp_canal} />
                     {selectedId && (clienteByConv[selectedId] ? (
                       <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-px rounded-full bg-[#0288d1]/15 text-[#0277bd] border border-[#0288d1]/25 flex-shrink-0">
                         <User className="h-2.5 w-2.5" />

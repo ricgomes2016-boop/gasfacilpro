@@ -40,7 +40,7 @@ serve(async (req) => {
       }
     }
 
-    const { conversa_id, content, media_url, media_type, mime_type, filename, unidade_id } = await req.json();
+    const { conversa_id, content, media_url, media_type, mime_type, filename, unidade_id, whatsapp_canal } = await req.json();
     const requestedUnidadeId = typeof unidade_id === "string" && unidade_id.trim() ? unidade_id.trim() : null;
 
     if (!conversa_id) return json(200, { ok: false, error: "conversa_id é obrigatório" });
@@ -49,7 +49,7 @@ serve(async (req) => {
     // 1. Conversa
     const { data: conversa } = await supabase
       .from("ai_conversas")
-      .select("id, telefone, unidade_id, empresa_id, status, deleted_at")
+      .select("id, telefone, unidade_id, empresa_id, status, deleted_at, whatsapp_canal")
       .eq("id", conversa_id)
       .maybeSingle();
 
@@ -93,13 +93,23 @@ serve(async (req) => {
     }
 
     // 2. Config: prioriza o provedor configurado na unidade
-    const provedores = ["meta", "evolution", "zapi", "uazapi", "gateway"] as const;
+    const canal = whatsapp_canal || conversa.whatsapp_canal || null;
+    const provedores = canal === "oficial_forte_gas"
+      ? (["meta"] as const)
+      : canal === "zapi_forte_gas"
+        ? (["zapi"] as const)
+        : (["meta", "evolution", "zapi", "uazapi", "gateway"] as const);
     let config: any = null;
     for (const p of provedores) {
       config = await resolveConfig(supabase, p, effectiveUnidade, null);
       if (config) break;
     }
-    if (!config) return json(200, { ok: false, error: "Nenhuma integração WhatsApp ativa para a unidade" });
+    if (!config) return json(200, {
+      ok: false,
+      error: canal === "oficial_forte_gas"
+        ? "O canal oficial ainda não foi vinculado ao emissor Meta desta unidade"
+        : "Nenhuma integração WhatsApp ativa para a unidade",
+    });
 
     // 3. Janela 24h (apenas Meta) — apenas texto livre sofre restrição
     if (config.provedor === "meta" && !media_url) {
@@ -123,7 +133,7 @@ serve(async (req) => {
     }
 
     // 4. Insere mensagem PENDING antes do envio
-    const metadata: Record<string, any> = { source: "whatsapp-send", provedor: config.provedor };
+    const metadata: Record<string, any> = { source: "whatsapp-send", provedor: config.provedor, whatsapp_canal: canal };
     if (media_url) {
       metadata.media_url = media_url;
       metadata.media_type = media_type;
@@ -139,6 +149,7 @@ serve(async (req) => {
         role: "human",
         content: messageContent,
         metadata,
+        whatsapp_canal: canal,
         status: "pending",
       })
       .select("id")
@@ -183,6 +194,7 @@ serve(async (req) => {
         wa_message_id: result.waMessageId || null,
         contato_wa_id: conversa.telefone,
         event_type: media_url ? "media_sent" : "text_sent",
+        whatsapp_canal: canal,
         event_data: { provedor: config.provedor, media_type: media_type || null },
       });
       return json(200, { ok: true, provedor: config.provedor, wa_message_id: result.waMessageId || null });
@@ -198,6 +210,7 @@ serve(async (req) => {
         mensagem_id: inserted.id,
         contato_wa_id: conversa.telefone,
         event_type: "send_failed",
+        whatsapp_canal: canal,
         event_data: { provedor: config.provedor, error: result.error || null },
       });
       return json(200, { ok: false, provedor: config.provedor, error: result.error || "send_failed" });
