@@ -143,7 +143,7 @@ serve(async (req) => {
     }
 
     // 4. Insere mensagem PENDING antes do envio
-    const metadata: Record<string, any> = { source: "whatsapp-send", provedor: config.provedor, whatsapp_canal: canal };
+    const metadata: Record<string, any> = { source: "whatsapp-send", provedor: provedorLabel, whatsapp_canal: canal };
     if (media_url) {
       metadata.media_url = media_url;
       metadata.media_type = media_type;
@@ -172,7 +172,14 @@ serve(async (req) => {
 
     // 5. Envia
     let result: { ok: boolean; waMessageId?: string; error?: string };
-    if (media_url && media_type) {
+    if (useLovableConnector) {
+      result = await sendViaLovableConnector(conversa.telefone, {
+        text: content?.trim() || undefined,
+        mediaUrl: media_url,
+        mediaType: media_type,
+        filename,
+      });
+    } else if (media_url && media_type) {
       result = await sendMedia(config, conversa.telefone, {
         mediaUrl: media_url,
         mediaType: media_type,
