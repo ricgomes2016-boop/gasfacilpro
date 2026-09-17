@@ -15,6 +15,13 @@
       "when": 1789685994918,
       "tag": "0001_whatsapp_portal_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789686057734,
+      "tag": "0002_role_check_despesas_plano_contas",
+      "breakpoints": true
     }
   ]
 }
