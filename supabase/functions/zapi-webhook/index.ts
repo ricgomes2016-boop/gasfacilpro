@@ -3,7 +3,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   createSupabase, resolveConfig, checkBusinessHours, normalizePhone,
   findCliente, getRecentOrders, getOrderStatus, getProducts,
-  buildSystemPrompt, buildNegotiationHint, generateUUIDFromString,
+  buildSystemPrompt, buildNegotiationHint,
+  getWhatsAppConversationId, formatBrazilianCurrencyInText,
   loadHistory, saveMessage, upsertConversation, isDuplicate,
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
@@ -21,6 +22,37 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 const OK = (data: any) => new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+async function saveAndSendAssistant(
+  supabase: any,
+  config: BiaConfig,
+  phone: string,
+  conversationId: string,
+  content: string,
+  metadata: Record<string, any> = {},
+) {
+  const formattedContent = formatBrazilianCurrencyInText(content);
+  const saved = await saveMessage(supabase, conversationId, "assistant", formattedContent, {
+    ...metadata,
+    whatsapp_canal: "zapi_forte_gas",
+  });
+  const result = await sendMessage(config, phone, formattedContent);
+  if (saved?.id) {
+    await supabase.from("ai_mensagens").update({
+      status: result.ok ? "sent" : "failed",
+      error_message: result.ok ? null : result.error || "whatsapp_send_failed",
+      ...(result.waMessageId ? { wa_message_id: result.waMessageId } : {}),
+      metadata: {
+        ...metadata,
+        whatsapp_canal: "zapi_forte_gas",
+        whatsapp_send_ok: result.ok,
+        whatsapp_provider: "zapi",
+        ...(result.waMessageId ? { wa_message_id: result.waMessageId } : {}),
+      },
+    }).eq("id", saved.id);
+  }
+  return result;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -137,12 +169,28 @@ serve(async (req) => {
     if (body.fromMe === true) {
       if (!messageText) return OK({ ok: true, skipped: "fromMe_empty" });
       const normalizedPhone = normalizePhone(phone);
-      const ownConversationId = await generateUUIDFromString(`whatsapp_${normalizedPhone}`);
+      const ownConversationId = await getWhatsAppConversationId(phone, "zapi_forte_gas");
       const ownMessageId = String(body.messageId || `${normalizedPhone}_${body.momment || Date.now()}_from_me`);
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      const { data: matchingOutbound } = await supabase.from("ai_mensagens")
+        .select("id")
+        .eq("conversa_id", ownConversationId)
+        .eq("role", "assistant")
+        .eq("content", formatBrazilianCurrencyInText(messageText))
+        .gte("created_at", twoMinutesAgo)
+        .limit(1);
+      if (matchingOutbound?.length) {
+        await supabase.from("ai_mensagens").update({
+          wa_message_id: ownMessageId,
+          status: "sent",
+        }).eq("id", matchingOutbound[0].id);
+        return OK({ ok: true, skipped: "assistant_echo" });
+      }
       if (await isDuplicate(supabase, ownConversationId, ownMessageId)) return OK({ ok: true, skipped: "duplicate_fromMe" });
       await upsertConversation(supabase, ownConversationId, `WhatsApp: ${senderName || normalizedPhone}`, normalizedPhone, finalConfig.unidadeId);
       await saveMessage(supabase, ownConversationId, "human", messageText, {
-        source: "zapi-webhook", message_id: ownMessageId, from_me: true, moment: body.momment ?? null, ...(inboundMedia || {}),
+        source: "zapi-webhook", message_id: ownMessageId, from_me: true, moment: body.momment ?? null,
+        whatsapp_canal: "zapi_forte_gas", ...(inboundMedia || {}),
       });
       return OK({ ok: true, synced: "fromMe" });
     }
@@ -189,7 +237,7 @@ serve(async (req) => {
     }
 
     const normalized = normalizePhone(phone);
-    const conversationId = await generateUUIDFromString(`whatsapp_${normalized}`);
+    const conversationId = await getWhatsAppConversationId(phone, "zapi_forte_gas");
     const messageKey = body.messageId ? String(body.messageId) : `${normalized}_${body.momment || ""}_${messageText.trim().toLowerCase()}`;
 
     // Dedup
@@ -239,8 +287,7 @@ serve(async (req) => {
     // Hard block: off-hours → fixed message, no AI
     if (bh.isOffHours) {
       const reply = getOffHoursMessage(cliente.nome, bh.horarioInfo);
-      await saveMessage(supabase, conversationId, "assistant", reply, { source: "zapi-webhook", off_hours: true });
-      await sendMessage(finalConfig, phone, reply);
+      await saveAndSendAssistant(supabase, finalConfig, phone, conversationId, reply, { source: "zapi-webhook", off_hours: true });
       return OK({ ok: true, skipped: "off_hours" });
     }
 
@@ -248,14 +295,12 @@ serve(async (req) => {
     const postOrderResult = await isPostOrderFollowUp(supabase, normalized, messageText);
     if (postOrderResult === "rating") {
       const reply = "Obrigado pela avaliação! ⭐ Sua opinião é muito importante para nós. Até a próxima! 😊";
-      await saveMessage(supabase, conversationId, "assistant", reply, { source: "zapi-webhook", rating_response: true });
-      await sendMessage(finalConfig, phone, reply);
+      await saveAndSendAssistant(supabase, finalConfig, phone, conversationId, reply, { source: "zapi-webhook", rating_response: true });
       return OK({ ok: true });
     }
     if (postOrderResult === true) {
       const reply = "Perfeito! Seu pedido já está confirmado ✅\nA entrega segue em andamento (prazo de 20 a 40 minutos).";
-      await saveMessage(supabase, conversationId, "assistant", reply, { source: "zapi-webhook", post_order_followup: true });
-      await sendMessage(finalConfig, phone, reply);
+      await saveAndSendAssistant(supabase, finalConfig, phone, conversationId, reply, { source: "zapi-webhook", post_order_followup: true });
       return OK({ ok: true, skipped: "post_order_followup" });
     }
 
@@ -282,7 +327,10 @@ serve(async (req) => {
       const fallback = e.message === "RATE_LIMIT"
         ? "Desculpe, estamos com muitas mensagens. Tente novamente! 😊"
         : "Desculpe, tive um problema técnico. Ligue para nós! 📞";
-      await sendMessage(finalConfig, phone, fallback);
+      await saveAndSendAssistant(supabase, finalConfig, phone, conversationId, fallback, {
+        source: "zapi-webhook",
+        ai_error: e?.message || "unknown",
+      });
       return OK({ ok: true, fallback: true });
     }
 
@@ -293,8 +341,6 @@ serve(async (req) => {
 
     // Strip internal tag before saving / sending
     reply = stripPedidoConfirmadoBlock(reply);
-
-    await saveMessage(supabase, conversationId, "assistant", reply);
 
     // Process cancellation tag
     { const cancelRes = await processCancelTagInReply(supabase, reply, cliente.id); reply = cancelRes.reply; }
@@ -338,14 +384,19 @@ serve(async (req) => {
       if (loc) {
         // Send text first, then location pin
         const cleanReplyLoc = reply.replace(/\[STATE\][\s\S]*?\[\/STATE\]/gi, "").trim();
-        await sendMessage(finalConfig, phone, cleanReplyLoc);
+        await saveAndSendAssistant(supabase, finalConfig, phone, conversationId, cleanReplyLoc, {
+          source: "zapi-webhook",
+          location_reply: true,
+        });
         await sendLocation(finalConfig, phone, loc.lat, loc.lng, loc.nome);
         return OK({ ok: true, reply: cleanReplyLoc.substring(0, 100), location_sent: true });
       }
     }
 
     const finalCleanReply = reply.replace(/\[STATE\][\s\S]*?\[\/STATE\]/gi, "").trim();
-    await sendMessage(finalConfig, phone, finalCleanReply);
+    await saveAndSendAssistant(supabase, finalConfig, phone, conversationId, finalCleanReply, {
+      source: "zapi-webhook",
+    });
 
     // Auto follow-up for negotiation — only if auto_followup_ativo is enabled
     if (bh.autoFollowupAtivo) {
@@ -399,8 +450,10 @@ serve(async (req) => {
         fu = lines.join("\n");
       }
 
-      await saveMessage(supabase, conversationId, "assistant", fu, { source: "zapi-webhook", auto_followup_for: messageKey });
-      await sendMessage(finalConfig, phone, fu);
+      await saveAndSendAssistant(supabase, finalConfig, phone, conversationId, fu, {
+        source: "zapi-webhook",
+        auto_followup_for: messageKey,
+      });
     }
     } // end auto_followup_ativo check
 

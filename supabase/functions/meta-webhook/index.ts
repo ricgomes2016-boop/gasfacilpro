@@ -3,7 +3,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   createSupabase, resolveConfig, checkBusinessHours, normalizePhone,
   findCliente, getRecentOrders, getOrderStatus, getProducts,
-  buildSystemPrompt, buildNegotiationHint, generateUUIDFromString,
+  buildSystemPrompt, buildNegotiationHint,
+  getWhatsAppConversationId, formatBrazilianCurrencyInText,
   loadHistory, saveMessage, upsertConversation, isDuplicate,
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
@@ -29,8 +30,12 @@ async function saveAndSendAssistant(
   content: string,
   metadata: Record<string, any> = {},
 ) {
-  const saved = await saveMessage(supabase, conversationId, "assistant", content, metadata);
-  const result = await sendMessage(config, phone, content);
+  const formattedContent = formatBrazilianCurrencyInText(content);
+  const saved = await saveMessage(supabase, conversationId, "assistant", formattedContent, {
+    ...metadata,
+    whatsapp_canal: "oficial_forte_gas",
+  });
+  const result = await sendMessage(config, phone, formattedContent);
   const deliveryMetadata = {
     ...metadata,
     whatsapp_send_ok: result.ok,
@@ -345,7 +350,7 @@ serve(async (req) => {
           if (!messageText) continue;
 
           const normalized = normalizePhone(phone);
-          const conversationId = await generateUUIDFromString(`whatsapp_${normalized}`);
+          const conversationId = await getWhatsAppConversationId(phone, "oficial_forte_gas");
 
           // Dedup
           if (await isDuplicate(supabase, conversationId, messageId)) continue;

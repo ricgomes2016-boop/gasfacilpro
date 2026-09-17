@@ -1163,6 +1163,27 @@ export async function generateUUIDFromString(input: string): Promise<string> {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-${(parseInt(hex[16], 16) & 0x3 | 0x8).toString(16)}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
+export type WhatsAppChannel = "oficial_forte_gas" | "zapi_forte_gas";
+
+/**
+ * Mantem o historico isolado por numero/canal. O mesmo cliente pode conversar
+ * com os dois WhatsApps sem que um webhook sobrescreva o provedor do outro.
+ */
+export async function getWhatsAppConversationId(
+  phone: string,
+  channel: WhatsAppChannel,
+): Promise<string> {
+  return generateUUIDFromString(`whatsapp_${channel}_${normalizePhone(phone)}`);
+}
+
+/** Normaliza valores monetarios produzidos pela IA para pt-BR. */
+export function formatBrazilianCurrencyInText(content: string): string {
+  return content.replace(/R\$\s*(\d{1,3}(?:\.\d{3})*|\d+)[.,](\d{2})\b/g, (_match, integer, cents) => {
+    const normalizedInteger = String(integer).replace(/\./g, "");
+    return `R$ ${Number(normalizedInteger).toLocaleString("pt-BR")},${cents}`;
+  });
+}
+
 // ========== CONVERSATION HISTORY ==========
 export async function loadHistory(supabase: any, conversationId: string) {
   // Only load messages from the last 2 hours to avoid stale context from old conversations
