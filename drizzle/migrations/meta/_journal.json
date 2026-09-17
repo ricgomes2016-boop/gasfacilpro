@@ -8,6 +8,13 @@
       "when": 1789670372397,
       "tag": "0000_whatsapp_multicanal_forte_gas",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789685994918,
+      "tag": "0001_whatsapp_portal_requests",
+      "breakpoints": true
     }
   ]
 }

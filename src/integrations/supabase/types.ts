@@ -12618,6 +12618,36 @@ export type Database = {
           },
         ]
       }
+      whatsapp_portal_requests: {
+        Row: {
+          action: string
+          created_at: string
+          expires_at: string
+          id: string
+          idempotency_key: string | null
+          nonce: string
+          response: Json | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          idempotency_key?: string | null
+          nonce: string
+          response?: Json | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          idempotency_key?: string | null
+          nonce?: string
+          response?: Json | null
+        }
+        Relationships: []
+      }
       whatsapp_test_envios: {
         Row: {
           created_at: string
