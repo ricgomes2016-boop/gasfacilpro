@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789670372397,
+      "tag": "0000_whatsapp_multicanal_forte_gas",
+      "breakpoints": true
+    }
+  ]
+}
