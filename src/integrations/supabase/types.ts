@@ -132,8 +132,6 @@ export type Database = {
           unidade_id: string | null
           updated_at: string
           user_id: string
-          whatsapp_canal: string | null
-          whatsapp_numero_origem: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -156,8 +154,6 @@ export type Database = {
           unidade_id?: string | null
           updated_at?: string
           user_id: string
-          whatsapp_canal?: string | null
-          whatsapp_numero_origem?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -180,8 +176,6 @@ export type Database = {
           unidade_id?: string | null
           updated_at?: string
           user_id?: string
-          whatsapp_canal?: string | null
-          whatsapp_numero_origem?: string | null
         }
         Relationships: []
       }
@@ -202,7 +196,6 @@ export type Database = {
           status: string | null
           unidade_id: string | null
           wa_message_id: string | null
-          whatsapp_canal: string | null
         }
         Insert: {
           content: string
@@ -220,7 +213,6 @@ export type Database = {
           status?: string | null
           unidade_id?: string | null
           wa_message_id?: string | null
-          whatsapp_canal?: string | null
         }
         Update: {
           content?: string
@@ -238,7 +230,6 @@ export type Database = {
           status?: string | null
           unidade_id?: string | null
           wa_message_id?: string | null
-          whatsapp_canal?: string | null
         }
         Relationships: [
           {
@@ -12454,7 +12445,6 @@ export type Database = {
           mensagem_id: string | null
           unidade_id: string | null
           wa_message_id: string | null
-          whatsapp_canal: string | null
         }
         Insert: {
           contato_wa_id?: string | null
@@ -12467,7 +12457,6 @@ export type Database = {
           mensagem_id?: string | null
           unidade_id?: string | null
           wa_message_id?: string | null
-          whatsapp_canal?: string | null
         }
         Update: {
           contato_wa_id?: string | null
@@ -12480,7 +12469,6 @@ export type Database = {
           mensagem_id?: string | null
           unidade_id?: string | null
           wa_message_id?: string | null
-          whatsapp_canal?: string | null
         }
         Relationships: [
           {
