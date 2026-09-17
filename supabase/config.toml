@@ -130,3 +130,6 @@ verify_jwt = false
 
 [functions.pagbank-connect-public-key]
 verify_jwt = false
+
+[functions.whatsapp-portal-api]
+verify_jwt = false
