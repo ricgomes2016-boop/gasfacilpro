@@ -212,9 +212,9 @@ serve(async (req) => {
         contato_wa_id: conversa.telefone,
         event_type: media_url ? "media_sent" : "text_sent",
         whatsapp_canal: canal,
-        event_data: { provedor: config.provedor, media_type: media_type || null },
+        event_data: { provedor: provedorLabel, media_type: media_type || null },
       });
-      return json(200, { ok: true, provedor: config.provedor, wa_message_id: result.waMessageId || null });
+      return json(200, { ok: true, provedor: provedorLabel, wa_message_id: result.waMessageId || null });
     } else {
       await supabase
         .from("ai_mensagens")
@@ -228,9 +228,9 @@ serve(async (req) => {
         contato_wa_id: conversa.telefone,
         event_type: "send_failed",
         whatsapp_canal: canal,
-        event_data: { provedor: config.provedor, error: result.error || null },
+        event_data: { provedor: provedorLabel, error: result.error || null },
       });
-      return json(200, { ok: false, provedor: config.provedor, error: result.error || "send_failed" });
+      return json(200, { ok: false, provedor: provedorLabel, error: result.error || "send_failed" });
     }
   } catch (error) {
     console.error("whatsapp-send error:", error);
