@@ -12,6 +12,61 @@ const corsHeaders = {
 const json = (status: number, body: any) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+// Envio pelo conector WhatsApp da Lovable (número oficial). Usado apenas no canal oficial_forte_gas.
+const WHATSAPP_GATEWAY_URL = "https://connector-gateway.lovable.dev/whatsapp";
+
+async function sendViaLovableConnector(
+  telefone: string,
+  opts: { text?: string; mediaUrl?: string; mediaType?: string; filename?: string },
+): Promise<{ ok: boolean; waMessageId?: string; error?: string }> {
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  const connectionKey = Deno.env.get("WHATSAPP_API_KEY");
+  if (!lovableKey || !connectionKey) return { ok: false, error: "Conector WhatsApp não configurado" };
+
+  const to = String(telefone).replace(/\D/g, "");
+  let payload: Record<string, unknown>;
+  if (opts.mediaUrl && opts.mediaType) {
+    const tipo = ["image", "video", "audio", "document"].includes(opts.mediaType) ? opts.mediaType : "document";
+    payload = {
+      messaging_product: "whatsapp",
+      to,
+      type: tipo,
+      [tipo]: {
+        link: opts.mediaUrl,
+        ...(tipo !== "audio" && opts.text ? { caption: opts.text } : {}),
+        ...(tipo === "document" && opts.filename ? { filename: opts.filename } : {}),
+      },
+    };
+  } else {
+    payload = { messaging_product: "whatsapp", to, type: "text", text: { body: opts.text || "" } };
+  }
+
+  try {
+    const resp = await fetch(`${WHATSAPP_GATEWAY_URL}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": connectionKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    const bodyText = await resp.text();
+    if (!resp.ok) {
+      console.error(`Conector WhatsApp falhou [${resp.status}]: ${bodyText}`);
+      return { ok: false, error: `WhatsApp oficial (${resp.status}): ${bodyText}` };
+    }
+    let waMessageId: string | undefined;
+    try {
+      waMessageId = JSON.parse(bodyText)?.messages?.[0]?.id;
+    } catch (_) { /* resposta sem JSON */ }
+    return { ok: true, waMessageId };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
