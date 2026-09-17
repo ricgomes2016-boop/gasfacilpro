@@ -94,25 +94,35 @@ serve(async (req) => {
 
     // 2. Config: prioriza o provedor configurado na unidade
     const canal = whatsapp_canal || conversa.whatsapp_canal || null;
-    const provedores = canal === "oficial_forte_gas"
-      ? (["meta"] as const)
-      : canal === "zapi_forte_gas"
-        ? (["zapi"] as const)
-        : (["meta", "evolution", "zapi", "uazapi", "gateway"] as const);
-    let config: any = null;
-    for (const p of provedores) {
-      config = await resolveConfig(supabase, p, effectiveUnidade, null);
-      if (config) break;
-    }
-    if (!config) return json(200, {
-      ok: false,
-      error: canal === "oficial_forte_gas"
-        ? "O canal oficial ainda não foi vinculado ao emissor Meta desta unidade"
-        : "Nenhuma integração WhatsApp ativa para a unidade",
-    });
 
-    // 3. Janela 24h (apenas Meta) — apenas texto livre sofre restrição
-    if (config.provedor === "meta" && !media_url) {
+    // Canal oficial (número oficial da Forte Gás) → conector WhatsApp da Lovable.
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const WHATSAPP_API_KEY = Deno.env.get("WHATSAPP_API_KEY");
+    const useLovableConnector =
+      canal === "oficial_forte_gas" && !!LOVABLE_API_KEY && !!WHATSAPP_API_KEY;
+
+    let config: any = null;
+    if (!useLovableConnector) {
+      const provedores = canal === "oficial_forte_gas"
+        ? (["meta"] as const)
+        : canal === "zapi_forte_gas"
+          ? (["zapi"] as const)
+          : (["meta", "evolution", "zapi", "uazapi", "gateway"] as const);
+      for (const p of provedores) {
+        config = await resolveConfig(supabase, p, effectiveUnidade, null);
+        if (config) break;
+      }
+      if (!config) return json(200, {
+        ok: false,
+        error: canal === "oficial_forte_gas"
+          ? "O canal oficial ainda não foi vinculado ao emissor Meta desta unidade"
+          : "Nenhuma integração WhatsApp ativa para a unidade",
+      });
+    }
+    const provedorLabel = useLovableConnector ? "lovable_whatsapp" : config.provedor;
+
+    // 3. Janela 24h (Meta/oficial) — apenas texto livre sofre restrição
+    if ((useLovableConnector || config?.provedor === "meta") && !media_url) {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data: lastInbound } = await supabase
         .from("ai_mensagens")
