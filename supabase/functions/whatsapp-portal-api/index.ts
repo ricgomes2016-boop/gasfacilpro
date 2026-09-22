@@ -17,7 +17,7 @@ import {
 } from "./security.ts";
 import { buscarIdempotente, registrarNonce, salvarIdempotente } from "./store.ts";
 
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 
 function json(body: unknown, status: number, cors: Record<string, string>) {
   return new Response(JSON.stringify(body), {
