@@ -84,8 +84,10 @@ export async function verificarAssinatura(
   if (new TextEncoder().encode(corpo).length > MAX_BODY_BYTES) {
     return { ok: false, motivo: "payload_excedido" };
   }
-  const ts = Number(timestamp);
-  if (!Number.isFinite(ts) || ts <= 0) return { ok: false, motivo: "timestamp_invalido" };
+  const tsBruto = Number(timestamp);
+  if (!Number.isFinite(tsBruto) || tsBruto <= 0) return { ok: false, motivo: "timestamp_invalido" };
+  // aceita epoch em segundos ou milissegundos
+  const ts = tsBruto < 1e12 ? tsBruto * 1000 : tsBruto;
   if (Math.abs(agora - ts) > janelaMs) return { ok: false, motivo: "timestamp_expirado" };
 
   const esperada = await assinar(segredo, String(timestamp), nonce, corpo);
