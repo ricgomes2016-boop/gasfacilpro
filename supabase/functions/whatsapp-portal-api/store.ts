@@ -22,7 +22,10 @@ export async function registrarNonce(
     action,
     expires_at: new Date(agora + TTL_MS).toISOString(),
   });
-  if (error) return false; // conflito de unicidade = replay
+  if (error?.code === "23505") return false; // conflito de unicidade = replay
+  if (error) {
+    throw new Error(`Falha ao registrar nonce: ${error.code ?? "db_error"}`);
+  }
   return true;
 }
 
