@@ -26,6 +26,7 @@ import { format, addDays, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
 import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
+import { ClienteAutocompleteInput } from "@/components/clientes/ClienteAutocompleteInput";
 
 export default function Comodatos() {
   const { unidadeAtual } = useUnidade();
@@ -57,17 +58,7 @@ export default function Comodatos() {
     },
   });
 
-  const { data: clientes = [] } = useQuery({
-    queryKey: ["comodatos-clientes", unidadeAtual?.id],
-    queryFn: async () => {
-      if (!unidadeAtual?.id) return [];
-      const { data: cuData } = await supabase.from("cliente_unidades").select("cliente_id").eq("unidade_id", unidadeAtual.id);
-      const ids = (cuData || []).map((cu: any) => cu.cliente_id);
-      if (ids.length === 0) return [];
-      const { data } = await supabase.from("clientes").select("id, nome").eq("ativo", true).in("id", ids).order("nome").limit(500);
-      return data || [];
-    },
-  });
+  const [clienteNome, setClienteNome] = useState("");
 
   const { data: produtos = [] } = useQuery({
     queryKey: ["comodatos-produtos", unidadeAtual?.id],
@@ -146,12 +137,17 @@ export default function Comodatos() {
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label>Cliente</Label>
-                    <Select value={form.cliente_id} onValueChange={(v) => setForm({ ...form, cliente_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
-                      <SelectContent>
-                        {clientes.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <ClienteAutocompleteInput
+                      value={clienteNome}
+                      placeholder="Digite nome, telefone ou endereço..."
+                      onChange={(nome, cliente) => {
+                        setClienteNome(nome);
+                        setForm((f) => ({ ...f, cliente_id: cliente?.id || "" }));
+                      }}
+                    />
+                    {clienteNome.trim().length >= 2 && !form.cliente_id && (
+                      <p className="text-xs text-muted-foreground">Selecione um cliente da lista.</p>
+                    )}
                   </div>
                   <div className="grid gap-2">
                     <Label>Vasilhame</Label>
