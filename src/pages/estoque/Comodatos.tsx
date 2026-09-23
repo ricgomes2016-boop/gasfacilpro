@@ -90,6 +90,7 @@ export default function Comodatos() {
       toast({ title: "Comodato registrado!" });
       setDialogOpen(false);
       setForm({ cliente_id: "", produto_id: "", quantidade: "1", deposito: "0", prazo_dias: "90", observacoes: "" });
+      setClienteNome("");
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
