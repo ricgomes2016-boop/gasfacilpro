@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { parseLocalDate } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -38,6 +38,20 @@ export default function Comodatos() {
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [devolucao, setDevolucao] = useState<{ id: string; pendente: number; nome: string } | null>(null);
   const [qtdDevolucao, setQtdDevolucao] = useState("1");
+  const [comprovante, setComprovante] = useState<{ url: string | null; nome: string; carregando: boolean; erro?: string } | null>(null);
+  const comprovanteUrl = useRef<string | null>(null);
+  const comprovanteRequest = useRef(0);
+
+  useEffect(() => () => {
+    if (comprovanteUrl.current) URL.revokeObjectURL(comprovanteUrl.current);
+  }, []);
+
+  const fecharComprovante = () => {
+    comprovanteRequest.current += 1;
+    if (comprovanteUrl.current) URL.revokeObjectURL(comprovanteUrl.current);
+    comprovanteUrl.current = null;
+    setComprovante(null);
+  };
 
   const [form, setForm] = useState({
     cliente_id: "",
@@ -155,16 +169,19 @@ export default function Comodatos() {
   };
 
   const imprimirComprovante = async (c: any) => {
+    fecharComprovante();
+    const request = comprovanteRequest.current;
+    const formal = c.modalidade !== "rapido";
+    const nome = `${formal ? "termo" : "comprovante"}-comodato-${c.id.slice(0, 8)}.pdf`;
+    setComprovante({ url: null, nome, carregando: true });
+    try {
     const pdf = new jsPDF();
     const empresa = (unidadeAtual as any)?.nome || "Empresa";
     const { data: cliente, error: clienteError } = await supabase.from("clientes")
       .select("nome, cpf, cnpj, endereco, numero, cidade, telefone")
-      .eq("id", c.cliente_id).single();
-    if (clienteError) {
-      toast({ title: "Não foi possível carregar os dados do cliente", description: clienteError.message, variant: "destructive" });
-      return;
-    }
-    const formal = c.modalidade !== "rapido";
+      .eq("id", c.cliente_id).maybeSingle();
+    if (request !== comprovanteRequest.current) return;
+    if (clienteError) console.warn("Comodato: dados adicionais do cliente indisponíveis", clienteError);
     const linhas = [
       `Cedente: ${empresa}  |  CNPJ: ${(unidadeAtual as any)?.cnpj || "a preencher"}`,
       `Cliente: ${c.clientes?.nome || cliente?.nome || "a preencher"}`,
@@ -197,7 +214,19 @@ export default function Comodatos() {
     y = Math.min(Math.max(y + 16, 160), 255);
     pdf.line(16, y, 90, y); pdf.line(116, y, 190, y);
     pdf.text("Cedente", 42, y + 6); pdf.text("Cliente / responsável", 136, y + 6);
-    pdf.save(`${formal ? "termo" : "comprovante"}-comodato-${c.id.slice(0, 8)}.pdf`);
+    const url = URL.createObjectURL(pdf.output("blob"));
+    if (request !== comprovanteRequest.current) {
+      URL.revokeObjectURL(url);
+      return;
+    }
+    comprovanteUrl.current = url;
+    setComprovante({ url, nome, carregando: false });
+    } catch (error) {
+      if (request !== comprovanteRequest.current) return;
+      const mensagem = error instanceof Error ? error.message : "Não foi possível gerar o PDF.";
+      setComprovante({ url: null, nome, carregando: false, erro: mensagem });
+      toast({ title: "Erro ao gerar comprovante", description: mensagem, variant: "destructive" });
+    }
   };
 
   const filtrados = comodatos.filter((c: any) => {
@@ -216,6 +245,21 @@ export default function Comodatos() {
     <MainLayout>
       <Header title="Comodatos" subtitle="Controle de vasilhames emprestados a clientes" />
       <div className="p-3 sm:p-6 space-y-6">
+        <Dialog open={!!comprovante} onOpenChange={(open) => { if (!open) fecharComprovante(); }}>
+          <DialogContent className="flex h-[90dvh] max-w-4xl flex-col overflow-hidden p-4 sm:p-6">
+            <DialogHeader><DialogTitle>Comprovante do comodato</DialogTitle></DialogHeader>
+            {comprovante?.carregando && <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">Preparando documento...</div>}
+            {comprovante?.erro && <div className="flex flex-1 items-center justify-center text-sm text-destructive">{comprovante.erro}</div>}
+            {comprovante?.url && <>
+              <iframe title="Prévia do comprovante de comodato" src={comprovante.url} className="min-h-0 w-full flex-1 rounded-lg border" />
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button variant="outline" onClick={fecharComprovante}>Fechar</Button>
+                <Button asChild><a href={comprovante.url} download={comprovante.nome}>Baixar PDF</a></Button>
+                <Button asChild variant="secondary"><a href={comprovante.url} target="_blank" rel="noopener noreferrer">Abrir para imprimir</a></Button>
+              </div>
+            </>}
+          </DialogContent>
+        </Dialog>
         <Dialog open={!!devolucao} onOpenChange={(open) => { if (!open) setDevolucao(null); }}>
           <DialogContent className="max-w-md">
             <DialogHeader><DialogTitle>Receber vasilhames</DialogTitle></DialogHeader>
