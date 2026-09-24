@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Package, Plus, Users, AlertTriangle, CheckCircle, Search, RotateCcw, FileText, Zap, Info, Printer, PenLine } from "lucide-react";
 import { criarPdfComodato } from "@/lib/comodatoPdf";
+import { agruparComodatos } from "@/lib/comodatoGroups";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
@@ -90,7 +91,9 @@ export default function Comodatos() {
       return (data || []) as any[];
     },
   });
-  const comodatoSelecionado = comodatos.find((c: any) => c.id === comodatoSelecionadoId);
+  const gruposComodatos = agruparComodatos(comodatos);
+  const grupoSelecionado = gruposComodatos.find((grupo: any) => grupo.registros.some((registro: any) => registro.id === comodatoSelecionadoId)) as any;
+  const comodatoSelecionado = grupoSelecionado?.registros.find((registro: any) => registro.id === comodatoSelecionadoId);
   const comodatoParaAssinar = comodatos.find((c: any) => c.id === assinaturaComodatoId);
 
   const { data: ultimaCompra, isLoading: carregandoUltimaCompra, isError: erroUltimaCompra } = useQuery({
@@ -354,9 +357,10 @@ export default function Comodatos() {
     }
   };
 
-  const filtrados = comodatos.filter((c: any) => {
-    const matchBusca = !filtro || c.clientes?.nome?.toLowerCase().includes(filtro.toLowerCase()) || c.produtos?.nome?.toLowerCase().includes(filtro.toLowerCase());
-    const matchStatus = filtroStatus === "todos" || c.status === filtroStatus;
+  const filtrados = gruposComodatos.filter((grupo: any) => {
+    const termo = filtro.toLowerCase();
+    const matchBusca = !termo || grupo.clientes?.nome?.toLowerCase().includes(termo) || grupo.produtos.some((nome: string) => nome.toLowerCase().includes(termo));
+    const matchStatus = filtroStatus === "todos" || grupo.status === filtroStatus;
     return matchBusca && matchStatus;
   });
 
@@ -373,32 +377,42 @@ export default function Comodatos() {
         <Dialog open={!!comodatoSelecionadoId} onOpenChange={(open) => { if (!open) setComodatoSelecionadoId(null); }}>
           <DialogContent className="max-h-[92dvh] max-w-xl overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Comodato de {comodatoSelecionado?.clientes?.nome || "cliente"}</DialogTitle>
-              <p className="text-sm text-muted-foreground">{comodatoSelecionado?.produtos?.nome || "Vasilhame"} · {comodatoSelecionado?.modalidade === "rapido" ? "Empréstimo rápido" : "Termo formal"}</p>
+              <DialogTitle>Comodatos de {grupoSelecionado?.clientes?.nome || "cliente"}</DialogTitle>
+              <p className="text-sm text-muted-foreground">{grupoSelecionado?.registros.length || 0} entrega(s) registrada(s) · {grupoSelecionado?.produtos.join(", ")}</p>
             </DialogHeader>
-            {comodatoSelecionado && <div className="space-y-4">
+            {grupoSelecionado && <div className="space-y-4">
               <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-xl border bg-muted/30 p-3"><p className="text-xs text-muted-foreground">Emprestados</p><p className="text-xl font-bold">{comodatoSelecionado.quantidade}</p></div>
-                <div className="rounded-xl border bg-muted/30 p-3"><p className="text-xs text-muted-foreground">Devolvidos</p><p className="text-xl font-bold">{Number(comodatoSelecionado.quantidade_devolvida || 0)}</p></div>
-                <div className="rounded-xl border bg-primary/5 p-3"><p className="text-xs text-muted-foreground">Pendentes</p><p className="text-xl font-bold text-primary">{Math.max(0, comodatoSelecionado.quantidade - Number(comodatoSelecionado.quantidade_devolvida || 0))}</p></div>
+                <div className="rounded-xl border bg-muted/30 p-3"><p className="text-xs text-muted-foreground">Emprestados</p><p className="text-xl font-bold">{grupoSelecionado.quantidade}</p></div>
+                <div className="rounded-xl border bg-muted/30 p-3"><p className="text-xs text-muted-foreground">Devolvidos</p><p className="text-xl font-bold">{grupoSelecionado.devolvidos}</p></div>
+                <div className="rounded-xl border bg-primary/5 p-3"><p className="text-xs text-muted-foreground">Pendentes</p><p className="text-xl font-bold text-primary">{grupoSelecionado.pendente}</p></div>
+              </div>
+              <div className="overflow-x-auto rounded-xl border">
+                <Table>
+                  <TableHeader><TableRow><TableHead>Produto</TableHead><TableHead className="text-center">Emprestado</TableHead><TableHead className="text-center">Devolvido</TableHead><TableHead className="text-center">Diferença</TableHead></TableRow></TableHeader>
+                  <TableBody>{grupoSelecionado.saldosPorProduto.map((saldo: any) => <TableRow key={saldo.id}><TableCell className="font-medium">{saldo.nome}</TableCell><TableCell className="text-center">{saldo.emprestados}</TableCell><TableCell className="text-center">{saldo.devolvidos}</TableCell><TableCell className="text-center font-semibold text-primary">{saldo.emprestados - saldo.devolvidos}</TableCell></TableRow>)}</TableBody>
+                </Table>
               </div>
               <div className="rounded-xl border p-4 text-sm space-y-2">
                 <div className="flex justify-between gap-3"><span className="text-muted-foreground">Última compra nesta unidade</span><strong>{carregandoUltimaCompra ? "Carregando..." : erroUltimaCompra ? "Não foi possível consultar" : ultimaCompra ? format(new Date(ultimaCompra.data_entrega || ultimaCompra.created_at), "dd/MM/yyyy") : "Nenhuma venda concluída"}</strong></div>
                 {ultimaCompra && <div className="flex justify-between gap-3"><span className="text-muted-foreground">Pedido</span><span>#{ultimaCompra.numero_sequencial || ultimaCompra.id.slice(0, 8)} · R$ {Number(ultimaCompra.valor_total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>}
-                <div className="flex justify-between gap-3"><span className="text-muted-foreground">Emprestado em</span><span>{format(parseLocalDate(comodatoSelecionado.data_emprestimo), "dd/MM/yyyy")}</span></div>
-                <div className="flex justify-between gap-3"><span className="text-muted-foreground">Devolver até</span><span>{comodatoSelecionado.prazo_devolucao ? format(parseLocalDate(comodatoSelecionado.prazo_devolucao), "dd/MM/yyyy") : "A combinar"}</span></div>
-                <div className="flex justify-between gap-3"><span className="text-muted-foreground">Reposição por unidade não devolvida</span><span>R$ {Number(comodatoSelecionado.deposito || 0).toFixed(2)}</span></div>
+                <div className="flex justify-between gap-3"><span className="text-muted-foreground">Primeiro empréstimo</span><span>{format(parseLocalDate(grupoSelecionado.registros[grupoSelecionado.registros.length - 1].data_emprestimo), "dd/MM/yyyy")}</span></div>
+                <div className="flex justify-between gap-3"><span className="text-muted-foreground">Prazo mais próximo</span><span>{grupoSelecionado.prazo_devolucao ? format(parseLocalDate(grupoSelecionado.prazo_devolucao), "dd/MM/yyyy") : "A combinar"}</span></div>
+                <div className="flex justify-between gap-3"><span className="text-muted-foreground">Custo de reposição em aberto</span><span>R$ {grupoSelecionado.reposicaoPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>
               </div>
-              <div className="rounded-xl border p-4 text-sm">
-                {comodatoSelecionado.assinatura_em ? <><p className="font-medium text-success">Termo assinado por {comodatoSelecionado.assinatura_nome}</p><p className="text-muted-foreground">Em {format(new Date(comodatoSelecionado.assinatura_em), "dd/MM/yyyy HH:mm")}. A cópia assinada não pode ser alterada.</p></> : <><p className="font-medium">Aguardando assinatura</p><p className="text-muted-foreground">O cliente pode assinar com o dedo neste aparelho antes ou depois da entrega.</p></>}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold">Entregas e documentos</h3>
+                {grupoSelecionado.registros.map((registro: any) => <div key={registro.id} className="rounded-xl border p-3 text-sm space-y-2">
+                  <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="font-medium">{registro.produtos?.nome || "Vasilhame"} · {format(parseLocalDate(registro.data_emprestimo), "dd/MM/yyyy")}</p><p className="text-xs text-muted-foreground">{registro.quantidade} emprestado(s) · {Number(registro.quantidade_devolvida || 0)} devolvido(s) · {Math.max(0, registro.quantidade - Number(registro.quantidade_devolvida || 0))} pendente(s)</p></div><Badge variant={registro.status === "ativo" ? "default" : "secondary"}>{registro.status === "ativo" ? "Ativo" : registro.status === "perdido" ? "Perdido" : "Devolvido"}</Badge></div>
+                  {registro.assinatura_em && <p className="text-xs text-success">Termo assinado por {registro.assinatura_nome} em {format(new Date(registro.assinatura_em), "dd/MM/yyyy HH:mm")}</p>}
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={() => { setComodatoSelecionadoId(null); imprimirComprovante(registro); }}><Printer className="mr-1 h-3.5 w-3.5" />{registro.assinatura_pdf_path ? "Termo assinado" : "Comprovante"}</Button>
+                    {registro.assinatura_pdf_path && <Button variant="outline" size="sm" onClick={() => { setComodatoSelecionadoId(null); imprimirComprovante(registro, true); }}>Extrato atual</Button>}
+                    {!registro.assinatura_pdf_path && <Button variant="outline" size="sm" onClick={() => { setNomeAssinante(registro.responsavel_entrega || registro.clientes?.nome || ""); setAceiteAssinatura(false); setComodatoSelecionadoId(null); setAssinaturaComodatoId(registro.id); }}><PenLine className="mr-1 h-3.5 w-3.5" />Assinar</Button>}
+                    {registro.status === "ativo" && <Button variant="secondary" size="sm" onClick={() => { abrirDevolucao(registro); setComodatoSelecionadoId(null); }}><RotateCcw className="mr-1 h-3.5 w-3.5" />Devolver</Button>}
+                  </div>
+                </div>)}
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                <Button variant="outline" onClick={() => { setComodatoSelecionadoId(null); imprimirComprovante(comodatoSelecionado); }}><Printer className="mr-2 h-4 w-4" />Ver {comodatoSelecionado.assinatura_pdf_path ? "termo assinado" : "comprovante"}</Button>
-                {comodatoSelecionado.assinatura_pdf_path && <Button variant="outline" onClick={() => { setComodatoSelecionadoId(null); imprimirComprovante(comodatoSelecionado, true); }}>Extrato atual</Button>}
-                {!comodatoSelecionado.assinatura_pdf_path && <Button onClick={() => { setNomeAssinante(comodatoSelecionado.responsavel_entrega || comodatoSelecionado.clientes?.nome || ""); setAceiteAssinatura(false); setComodatoSelecionadoId(null); setAssinaturaComodatoId(comodatoSelecionado.id); }}><PenLine className="mr-2 h-4 w-4" />Assinar no celular</Button>}
-                {comodatoSelecionado.status === "ativo" && <Button variant="outline" onClick={() => abrirEmprestimoAdicional(comodatoSelecionado)}><Plus className="mr-2 h-4 w-4" />Emprestar mais</Button>}
-                {comodatoSelecionado.status === "ativo" && <Button variant="secondary" onClick={() => { abrirDevolucao(comodatoSelecionado); setComodatoSelecionadoId(null); }}><RotateCcw className="mr-2 h-4 w-4" />Registrar devolução</Button>}
-              </div>
+              <Button onClick={() => abrirEmprestimoAdicional(grupoSelecionado.registros[0])}><Plus className="mr-2 h-4 w-4" />Emprestar mais</Button>
             </div>}
           </DialogContent>
         </Dialog>
@@ -541,6 +555,7 @@ export default function Comodatos() {
               <SelectItem value="todos">Todos</SelectItem>
               <SelectItem value="ativo">Ativos</SelectItem>
               <SelectItem value="devolvido">Devolvidos</SelectItem>
+              <SelectItem value="perdido">Perdidos</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -553,29 +568,29 @@ export default function Comodatos() {
             {/* Mobile cards */}
             <div className="space-y-3 md:hidden">
               {filtrados.length === 0 && <p className="text-center py-8 text-muted-foreground">Nenhum comodato encontrado</p>}
-              {filtrados.map((c: any) => {
-                const vencido = c.status === "ativo" && c.prazo_devolucao && parseLocalDate(c.prazo_devolucao) < new Date();
-                const diasRestantes = c.prazo_devolucao ? differenceInDays(parseLocalDate(c.prazo_devolucao), new Date()) : null;
+              {filtrados.map((grupo: any) => {
+                const vencido = grupo.status === "ativo" && grupo.prazo_devolucao && parseLocalDate(grupo.prazo_devolucao) < new Date();
+                const diasRestantes = grupo.prazo_devolucao ? differenceInDays(parseLocalDate(grupo.prazo_devolucao), new Date()) : null;
                 return (
-                  <div key={c.id} className={`border rounded-lg p-3 ${vencido ? "border-destructive/30 bg-destructive/5" : ""}`}>
-                    <button type="button" className="block w-full text-left" onClick={() => setComodatoSelecionadoId(c.id)} aria-label={`Ver detalhes do comodato de ${c.clientes?.nome || "cliente"}`}>
+                  <div key={grupo.chave} className={`border rounded-lg p-3 ${vencido ? "border-destructive/30 bg-destructive/5" : ""}`}>
+                    <button type="button" className="block w-full text-left" onClick={() => setComodatoSelecionadoId(grupo.registros[0].id)} aria-label={`Ver detalhes dos comodatos de ${grupo.clientes?.nome || "cliente"}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{c.clientes?.nome || "—"}</p>
-                        <p className="text-xs text-muted-foreground">{c.produtos?.nome || "—"} · {c.modalidade === "rapido" ? "Rápido" : "Formal"}</p>
-                        <p className="text-xs text-muted-foreground">{c.quantidade - Number(c.quantidade_devolvida || 0)} de {c.quantidade} pendente(s)</p>
+                        <p className="text-sm font-medium truncate">{grupo.clientes?.nome || "—"}</p>
+                        <p className="text-xs text-muted-foreground">{grupo.produtos.join(", ")} · {grupo.registros.length} entrega(s)</p>
+                        <p className="text-xs text-muted-foreground">{grupo.pendente} de {grupo.quantidade} pendente(s) · {grupo.devolvidos} devolvido(s)</p>
                       </div>
-                      {c.status === "ativo" ? (vencido ? <Badge variant="destructive" className="text-xs shrink-0">Vencido</Badge> : <Badge className="text-xs shrink-0">Ativo</Badge>) : <Badge variant="secondary" className="text-xs shrink-0">Devolvido</Badge>}
+                      {grupo.status === "ativo" ? (vencido ? <Badge variant="destructive" className="text-xs shrink-0">Vencido</Badge> : <Badge className="text-xs shrink-0">Ativo</Badge>) : <Badge variant="secondary" className="text-xs shrink-0">{grupo.status === "perdido" ? "Perdido" : "Devolvido"}</Badge>}
                     </div>
                     <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                      <span>Reposição: R$ {Number(c.deposito || 0).toFixed(2)} / un.</span>
-                      <span>Prazo: {c.prazo_devolucao ? format(parseLocalDate(c.prazo_devolucao), "dd/MM/yy") : "—"}{diasRestantes !== null && c.status === "ativo" && ` (${diasRestantes > 0 ? `${diasRestantes}d` : `${Math.abs(diasRestantes)}d atrás`})`}</span>
+                      <span>Reposição em aberto: R$ {grupo.reposicaoPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                      <span>Prazo: {grupo.prazo_devolucao ? format(parseLocalDate(grupo.prazo_devolucao), "dd/MM/yy") : "—"}{diasRestantes !== null && grupo.status === "ativo" && ` (${diasRestantes > 0 ? `${diasRestantes}d` : `${Math.abs(diasRestantes)}d atrás`})`}</span>
                     </div>
-                    <p className="mt-2 text-xs font-medium text-primary">Toque para ver compras, devoluções e assinatura</p>
+                    <p className="mt-2 text-xs font-medium text-primary">Toque para ver entregas, documentos e devoluções</p>
                     </button>
                     <div className="mt-2 flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1" onClick={() => imprimirComprovante(c)}><Printer className="mr-1 h-3.5 w-3.5" /> {c.modalidade === "rapido" ? "Comprovante" : "Termo"}</Button>
-                      {c.status === "ativo" && <Button variant="outline" size="sm" className="flex-1" onClick={() => abrirDevolucao(c)} disabled={devolverComodato.isPending}><RotateCcw className="mr-1 h-3.5 w-3.5" /> Devolver</Button>}
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => setComodatoSelecionadoId(grupo.registros[0].id)}>Ver detalhes</Button>
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => abrirEmprestimoAdicional(grupo.registros[0])}><Plus className="mr-1 h-3.5 w-3.5" />Emprestar mais</Button>
                     </div>
                   </div>
                 );
@@ -587,11 +602,11 @@ export default function Comodatos() {
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead>Cliente</TableHead>
-                    <TableHead>Vasilhame</TableHead>
+                    <TableHead>Vasilhames</TableHead>
                     <TableHead className="text-center">Pendente / total</TableHead>
-                    <TableHead className="text-center">Reposição / un.</TableHead>
-                    <TableHead>Empréstimo</TableHead>
-                    <TableHead>Prazo</TableHead>
+                    <TableHead className="text-center">Reposição em aberto</TableHead>
+                    <TableHead>Entregas</TableHead>
+                    <TableHead>Prazo mais próximo</TableHead>
                     <TableHead className="text-center">Status</TableHead>
                     <TableHead className="text-center">Ação</TableHead>
                   </TableRow>
@@ -599,34 +614,33 @@ export default function Comodatos() {
                 <TableBody>
                   {filtrados.length === 0 ? (
                     <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum comodato encontrado</TableCell></TableRow>
-                  ) : filtrados.map((c: any) => {
-                    const vencido = c.status === "ativo" && c.prazo_devolucao && parseLocalDate(c.prazo_devolucao) < new Date();
-                    const diasRestantes = c.prazo_devolucao ? differenceInDays(parseLocalDate(c.prazo_devolucao), new Date()) : null;
+                  ) : filtrados.map((grupo: any) => {
+                    const vencido = grupo.status === "ativo" && grupo.prazo_devolucao && parseLocalDate(grupo.prazo_devolucao) < new Date();
+                    const diasRestantes = grupo.prazo_devolucao ? differenceInDays(parseLocalDate(grupo.prazo_devolucao), new Date()) : null;
                     return (
-                      <TableRow key={c.id} className={vencido ? "bg-destructive/5" : ""}>
-                        <TableCell className="font-medium">{c.clientes?.nome || "—"}</TableCell>
-                        <TableCell>{c.produtos?.nome || "—"}</TableCell>
-                        <TableCell className="text-center">{c.quantidade - Number(c.quantidade_devolvida || 0)} / {c.quantidade}<span className="block text-xs text-muted-foreground">{c.modalidade === "rapido" ? "Rápido" : "Formal"}</span></TableCell>
-                        <TableCell className="text-center">R$ {Number(c.deposito || 0).toFixed(2)}</TableCell>
-                        <TableCell className="text-sm">{format(parseLocalDate(c.data_emprestimo), "dd/MM/yy")}</TableCell>
+                      <TableRow key={grupo.chave} className={vencido ? "bg-destructive/5" : ""}>
+                        <TableCell className="font-medium">{grupo.clientes?.nome || "—"}</TableCell>
+                        <TableCell>{grupo.produtos.join(", ")}</TableCell>
+                        <TableCell className="text-center">{grupo.pendente} / {grupo.quantidade}<span className="block text-xs text-muted-foreground">{grupo.devolvidos} devolvido(s)</span></TableCell>
+                        <TableCell className="text-center">R$ {grupo.reposicaoPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-sm">{grupo.registros.length}</TableCell>
                         <TableCell className="text-sm">
-                          {c.prazo_devolucao ? (
+                          {grupo.prazo_devolucao ? (
                             <span className={vencido ? "text-destructive font-bold" : ""}>
-                              {format(parseLocalDate(c.prazo_devolucao), "dd/MM/yy")}
-                              {diasRestantes !== null && c.status === "ativo" && (
+                              {format(parseLocalDate(grupo.prazo_devolucao), "dd/MM/yy")}
+                              {diasRestantes !== null && grupo.status === "ativo" && (
                                 <span className="text-xs ml-1">({diasRestantes > 0 ? `${diasRestantes}d` : `${Math.abs(diasRestantes)}d atrás`})</span>
                               )}
                             </span>
                           ) : "—"}
                         </TableCell>
                         <TableCell className="text-center">
-                          {c.status === "ativo" ? (vencido ? <Badge variant="destructive">Vencido</Badge> : <Badge>Ativo</Badge>) : <Badge variant="secondary">Devolvido</Badge>}
+                          {grupo.status === "ativo" ? (vencido ? <Badge variant="destructive">Vencido</Badge> : <Badge>Ativo</Badge>) : <Badge variant="secondary">{grupo.status === "perdido" ? "Perdido" : "Devolvido"}</Badge>}
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex justify-center gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => setComodatoSelecionadoId(c.id)}>Detalhes</Button>
-                            <Button variant="ghost" size="sm" onClick={() => imprimirComprovante(c)}><Printer className="mr-1 h-3.5 w-3.5" /> {c.modalidade === "rapido" ? "Comprovante" : "Termo"}</Button>
-                            {c.status === "ativo" && <Button variant="ghost" size="sm" onClick={() => abrirDevolucao(c)} disabled={devolverComodato.isPending}><RotateCcw className="mr-1 h-3.5 w-3.5" /> Devolver</Button>}
+                            <Button variant="ghost" size="sm" onClick={() => setComodatoSelecionadoId(grupo.registros[0].id)}>Detalhes</Button>
+                            <Button variant="ghost" size="sm" onClick={() => abrirEmprestimoAdicional(grupo.registros[0])}><Plus className="mr-1 h-3.5 w-3.5" />Emprestar mais</Button>
                           </div>
                         </TableCell>
                       </TableRow>
