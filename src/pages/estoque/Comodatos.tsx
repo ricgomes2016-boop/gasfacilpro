@@ -20,7 +20,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Package, Plus, Users, AlertTriangle, CheckCircle, Search, RotateCcw, FileText, Zap, Info, Printer, PenLine } from "lucide-react";
-import { jsPDF } from "jspdf";
+import { criarPdfComodato } from "@/lib/comodatoPdf";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
@@ -211,49 +211,40 @@ export default function Comodatos() {
     setDevolucao({ id: c.id, pendente, nome: c.produtos?.nome || "Vasilhame" });
   };
 
-  const montarPdfComodato = (c: any, cliente: any, assinatura?: { imagem: string; nome: string; data: Date }) => {
-    const formal = c.modalidade !== "rapido";
-    const pdf = new jsPDF();
-    const cedente = unidadeAtual?.nome || "Empresa";
-    const linhas = [
-      `Cedente: ${cedente}  |  CNPJ: ${unidadeAtual?.cnpj || "a preencher"}`,
-      `Cliente: ${c.clientes?.nome || cliente?.nome || "a preencher"}`,
-      `CPF/CNPJ: ${cliente?.cpf || cliente?.cnpj || "a preencher"}`,
-      `Vasilhame: ${c.produtos?.nome || "-"}  |  Quantidade: ${c.quantidade}`,
-      `Entregue em: ${format(parseLocalDate(c.data_emprestimo), "dd/MM/yyyy")}`,
-      `Devolver até: ${c.prazo_devolucao ? format(parseLocalDate(c.prazo_devolucao), "dd/MM/yyyy") : "a combinar"}`,
-      `Local: ${c.local_entrega || cliente?.endereco || "a combinar"}`,
-      `Responsável: ${c.responsavel_entrega || c.clientes?.nome || "-"}`,
-      `Referência: ${c.documento_referencia || "-"}`,
-      `Custo de reposição por vasilhame não devolvido: R$ ${Number(c.deposito || 0).toFixed(2)}`,
-      `Exposição máxima (${c.quantidade} unidade(s)): R$ ${(Number(c.deposito || 0) * c.quantidade).toFixed(2)}`,
-    ];
-    pdf.setFontSize(16);
-    pdf.text(formal ? "TERMO DE COMODATO DE VASILHAME" : "COMPROVANTE DE EMPRÉSTIMO DE VASILHAME", 14, 20);
-    pdf.setFontSize(10);
-    let y = 33;
-    for (const linha of linhas) {
-      const bloco = pdf.splitTextToSize(linha, 180);
-      pdf.text(bloco, 14, y);
-      y += bloco.length * 5 + 4;
-    }
-    const clausulas = formal ? [
-      "O cedente entrega gratuitamente o(s) vasilhame(s) identificado(s) acima, permanecendo responsável pelo controle da sua devolução.",
-      "O cliente compromete-se a conservar e restituir a quantidade recebida no prazo indicado, comunicando perda ou avaria. O custo de reposição informado aplica-se apenas às unidades perdidas ou não devolvidas, mediante apuração; não é pagamento antecipado.",
-      "Este termo registra o empréstimo do recipiente vazio. A venda do GLP e os documentos fiscais correspondentes são operações separadas.",
-    ] : ["O cliente confirma o recebimento do(s) vasilhame(s) vazio(s) e combina sua devolução até a data indicada. O valor de reposição só se aplica às unidades perdidas ou não devolvidas; não é cobrado neste empréstimo."];
-    for (const clausula of clausulas) { const bloco = pdf.splitTextToSize(clausula, 180); pdf.text(bloco, 14, y); y += bloco.length * 5 + 5; }
-    if (c.observacoes) { const bloco = pdf.splitTextToSize(`Observações: ${c.observacoes}`, 180); pdf.text(bloco, 14, y); y += bloco.length * 5 + 7; }
-    y = Math.min(Math.max(y + 16, 160), 255);
-    pdf.line(16, y, 90, y); pdf.line(116, y, 190, y);
-    pdf.text("Cedente", 42, y + 6); pdf.text("Cliente / responsável", 136, y + 6);
-    if (assinatura) {
-      pdf.addImage(assinatura.imagem, "PNG", 120, y - 24, 64, 22);
-      pdf.setFontSize(8);
-      pdf.text(`Aceite eletrônico manuscrito: ${assinatura.nome}`, 116, y + 12);
-      pdf.text(`Registrado em ${format(assinatura.data, "dd/MM/yyyy HH:mm")}`, 116, y + 17);
-    }
-    return pdf;
+  const montarPdfComodato = (c: any, cliente: any, assinatura?: { imagem: string; nome: string; data: Date }, documento: "termo" | "extrato" = "termo") => {
+    return criarPdfComodato({
+      id: c.id,
+      modalidade: c.modalidade === "rapido" ? "rapido" : "formal",
+      documento,
+      produto: c.produtos?.nome || "Vasilhame vazio",
+      quantidade: Number(c.quantidade || 0),
+      quantidadeDevolvida: Number(c.quantidade_devolvida || 0),
+      dataEmprestimo: c.data_emprestimo,
+      prazoDevolucao: c.prazo_devolucao,
+      custoReposicao: Number(c.deposito || 0),
+      responsavel: c.responsavel_entrega,
+      referencia: c.documento_referencia,
+      localEntrega: c.local_entrega,
+      finalidade: c.finalidade,
+      observacoes: c.observacoes,
+      empresa: {
+        nome: unidadeAtual?.nome || "Empresa",
+        cnpj: unidadeAtual?.cnpj,
+        telefone: unidadeAtual?.telefone,
+        endereco: unidadeAtual?.endereco,
+        cidade: unidadeAtual?.cidade,
+        estado: unidadeAtual?.estado,
+      },
+      cliente: {
+        nome: c.clientes?.nome || cliente?.nome || "Cliente",
+        documento: cliente?.cpf || cliente?.cnpj,
+        telefone: cliente?.telefone,
+        endereco: cliente?.endereco,
+        numero: cliente?.numero,
+        cidade: cliente?.cidade,
+      },
+      assinatura,
+    });
   };
 
   const buscarDadosCliente = async (clienteId: string) => {
@@ -269,15 +260,15 @@ export default function Comodatos() {
     return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
   };
 
-  const imprimirComprovante = async (c: any) => {
+  const imprimirComprovante = async (c: any, extratoAtual = false) => {
     fecharComprovante();
     const request = comprovanteRequest.current;
     const formal = c.modalidade !== "rapido";
-    const nome = `${formal ? "termo" : "comprovante"}-comodato-${c.id.slice(0, 8)}.pdf`;
+    const nome = `${extratoAtual ? "extrato" : formal ? "termo" : "comprovante"}-comodato-${c.id.slice(0, 8)}.pdf`;
     setComprovante({ url: null, nome, carregando: true });
     try {
       let blob: Blob;
-      if (c.assinatura_pdf_path) {
+      if (c.assinatura_pdf_path && !extratoAtual) {
         const { data, error } = await supabase.storage.from("comodato-termos").download(c.assinatura_pdf_path);
         if (error || !data) throw error || new Error("Documento assinado não encontrado.");
         if (c.assinatura_sha256 && await calcularSha256(await data.arrayBuffer()) !== c.assinatura_sha256) {
@@ -286,7 +277,7 @@ export default function Comodatos() {
         blob = data;
       } else {
         const cliente = await buscarDadosCliente(c.cliente_id);
-        blob = montarPdfComodato(c, cliente).output("blob");
+        blob = montarPdfComodato(c, cliente, undefined, extratoAtual ? "extrato" : "termo").output("blob");
       }
       if (request !== comprovanteRequest.current) return;
       const url = URL.createObjectURL(blob);
@@ -380,6 +371,7 @@ export default function Comodatos() {
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                 <Button variant="outline" onClick={() => { setComodatoSelecionadoId(null); imprimirComprovante(comodatoSelecionado); }}><Printer className="mr-2 h-4 w-4" />Ver {comodatoSelecionado.assinatura_pdf_path ? "termo assinado" : "comprovante"}</Button>
+                {comodatoSelecionado.assinatura_pdf_path && <Button variant="outline" onClick={() => { setComodatoSelecionadoId(null); imprimirComprovante(comodatoSelecionado, true); }}>Extrato atual</Button>}
                 {!comodatoSelecionado.assinatura_pdf_path && <Button onClick={() => { setNomeAssinante(comodatoSelecionado.responsavel_entrega || comodatoSelecionado.clientes?.nome || ""); setAceiteAssinatura(false); setComodatoSelecionadoId(null); setAssinaturaComodatoId(comodatoSelecionado.id); }}><PenLine className="mr-2 h-4 w-4" />Assinar no celular</Button>}
                 {comodatoSelecionado.status === "ativo" && <Button variant="secondary" onClick={() => { abrirDevolucao(comodatoSelecionado); setComodatoSelecionadoId(null); }}><RotateCcw className="mr-2 h-4 w-4" />Registrar devolução</Button>}
               </div>
