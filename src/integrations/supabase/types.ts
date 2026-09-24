@@ -2411,11 +2411,17 @@ export type Database = {
           data_devolucao: string | null
           data_emprestimo: string
           deposito: number
+          documento_referencia: string | null
+          finalidade: string | null
           id: string
+          local_entrega: string | null
+          modalidade: string
           observacoes: string | null
           prazo_devolucao: string | null
           produto_id: string
           quantidade: number
+          quantidade_devolvida: number
+          responsavel_entrega: string | null
           status: string
           unidade_id: string | null
           updated_at: string
@@ -2426,11 +2432,17 @@ export type Database = {
           data_devolucao?: string | null
           data_emprestimo?: string
           deposito?: number
+          documento_referencia?: string | null
+          finalidade?: string | null
           id?: string
+          local_entrega?: string | null
+          modalidade?: string
           observacoes?: string | null
           prazo_devolucao?: string | null
           produto_id: string
           quantidade?: number
+          quantidade_devolvida?: number
+          responsavel_entrega?: string | null
           status?: string
           unidade_id?: string | null
           updated_at?: string
@@ -2441,11 +2453,17 @@ export type Database = {
           data_devolucao?: string | null
           data_emprestimo?: string
           deposito?: number
+          documento_referencia?: string | null
+          finalidade?: string | null
           id?: string
+          local_entrega?: string | null
+          modalidade?: string
           observacoes?: string | null
           prazo_devolucao?: string | null
           produto_id?: string
           quantidade?: number
+          quantidade_devolvida?: number
+          responsavel_entrega?: string | null
           status?: string
           unidade_id?: string | null
           updated_at?: string
