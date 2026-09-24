@@ -70,7 +70,7 @@ export default function Comodatos() {
   const { data: produtos = [] } = useQuery({
     queryKey: ["comodatos-produtos", unidadeAtual?.id],
     queryFn: async () => {
-      let q = supabase.from("produtos").select("id, nome, estoque, categoria").eq("ativo", true).eq("tipo_botijao", "vazio").order("nome");
+      let q = supabase.from("produtos").select("id, nome, estoque, categoria, preco_custo").eq("ativo", true).eq("tipo_botijao", "vazio").order("nome");
       if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
       const { data } = await q;
       return data || [];
@@ -81,11 +81,13 @@ export default function Comodatos() {
     mutationFn: async () => {
       const quantidade = Number(form.quantidade);
       const prazoDias = Number(form.prazo_dias);
+      const custoReposicao = Number(form.deposito);
       const produto = produtos.find((p: any) => p.id === form.produto_id);
       if (!unidadeAtual?.id || !form.cliente_id || !produto) throw new Error("Selecione unidade, cliente e vasilhame.");
       if (!Number.isInteger(quantidade) || quantidade < 1) throw new Error("Informe uma quantidade válida.");
       if (quantidade > Number(produto.estoque || 0)) throw new Error("Quantidade maior que o saldo disponível.");
       if (!Number.isInteger(prazoDias) || prazoDias < 1) throw new Error("Informe um prazo válido.");
+      if (!Number.isFinite(custoReposicao) || custoReposicao < 0) throw new Error("Informe um custo de reposição válido.");
       if (form.modalidade === "formal" && (!form.responsavel_entrega.trim() || !form.local_entrega.trim())) {
         throw new Error("No comodato formal, informe o responsável e o local de entrega.");
       }
@@ -98,7 +100,8 @@ export default function Comodatos() {
         cliente_id: form.cliente_id,
         produto_id: form.produto_id,
         quantidade,
-        deposito: Number(form.deposito) || 0,
+        // Campo legado; representa custo unitário de reposição, nunca um recebimento de garantia.
+        deposito: custoReposicao,
         prazo_devolucao: format(addDays(new Date(), prazoDias), "yyyy-MM-dd"),
         observacoes: form.observacoes || null,
         unidade_id: unidadeAtual.id,
@@ -172,7 +175,8 @@ export default function Comodatos() {
       `Local: ${c.local_entrega || cliente?.endereco || "a combinar"}`,
       `Responsável: ${c.responsavel_entrega || c.clientes?.nome || "-"}`,
       `Referência: ${c.documento_referencia || "-"}`,
-      `Garantia informada: R$ ${Number(c.deposito || 0).toFixed(2)}`,
+      `Custo de reposição por vasilhame não devolvido: R$ ${Number(c.deposito || 0).toFixed(2)}`,
+      `Exposição máxima (${c.quantidade} unidade(s)): R$ ${(Number(c.deposito || 0) * c.quantidade).toFixed(2)}`,
     ];
     pdf.setFontSize(16);
     pdf.text(formal ? "TERMO DE COMODATO DE VASILHAME" : "COMPROVANTE DE EMPRÉSTIMO DE VASILHAME", 14, 20);
@@ -185,9 +189,9 @@ export default function Comodatos() {
     }
     const clausulas = formal ? [
       "O cedente entrega gratuitamente o(s) vasilhame(s) identificado(s) acima, permanecendo responsável pelo controle da sua devolução.",
-      "O cliente compromete-se a conservar e restituir a quantidade recebida no prazo indicado, comunicando perda ou avaria.",
+      "O cliente compromete-se a conservar e restituir a quantidade recebida no prazo indicado, comunicando perda ou avaria. O custo de reposição informado aplica-se apenas às unidades perdidas ou não devolvidas, mediante apuração; não é pagamento antecipado.",
       "Este termo registra o empréstimo do recipiente vazio. A venda do GLP e os documentos fiscais correspondentes são operações separadas.",
-    ] : ["O cliente confirma o recebimento do(s) vasilhame(s) vazio(s) e combina sua devolução até a data indicada."];
+    ] : ["O cliente confirma o recebimento do(s) vasilhame(s) vazio(s) e combina sua devolução até a data indicada. O valor de reposição só se aplica às unidades perdidas ou não devolvidas; não é cobrado neste empréstimo."];
     for (const clausula of clausulas) { const bloco = pdf.splitTextToSize(clausula, 180); pdf.text(bloco, 14, y); y += bloco.length * 5 + 5; }
     if (c.observacoes) { const bloco = pdf.splitTextToSize(`Observações: ${c.observacoes}`, 180); pdf.text(bloco, 14, y); y += bloco.length * 5 + 7; }
     y = Math.min(Math.max(y + 16, 160), 255);
@@ -204,7 +208,7 @@ export default function Comodatos() {
 
   const ativos = comodatos.filter((c: any) => c.status === "ativo");
   const totalQtd = ativos.reduce((s: number, c: any) => s + Math.max(0, (c.quantidade || 0) - Number(c.quantidade_devolvida || 0)), 0);
-  const totalDeposito = ativos.reduce((s: number, c: any) => s + (c.deposito || 0), 0);
+  const custoReposicaoPendente = ativos.reduce((s: number, c: any) => s + Math.max(0, c.quantidade - Number(c.quantidade_devolvida || 0)) * Number(c.deposito || 0), 0);
   const vencidos = ativos.filter((c: any) => c.prazo_devolucao && parseLocalDate(c.prazo_devolucao) < new Date()).length;
   const clientesUnicos = new Set(ativos.map((c: any) => c.cliente_id)).size;
 
@@ -261,7 +265,10 @@ export default function Comodatos() {
                   </div>
                   <div className="grid gap-2">
                     <Label>Vasilhame vazio *</Label>
-                    <Select value={form.produto_id} onValueChange={(v) => setForm({ ...form, produto_id: v })}>
+                    <Select value={form.produto_id} onValueChange={(v) => {
+                      const produto = produtos.find((p: any) => p.id === v);
+                      setForm({ ...form, produto_id: v, deposito: Number(produto?.preco_custo || 0).toFixed(2) });
+                    }}>
                       <SelectTrigger><SelectValue placeholder="Selecione o vasilhame" /></SelectTrigger>
                       <SelectContent>
                         {produtos.map((p: any) => <SelectItem key={p.id} value={p.id} disabled={Number(p.estoque || 0) < 1}>{p.nome} · {p.estoque || 0} disponíveis</SelectItem>)}
@@ -275,8 +282,9 @@ export default function Comodatos() {
                       <Input type="number" min="1" value={form.quantidade} onChange={(e) => setForm({ ...form, quantidade: e.target.value })} />
                     </div>
                     <div className="grid gap-2">
-                      <Label>Garantia recebida (R$)</Label>
+                      <Label>Custo de reposição por vasilhame (R$)</Label>
                       <Input type="number" min="0" step="0.01" value={form.deposito} onChange={(e) => setForm({ ...form, deposito: e.target.value })} />
+                      <p className="text-xs text-muted-foreground">Sugerido pelo custo cadastrado no produto. Ajuste se necessário; não há cobrança agora.</p>
                     </div>
                     <div className="grid gap-2">
                       <Label>Prazo de devolução (dias)</Label>
@@ -294,6 +302,7 @@ export default function Comodatos() {
                     <Textarea value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} placeholder="Estado de conservação, identificação, combinação de retirada..." />
                   </div>
                   <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm"><Info className="mr-2 inline h-4 w-4" />Ao registrar, o sistema retira {form.quantidade || 0} vasilhame(s) vazio(s) do estoque. Na devolução, repõe apenas os recebidos.</div>
+                  <p className="text-xs text-muted-foreground">Em caso de perda ou não devolução, o termo informa um custo estimado de R$ {(Number(form.deposito || 0) * Number(form.quantidade || 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Este registro não cria recebimento no caixa.</p>
                   <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end"><Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button><Button onClick={() => criarComodato.mutate()} disabled={!form.cliente_id || !form.produto_id || criarComodato.isPending}>{criarComodato.isPending ? "Registrando..." : "Registrar e baixar do estoque"}</Button></div>
                 </div>
               </DialogContent>
@@ -306,7 +315,7 @@ export default function Comodatos() {
           <EstoqueKpiCard icon={Package} label="Vasilhames Emprestados" value={totalQtd} tone="primary" />
           <EstoqueKpiCard icon={Users} label="Clientes" value={clientesUnicos} tone="info" />
           <EstoqueKpiCard icon={AlertTriangle} label="Vencidos" value={vencidos} tone={vencidos > 0 ? "destructive" : "secondary"} />
-          <EstoqueKpiCard icon={CheckCircle} label="Em Depósitos" value={`R$ ${totalDeposito.toLocaleString("pt-BR")}`} tone="success" />
+          <EstoqueKpiCard icon={CheckCircle} label="Reposição em aberto" value={`R$ ${custoReposicaoPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} tone="secondary" />
         </div>
 
         {/* Filtros */}
@@ -347,7 +356,7 @@ export default function Comodatos() {
                       {c.status === "ativo" ? (vencido ? <Badge variant="destructive" className="text-xs shrink-0">Vencido</Badge> : <Badge className="text-xs shrink-0">Ativo</Badge>) : <Badge variant="secondary" className="text-xs shrink-0">Devolvido</Badge>}
                     </div>
                     <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                      <span>Depósito: R$ {(c.deposito || 0).toFixed(2)}</span>
+                      <span>Reposição: R$ {Number(c.deposito || 0).toFixed(2)} / un.</span>
                       <span>Prazo: {c.prazo_devolucao ? format(parseLocalDate(c.prazo_devolucao), "dd/MM/yy") : "—"}{diasRestantes !== null && c.status === "ativo" && ` (${diasRestantes > 0 ? `${diasRestantes}d` : `${Math.abs(diasRestantes)}d atrás`})`}</span>
                     </div>
                     <div className="mt-2 flex gap-2">
@@ -366,7 +375,7 @@ export default function Comodatos() {
                     <TableHead>Cliente</TableHead>
                     <TableHead>Vasilhame</TableHead>
                     <TableHead className="text-center">Pendente / total</TableHead>
-                    <TableHead className="text-center">Depósito</TableHead>
+                    <TableHead className="text-center">Reposição / un.</TableHead>
                     <TableHead>Empréstimo</TableHead>
                     <TableHead>Prazo</TableHead>
                     <TableHead className="text-center">Status</TableHead>
@@ -384,7 +393,7 @@ export default function Comodatos() {
                         <TableCell className="font-medium">{c.clientes?.nome || "—"}</TableCell>
                         <TableCell>{c.produtos?.nome || "—"}</TableCell>
                         <TableCell className="text-center">{c.quantidade - Number(c.quantidade_devolvida || 0)} / {c.quantidade}<span className="block text-xs text-muted-foreground">{c.modalidade === "rapido" ? "Rápido" : "Formal"}</span></TableCell>
-                        <TableCell className="text-center">R$ {(c.deposito || 0).toFixed(2)}</TableCell>
+                        <TableCell className="text-center">R$ {Number(c.deposito || 0).toFixed(2)}</TableCell>
                         <TableCell className="text-sm">{format(parseLocalDate(c.data_emprestimo), "dd/MM/yy")}</TableCell>
                         <TableCell className="text-sm">
                           {c.prazo_devolucao ? (

@@ -28,7 +28,7 @@ Tabelas disponíveis no sistema (distribuidora de gás):
 - produtos: id, nome, preco, estoque, categoria (gas/agua/acessorio/vasilhame/outro), tipo_botijao (cheio/vazio/null), ativo, codigo_barras, unidade_medida, peso, tipo (revenda/producao/insumo), estoque_minimo, preco_custo, unidade_id, descricao
 - compras: id, fornecedor_id, valor_total, valor_frete, status, data_compra, data_recebimento, numero_nota_fiscal, chave_nfe, unidade_id, observacoes
 - compra_itens: id, compra_id, produto_id, quantidade, preco_unitario
-- comodatos: id, cliente_id, produto_id, quantidade, deposito, status (ativo/devolvido/perdido), data_emprestimo, data_devolucao, prazo_devolucao, unidade_id
+- comodatos: id, cliente_id, produto_id, quantidade, deposito (custo unitário de reposição do vasilhame em caso de perda; não é dinheiro recebido), quantidade_devolvida, status (ativo/devolvido/perdido), data_emprestimo, data_devolucao, prazo_devolucao, unidade_id
 - movimentacoes_estoque: id, produto_id, tipo (entrada/saida/avaria), quantidade, observacoes, unidade_id, created_at
 - transferencias_estoque: id, unidade_origem_id, unidade_destino_id, status (pendente/em_transito/recebido/cancelado), valor_total, data_transferencia, data_envio, data_recebimento, observacoes, created_at
 - transferencia_estoque_itens: id, transferencia_id, produto_id, quantidade, preco_compra
