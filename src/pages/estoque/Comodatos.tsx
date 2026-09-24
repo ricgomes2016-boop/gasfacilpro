@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import SignatureCanvas from "react-signature-canvas";
 import { parseLocalDate } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -18,10 +19,11 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Package, Plus, Users, AlertTriangle, CheckCircle, Search, RotateCcw, FileText, Zap, Info, Printer } from "lucide-react";
+import { Package, Plus, Users, AlertTriangle, CheckCircle, Search, RotateCcw, FileText, Zap, Info, Printer, PenLine } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useToast } from "@/hooks/use-toast";
 import { format, addDays, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -31,6 +33,7 @@ import { ClienteAutocompleteInput } from "@/components/clientes/ClienteAutocompl
 
 export default function Comodatos() {
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -41,6 +44,13 @@ export default function Comodatos() {
   const [comprovante, setComprovante] = useState<{ url: string | null; nome: string; carregando: boolean; erro?: string } | null>(null);
   const comprovanteUrl = useRef<string | null>(null);
   const comprovanteRequest = useRef(0);
+  const [comodatoSelecionadoId, setComodatoSelecionadoId] = useState<string | null>(null);
+  const [assinaturaComodatoId, setAssinaturaComodatoId] = useState<string | null>(null);
+  const [nomeAssinante, setNomeAssinante] = useState("");
+  const [aceiteAssinatura, setAceiteAssinatura] = useState(false);
+  const [salvandoAssinatura, setSalvandoAssinatura] = useState(false);
+  const assinaturaRef = useRef<SignatureCanvas | null>(null);
+  const assinaturaContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => () => {
     if (comprovanteUrl.current) URL.revokeObjectURL(comprovanteUrl.current);
@@ -79,6 +89,39 @@ export default function Comodatos() {
       return (data || []) as any[];
     },
   });
+  const comodatoSelecionado = comodatos.find((c: any) => c.id === comodatoSelecionadoId);
+  const comodatoParaAssinar = comodatos.find((c: any) => c.id === assinaturaComodatoId);
+
+  const { data: ultimaCompra, isLoading: carregandoUltimaCompra, isError: erroUltimaCompra } = useQuery({
+    queryKey: ["comodato-ultima-compra", comodatoSelecionado?.cliente_id, unidadeAtual?.id],
+    enabled: !!comodatoSelecionado?.cliente_id && !!unidadeAtual?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("pedidos")
+        .select("id, numero_sequencial, created_at, data_entrega, valor_total")
+        .eq("cliente_id", comodatoSelecionado!.cliente_id)
+        .eq("unidade_id", unidadeAtual!.id)
+        .in("status", ["finalizado", "entregue"])
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (!assinaturaComodatoId) return;
+    const ajustar = () => {
+      const canvas = assinaturaRef.current?.getCanvas();
+      const container = assinaturaContainerRef.current;
+      if (!canvas || !container) return;
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      canvas.width = container.clientWidth * ratio;
+      canvas.height = 190 * ratio;
+      canvas.getContext("2d")?.scale(ratio, ratio);
+      assinaturaRef.current?.clear();
+    };
+    const timer = window.setTimeout(ajustar, 0);
+    return () => window.clearTimeout(timer);
+  }, [assinaturaComodatoId]);
 
   const [clienteNome, setClienteNome] = useState("");
   const { data: produtos = [] } = useQuery({
@@ -168,22 +211,12 @@ export default function Comodatos() {
     setDevolucao({ id: c.id, pendente, nome: c.produtos?.nome || "Vasilhame" });
   };
 
-  const imprimirComprovante = async (c: any) => {
-    fecharComprovante();
-    const request = comprovanteRequest.current;
+  const montarPdfComodato = (c: any, cliente: any, assinatura?: { imagem: string; nome: string; data: Date }) => {
     const formal = c.modalidade !== "rapido";
-    const nome = `${formal ? "termo" : "comprovante"}-comodato-${c.id.slice(0, 8)}.pdf`;
-    setComprovante({ url: null, nome, carregando: true });
-    try {
     const pdf = new jsPDF();
-    const empresa = (unidadeAtual as any)?.nome || "Empresa";
-    const { data: cliente, error: clienteError } = await supabase.from("clientes")
-      .select("nome, cpf, cnpj, endereco, numero, cidade, telefone")
-      .eq("id", c.cliente_id).maybeSingle();
-    if (request !== comprovanteRequest.current) return;
-    if (clienteError) console.warn("Comodato: dados adicionais do cliente indisponíveis", clienteError);
+    const cedente = unidadeAtual?.nome || "Empresa";
     const linhas = [
-      `Cedente: ${empresa}  |  CNPJ: ${(unidadeAtual as any)?.cnpj || "a preencher"}`,
+      `Cedente: ${cedente}  |  CNPJ: ${unidadeAtual?.cnpj || "a preencher"}`,
       `Cliente: ${c.clientes?.nome || cliente?.nome || "a preencher"}`,
       `CPF/CNPJ: ${cliente?.cpf || cliente?.cnpj || "a preencher"}`,
       `Vasilhame: ${c.produtos?.nome || "-"}  |  Quantidade: ${c.quantidade}`,
@@ -214,18 +247,96 @@ export default function Comodatos() {
     y = Math.min(Math.max(y + 16, 160), 255);
     pdf.line(16, y, 90, y); pdf.line(116, y, 190, y);
     pdf.text("Cedente", 42, y + 6); pdf.text("Cliente / responsável", 136, y + 6);
-    const url = URL.createObjectURL(pdf.output("blob"));
-    if (request !== comprovanteRequest.current) {
-      URL.revokeObjectURL(url);
-      return;
+    if (assinatura) {
+      pdf.addImage(assinatura.imagem, "PNG", 120, y - 24, 64, 22);
+      pdf.setFontSize(8);
+      pdf.text(`Aceite eletrônico manuscrito: ${assinatura.nome}`, 116, y + 12);
+      pdf.text(`Registrado em ${format(assinatura.data, "dd/MM/yyyy HH:mm")}`, 116, y + 17);
     }
-    comprovanteUrl.current = url;
-    setComprovante({ url, nome, carregando: false });
+    return pdf;
+  };
+
+  const buscarDadosCliente = async (clienteId: string) => {
+    const { data, error } = await supabase.from("clientes")
+      .select("nome, cpf, cnpj, endereco, numero, cidade, telefone")
+      .eq("id", clienteId).maybeSingle();
+    if (error) throw error;
+    return data;
+  };
+
+  const calcularSha256 = async (bytes: ArrayBuffer) => {
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  };
+
+  const imprimirComprovante = async (c: any) => {
+    fecharComprovante();
+    const request = comprovanteRequest.current;
+    const formal = c.modalidade !== "rapido";
+    const nome = `${formal ? "termo" : "comprovante"}-comodato-${c.id.slice(0, 8)}.pdf`;
+    setComprovante({ url: null, nome, carregando: true });
+    try {
+      let blob: Blob;
+      if (c.assinatura_pdf_path) {
+        const { data, error } = await supabase.storage.from("comodato-termos").download(c.assinatura_pdf_path);
+        if (error || !data) throw error || new Error("Documento assinado não encontrado.");
+        if (c.assinatura_sha256 && await calcularSha256(await data.arrayBuffer()) !== c.assinatura_sha256) {
+          throw new Error("A integridade do termo assinado não pôde ser confirmada.");
+        }
+        blob = data;
+      } else {
+        const cliente = await buscarDadosCliente(c.cliente_id);
+        blob = montarPdfComodato(c, cliente).output("blob");
+      }
+      if (request !== comprovanteRequest.current) return;
+      const url = URL.createObjectURL(blob);
+      comprovanteUrl.current = url;
+      setComprovante({ url, nome, carregando: false });
     } catch (error) {
       if (request !== comprovanteRequest.current) return;
       const mensagem = error instanceof Error ? error.message : "Não foi possível gerar o PDF.";
       setComprovante({ url: null, nome, carregando: false, erro: mensagem });
       toast({ title: "Erro ao gerar comprovante", description: mensagem, variant: "destructive" });
+    }
+  };
+
+  const assinarComodato = async () => {
+    const c = comodatoParaAssinar;
+    const nome = nomeAssinante.trim();
+    if (!c || !empresa?.id || !unidadeAtual?.id) return;
+    if (c.assinatura_pdf_path) {
+      toast({ title: "Termo já assinado", description: "A assinatura registrada não pode ser substituída.", variant: "destructive" });
+      return;
+    }
+    if (nome.length < 2 || !aceiteAssinatura || !assinaturaRef.current || assinaturaRef.current.isEmpty()) {
+      toast({ title: "Assinatura incompleta", description: "Informe o nome, assine no quadro e confirme o aceite.", variant: "destructive" });
+      return;
+    }
+    setSalvandoAssinatura(true);
+    try {
+      const cliente = await buscarDadosCliente(c.cliente_id);
+      if (!cliente) throw new Error("Cliente do comodato não encontrado.");
+      const imagem = assinaturaRef.current.getCanvas().toDataURL("image/png");
+      const pdf = montarPdfComodato(c, cliente, { imagem, nome, data: new Date() });
+      const bytes = pdf.output("arraybuffer");
+      const sha256 = await calcularSha256(bytes);
+      const path = `${empresa.id}/${c.id}/${crypto.randomUUID()}.pdf`;
+      const { error: uploadError } = await supabase.storage.from("comodato-termos")
+        .upload(path, new Blob([bytes], { type: "application/pdf" }), { contentType: "application/pdf", upsert: false });
+      if (uploadError) throw uploadError;
+      const { data: atualizado, error: updateError } = await supabase.from("comodatos")
+        .update({ assinatura_pdf_path: path, assinatura_sha256: sha256, assinatura_nome: nome })
+        .eq("id", c.id).eq("unidade_id", unidadeAtual.id).is("assinatura_pdf_path", null)
+        .select("id").maybeSingle();
+      if (updateError || !atualizado) throw updateError || new Error("O termo já foi assinado ou foi alterado por outro usuário.");
+      await queryClient.invalidateQueries({ queryKey: ["comodatos", unidadeAtual.id] });
+      setAssinaturaComodatoId(null);
+      setComodatoSelecionadoId(c.id);
+      toast({ title: "Termo assinado", description: "O PDF assinado foi guardado de forma privada e está disponível no comprovante." });
+    } catch (error) {
+      toast({ title: "Não foi possível salvar a assinatura", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" });
+    } finally {
+      setSalvandoAssinatura(false);
     }
   };
 
@@ -245,6 +356,46 @@ export default function Comodatos() {
     <MainLayout>
       <Header title="Comodatos" subtitle="Controle de vasilhames emprestados a clientes" />
       <div className="p-3 sm:p-6 space-y-6">
+        <Dialog open={!!comodatoSelecionadoId} onOpenChange={(open) => { if (!open) setComodatoSelecionadoId(null); }}>
+          <DialogContent className="max-h-[92dvh] max-w-xl overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Comodato de {comodatoSelecionado?.clientes?.nome || "cliente"}</DialogTitle>
+              <p className="text-sm text-muted-foreground">{comodatoSelecionado?.produtos?.nome || "Vasilhame"} · {comodatoSelecionado?.modalidade === "rapido" ? "Empréstimo rápido" : "Termo formal"}</p>
+            </DialogHeader>
+            {comodatoSelecionado && <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-xl border bg-muted/30 p-3"><p className="text-xs text-muted-foreground">Emprestados</p><p className="text-xl font-bold">{comodatoSelecionado.quantidade}</p></div>
+                <div className="rounded-xl border bg-muted/30 p-3"><p className="text-xs text-muted-foreground">Devolvidos</p><p className="text-xl font-bold">{Number(comodatoSelecionado.quantidade_devolvida || 0)}</p></div>
+                <div className="rounded-xl border bg-primary/5 p-3"><p className="text-xs text-muted-foreground">Pendentes</p><p className="text-xl font-bold text-primary">{Math.max(0, comodatoSelecionado.quantidade - Number(comodatoSelecionado.quantidade_devolvida || 0))}</p></div>
+              </div>
+              <div className="rounded-xl border p-4 text-sm space-y-2">
+                <div className="flex justify-between gap-3"><span className="text-muted-foreground">Última compra nesta unidade</span><strong>{carregandoUltimaCompra ? "Carregando..." : erroUltimaCompra ? "Não foi possível consultar" : ultimaCompra ? format(new Date(ultimaCompra.data_entrega || ultimaCompra.created_at), "dd/MM/yyyy") : "Nenhuma venda concluída"}</strong></div>
+                {ultimaCompra && <div className="flex justify-between gap-3"><span className="text-muted-foreground">Pedido</span><span>#{ultimaCompra.numero_sequencial || ultimaCompra.id.slice(0, 8)} · R$ {Number(ultimaCompra.valor_total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></div>}
+                <div className="flex justify-between gap-3"><span className="text-muted-foreground">Emprestado em</span><span>{format(parseLocalDate(comodatoSelecionado.data_emprestimo), "dd/MM/yyyy")}</span></div>
+                <div className="flex justify-between gap-3"><span className="text-muted-foreground">Devolver até</span><span>{comodatoSelecionado.prazo_devolucao ? format(parseLocalDate(comodatoSelecionado.prazo_devolucao), "dd/MM/yyyy") : "A combinar"}</span></div>
+                <div className="flex justify-between gap-3"><span className="text-muted-foreground">Reposição por unidade não devolvida</span><span>R$ {Number(comodatoSelecionado.deposito || 0).toFixed(2)}</span></div>
+              </div>
+              <div className="rounded-xl border p-4 text-sm">
+                {comodatoSelecionado.assinatura_em ? <><p className="font-medium text-success">Termo assinado por {comodatoSelecionado.assinatura_nome}</p><p className="text-muted-foreground">Em {format(new Date(comodatoSelecionado.assinatura_em), "dd/MM/yyyy HH:mm")}. A cópia assinada não pode ser alterada.</p></> : <><p className="font-medium">Aguardando assinatura</p><p className="text-muted-foreground">O cliente pode assinar com o dedo neste aparelho antes ou depois da entrega.</p></>}
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <Button variant="outline" onClick={() => { setComodatoSelecionadoId(null); imprimirComprovante(comodatoSelecionado); }}><Printer className="mr-2 h-4 w-4" />Ver {comodatoSelecionado.assinatura_pdf_path ? "termo assinado" : "comprovante"}</Button>
+                {!comodatoSelecionado.assinatura_pdf_path && <Button onClick={() => { setNomeAssinante(comodatoSelecionado.responsavel_entrega || comodatoSelecionado.clientes?.nome || ""); setAceiteAssinatura(false); setComodatoSelecionadoId(null); setAssinaturaComodatoId(comodatoSelecionado.id); }}><PenLine className="mr-2 h-4 w-4" />Assinar no celular</Button>}
+                {comodatoSelecionado.status === "ativo" && <Button variant="secondary" onClick={() => { abrirDevolucao(comodatoSelecionado); setComodatoSelecionadoId(null); }}><RotateCcw className="mr-2 h-4 w-4" />Registrar devolução</Button>}
+              </div>
+            </div>}
+          </DialogContent>
+        </Dialog>
+        <Dialog open={!!assinaturaComodatoId} onOpenChange={(open) => { if (!open && !salvandoAssinatura) setAssinaturaComodatoId(null); }}>
+          <DialogContent className="max-h-[92dvh] max-w-lg overflow-y-auto">
+            <DialogHeader><DialogTitle>Assinar termo de comodato</DialogTitle></DialogHeader>
+            <p className="text-sm text-muted-foreground">{comodatoParaAssinar?.clientes?.nome} · {comodatoParaAssinar?.quantidade} {comodatoParaAssinar?.produtos?.nome}. A assinatura será inserida no PDF e o documento ficará guardado sem possibilidade de substituição.</p>
+            <div className="space-y-2"><Label htmlFor="nome-assinante-comodato">Nome de quem assina *</Label><Input id="nome-assinante-comodato" value={nomeAssinante} onChange={(e) => setNomeAssinante(e.target.value)} /></div>
+            <div className="space-y-2"><Label>Assinatura com o dedo *</Label><div ref={assinaturaContainerRef} className="overflow-hidden rounded-xl border bg-white touch-none"><SignatureCanvas ref={assinaturaRef} penColor="#172554" canvasProps={{ className: "block h-[190px] w-full bg-white", style: { touchAction: "none" } }} /></div><Button variant="ghost" size="sm" onClick={() => assinaturaRef.current?.clear()}><RotateCcw className="mr-1 h-4 w-4" />Limpar assinatura</Button></div>
+            <label className="flex items-start gap-3 rounded-xl border bg-muted/30 p-3 text-sm"><input type="checkbox" checked={aceiteAssinatura} onChange={(e) => setAceiteAssinatura(e.target.checked)} className="mt-1" /><span>Li o termo e confirmo o empréstimo dos vasilhames, o prazo de devolução e o custo de reposição apenas em caso de perda ou não devolução. Esta é uma assinatura eletrônica manuscrita, não uma assinatura com certificado ICP-Brasil.</span></label>
+            <div className="flex justify-end gap-2"><Button variant="outline" disabled={salvandoAssinatura} onClick={() => setAssinaturaComodatoId(null)}>Cancelar</Button><Button disabled={salvandoAssinatura} onClick={assinarComodato}>{salvandoAssinatura ? "Salvando termo..." : "Confirmar e assinar"}</Button></div>
+          </DialogContent>
+        </Dialog>
         <Dialog open={!!comprovante} onOpenChange={(open) => { if (!open) fecharComprovante(); }}>
           <DialogContent className="flex h-[90dvh] max-w-4xl flex-col overflow-hidden p-4 sm:p-6">
             <DialogHeader><DialogTitle>Comprovante do comodato</DialogTitle></DialogHeader>
@@ -270,7 +421,7 @@ export default function Comodatos() {
         </Dialog>
         <EstoquePageHeader
           title="Vasilhames em comodato"
-          description="Empréstimos ativos, prazos e depósitos por cliente"
+          description="Empréstimos ativos, prazos e custo de reposição por cliente"
           actions={
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
@@ -391,6 +542,7 @@ export default function Comodatos() {
                 const diasRestantes = c.prazo_devolucao ? differenceInDays(parseLocalDate(c.prazo_devolucao), new Date()) : null;
                 return (
                   <div key={c.id} className={`border rounded-lg p-3 ${vencido ? "border-destructive/30 bg-destructive/5" : ""}`}>
+                    <button type="button" className="block w-full text-left" onClick={() => setComodatoSelecionadoId(c.id)} aria-label={`Ver detalhes do comodato de ${c.clientes?.nome || "cliente"}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{c.clientes?.nome || "—"}</p>
@@ -403,6 +555,8 @@ export default function Comodatos() {
                       <span>Reposição: R$ {Number(c.deposito || 0).toFixed(2)} / un.</span>
                       <span>Prazo: {c.prazo_devolucao ? format(parseLocalDate(c.prazo_devolucao), "dd/MM/yy") : "—"}{diasRestantes !== null && c.status === "ativo" && ` (${diasRestantes > 0 ? `${diasRestantes}d` : `${Math.abs(diasRestantes)}d atrás`})`}</span>
                     </div>
+                    <p className="mt-2 text-xs font-medium text-primary">Toque para ver compras, devoluções e assinatura</p>
+                    </button>
                     <div className="mt-2 flex gap-2">
                       <Button variant="outline" size="sm" className="flex-1" onClick={() => imprimirComprovante(c)}><Printer className="mr-1 h-3.5 w-3.5" /> {c.modalidade === "rapido" ? "Comprovante" : "Termo"}</Button>
                       {c.status === "ativo" && <Button variant="outline" size="sm" className="flex-1" onClick={() => abrirDevolucao(c)} disabled={devolverComodato.isPending}><RotateCcw className="mr-1 h-3.5 w-3.5" /> Devolver</Button>}
@@ -454,6 +608,7 @@ export default function Comodatos() {
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex justify-center gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => setComodatoSelecionadoId(c.id)}>Detalhes</Button>
                             <Button variant="ghost" size="sm" onClick={() => imprimirComprovante(c)}><Printer className="mr-1 h-3.5 w-3.5" /> {c.modalidade === "rapido" ? "Comprovante" : "Termo"}</Button>
                             {c.status === "ativo" && <Button variant="ghost" size="sm" onClick={() => abrirDevolucao(c)} disabled={devolverComodato.isPending}><RotateCcw className="mr-1 h-3.5 w-3.5" /> Devolver</Button>}
                           </div>

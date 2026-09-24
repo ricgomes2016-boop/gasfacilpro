@@ -2406,6 +2406,11 @@ export type Database = {
       }
       comodatos: {
         Row: {
+          assinatura_em: string | null
+          assinatura_nome: string | null
+          assinatura_pdf_path: string | null
+          assinatura_sha256: string | null
+          assinatura_usuario_id: string | null
           cliente_id: string
           created_at: string
           data_devolucao: string | null
@@ -2427,6 +2432,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assinatura_em?: string | null
+          assinatura_nome?: string | null
+          assinatura_pdf_path?: string | null
+          assinatura_sha256?: string | null
+          assinatura_usuario_id?: string | null
           cliente_id: string
           created_at?: string
           data_devolucao?: string | null
@@ -2448,6 +2458,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assinatura_em?: string | null
+          assinatura_nome?: string | null
+          assinatura_pdf_path?: string | null
+          assinatura_sha256?: string | null
+          assinatura_usuario_id?: string | null
           cliente_id?: string
           created_at?: string
           data_devolucao?: string | null
