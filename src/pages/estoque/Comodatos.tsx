@@ -37,6 +37,7 @@ export default function Comodatos() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [acrescimoOrigemId, setAcrescimoOrigemId] = useState<string | null>(null);
   const [filtro, setFiltro] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [devolucao, setDevolucao] = useState<{ id: string; pendente: number; nome: string } | null>(null);
@@ -160,7 +161,7 @@ export default function Comodatos() {
         // Campo legado; representa custo unitário de reposição, nunca um recebimento de garantia.
         deposito: custoReposicao,
         prazo_devolucao: format(addDays(new Date(), prazoDias), "yyyy-MM-dd"),
-        observacoes: form.observacoes || null,
+        observacoes: [acrescimoOrigemId && `Empréstimo adicional ao comodato ${acrescimoOrigemId.slice(0, 8).toUpperCase()}.`, form.observacoes.trim()].filter(Boolean).join(" ") || null,
         unidade_id: unidadeAtual.id,
         status: "ativo",
         modalidade: form.modalidade,
@@ -175,8 +176,9 @@ export default function Comodatos() {
       queryClient.invalidateQueries({ queryKey: ["comodatos"] });
       queryClient.invalidateQueries({ queryKey: ["comodatos-produtos"] });
       queryClient.invalidateQueries({ queryKey: ["produtos"] });
-      toast({ title: "Comodato registrado!" });
+      toast({ title: acrescimoOrigemId ? "Empréstimo adicional registrado!" : "Comodato registrado!" });
       setDialogOpen(false);
+      setAcrescimoOrigemId(null);
       setForm({ cliente_id: "", produto_id: "", quantidade: "1", deposito: "0", prazo_dias: "2", observacoes: "", modalidade: "rapido", responsavel_entrega: "", documento_referencia: "", local_entrega: "", finalidade: "" });
       setClienteNome("");
     },
@@ -209,6 +211,27 @@ export default function Comodatos() {
     const pendente = c.quantidade - Number(c.quantidade_devolvida || 0);
     setQtdDevolucao(String(pendente));
     setDevolucao({ id: c.id, pendente, nome: c.produtos?.nome || "Vasilhame" });
+  };
+
+  const abrirEmprestimoAdicional = (c: any) => {
+    const produto = produtos.find((p: any) => p.id === c.produto_id);
+    setForm({
+      cliente_id: c.cliente_id,
+      produto_id: c.produto_id,
+      quantidade: "1",
+      deposito: Number(c.deposito ?? produto?.preco_custo ?? 0).toFixed(2),
+      prazo_dias: c.modalidade === "rapido" ? "2" : "90",
+      observacoes: "",
+      modalidade: c.modalidade === "rapido" ? "rapido" : "formal",
+      responsavel_entrega: c.responsavel_entrega || "",
+      documento_referencia: c.documento_referencia || "",
+      local_entrega: c.local_entrega || "",
+      finalidade: c.finalidade || "",
+    });
+    setClienteNome(c.clientes?.nome || "");
+    setAcrescimoOrigemId(c.id);
+    setComodatoSelecionadoId(null);
+    setDialogOpen(true);
   };
 
   const montarPdfComodato = (c: any, cliente: any, assinatura?: { imagem: string; nome: string; data: Date }, documento: "termo" | "extrato" = "termo") => {
@@ -373,6 +396,7 @@ export default function Comodatos() {
                 <Button variant="outline" onClick={() => { setComodatoSelecionadoId(null); imprimirComprovante(comodatoSelecionado); }}><Printer className="mr-2 h-4 w-4" />Ver {comodatoSelecionado.assinatura_pdf_path ? "termo assinado" : "comprovante"}</Button>
                 {comodatoSelecionado.assinatura_pdf_path && <Button variant="outline" onClick={() => { setComodatoSelecionadoId(null); imprimirComprovante(comodatoSelecionado, true); }}>Extrato atual</Button>}
                 {!comodatoSelecionado.assinatura_pdf_path && <Button onClick={() => { setNomeAssinante(comodatoSelecionado.responsavel_entrega || comodatoSelecionado.clientes?.nome || ""); setAceiteAssinatura(false); setComodatoSelecionadoId(null); setAssinaturaComodatoId(comodatoSelecionado.id); }}><PenLine className="mr-2 h-4 w-4" />Assinar no celular</Button>}
+                {comodatoSelecionado.status === "ativo" && <Button variant="outline" onClick={() => abrirEmprestimoAdicional(comodatoSelecionado)}><Plus className="mr-2 h-4 w-4" />Emprestar mais</Button>}
                 {comodatoSelecionado.status === "ativo" && <Button variant="secondary" onClick={() => { abrirDevolucao(comodatoSelecionado); setComodatoSelecionadoId(null); }}><RotateCcw className="mr-2 h-4 w-4" />Registrar devolução</Button>}
               </div>
             </div>}
@@ -415,15 +439,15 @@ export default function Comodatos() {
           title="Vasilhames em comodato"
           description="Empréstimos ativos, prazos e custo de reposição por cliente"
           actions={
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setAcrescimoOrigemId(null); }}>
               <DialogTrigger asChild>
-                <Button size="sm"><Plus className="h-4 w-4 mr-2" />Novo Comodato</Button>
+                <Button size="sm" onClick={() => setAcrescimoOrigemId(null)}><Plus className="h-4 w-4 mr-2" />Novo Comodato</Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[92dvh] overflow-y-auto p-0">
                 <div className="border-b bg-gradient-to-r from-primary/10 to-background px-5 py-5 sm:px-7">
                   <DialogHeader>
-                    <DialogTitle className="text-xl">Novo comodato de vasilhame</DialogTitle>
-                    <p className="text-sm text-muted-foreground">Registre a saída do vazio e acompanhe a devolução ao estoque.</p>
+                    <DialogTitle className="text-xl">{acrescimoOrigemId ? "Emprestar mais vasilhames" : "Novo comodato de vasilhame"}</DialogTitle>
+                    <p className="text-sm text-muted-foreground">{acrescimoOrigemId ? "Nova entrega para o mesmo cliente, com baixa própria no estoque e comprovante independente." : "Registre a saída do vazio e acompanhe a devolução ao estoque."}</p>
                   </DialogHeader>
                 </div>
                 <div className="grid gap-5 px-5 py-5 sm:px-7">
