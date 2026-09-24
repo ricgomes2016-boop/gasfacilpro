@@ -35,6 +35,10 @@ BEGIN
   RETURN NEW;
 END; $$;
 
+DROP TRIGGER IF EXISTS trig_comodato_emprestimo ON public.comodatos;
+CREATE TRIGGER trig_comodato_emprestimo AFTER INSERT ON public.comodatos
+FOR EACH ROW WHEN (NEW.status = 'ativo') EXECUTE FUNCTION public.fn_comodato_debita_estoque();
+
 CREATE OR REPLACE FUNCTION public.fn_comodato_credita_estoque()
 RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
 DECLARE v_delta integer;
