@@ -17,6 +17,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Unidade } from "@/contexts/UnidadeContext";
+import { diagnosticarCertificado } from "@/services/digitalSignature/signPdfClient";
 
 type AnyUnidade = Unidade & Record<string, any>;
 
@@ -93,11 +94,6 @@ export default function UnidadesConfig() {
     if (certAny) {
       if (!certConfigured) errs.push("Certificado A1: envie o arquivo .pfx ou .p12.");
       if (!has(u.certificado_a1_senha)) errs.push("Certificado A1: informe a senha.");
-      if (has(u.certificado_a1_validade)) {
-        const d = new Date(u.certificado_a1_validade);
-        if (isNaN(d.getTime())) errs.push("Certificado A1: data de validade inválida.");
-        else if (d < new Date(new Date().toDateString())) errs.push("Certificado A1 está vencido — substitua antes de emitir notas.");
-      }
     }
 
     const cscAny = has(u.nfce_csc_id) || has(u.nfce_csc_token);
@@ -185,9 +181,7 @@ export default function UnidadesConfig() {
         bairros_atendidos: u.bairros_atendidos || null,
         horario_abertura: u.horario_abertura || "07:00",
         horario_fechamento: u.horario_fechamento || "18:00",
-        // Certificado (path e senha tratados de forma restrita)
-        certificado_a1_validade: u.certificado_a1_validade || null,
-        certificado_a1_titular: u.certificado_a1_titular || null,
+        // Validade e titular são extraídos do PFX no servidor, nunca informados manualmente.
         // NFe / NFC-e / CT-e (tokens tratados via RPC)
         nfe_ambiente: u.nfe_ambiente || "homologacao",
         nfe_serie: numOrNull(u.nfe_serie),
@@ -241,6 +235,13 @@ export default function UnidadesConfig() {
         if (!certStatus?.[0]?.certificado_a1_configurado) {
           throw new Error("O arquivo e a senha do certificado não ficaram vinculados à unidade. Reabra a aba Fiscal e tente salvar novamente.");
         }
+        const resultado = await diagnosticarCertificado(u.id);
+        if (!resultado.diagnostico || !resultado.metadata_synced) {
+          throw new Error(resultado.mensagem || "Não foi possível ler o certificado. Confira o arquivo e a senha.");
+        }
+        if (resultado.diagnostico.vencido) {
+          toast({ title: "Certificado vencido", description: "A validade foi lida do arquivo. Substitua o A1 antes de assinar documentos.", variant: "destructive" });
+        }
       }
 
       toast({ title: "Salvo!", description: `Dados de ${u.nome} atualizados.` });
@@ -284,7 +285,7 @@ export default function UnidadesConfig() {
         .from("certificados-fiscais")
         .upload(path, file, { upsert: true, contentType: "application/x-pkcs12" });
       if (error) throw error;
-      setEditingUnidade((atual) => atual?.id === unidadeId ? { ...atual, certificado_a1_path: path, certificado_a1_configurado: true } : atual);
+      setEditingUnidade((atual) => atual?.id === unidadeId ? { ...atual, certificado_a1_path: path, certificado_a1_configurado: true, certificado_a1_validade: null, certificado_a1_titular: null } : atual);
       toast({ title: "Certificado enviado", description: "Arquivo armazenado. Clique em Salvar para vinculá-lo à unidade." });
     } catch (e: any) {
       toast({ title: "Falha no upload", description: e.message, variant: "destructive" });
@@ -294,7 +295,7 @@ export default function UnidadesConfig() {
   };
 
   const certVencido = editingUnidade?.certificado_a1_validade
-    ? new Date(editingUnidade.certificado_a1_validade) < new Date()
+    ? new Date(`${editingUnidade.certificado_a1_validade}T23:59:59`) < new Date()
     : false;
 
   return (
@@ -626,26 +627,18 @@ export default function UnidadesConfig() {
                         </div>
                         <div className="grid gap-2">
                           <Label>Validade</Label>
-                          <Input
-                            type="date"
-                            value={editingUnidade.certificado_a1_validade || ""}
-                            onChange={(e) => setField("certificado_a1_validade", e.target.value)}
-                          />
+                          <Input type="text" readOnly value={editingUnidade.certificado_a1_validade ? new Date(`${editingUnidade.certificado_a1_validade}T12:00:00`).toLocaleDateString("pt-BR") : "Será lida do arquivo ao salvar"} />
                         </div>
                       </div>
                       <div className="grid gap-2">
                         <Label>Titular do Certificado</Label>
-                        <Input
-                          value={editingUnidade.certificado_a1_titular || ""}
-                          onChange={(e) => setField("certificado_a1_titular", e.target.value)}
-                          placeholder="Razão Social - CNPJ"
-                        />
+                        <Input readOnly value={editingUnidade.certificado_a1_titular || "Será lido do arquivo ao salvar"} />
                       </div>
                       {editingUnidade.certificado_a1_validade && (
                         <Alert variant={certVencido ? "destructive" : "default"}>
                           <AlertTriangle className="h-4 w-4" />
                           <AlertDescription>
-                            {certVencido ? "Certificado vencido" : `Válido até ${new Date(editingUnidade.certificado_a1_validade).toLocaleDateString("pt-BR")}`}
+                            {certVencido ? "Certificado vencido" : `Válido até ${new Date(`${editingUnidade.certificado_a1_validade}T12:00:00`).toLocaleDateString("pt-BR")}`}
                           </AlertDescription>
                         </Alert>
                       )}

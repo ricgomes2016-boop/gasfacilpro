@@ -10,6 +10,7 @@ import { TransferenciaPendentePopup } from "@/components/estoque/TransferenciaPe
 import { PedidoPendenteAlertProvider } from "@/components/alerts/PedidoPendenteAlertProvider";
 import { CalculatorPopover } from "@/components/shared/CalculatorPopover";
 import { ErpNotificationBanner } from "@/components/layout/ErpNotificationBanner";
+import { CertificadoVencimentoBanner } from "@/components/layout/CertificadoVencimentoBanner";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import { NovaVendaWindowsProvider } from "@/contexts/NovaVendaWindowsContext";
 import { NovaVendaWindowsHost } from "@/components/vendas/NovaVendaWindowsHost";
@@ -76,6 +77,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
         )}
       >
         <ErpNotificationBanner />
+        <CertificadoVencimentoBanner />
         {children}
       </main>
       {!isAiPage && <AiFloatingButton externalOpen={aiOpen} onExternalClose={() => setAiOpen(false)} />}

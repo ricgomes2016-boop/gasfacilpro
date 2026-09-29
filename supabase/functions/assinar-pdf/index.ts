@@ -61,8 +61,12 @@ function abrirPfx(pfxBytes: Uint8Array, senha: string): { p12: any; cert: any } 
     const asn1 = forge.asn1.fromDer(bin);
     const p12 = forge.pkcs12.pkcs12FromAsn1(asn1, senha);
     const certBags = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag] || [];
-    if (!certBags.length || !certBags[0].cert) return { erro: "pfx_sem_certificado" };
-    return { p12, cert: certBags[0].cert };
+    const certificados = certBags.map((bag: any) => bag.cert).filter(Boolean);
+    const titular = certificados.find((cert: any) =>
+      !cert.getExtension("basicConstraints")?.cA
+    );
+    if (!titular) return { erro: "pfx_sem_certificado" };
+    return { p12, cert: titular };
   } catch (e: any) {
     const msg = String(e?.message || e || "");
     if (/MAC|password|invalid|integrity/i.test(msg)) return { erro: "senha_invalida" };
@@ -352,10 +356,24 @@ Deno.serve(async (req) => {
     const vencido = fim < agora;
 
     if (acao === "diagnostico") {
+      const validadeExtraida = info.validade_fim.slice(0, 10);
+      if (unidade.certificado_a1_validade !== validadeExtraida || unidade.certificado_a1_titular !== info.titular) {
+        const { data: updated, error: metadataError } = await supabaseAdmin
+          .from("unidades")
+          .update({ certificado_a1_validade: validadeExtraida, certificado_a1_titular: info.titular })
+          .eq("id", unidadeId)
+          .eq("certificado_a1_path", pfxPath)
+          .select("id")
+          .maybeSingle();
+        if (metadataError || !updated) {
+          return json({ ok: false, motivo: "metadata_error", mensagem: "Não foi possível atualizar a validade do certificado." });
+        }
+      }
       return json({
         ok: !vencido,
         motivo: vencido ? "cert_vencido" : undefined,
         mensagem: vencido ? "Certificado vencido." : undefined,
+        metadata_synced: true,
         diagnostico: { ...info, dias_para_vencer: diasParaVencer, vencido },
       });
     }

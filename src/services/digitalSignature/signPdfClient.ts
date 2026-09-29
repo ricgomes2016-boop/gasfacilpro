@@ -58,6 +58,7 @@ export interface DiagnosticoCert {
 
 export interface DiagnosticoResultado {
   ok: boolean;
+  metadata_synced?: boolean;
   motivo?: string;
   mensagem?: string;
   diagnostico?: DiagnosticoCert;
@@ -70,7 +71,7 @@ export async function diagnosticarCertificado(unidadeId: string): Promise<Diagno
       body: { acao: "diagnostico", unidadeId },
     });
     if (error) return { ok: false, motivo: "network", mensagem: error.message };
-    return { ok: !!data?.ok, motivo: data?.motivo, mensagem: data?.mensagem, diagnostico: data?.diagnostico, raw: data };
+    return { ok: !!data?.ok, metadata_synced: data?.metadata_synced === true, motivo: data?.motivo, mensagem: data?.mensagem, diagnostico: data?.diagnostico, raw: data };
   } catch (e: any) {
     return { ok: false, motivo: "exception", mensagem: e?.message };
   }
