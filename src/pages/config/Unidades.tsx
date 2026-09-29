@@ -141,6 +141,10 @@ export default function UnidadesConfig() {
 
   const handleSave = async () => {
     if (!editingUnidade) return;
+    if (uploadingCert) {
+      toast({ title: "Aguarde o envio do certificado terminar antes de salvar.", variant: "destructive" });
+      return;
+    }
     const u = editingUnidade;
 
     const errs = validateFiscal(u);
@@ -216,8 +220,9 @@ export default function UnidadesConfig() {
         payload.certificado_a1_path = u.certificado_a1_path;
       }
 
-      const { error } = await supabase.from("unidades").update(payload).eq("id", u.id);
+      const { data: unidadeSalva, error } = await supabase.from("unidades").update(payload).eq("id", u.id).select("id").maybeSingle();
       if (error) throw error;
+      if (!unidadeSalva) throw new Error("A unidade não foi atualizada. Confira seu acesso e tente novamente.");
 
       // Salva credenciais sensíveis via RPC restrita a admin/gestor
       const { error: credErr } = await supabase.rpc("update_unidade_credenciais", {
@@ -229,6 +234,14 @@ export default function UnidadesConfig() {
         _contador_cpf_cnpj: u.contador_cpf_cnpj || null,
       });
       if (credErr) throw credErr;
+
+      if (certConfiguredOnSave(u)) {
+        const { data: certStatus, error: statusErr } = await supabase.rpc("get_unidade_certificado_status", { _unidade_id: u.id });
+        if (statusErr) throw statusErr;
+        if (!certStatus?.[0]?.certificado_a1_configurado) {
+          throw new Error("O arquivo e a senha do certificado não ficaram vinculados à unidade. Reabra a aba Fiscal e tente salvar novamente.");
+        }
+      }
 
       toast({ title: "Salvo!", description: `Dados de ${u.nome} atualizados.` });
       setEditingUnidade(null);
@@ -246,9 +259,10 @@ export default function UnidadesConfig() {
     return Number.isFinite(n) ? n : null;
   };
 
+  const certConfiguredOnSave = (u: AnyUnidade) => Boolean(u.certificado_a1_configurado || u.certificado_a1_path);
+
   const setField = (field: string, value: any) => {
-    if (!editingUnidade) return;
-    setEditingUnidade({ ...editingUnidade, [field]: value });
+    setEditingUnidade((atual) => atual ? { ...atual, [field]: value } : atual);
   };
 
   const handleUploadCertificado = async (file: File) => {
@@ -264,14 +278,14 @@ export default function UnidadesConfig() {
     }
     setUploadingCert(true);
     try {
-      const path = `${editingUnidade.empresa_id}/${editingUnidade.id}/certificado.${ext}`;
+      const unidadeId = editingUnidade.id;
+      const path = `${editingUnidade.empresa_id}/${unidadeId}/certificado.${ext}`;
       const { error } = await supabase.storage
         .from("certificados-fiscais")
         .upload(path, file, { upsert: true, contentType: "application/x-pkcs12" });
       if (error) throw error;
-      setField("certificado_a1_path", path);
-      setField("certificado_a1_configurado", true);
-      toast({ title: "Certificado enviado", description: "Arquivo armazenado com segurança." });
+      setEditingUnidade((atual) => atual?.id === unidadeId ? { ...atual, certificado_a1_path: path, certificado_a1_configurado: true } : atual);
+      toast({ title: "Certificado enviado", description: "Arquivo armazenado. Clique em Salvar para vinculá-lo à unidade." });
     } catch (e: any) {
       toast({ title: "Falha no upload", description: e.message, variant: "destructive" });
     } finally {
@@ -833,7 +847,7 @@ export default function UnidadesConfig() {
 
                 <div className="flex justify-end gap-2 pt-4 border-t mt-4">
                   <Button variant="outline" onClick={() => setEditingUnidade(null)}>Cancelar</Button>
-                  <Button onClick={handleSave} disabled={saving}>
+                  <Button onClick={handleSave} disabled={saving || uploadingCert}>
                     {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Salvar
                   </Button>
