@@ -432,7 +432,7 @@ export default function ConferenciaEstoque() {
                     </th>
                   </tr>
                   <tr>
-                    <th rowSpan={2} className="w-[210px] border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black text-white">
+                    <th rowSpan={2} className="sticky left-0 z-20 min-w-[210px] border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black text-white">
                       Lojas
                     </th>
                     {grupos.map((grupo) => (
@@ -468,9 +468,12 @@ export default function ConferenciaEstoque() {
                   ) : (
                     linhas.map((linha) => (
                       <tr key={linha.unidade.id} className="hover:bg-blue-50/40">
-                        <td className="border border-slate-900 bg-slate-100 px-2 py-1.5 font-black text-slate-950">
+                        <th scope="row" className="sticky left-0 z-10 min-w-[210px] max-w-[210px] break-words border border-slate-900 bg-slate-100 px-2 py-1.5 text-left font-black text-slate-950">
+                          <span className="block text-[10px] font-semibold uppercase text-slate-600">
+                            {linha.unidade.tipo === "matriz" ? "Matriz" : "Filial"}
+                          </span>
                           {linha.unidade.nome}
-                        </td>
+                        </th>
                         {grupos.flatMap((grupo) => [
                           <td key={`${linha.unidade.id}-${grupo.key}-cheio`} className="border border-slate-900 p-0">
                             <Input
