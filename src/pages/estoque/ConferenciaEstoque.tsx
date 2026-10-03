@@ -532,8 +532,8 @@ export default function ConferenciaEstoque() {
             linhas.map((linha) => (
               <Card key={linha.unidade.id} className="overflow-hidden border-slate-200 shadow-sm">
                 <CardContent className="p-0">
-                  <div className="border-b border-slate-200 bg-slate-900 px-4 py-3">
-                    <p className="text-base font-black text-white">{linha.unidade.nome}</p>
+                  <div className="border-b border-border bg-foreground px-4 py-3 text-background">
+                    <p className="break-words text-base font-black">{linha.unidade.nome}</p>
                   </div>
                   <div className="grid grid-cols-1 gap-2 p-3 xs:grid-cols-2">
                     {grupos.map((grupo) => (
