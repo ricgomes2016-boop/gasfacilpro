@@ -184,16 +184,25 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
         : tokens.slice().sort((a, b) => b.length - a.length).filter((t) => t !== normalize(primaryTerm)).slice(0, 3);
       const rpcTerms = Array.from(new Set([primaryTerm, ...extraTerms]));
 
-      const responses = await Promise.all(
+      const runAutocomplete = async (unidadeId: string | null) => Promise.all(
         rpcTerms.map((rpcTerm) => supabase.rpc("autocomplete_clientes_v2" as any, {
           _empresa_id: empresa.id,
-          _unidade_id: unidadeAtual?.id || null,
+          _unidade_id: unidadeId,
           _termo: rpcTerm,
           _limite: 80,
         }))
       );
 
-      const rows = responses.flatMap(({ data, error }) => (!error && data ? data as any[] : []));
+      const responses = await runAutocomplete(unidadeAtual?.id || null);
+      let rows = responses.flatMap(({ data, error }) => (!error && data ? data as any[] : []));
+
+      // Em migrações de filial para matriz, alguns clientes podem ficar apenas com
+      // empresa_id correto, mas sem vínculo atualizado em cliente_unidades.
+      // O fallback continua isolado por empresa, só remove o filtro de unidade.
+      if (rows.length === 0 && unidadeAtual?.id) {
+        const fallbackResponses = await runAutocomplete(null);
+        rows = fallbackResponses.flatMap(({ data, error }) => (!error && data ? data as any[] : []));
+      }
 
       if (rows.length > 0) {
         const uniqueRows = Array.from(new globalThis.Map<string, any>(rows.map((c) => [c.id, c])).values());
