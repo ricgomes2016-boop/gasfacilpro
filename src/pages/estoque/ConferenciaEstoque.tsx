@@ -406,9 +406,9 @@ export default function ConferenciaEstoque() {
                 </p>
                 <div className="grid grid-cols-1 gap-2 xs:grid-cols-3">
                   {([
-                    { label: "Cheios", total: resumo.cheios, valor: (k: GrupoKey) => resumo.porGrupo[k].cheio },
-                    { label: "Vazios", total: resumo.vazios, valor: (k: GrupoKey) => resumo.porGrupo[k].vazio },
-                    { label: "Total", total: resumo.total, valor: (k: GrupoKey) => resumo.porGrupo[k].cheio + resumo.porGrupo[k].vazio },
+                    { label: "Cheios", total: resumo.cheios, valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio },
+                    { label: "Vazios", total: resumo.vazios, valor: (k: GrupoProduto) => resumo.porGrupo[k].vazio },
+                    { label: "Total", total: resumo.total, valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio + resumo.porGrupo[k].vazio },
                   ]).map((card) => (
                     <div key={card.label} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                       <p className="text-[11px] font-semibold uppercase text-slate-500">{card.label}</p>
