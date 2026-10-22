@@ -185,11 +185,13 @@ export default function ConferenciaEstoque() {
         grupos.forEach((grupo) => {
           acc.cheios += linha.totais[grupo.key].cheio;
           acc.vazios += linha.totais[grupo.key].vazio;
+          acc.porGrupo[grupo.key].cheio += linha.totais[grupo.key].cheio;
+          acc.porGrupo[grupo.key].vazio += linha.totais[grupo.key].vazio;
         });
         acc.total += linha.totalGeral;
         return acc;
       },
-      { cheios: 0, vazios: 0, total: 0 }
+      { cheios: 0, vazios: 0, total: 0, porGrupo: criarTotaisZerados() }
     );
   }, [linhas]);
 
@@ -398,18 +400,24 @@ export default function ConferenciaEstoque() {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="text-[11px] font-semibold uppercase text-slate-500">Cheios</p>
-                  <p className="text-xl font-bold text-slate-950">{resumo.cheios}</p>
-                </div>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="text-[11px] font-semibold uppercase text-slate-500">Vazios</p>
-                  <p className="text-xl font-bold text-slate-950">{resumo.vazios}</p>
-                </div>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="text-[11px] font-semibold uppercase text-slate-500">Total</p>
-                  <p className="text-xl font-bold text-slate-950">{resumo.total}</p>
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase text-slate-500">
+                  Saldo inicial do dia {formatarDataBR(dataConferencia)}
+                </p>
+                <div className="grid grid-cols-1 gap-2 xs:grid-cols-3">
+                  {([
+                    { label: "Cheios", total: resumo.cheios, valor: (k: GrupoKey) => resumo.porGrupo[k].cheio },
+                    { label: "Vazios", total: resumo.vazios, valor: (k: GrupoKey) => resumo.porGrupo[k].vazio },
+                    { label: "Total", total: resumo.total, valor: (k: GrupoKey) => resumo.porGrupo[k].cheio + resumo.porGrupo[k].vazio },
+                  ]).map((card) => (
+                    <div key={card.label} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-[11px] font-semibold uppercase text-slate-500">{card.label}</p>
+                      <p className="text-xl font-bold text-slate-950">{card.total}</p>
+                      <p className="text-xs font-semibold text-slate-600">
+                        {grupos.map((g) => `${card.valor(g.key)} ${g.label}`).join(" · ")}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -427,8 +435,8 @@ export default function ConferenciaEstoque() {
               <table className="w-full min-w-[900px] border-collapse bg-white text-sm">
                 <thead>
                   <tr>
-                    <th colSpan={9} className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
-                      {formatarDataBR(dataConferencia)}
+                    <th colSpan={13} className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
+                      Saldo inicial do dia {formatarDataBR(dataConferencia)}
                     </th>
                   </tr>
                   <tr>
@@ -436,7 +444,7 @@ export default function ConferenciaEstoque() {
                       Lojas
                     </th>
                     {grupos.map((grupo) => (
-                      <th key={grupo.key} colSpan={2} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${grupo.tone}`}>
+                      <th key={grupo.key} colSpan={3} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${grupo.tone}`}>
                         {grupo.label}
                       </th>
                     ))}
@@ -449,19 +457,22 @@ export default function ConferenciaEstoque() {
                       <th key={`${grupo.key}-vazio`} className="border border-slate-900 bg-slate-200 px-3 py-1.5 font-black text-slate-950">
                         Vazio
                       </th>,
+                      <th key={`${grupo.key}-total`} className="border border-slate-900 bg-slate-300 px-3 py-1.5 font-black text-slate-950">
+                        Total
+                      </th>,
                     ])}
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading || unidadesLoading ? (
                     <tr>
-                      <td colSpan={9} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
+                      <td colSpan={13} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
                         Carregando conferência...
                       </td>
                     </tr>
                   ) : linhas.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
+                      <td colSpan={13} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
                         Nenhuma loja encontrada para o filtro selecionado.
                       </td>
                     </tr>
@@ -495,11 +506,28 @@ export default function ConferenciaEstoque() {
                               className="h-10 rounded-none border-0 text-center text-base font-black text-blue-700 shadow-none focus-visible:ring-2 focus-visible:ring-blue-500"
                             />
                           </td>,
+                          <td key={`${linha.unidade.id}-${grupo.key}-total`} className="border border-slate-900 bg-slate-100 px-2 text-center text-base font-black text-slate-950">
+                            {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}
+                          </td>,
                         ])}
                       </tr>
                     ))
                   )}
                 </tbody>
+                {linhas.length > 0 && !isLoading && !unidadesLoading && (
+                  <tfoot>
+                    <tr>
+                      <th scope="row" className="sticky left-0 z-10 border border-slate-900 bg-slate-800 px-2 py-1.5 text-left font-black text-white">
+                        Total geral
+                      </th>
+                      {grupos.flatMap((grupo) => [
+                        <td key={`tot-${grupo.key}-c`} className="border border-slate-900 bg-slate-200 text-center font-black">{resumo.porGrupo[grupo.key].cheio}</td>,
+                        <td key={`tot-${grupo.key}-v`} className="border border-slate-900 bg-slate-200 text-center font-black">{resumo.porGrupo[grupo.key].vazio}</td>,
+                        <td key={`tot-${grupo.key}-t`} className="border border-slate-900 bg-slate-300 text-center font-black">{resumo.porGrupo[grupo.key].cheio + resumo.porGrupo[grupo.key].vazio}</td>,
+                      ])}
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </CardContent>
@@ -562,6 +590,12 @@ export default function ConferenciaEstoque() {
                               className="h-9 rounded-md text-center text-lg font-black text-blue-700"
                             />
                           </div>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between rounded-md bg-white px-3 py-1.5 shadow-sm">
+                          <span className="text-[11px] font-semibold uppercase text-slate-500">Total</span>
+                          <span className="text-lg font-black text-slate-950">
+                            {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}
+                          </span>
                         </div>
                       </div>
                     ))}
