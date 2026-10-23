@@ -402,13 +402,14 @@ export default function ConferenciaEstoque() {
 
               <div className="space-y-1">
                 <p className="text-[11px] font-semibold uppercase text-slate-500">
-                  Saldo inicial do dia {formatarDataBR(dataConferencia)}
+                  Conferência do dia {formatarDataBR(dataConferencia)} · saldo inicial de {formatarDataBR(dataAnterior)}
                 </p>
-                <div className="grid grid-cols-1 gap-2 xs:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 lg:grid-cols-4">
                   {([
-                    { label: "Cheios", total: resumo.cheios, valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio },
+                    { label: "Saldo inicial", total: resumo.inicial, valor: (k: GrupoProduto) => resumo.porGrupo[k].inicial },
+                    { label: "Cheios (contagem)", total: resumo.cheios, valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio },
                     { label: "Vazios", total: resumo.vazios, valor: (k: GrupoProduto) => resumo.porGrupo[k].vazio },
-                    { label: "Total", total: resumo.total, valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio + resumo.porGrupo[k].vazio },
+                    { label: "Venda esperada", total: resumo.venda, valor: (k: GrupoProduto) => resumo.porGrupo[k].venda },
                   ]).map((card) => (
                     <div key={card.label} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                       <p className="text-[11px] font-semibold uppercase text-slate-500">{card.label}</p>
