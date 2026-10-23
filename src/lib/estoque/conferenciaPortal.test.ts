@@ -1,5 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { isMaster, validateCounts, validCountDate } from '../../../supabase/functions/estoque-conferencia-portal/security';
+import { isMaster, validateCounts, validCountDate, validMovement } from '../../../supabase/functions/estoque-conferencia-portal/security';
+
+describe('movimentos dos conferentes', () => {
+  const transfer = { action: 'transfer', unidade_id: 'origem', unidade_destino_id: 'filial', produto_grupo: 'P13', quantidade: 100 };
+  it('permite transferência de 100 somente com origem autorizada e filial válida', () => {
+    expect(validMovement(transfer, ['origem'], ['filial'])).toBe(true);
+    expect(validMovement(transfer, ['outra'], ['filial'])).toBe(false);
+    expect(validMovement(transfer, ['origem'], ['outra-empresa'])).toBe(false);
+  });
+  it('não permite transferência para a própria loja', () => {
+    expect(validMovement({ ...transfer, unidade_destino_id: 'origem' }, ['origem'], ['origem'])).toBe(false);
+  });
+  it('permite entrada de 100 e rejeita valores negativos e fracionados', () => {
+    const entry = { action: 'entry', unidade_id: 'origem', produto_grupo: 'P13', quantidade: 100 };
+    expect(validMovement(entry, ['origem'], [])).toBe(true);
+    expect(validMovement({ ...entry, quantidade: -100 }, ['origem'], [])).toBe(false);
+    expect(validMovement({ ...entry, quantidade: 1.5 }, ['origem'], [])).toBe(false);
+  });
+});
 
 describe('permissões do portal de conferência', () => {
   it('servidor aceita início de 23/10 para vendas de 22/10, mas não 23/10', () => {

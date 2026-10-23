@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { calcularFluxoConferencia } from "./conferenciaFluxo";
 import { datasApuracao, combinarContagens } from './conferenciaFluxo';
+import { saldoComEntradas } from './conferenciaFluxo';
+
+describe('saldo após entrada', () => {
+  it('100 cheios recebidos acrescentam 100 cheios e retiram 100 vazios', () => {
+    expect(saldoComEntradas({ cheio: 200, vazio: 300 }, 100)).toEqual({ cheio: 300, vazio: 200 });
+  });
+});
 
 describe('datas da contagem', () => {
   it('início de 23/10 apura vendas de 22/10', () => {

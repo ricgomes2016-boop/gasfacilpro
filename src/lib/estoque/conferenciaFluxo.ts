@@ -45,6 +45,11 @@ export interface SaldoCheioVazio {
   vazio: number;
 }
 
+/** A received full container replaces one empty container. */
+export function saldoComEntradas(saldo: SaldoCheioVazio, entrada: number): SaldoCheioVazio {
+  return { cheio: saldo.cheio + entrada, vazio: saldo.vazio - entrada };
+}
+
 /** Saldo inicial = ajuste manual do Master quando existir; senão, a contagem do dia anterior. */
 export function resolverSaldoInicial(ajuste: SaldoCheioVazio | null | undefined, anterior: SaldoCheioVazio | null | undefined): SaldoCheioVazio {
   if (ajuste) return { cheio: Number(ajuste.cheio) || 0, vazio: Number(ajuste.vazio) || 0 };

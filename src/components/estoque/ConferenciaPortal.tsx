@@ -11,6 +11,7 @@ import ConferenciaEstoque from '@/pages/estoque/ConferenciaEstoque';
 export function ConferenciaPortal() {
   const [user, setUser] = useState<User | null>(null);
   const [units, setUnits] = useState<Unidade[]>([]);
+  const [destinations, setDestinations] = useState<Unidade[]>([]);
   const [name, setName] = useState('');
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState('');
@@ -29,7 +30,7 @@ export function ConferenciaPortal() {
         setUser(validUser);
         if (validUser) {
           const result = await conferenciaApi({ action: 'session' });
-          if (active) { setUnits(result.unidades); setName(result.name); setError(''); }
+          if (active) { setUnits(result.unidades); setDestinations(result.destinos || result.unidades); setName(result.name); setError(''); }
         } else { setUnits([]); }
       } catch (e) { if (active) { setUnits([]); setError(e instanceof Error ? e.message : 'Acesso indisponível.'); } }
       finally { if (active) setReady(true); }
@@ -50,7 +51,7 @@ export function ConferenciaPortal() {
   };
   const logout = async () => { await conferenciaAuth.auth.signOut(); setUnits([]); setUser(null); setError(''); };
   if (!ready) return <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 aria-label="Carregando acesso" className="h-8 w-8 animate-spin text-primary" /></div>;
-  if (user && units.length) return <ConferenciaEstoque portal={{ unidades: units, userId: user.id, name, onSignOut: logout }} />;
+  if (user && units.length) return <ConferenciaEstoque portal={{ unidades: units, destinos: destinations, userId: user.id, name, onSignOut: logout }} />;
   return <main className="flex min-h-screen flex-col justify-center bg-background px-5 py-8 text-foreground">
     <div className="mx-auto w-full max-w-sm space-y-6">
       <div className="space-y-3"><ClipboardCheck className="h-12 w-12 text-primary" /><p className="text-sm font-semibold text-muted-foreground">Gás Fácil Pro · Pátio</p><h1 className="text-3xl font-bold">Conferência de estoque</h1></div>
