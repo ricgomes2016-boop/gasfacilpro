@@ -36,6 +36,13 @@
       "when": 1792758740363,
       "tag": "0004_estoque_conferencia_saldo_ajustes",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792763379845,
+      "tag": "0005_portal_conferentes_isolado",
+      "breakpoints": true
     }
   ]
 }
