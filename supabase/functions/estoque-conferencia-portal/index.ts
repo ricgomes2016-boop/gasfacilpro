@@ -1,0 +1,108 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { isMaster, validateCounts } from './security.ts';
+
+const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info', 'Content-Type': 'application/json' };
+const reply = (body: unknown) => new Response(JSON.stringify(body), { headers });
+const fail = (error: string) => reply({ ok: false, error });
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers });
+  try {
+    const url = Deno.env.get('SUPABASE_URL');
+    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!url || !key) return fail('Serviço indisponível.');
+    const db = createClient(url, key, { auth: { persistSession: false } });
+    const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
+    if (!token) return fail('Entre para continuar.');
+    const { data: { user }, error: authError } = await db.auth.getUser(token);
+    if (authError || !user) return fail('Sessão inválida. Entre novamente.');
+    const body = await req.json();
+    const { action } = body;
+    const check = (result: { error: unknown }) => { if (result.error) throw new Error('Não foi possível concluir a operação.'); };
+
+    if (['list', 'create', 'update_access'].includes(action)) {
+      const { data: roles, error } = await db.from('user_roles').select('role').eq('user_id', user.id);
+      if (error || !isMaster((roles || []).map((r) => r.role))) return fail('Somente Master pode gerenciar conferentes.');
+      const { data: profile } = await db.from('profiles').select('empresa_id').eq('user_id', user.id).single();
+      const empresaId = profile?.empresa_id;
+      if (!empresaId) return fail('Selecione uma empresa vinculada ao seu acesso.');
+      if (action === 'list') {
+        const result = await db.from('estoque_conferente_acessos').select('user_id, ativo').eq('empresa_id', empresaId);
+        check(result);
+        const users = await Promise.all((result.data || []).map(async (access) => {
+          const [p, units] = await Promise.all([
+            db.from('profiles').select('full_name, email').eq('user_id', access.user_id).single(),
+            db.from('estoque_conferente_unidades').select('unidade_id').eq('user_id', access.user_id).eq('empresa_id', empresaId),
+          ]);
+          check(p); check(units);
+          return { ...access, ...p.data, unidade_ids: (units.data || []).map((u) => u.unidade_id) };
+        }));
+        return reply({ ok: true, users });
+      }
+      if (action === 'update_access') {
+        if (typeof body.ativo !== 'boolean') return fail('Situação inválida.');
+        const result = await db.from('estoque_conferente_acessos').update({ ativo: body.ativo }).eq('user_id', body.user_id).eq('empresa_id', empresaId).select('user_id').single();
+        check(result);
+        return reply({ ok: true });
+      }
+      const ids = Array.isArray(body.unidade_ids) ? [...new Set(body.unidade_ids)] : [];
+      if (!ids.length || ids.some((id) => typeof id !== 'string') || typeof body.full_name !== 'string' || body.full_name.trim().length < 2
+        || typeof body.email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)
+        || typeof body.password !== 'string' || body.password.length < 8) return fail('Informe nome, e-mail, senha de pelo menos 8 caracteres e lojas.');
+      const units = await db.from('unidades').select('id').eq('empresa_id', empresaId).eq('ativo', true).in('id', ids);
+      if (units.error || units.data?.length !== ids.length) return fail('Uma das lojas não está autorizada.');
+      // Never reuse an existing account or replace its ERP privileges.
+      const created = await db.auth.admin.createUser({ email: body.email.trim().toLowerCase(), password: body.password, email_confirm: true, user_metadata: { full_name: body.full_name.trim() } });
+      if (created.error || !created.data.user) return fail('Não foi possível criar o acesso. Confira o e-mail e a senha; use um e-mail sem cadastro existente.');
+      const newId = created.data.user.id;
+      try {
+        // Native lifecycle creates a profile and cliente role. Dedicated accounts keep no ERP role or tenant membership.
+        check(await db.from('user_roles').delete().eq('user_id', newId));
+        check(await db.from('profiles').update({ empresa_id: null }).eq('user_id', newId));
+        check(await db.from('estoque_conferente_acessos').insert({ user_id: newId, empresa_id: empresaId, criado_por: user.id, role: 'conferente' }));
+        check(await db.from('estoque_conferente_unidades').insert(ids.map((id) => ({ user_id: newId, empresa_id: empresaId, unidade_id: id }))));
+      } catch {
+        await db.from('estoque_conferente_acessos').delete().eq('user_id', newId);
+        await db.auth.admin.deleteUser(newId);
+        return fail('Não foi possível liberar as lojas. O acesso não foi criado.');
+      }
+      return reply({ ok: true });
+    }
+
+    const access = await db.from('estoque_conferente_acessos').select('empresa_id, ativo').eq('user_id', user.id).single();
+    if (access.error || !access.data?.ativo) return fail('Acesso não liberado para a conferência.');
+    const empresaId = access.data.empresa_id;
+    const assigned = await db.from('estoque_conferente_unidades').select('unidade_id').eq('user_id', user.id).eq('empresa_id', empresaId);
+    check(assigned);
+    const ids = (assigned.data || []).map((u) => u.unidade_id);
+    if (!ids.length) return fail('Nenhuma loja autorizada.');
+    const units = await db.from('unidades').select('id, nome, tipo, ativo').eq('empresa_id', empresaId).eq('ativo', true).in('id', ids);
+    check(units);
+    const activeIds = (units.data || []).map((u) => u.id);
+    if (!activeIds.length) return fail('Nenhuma loja ativa autorizada.');
+    if (action === 'session') {
+      const p = await db.from('profiles').select('full_name').eq('user_id', user.id).single();
+      check(p);
+      return reply({ ok: true, unidades: units.data, name: p.data?.full_name, user_id: user.id });
+    }
+    if (typeof body.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.date) || !Number.isFinite(Date.parse(`${body.date}T12:00:00Z`))) return fail('Data inválida.');
+    if (action === 'save') {
+      if (!validateCounts(body.records, activeIds)) return fail('Contagem inválida ou loja não autorizada.');
+      check(await db.rpc('salvar_contagem_portal', { _user_id: user.id, _empresa_id: empresaId, _data: body.date, _registros: body.records }));
+      return reply({ ok: true });
+    }
+    if (action !== 'load') return fail('Operação não permitida.');
+    const previous = new Date(`${body.date}T12:00:00Z`);
+    previous.setUTCDate(previous.getUTCDate() - 1);
+    const [current, prev, movements, adjustments] = await Promise.all([
+      db.from('estoque_conferencias').select('unidade_id, produto_grupo, tipo_estoque, quantidade').eq('data_conferencia', body.date).in('unidade_id', activeIds),
+      db.from('estoque_conferencias').select('unidade_id, produto_grupo, tipo_estoque, quantidade').eq('data_conferencia', previous.toISOString().slice(0, 10)).in('unidade_id', activeIds),
+      db.from('estoque_conferencia_movimentos').select('id, unidade_id, unidade_destino_id, produto_grupo, quantidade, tipo').eq('data_conferencia', body.date).or(`unidade_id.in.(${activeIds.join(',')}),unidade_destino_id.in.(${activeIds.join(',')})`),
+      db.from('estoque_conferencia_saldo_ajustes').select('unidade_id, produto_grupo, cheio, vazio').eq('data_conferencia', body.date).in('unidade_id', activeIds),
+    ]);
+    [current, prev, movements, adjustments].forEach(check);
+    return reply({ ok: true, current: current.data, prev: prev.data, movs: movements.data, ajs: adjustments.data });
+  } catch {
+    return fail('Não foi possível concluir a operação. Tente novamente.');
+  }
+});
