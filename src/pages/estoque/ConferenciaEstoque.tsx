@@ -1166,7 +1166,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
               ];
               return (
                 <div key={g.key} className="p-4">
-                  <p className="mb-2 text-sm font-black uppercase tracking-wide text-foreground">{g.key === "Agua" ? "Água" : g.label}</p>
+                  <p className="venda-band-head -mx-4 -mt-4 mb-3 bg-slate-800 px-4 py-2 text-sm font-black uppercase tracking-wide">{g.key === "Agua" ? "Água" : g.label}</p>
                   <dl className="space-y-1">
                     {passos.map(([label, hint, v, strong]) => (
                       <div key={label} className={`flex items-baseline justify-between gap-2 ${strong ? "border-t border-border pt-1" : ""}`}>
