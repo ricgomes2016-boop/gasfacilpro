@@ -506,6 +506,85 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
     } catch { toast({ title: "Não foi possível excluir", variant: "destructive" }); }
   };
 
+  const [entDraft, setEntDraft] = useState<Record<string, Partial<Record<GrupoProduto, string>>>>({});
+  const [trDraft, setTrDraft] = useState<Record<string, Partial<Record<GrupoProduto, string>>>>({});
+  const [origemTransf, setOrigemTransf] = useState("nenhum");
+  useEffect(() => { if (unidades.length === 1) setOrigemTransf(unidades[0].id); }, [unidades]);
+  useEffect(() => { setEntDraft({}); setTrDraft({}); }, [dataContagem]);
+  const totalTransf = (origem: string, destino: string, grupo: GrupoProduto) =>
+    trsMov.filter((t) => t.unidade_id === origem && t.unidade_destino_id === destino && t.produto_grupo === grupo).reduce((a, t) => a + Number(t.quantidade || 0), 0);
+
+  const salvarEntradasLote = async () => {
+    const itens: { unidade: Unidade; grupo: GrupoProduto; quantidade: number }[] = [];
+    for (const [id, porGrupo] of Object.entries(entDraft)) {
+      const unidade = unidades.find((u) => u.id === id);
+      if (!unidade) continue;
+      for (const [g, valor] of Object.entries(porGrupo || {})) {
+        const quantidade = Number(valor || 0);
+        if (!Number.isSafeInteger(quantidade) || quantidade < 0) { toast({ title: "Quantidade inválida", description: `${unidade.nome} ${g}`, variant: "destructive" }); return; }
+        if (quantidade !== (entMov[id]?.[g as GrupoProduto] || 0)) itens.push({ unidade, grupo: g as GrupoProduto, quantidade });
+      }
+    }
+    if (!itens.length) { toast({ title: "Nenhuma entrada alterada" }); return; }
+    setIsSaving(true);
+    try {
+      for (const { unidade, grupo, quantidade } of itens) {
+        if (portal) await conferenciaApi({ action: "entry", ...movDatePortal, unidade_id: unidade.id, produto_grupo: grupo, quantidade });
+        else {
+          const existing = await (supabase as any).from("estoque_conferencia_movimentos").select("id").eq("data_conferencia", dataContagem).eq("unidade_id", unidade.id).eq("produto_grupo", grupo).eq("tipo", "entrada_manual").maybeSingle();
+          if (existing.error) throw existing.error;
+          const payload = { empresa_id: unidade.empresa_id, unidade_id: unidade.id, data_conferencia: dataContagem, produto_grupo: grupo, quantidade, criado_por: user?.id };
+          const result = existing.data ? await (supabase as any).from("estoque_conferencia_movimentos").update(payload).eq("id", existing.data.id) : await (supabase as any).from("estoque_conferencia_movimentos").insert({ ...payload, tipo: "entrada_manual" });
+          if (result.error) throw result.error;
+        }
+        const set = mesmoDia ? setEntradas : setEntradasHoje;
+        set((prev) => ({ ...prev, [unidade.id]: { ...(prev[unidade.id] || {}), [grupo]: quantidade } }));
+      }
+      setEntDraft({});
+      toast({ title: "Entradas salvas" });
+    } catch (error) { toast({ title: "Entrada não foi salva", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" }); }
+    finally { setIsSaving(false); }
+  };
+
+  const salvarTransferenciasLote = async () => {
+    const origem = unidades.find((u) => u.id === origemTransf);
+    if (!origem) return;
+    const itens: { destino: string; grupo: GrupoProduto; quantidade: number }[] = [];
+    for (const [destino, porGrupo] of Object.entries(trDraft)) {
+      for (const [g, valor] of Object.entries(porGrupo || {})) {
+        const quantidade = Number(valor || 0);
+        if (!Number.isSafeInteger(quantidade) || quantidade < 0) { toast({ title: "Quantidade inválida", variant: "destructive" }); return; }
+        if (quantidade !== totalTransf(origem.id, destino, g as GrupoProduto)) itens.push({ destino, grupo: g as GrupoProduto, quantidade });
+      }
+    }
+    if (!itens.length) { toast({ title: "Nenhuma transferência alterada" }); return; }
+    setIsSaving(true);
+    const setTrs = mesmoDia ? setTransferencias : setTransfHoje;
+    try {
+      for (const { destino, grupo, quantidade } of itens) {
+        const antigas = trsMov.filter((t) => t.unidade_id === origem.id && t.unidade_destino_id === destino && t.produto_grupo === grupo);
+        for (const t of antigas) {
+          if (portal) await conferenciaApi({ action: "delete_transfer", ...movDatePortal, id: t.id });
+          else { const { error } = await (supabase as any).from("estoque_conferencia_movimentos").delete().eq("id", t.id); if (error) throw error; }
+        }
+        setTrs((prev) => prev.filter((t) => !antigas.some((a) => a.id === t.id)));
+        if (quantidade > 0) {
+          let data: MovTransferencia;
+          if (portal) data = (await conferenciaApi({ action: "transfer", ...movDatePortal, unidade_id: origem.id, unidade_destino_id: destino, produto_grupo: grupo, quantidade })).movement;
+          else {
+            const result = await (supabase as any).from("estoque_conferencia_movimentos").insert({ data_conferencia: dataContagem, empresa_id: origem.empresa_id, unidade_id: origem.id, produto_grupo: grupo, tipo: "transferencia", quantidade, unidade_destino_id: destino, criado_por: user?.id }).select("id, unidade_id, unidade_destino_id, produto_grupo, quantidade").single();
+            if (result.error) throw result.error;
+            data = result.data;
+          }
+          setTrs((prev) => [...prev, data]);
+        }
+      }
+      setTrDraft({});
+      toast({ title: "Transferências salvas" });
+    } catch (error) { toast({ title: "Não foi possível salvar a transferência", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" }); }
+    finally { setIsSaving(false); }
+  };
+
   const montarLinhasExportacao = () =>
     linhas.map((linha) => [
       linha.unidade.nome,
