@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       if (units.error || units.data?.length !== ids.length) return fail('Uma das lojas não está autorizada.');
       // Never reuse an existing account or replace its ERP privileges.
       const created = await db.auth.admin.createUser({ email: body.email.trim().toLowerCase(), password: body.password, email_confirm: true, user_metadata: { full_name: body.full_name.trim() } });
-      if (created.error || !created.data.user) { console.error('create_user', created.error?.message); return fail('Não foi possível criar o acesso. Confira o e-mail e a senha; use um e-mail sem cadastro existente.'); }
+      if (created.error || !created.data.user) { console.error('create_user', created.error?.message); const m = created.error?.message || ''; if (/weak|pwned|guess/i.test(m)) return fail('Senha fraca ou muito conhecida. Use uma senha mais forte, misturando letras, números e símbolos (ex.: Patio@Usa2026).'); if (/already|registered|exists/i.test(m)) return fail('Este e-mail já tem cadastro. Use outro e-mail.'); return fail('Não foi possível criar o acesso. Confira o e-mail e a senha; use um e-mail sem cadastro existente.'); }
       const newId = created.data.user.id;
       try {
         // Native lifecycle creates a profile and cliente role. Dedicated accounts keep no ERP role or tenant membership.
