@@ -66,6 +66,9 @@ const colunasFluxo = [
   { key: "ven", label: "Venda", bg: "bg-emerald-200" },
 ];
 
+/** Largura fixa e idêntica da coluna "Lojas" nas três tabelas (contagem, entrada, transferência). */
+const COL_LOJAS = "w-[220px] min-w-[220px] max-w-[220px]";
+
 const grupos: { key: GrupoProduto; label: string; tone: string; mobileTone: string }[] = [
   { key: "P13", label: "P13", tone: "bg-[#e66f2f] text-white", mobileTone: "border-[#e66f2f]/30 bg-[#fff4ed]" },
   { key: "P20", label: "P20", tone: "bg-[#e66f2f] text-white", mobileTone: "border-[#e66f2f]/30 bg-[#fff4ed]" },

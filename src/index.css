@@ -965,6 +965,12 @@
     stroke: hsl(var(--muted-foreground)) !important;
   }
 
+  /* Coluna "Lojas" das tabelas de conferência: o override acima deixaria o
+     rótulo cinza sobre o fundo escuro da coluna, então o branco é preservado. */
+  .system-surface .conferencia-lojas-head {
+    color: hsl(0 0% 100%) !important;
+  }
+
   .saas-table tbody tr {
     @apply border-b border-border/50 transition-colors duration-150 last:border-0;
   }
