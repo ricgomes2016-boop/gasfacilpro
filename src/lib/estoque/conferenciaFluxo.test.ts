@@ -50,3 +50,17 @@ describe("resolverSaldoInicial", () => {
     expect(resolverSaldoInicial(null, { cheio: 500, vazio: 10 })).toEqual({ cheio: 500, vazio: 10 });
   });
 });
+
+import { calcularFluxoDia, calcularEstoqueAtual } from "./conferenciaFluxo";
+describe("fluxo do dia de venda", () => {
+  it("22/10: 812 + 456 = 1268; − 62 = 1206; − 1099 = 107 vendidos", () => {
+    const f = calcularFluxoDia({ inicial: 812, entradas: 456, transferencias: 62, fechamento: 1099 });
+    expect(f.total).toBe(1268);
+    expect(f.disponivel).toBe(1206);
+    expect(f.venda).toBe(107);
+  });
+  it("entrada de 23/10 (187) não altera a venda de 22/10 e soma no estoque atual de 23/10", () => {
+    expect(calcularFluxoDia({ inicial: 812, entradas: 456, transferencias: 62, fechamento: 1099 }).venda).toBe(107);
+    expect(calcularEstoqueAtual({ abertura: 1099, entradas: 187, transferencias: 0 })).toBe(1286);
+  });
+});
