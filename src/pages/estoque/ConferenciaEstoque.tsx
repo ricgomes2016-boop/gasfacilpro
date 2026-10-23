@@ -836,6 +836,10 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                 <FileSpreadsheet className="h-4 w-4" />
                 Excel
               </Button>
+              <Button size="sm" className="h-10 gap-2 bg-[#25D366] text-white hover:bg-[#1da851]" onClick={copiarWhatsApp}>
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp
+              </Button>
             </>
           }
         />
