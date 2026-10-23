@@ -3,4 +3,5 @@
 - Yard conference accounts use a separate native-auth client storage key and a scoped Edge Function; never attach their sessions to the ERP client or grant general tenant membership.
 - Store yard-account roles and unit authorization in protected dedicated tables; every conference API operation validates the user and authorized units server-side.
 - Store new conference counts by sales day with physical count date and opening/closing moment separately; read legacy counts as opening counts without rewriting them, so historical stock is preserved.
+- Conference movements store empresa_id validated against origin and destination units by a database trigger; derive it for older clients to preserve compatibility without weakening tenant isolation.
 - Send yard entry and transfer writes through the scoped conference function, validating origin authorization and same-company active destinations; never grant ERP access for movements.- Date conference entries/transfers by the physical day they happen; an opening count closes the previous sales day, so same-day movements belong to the next sale, never the one being closed.

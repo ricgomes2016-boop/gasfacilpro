@@ -5221,6 +5221,7 @@ export type Database = {
           created_at: string
           criado_por: string | null
           data_conferencia: string
+          empresa_id: string | null
           id: string
           produto_grupo: string
           quantidade: number
@@ -5233,6 +5234,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data_conferencia: string
+          empresa_id?: string | null
           id?: string
           produto_grupo: string
           quantidade?: number
@@ -5245,6 +5247,7 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data_conferencia?: string
+          empresa_id?: string | null
           id?: string
           produto_grupo?: string
           quantidade?: number
@@ -5253,7 +5256,15 @@ export type Database = {
           unidade_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "estoque_conferencia_movimentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       estoque_conferencia_saldo_ajustes: {
         Row: {

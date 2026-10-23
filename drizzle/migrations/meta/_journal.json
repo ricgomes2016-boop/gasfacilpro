@@ -64,6 +64,13 @@
       "when": 1792768801242,
       "tag": "0008_grant_conferente_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792790389072,
+      "tag": "0009_fix_conference_movement_empresa",
+      "breakpoints": true
     }
   ]
 }
