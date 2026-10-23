@@ -438,6 +438,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
   );
 
   const abrirTransferencia = (unidadeId: string, grupo: GrupoProduto) => {
+    if (!momentoConfirmado) { setPerguntarMomento(true); return; }
     setTransfDestino("nenhum");
     setTransfQtd("");
     setDialogTransf({ unidadeId, grupo });
