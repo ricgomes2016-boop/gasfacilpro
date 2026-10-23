@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, Download, FileSpreadsheet, Loader2, RefreshCw, Save, Store, Trash2 } from "lucide-react";
+import { Archive, CalendarDays, Download, FileSpreadsheet, Loader2, Package, PackageOpen, Pencil, RefreshCw, Save, Store, Trash2, TrendingUp } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { calcularFluxoConferencia } from "@/lib/estoque/conferenciaFluxo";
+import { calcularFluxoConferencia, resolverSaldoInicial, SaldoCheioVazio } from "@/lib/estoque/conferenciaFluxo";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -95,7 +96,10 @@ const criarValoresVazios = (lojas: Unidade[]): ValoresConferencia =>
 
 export default function ConferenciaEstoque() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, hasAnyRole } = useAuth();
+  const isMaster = hasAnyRole(["admin", "super_admin"]);
+  const colunas = isMaster ? colunasFluxo : colunasFluxo.filter((c) => ["che", "vaz", "tot"].includes(c.key));
+  const totalCols = 1 + grupos.length * colunas.length;
   const { unidades, unidadeAtual, loading: unidadesLoading } = useUnidade();
   const [dataConferencia, setDataConferencia] = useState(format(new Date(), "yyyy-MM-dd"));
   const [lojaFiltro, setLojaFiltro] = useState("todas");
@@ -103,7 +107,12 @@ export default function ConferenciaEstoque() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [modoPersistencia, setModoPersistencia] = useState<ModoPersistencia>("banco");
-  const [saldoAnterior, setSaldoAnterior] = useState<Record<string, Partial<Record<GrupoProduto, number>>>>({});
+  const [saldoAnterior, setSaldoAnterior] = useState<Record<string, Partial<Record<GrupoProduto, SaldoCheioVazio>>>>({});
+  const [ajustes, setAjustes] = useState<Record<string, Partial<Record<GrupoProduto, SaldoCheioVazio>>>>({});
+  const [confirmEdit, setConfirmEdit] = useState<{ unidadeId: string; grupo: GrupoProduto } | null>(null);
+  const [editSaldo, setEditSaldo] = useState<{ unidadeId: string; grupo: GrupoProduto } | null>(null);
+  const [editCheio, setEditCheio] = useState("");
+  const [editVazio, setEditVazio] = useState("");
   const [entradas, setEntradas] = useState<Record<string, Partial<Record<GrupoProduto, number>>>>({});
   const [transferencias, setTransferencias] = useState<MovTransferencia[]>([]);
   const [dialogTransf, setDialogTransf] = useState<{ unidadeId: string; grupo: GrupoProduto } | null>(null);
@@ -172,23 +181,36 @@ export default function ConferenciaEstoque() {
       setModoPersistencia("banco");
 
       const ids = unidades.map((u) => u.id);
-      const [{ data: prev }, { data: movs }] = await Promise.all([
+      const [{ data: prev }, { data: movs }, { data: ajs }] = await Promise.all([
         (supabase as any)
           .from("estoque_conferencias")
-          .select("unidade_id, produto_grupo, quantidade")
+          .select("unidade_id, produto_grupo, tipo_estoque, quantidade")
           .eq("data_conferencia", dataAnterior)
-          .eq("tipo_estoque", "cheio")
           .in("unidade_id", ids),
         (supabase as any)
           .from("estoque_conferencia_movimentos")
           .select("id, unidade_id, unidade_destino_id, produto_grupo, quantidade, tipo")
           .eq("data_conferencia", dataConferencia),
+        (supabase as any)
+          .from("estoque_conferencia_saldo_ajustes")
+          .select("unidade_id, produto_grupo, cheio, vazio")
+          .eq("data_conferencia", dataConferencia)
+          .in("unidade_id", ids),
       ]);
-      const saldo: Record<string, Partial<Record<GrupoProduto, number>>> = {};
+      const saldo: Record<string, Partial<Record<GrupoProduto, SaldoCheioVazio>>> = {};
       (prev || []).forEach((r: any) => {
         saldo[r.unidade_id] = saldo[r.unidade_id] || {};
-        saldo[r.unidade_id][r.produto_grupo as GrupoProduto] = Number(r.quantidade || 0);
+        const g = r.produto_grupo as GrupoProduto;
+        const atual = saldo[r.unidade_id][g] || { cheio: 0, vazio: 0 };
+        atual[r.tipo_estoque as TipoEstoque] = Number(r.quantidade || 0);
+        saldo[r.unidade_id][g] = atual;
       });
+      const aj: Record<string, Partial<Record<GrupoProduto, SaldoCheioVazio>>> = {};
+      (ajs || []).forEach((r: any) => {
+        aj[r.unidade_id] = aj[r.unidade_id] || {};
+        aj[r.unidade_id][r.produto_grupo as GrupoProduto] = { cheio: Number(r.cheio || 0), vazio: Number(r.vazio || 0) };
+      });
+      setAjustes(aj);
       const ent: Record<string, Partial<Record<GrupoProduto, number>>> = {};
       const trs: MovTransferencia[] = [];
       (movs || []).forEach((m: any) => {
@@ -249,9 +271,48 @@ export default function ConferenciaEstoque() {
       .filter((t) => t.unidade_destino_id === unidadeId && t.produto_grupo === grupo)
       .reduce((acc, t) => acc + Number(t.quantidade || 0), 0);
 
+  const saldoInicialDe = (unidadeId: string, grupo: GrupoProduto) =>
+    resolverSaldoInicial(ajustes[unidadeId]?.[grupo], saldoAnterior[unidadeId]?.[grupo]);
+
+  const pedirEdicaoSaldo = (unidadeId: string, grupo: GrupoProduto) => {
+    if (!isMaster) return;
+    setConfirmEdit({ unidadeId, grupo });
+  };
+
+  const confirmarEdicaoSaldo = () => {
+    if (!confirmEdit) return;
+    const s = saldoInicialDe(confirmEdit.unidadeId, confirmEdit.grupo);
+    setEditCheio(String(s.cheio));
+    setEditVazio(String(s.vazio));
+    setEditSaldo(confirmEdit);
+    setConfirmEdit(null);
+  };
+
+  const salvarSaldoInicial = async () => {
+    if (!editSaldo || !isMaster) return;
+    const cheio = Math.max(0, Math.floor(Number(editCheio || 0)));
+    const vazio = Math.max(0, Math.floor(Number(editVazio || 0)));
+    setIsSaving(true);
+    const { error } = await (supabase as any)
+      .from("estoque_conferencia_saldo_ajustes")
+      .upsert(
+        { data_conferencia: dataConferencia, unidade_id: editSaldo.unidadeId, produto_grupo: editSaldo.grupo, cheio, vazio, editado_por: user?.id || null, updated_at: new Date().toISOString() },
+        { onConflict: "data_conferencia,unidade_id,produto_grupo" }
+      );
+    setIsSaving(false);
+    if (error) {
+      console.error(error);
+      toast({ title: "Não foi possível salvar o saldo inicial", description: "Somente usuário Master pode editar.", variant: "destructive" });
+      return;
+    }
+    setAjustes((prev) => ({ ...prev, [editSaldo.unidadeId]: { ...(prev[editSaldo.unidadeId] || {}), [editSaldo.grupo]: { cheio, vazio } } }));
+    toast({ title: "Saldo inicial atualizado" });
+    setEditSaldo(null);
+  };
+
   const fluxo = (unidadeId: string, grupo: GrupoProduto) =>
     calcularFluxoConferencia({
-      saldoInicial: saldoAnterior[unidadeId]?.[grupo] || 0,
+      saldoInicial: saldoInicialDe(unidadeId, grupo).cheio,
       entrada: (entradas[unidadeId]?.[grupo] || 0) + entradaRecebida(unidadeId, grupo),
       transferencia: transferencias
         .filter((t) => t.unidade_id === unidadeId && t.produto_grupo === grupo)
@@ -261,15 +322,16 @@ export default function ConferenciaEstoque() {
 
   const resumo = useMemo(() => {
     const porGrupo = grupos.reduce((acc, g) => {
-      acc[g.key] = { inicial: 0, entrada: 0, transf: 0, cheio: 0, vazio: 0, venda: 0 };
+      acc[g.key] = { inicial: 0, inicialVazio: 0, entrada: 0, transf: 0, cheio: 0, vazio: 0, venda: 0 };
       return acc;
-    }, {} as Record<GrupoProduto, { inicial: number; entrada: number; transf: number; cheio: number; vazio: number; venda: number }>);
+    }, {} as Record<GrupoProduto, { inicial: number; inicialVazio: number; entrada: number; transf: number; cheio: number; vazio: number; venda: number }>);
     const acc = { inicial: 0, cheios: 0, vazios: 0, total: 0, venda: 0, porGrupo };
     linhas.forEach((linha) => {
       grupos.forEach((grupo) => {
         const f = fluxo(linha.unidade.id, grupo.key);
         const pg = porGrupo[grupo.key];
         pg.inicial += f.saldoInicial;
+        pg.inicialVazio += saldoInicialDe(linha.unidade.id, grupo.key).vazio;
         pg.entrada += f.entrada;
         pg.transf += f.transferencia;
         pg.cheio += linha.totais[grupo.key].cheio;
@@ -284,7 +346,7 @@ export default function ConferenciaEstoque() {
     });
     return acc;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linhas, saldoAnterior, entradas, transferencias]);
+  }, [linhas, saldoAnterior, ajustes, entradas, transferencias]);
 
   const nomeLoja = (id: string | null) => todasLojas.find((u) => u.id === id)?.nome || "Loja";
 
@@ -541,7 +603,7 @@ export default function ConferenciaEstoque() {
 
         <Card className="border-border/70 shadow-[0_12px_36px_rgba(15,23,42,0.07)]">
           <CardContent className="p-4">
-            <div className="grid gap-3 md:grid-cols-[180px_1fr_1fr_auto] md:items-end">
+            <div className="grid gap-3 md:grid-cols-[180px_1fr_auto] md:items-end">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Data da conferência
