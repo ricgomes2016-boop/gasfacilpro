@@ -5156,6 +5156,45 @@ export type Database = {
           },
         ]
       }
+      estoque_conferencia_movimentos: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          data_conferencia: string
+          id: string
+          produto_grupo: string
+          quantidade: number
+          tipo: string
+          unidade_destino_id: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          data_conferencia: string
+          id?: string
+          produto_grupo: string
+          quantidade?: number
+          tipo?: string
+          unidade_destino_id?: string | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          data_conferencia?: string
+          id?: string
+          produto_grupo?: string
+          quantidade?: number
+          tipo?: string
+          unidade_destino_id?: string | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       estoque_conferencias: {
         Row: {
           conferido_por: string | null
