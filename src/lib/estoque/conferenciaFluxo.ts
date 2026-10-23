@@ -55,3 +55,27 @@ export function resolverSaldoInicial(ajuste: SaldoCheioVazio | null | undefined,
   if (ajuste) return { cheio: Number(ajuste.cheio) || 0, vazio: Number(ajuste.vazio) || 0 };
   return { cheio: Number(anterior?.cheio) || 0, vazio: Number(anterior?.vazio) || 0 };
 }
+
+export interface FluxoDia {
+  inicial: number;
+  entradas: number;
+  total: number;
+  transferencias: number;
+  disponivel: number;
+  fechamento: number;
+  venda: number;
+}
+
+/** Fluxo de um dia de venda: inicial + entradas − transferências − contagem de fechamento. */
+export function calcularFluxoDia(input: { inicial: number; entradas: number; transferencias: number; fechamento: number }): FluxoDia {
+  const n = (v: number) => (Number.isFinite(v) ? Number(v) : 0);
+  const inicial = n(input.inicial), entradas = n(input.entradas), transferencias = n(input.transferencias), fechamento = n(input.fechamento);
+  const total = inicial + entradas;
+  const disponivel = total - transferencias;
+  return { inicial, entradas, total, transferencias, disponivel, fechamento, venda: disponivel - fechamento };
+}
+
+/** Estoque atual do dia em andamento: contagem de abertura + entradas − transferências do próprio dia. */
+export function calcularEstoqueAtual(input: { abertura: number; entradas: number; transferencias: number }) {
+  return (Number(input.abertura) || 0) + (Number(input.entradas) || 0) - (Number(input.transferencias) || 0);
+}
