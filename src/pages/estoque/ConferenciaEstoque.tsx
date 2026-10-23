@@ -432,84 +432,88 @@ export default function ConferenciaEstoque() {
         <Card className="hidden overflow-hidden border-slate-300 shadow-[0_14px_40px_rgba(15,23,42,0.08)] md:block">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] border-collapse bg-white text-sm">
+              <table className="w-full min-w-[1600px] border-collapse bg-white text-sm">
                 <thead>
                   <tr>
-                    <th colSpan={13} className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
-                      Saldo inicial do dia {formatarDataBR(dataConferencia)}
+                    <th colSpan={29} className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
+                      Conferência do dia {formatarDataBR(dataConferencia)} — saldo inicial = contagem de {formatarDataBR(dataAnterior)}
                     </th>
                   </tr>
                   <tr>
-                    <th rowSpan={2} className="sticky left-0 z-20 min-w-[210px] border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black text-white">
+                    <th rowSpan={2} className="sticky left-0 z-20 min-w-[180px] border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black text-white">
                       Lojas
                     </th>
                     {grupos.map((grupo) => (
-                      <th key={grupo.key} colSpan={3} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${grupo.tone}`}>
+                      <th key={grupo.key} colSpan={7} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${grupo.tone}`}>
                         {grupo.label}
                       </th>
                     ))}
                   </tr>
                   <tr>
-                    {grupos.flatMap((grupo) => [
-                      <th key={`${grupo.key}-cheio`} className="border border-slate-900 bg-slate-200 px-3 py-1.5 font-black text-slate-950">
-                        Cheio
-                      </th>,
-                      <th key={`${grupo.key}-vazio`} className="border border-slate-900 bg-slate-200 px-3 py-1.5 font-black text-slate-950">
-                        Vazio
-                      </th>,
-                      <th key={`${grupo.key}-total`} className="border border-slate-900 bg-slate-300 px-3 py-1.5 font-black text-slate-950">
-                        Total
-                      </th>,
-                    ])}
+                    {grupos.flatMap((grupo) =>
+                      colunasFluxo.map((col) => (
+                        <th key={`${grupo.key}-${col.key}`} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 ${col.bg}`}>
+                          {col.label}
+                        </th>
+                      ))
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading || unidadesLoading ? (
                     <tr>
-                      <td colSpan={13} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
+                      <td colSpan={29} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
                         Carregando conferência...
                       </td>
                     </tr>
                   ) : linhas.length === 0 ? (
                     <tr>
-                      <td colSpan={13} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
+                      <td colSpan={29} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
                         Nenhuma loja encontrada para o filtro selecionado.
                       </td>
                     </tr>
                   ) : (
                     linhas.map((linha) => (
                       <tr key={linha.unidade.id} className="hover:bg-blue-50/40">
-                        <th scope="row" className="sticky left-0 z-10 min-w-[210px] max-w-[210px] break-words border border-slate-900 bg-slate-100 px-2 py-1.5 text-left font-black text-slate-950">
+                        <th scope="row" className="sticky left-0 z-10 min-w-[180px] max-w-[180px] break-words border border-slate-900 bg-slate-100 px-2 py-1.5 text-left font-black text-slate-950">
                           <span className="block text-[10px] font-semibold uppercase text-slate-600">
                             {linha.unidade.tipo === "matriz" ? "Matriz" : "Filial"}
                           </span>
                           {linha.unidade.nome}
                         </th>
-                        {grupos.flatMap((grupo) => [
-                          <td key={`${linha.unidade.id}-${grupo.key}-cheio`} className="border border-slate-900 p-0">
-                            <Input
-                              type="number"
-                              min="0"
-                              inputMode="numeric"
-                              value={linha.totais[grupo.key].cheio || ""}
-                              onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "cheio", event.target.value)}
-                              className="h-10 rounded-none border-0 text-center text-base font-black text-blue-700 shadow-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                            />
-                          </td>,
-                          <td key={`${linha.unidade.id}-${grupo.key}-vazio`} className="border border-slate-900 p-0">
-                            <Input
-                              type="number"
-                              min="0"
-                              inputMode="numeric"
-                              value={linha.totais[grupo.key].vazio || ""}
-                              onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "vazio", event.target.value)}
-                              className="h-10 rounded-none border-0 text-center text-base font-black text-blue-700 shadow-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                            />
-                          </td>,
-                          <td key={`${linha.unidade.id}-${grupo.key}-total`} className="border border-slate-900 bg-slate-100 px-2 text-center text-base font-black text-slate-950">
-                            {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}
-                          </td>,
-                        ])}
+                        {grupos.flatMap((grupo) => {
+                          const f = fluxo(linha.unidade.id, grupo.key);
+                          const id = `${linha.unidade.id}-${grupo.key}`;
+                          const inputCls = "h-10 w-16 rounded-none border-0 text-center text-base font-black shadow-none focus-visible:ring-2 focus-visible:ring-blue-500";
+                          return [
+                            <td key={`${id}-ini`} className="border border-slate-900 bg-slate-50 px-1 text-center font-bold">{f.saldoInicial}</td>,
+                            <td key={`${id}-ent`} className="border border-slate-900 p-0" title={entradaRecebida(linha.unidade.id, grupo.key) ? `+${entradaRecebida(linha.unidade.id, grupo.key)} recebido de lojas` : undefined}>
+                              <Input type="number" min="0" inputMode="numeric" value={entradas[linha.unidade.id]?.[grupo.key] || ""}
+                                onChange={(e) => atualizarEntrada(linha.unidade.id, grupo.key, e.target.value)} className={`${inputCls} text-emerald-700`} />
+                              {entradaRecebida(linha.unidade.id, grupo.key) > 0 && (
+                                <span className="block text-center text-[10px] font-bold text-emerald-700">+{entradaRecebida(linha.unidade.id, grupo.key)} transf.</span>
+                              )}
+                            </td>,
+                            <td key={`${id}-tra`} className="border border-slate-900 p-0">
+                              <button type="button" onClick={() => abrirTransferencia(linha.unidade.id, grupo.key)}
+                                className="h-10 w-full px-1 text-center font-black text-purple-700 underline-offset-2 hover:underline">
+                                -{f.transferencia}
+                              </button>
+                            </td>,
+                            <td key={`${id}-che`} className="border border-slate-900 p-0">
+                              <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].cheio || ""}
+                                onChange={(e) => atualizarValor(linha.unidade.id, grupo.key, "cheio", e.target.value)} className={`${inputCls} text-blue-700`} />
+                            </td>,
+                            <td key={`${id}-vaz`} className="border border-slate-900 p-0">
+                              <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].vazio || ""}
+                                onChange={(e) => atualizarValor(linha.unidade.id, grupo.key, "vazio", e.target.value)} className={`${inputCls} text-blue-700`} />
+                            </td>,
+                            <td key={`${id}-tot`} className="border border-slate-900 bg-slate-100 px-1 text-center font-black">
+                              {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}
+                            </td>,
+                            <td key={`${id}-ven`} className="border border-slate-900 bg-emerald-50 px-1 text-center font-black text-emerald-700">{f.vendaEsperada}</td>,
+                          ];
+                        })}
                       </tr>
                     ))
                   )}
@@ -520,11 +524,12 @@ export default function ConferenciaEstoque() {
                       <th scope="row" className="sticky left-0 z-10 border border-slate-900 bg-slate-800 px-2 py-1.5 text-left font-black text-white">
                         Total geral
                       </th>
-                      {grupos.flatMap((grupo) => [
-                        <td key={`tot-${grupo.key}-c`} className="border border-slate-900 bg-slate-200 text-center font-black">{resumo.porGrupo[grupo.key].cheio}</td>,
-                        <td key={`tot-${grupo.key}-v`} className="border border-slate-900 bg-slate-200 text-center font-black">{resumo.porGrupo[grupo.key].vazio}</td>,
-                        <td key={`tot-${grupo.key}-t`} className="border border-slate-900 bg-slate-300 text-center font-black">{resumo.porGrupo[grupo.key].cheio + resumo.porGrupo[grupo.key].vazio}</td>,
-                      ])}
+                      {grupos.flatMap((grupo) => {
+                        const g = resumo.porGrupo[grupo.key];
+                        return [g.inicial, g.entrada, -g.transf, g.cheio, g.vazio, g.cheio + g.vazio, g.venda].map((v, i) => (
+                          <td key={`tot-${grupo.key}-${i}`} className={`border border-slate-900 text-center font-black ${colunasFluxo[i].bg}`}>{v}</td>
+                        ));
+                      })}
                     </tr>
                   </tfoot>
                 )}
