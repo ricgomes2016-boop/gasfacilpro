@@ -836,7 +836,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
               <table className={`conferencia-table w-full border-collapse bg-white text-sm ${isMaster ? "min-w-[1600px]" : "min-w-[900px]"}`}>
                 <thead>
                   <tr>
-                    <th colSpan={totalCols} className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
+                    <th colSpan={totalCols} className="conferencia-ink-head border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
                       {`Contagem de ${formatarDataBR(dataContagem)} — vendas de ${formatarDataBR(dataConferencia)}`}
                     </th>
                   </tr>
@@ -853,7 +853,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                   <tr>
                     {grupos.flatMap((grupo) =>
                       colunas.map((col) => (
-                        <th key={`${grupo.key}-${col.key}`} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 conferencia-sub-head ${col.bg}`}>
+                        <th key={`${grupo.key}-${col.key}`} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 conferencia-ink-head ${col.bg}`}>
                           {col.label}
                         </th>
                       ))
@@ -1109,7 +1109,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                     { c: "Cheio", bg: "bg-amber-100" },
                     { c: "Vazio", bg: "bg-slate-200" },
                     { c: "Total", bg: "bg-slate-300" },
-                  ].map(({ c, bg }) => <th key={g.key + c} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 conferencia-sub-head ${bg}`}>{c}</th>))}
+                  ].map(({ c, bg }) => <th key={g.key + c} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 conferencia-ink-head ${bg}`}>{c}</th>))}
                 </tr>
               </thead>
               <tbody>
@@ -1177,7 +1177,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                     {grupos.map((g) => [
                       { c: "Cheio", bg: "bg-amber-100" },
                       { c: "Vazio", bg: "bg-slate-200" },
-                    ].map(({ c, bg }) => <th key={g.key + c} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 conferencia-sub-head ${bg}`}>{c}</th>))}
+                    ].map(({ c, bg }) => <th key={g.key + c} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 conferencia-ink-head ${bg}`}>{c}</th>))}
                   </tr>
                 </thead>
                 <tbody>
