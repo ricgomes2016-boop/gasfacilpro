@@ -833,7 +833,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
         <Card className="hidden overflow-hidden border-slate-300 shadow-[0_14px_40px_rgba(15,23,42,0.08)] md:block">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className={`w-full border-collapse bg-white text-sm ${isMaster ? "min-w-[1600px]" : "min-w-[900px]"}`}>
+              <table className={`conferencia-table w-full border-collapse bg-white text-sm ${isMaster ? "min-w-[1600px]" : "min-w-[900px]"}`}>
                 <thead>
                   <tr>
                     <th colSpan={totalCols} className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
@@ -845,7 +845,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                       Lojas
                     </th>
                     {grupos.map((grupo) => (
-                      <th key={grupo.key} colSpan={colunas.length} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${grupo.tone}`}>
+                      <th key={grupo.key} colSpan={colunas.length} className={`border border-slate-900 px-3 py-1.5 text-base font-black conferencia-band-head ${grupo.tone}`}>
                         {grupo.label}
                       </th>
                     ))}
@@ -853,7 +853,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                   <tr>
                     {grupos.flatMap((grupo) =>
                       colunas.map((col) => (
-                        <th key={`${grupo.key}-${col.key}`} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 ${col.bg}`}>
+                        <th key={`${grupo.key}-${col.key}`} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 conferencia-sub-head ${col.bg}`}>
                           {col.label}
                         </th>
                       ))
@@ -939,7 +939,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                 {linhas.length > 0 && !isLoading && !unidadesLoading && (
                   <tfoot>
                     <tr>
-                      <th scope="row" className={`${COL_LOJAS} sticky left-0 z-10 border border-slate-900 bg-slate-800 px-2 py-1.5 text-left font-black text-white`}>
+                      <th scope="row" className={`${COL_LOJAS} sticky left-0 z-10 border border-slate-900 bg-slate-800 px-2 py-1.5 text-left font-black text-white conferencia-total-row`}>
                         Total geral
                       </th>
                       {grupos.flatMap((grupo) => {
@@ -1096,20 +1096,20 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
             <Button disabled={isSaving || isLoading} onClick={() => void salvarEntradasLote()}><Save className="mr-2 h-4 w-4" />Salvar entradas</Button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] border-collapse bg-white text-sm">
+            <table className="conferencia-table w-full min-w-[900px] border-collapse bg-white text-sm">
               <thead>
                 <tr>
                   <th rowSpan={2} className={`${COL_LOJAS} conferencia-lojas-head sticky left-0 z-20 border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black`}>
                     Lojas
                   </th>
-                  {grupos.map((g) => <th key={g.key} colSpan={3} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${g.tone}`}>{g.key === "Agua" ? "Água" : g.key}</th>)}
+                  {grupos.map((g) => <th key={g.key} colSpan={3} className={`border border-slate-900 px-3 py-1.5 text-base font-black conferencia-band-head ${g.tone}`}>{g.key === "Agua" ? "Água" : g.key}</th>)}
                 </tr>
                 <tr>
                   {grupos.map((g) => [
                     { c: "Cheio", bg: "bg-amber-100" },
                     { c: "Vazio", bg: "bg-slate-200" },
                     { c: "Total", bg: "bg-slate-300" },
-                  ].map(({ c, bg }) => <th key={g.key + c} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 ${bg}`}>{c}</th>))}
+                  ].map(({ c, bg }) => <th key={g.key + c} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 conferencia-sub-head ${bg}`}>{c}</th>))}
                 </tr>
               </thead>
               <tbody>
@@ -1165,19 +1165,19 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
             <p className="p-4 text-sm text-muted-foreground">Escolha a loja que enviou o gás.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] border-collapse bg-white text-sm">
+              <table className="conferencia-table w-full min-w-[900px] border-collapse bg-white text-sm">
                 <thead>
                   <tr>
                     <th rowSpan={2} className={`${COL_LOJAS} conferencia-lojas-head sticky left-0 z-20 border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black`}>
                       Loja destino
                     </th>
-                    {grupos.map((g) => <th key={g.key} colSpan={2} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${g.tone}`}>{g.key === "Agua" ? "Água" : g.key}</th>)}
+                    {grupos.map((g) => <th key={g.key} colSpan={2} className={`border border-slate-900 px-3 py-1.5 text-base font-black conferencia-band-head ${g.tone}`}>{g.key === "Agua" ? "Água" : g.key}</th>)}
                   </tr>
                   <tr>
                     {grupos.map((g) => [
                       { c: "Cheio", bg: "bg-amber-100" },
                       { c: "Vazio", bg: "bg-slate-200" },
-                    ].map(({ c, bg }) => <th key={g.key + c} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 ${bg}`}>{c}</th>))}
+                    ].map(({ c, bg }) => <th key={g.key + c} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 conferencia-sub-head ${bg}`}>{c}</th>))}
                   </tr>
                 </thead>
                 <tbody>
