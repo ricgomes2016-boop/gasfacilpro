@@ -563,42 +563,80 @@ export default function ConferenciaEstoque() {
                   <div className="border-b border-border bg-foreground px-4 py-3 text-background">
                     <p className="break-words text-base font-black">{linha.unidade.nome}</p>
                   </div>
-                  <div className="grid grid-cols-1 gap-2 p-3 xs:grid-cols-2">
-                    {grupos.map((grupo) => (
-                      <div key={grupo.key} className={`rounded-lg border p-3 ${grupo.mobileTone}`}>
-                        <p className="mb-2 text-sm font-black text-slate-950">{grupo.label}</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-1 rounded-md bg-white px-2 py-2 shadow-sm">
-                            <Label className="text-[11px] font-semibold uppercase text-slate-500">Cheio</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              inputMode="numeric"
-                              value={linha.totais[grupo.key].cheio || ""}
-                              onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "cheio", event.target.value)}
-                              className="h-9 rounded-md text-center text-lg font-black text-blue-700"
-                            />
+                  <div className="grid grid-cols-1 gap-3 p-3">
+                    {grupos.map((grupo) => {
+                      const f = fluxo(linha.unidade.id, grupo.key);
+                      const recebida = entradaRecebida(linha.unidade.id, grupo.key);
+                      return (
+                        <div key={grupo.key} className={`rounded-xl border p-3 ${grupo.mobileTone}`}>
+                          <p className="mb-2 text-base font-black text-slate-950">{grupo.label}</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="rounded-lg border border-slate-200 bg-white p-2">
+                              <p className="text-[11px] font-bold uppercase text-slate-500">1. Saldo inicial</p>
+                              <p className="text-right text-2xl font-black text-slate-950">{f.saldoInicial}</p>
+                              <p className="text-[11px] text-slate-500">Contagem de {formatarDataBR(dataAnterior)}</p>
+                            </div>
+                            <div className="rounded-lg border border-emerald-200 bg-white p-2">
+                              <p className="text-[11px] font-bold uppercase text-emerald-700">2. Entrada (+)</p>
+                              <Input
+                                type="number"
+                                min="0"
+                                inputMode="numeric"
+                                value={entradas[linha.unidade.id]?.[grupo.key] || ""}
+                                onChange={(event) => atualizarEntrada(linha.unidade.id, grupo.key, event.target.value)}
+                                className="h-9 text-right text-lg font-black text-emerald-700"
+                              />
+                              {recebida > 0 && <p className="text-[11px] text-emerald-700">+{recebida} recebido de lojas</p>}
+                            </div>
+                            <div className="rounded-lg border border-blue-200 bg-white p-2">
+                              <p className="text-[11px] font-bold uppercase text-blue-700">3. Total inicial (=)</p>
+                              <p className="text-right text-2xl font-black text-blue-900">{f.totalInicial}</p>
+                              <p className="text-[11px] text-blue-700">Inicial + entrada</p>
+                            </div>
+                            <div className="rounded-lg border border-amber-200 bg-white p-2">
+                              <p className="text-[11px] font-bold uppercase text-amber-700">4. Cheios (-)</p>
+                              <Input
+                                type="number"
+                                min="0"
+                                inputMode="numeric"
+                                value={linha.totais[grupo.key].cheio || ""}
+                                onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "cheio", event.target.value)}
+                                className="h-9 text-right text-lg font-black text-amber-800"
+                              />
+                              <p className="text-[11px] text-amber-700">Contagem atual</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => abrirTransferencia(linha.unidade.id, grupo.key)}
+                              className="rounded-lg border border-purple-200 bg-white p-2 text-left"
+                            >
+                              <p className="flex justify-between text-[11px] font-bold uppercase text-purple-700">
+                                5. Transf. (-) <span className="underline">Editar</span>
+                              </p>
+                              <p className="text-right text-2xl font-black text-purple-700">-{f.transferencia}</p>
+                              <p className="text-[11px] text-purple-600">Para outras lojas</p>
+                            </button>
+                            <div className="rounded-lg border border-slate-200 bg-white p-2">
+                              <p className="text-[11px] font-bold uppercase text-slate-500">Vazio</p>
+                              <Input
+                                type="number"
+                                min="0"
+                                inputMode="numeric"
+                                value={linha.totais[grupo.key].vazio || ""}
+                                onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "vazio", event.target.value)}
+                                className="h-9 text-right text-lg font-black text-slate-800"
+                              />
+                              <p className="text-[11px] text-slate-500">Vasilhames: {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}</p>
+                            </div>
                           </div>
-                          <div className="space-y-1 rounded-md bg-white px-2 py-2 shadow-sm">
-                            <Label className="text-[11px] font-semibold uppercase text-slate-500">Vazio</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              inputMode="numeric"
-                              value={linha.totais[grupo.key].vazio || ""}
-                              onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "vazio", event.target.value)}
-                              className="h-9 rounded-md text-center text-lg font-black text-blue-700"
-                            />
+                          <div className="mt-2 rounded-xl bg-emerald-600 p-3 text-white">
+                            <p className="text-xs font-bold uppercase">6. Venda esperada</p>
+                            <p className="text-right text-3xl font-black">{f.vendaEsperada}</p>
+                            <p className="text-[11px] opacity-90">Inicial + entrada − transf. − cheios</p>
                           </div>
                         </div>
-                        <div className="mt-2 flex items-center justify-between rounded-md bg-white px-3 py-1.5 shadow-sm">
-                          <span className="text-[11px] font-semibold uppercase text-slate-500">Total</span>
-                          <span className="text-lg font-black text-slate-950">
-                            {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -606,6 +644,53 @@ export default function ConferenciaEstoque() {
           )}
         </div>
       </div>
+
+      <Dialog open={!!dialogTransf} onOpenChange={(open) => !open && setDialogTransf(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Transferência {dialogTransf?.grupo} — {unidades.find((u) => u.id === dialogTransf?.unidadeId)?.nome}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Loja de destino</Label>
+              <Select value={transfDestino} onValueChange={setTransfDestino}>
+                <SelectTrigger className="h-10"><SelectValue placeholder="Escolha a loja" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhum">Escolha a loja</SelectItem>
+                  {todasLojas
+                    .filter((u) => u.id !== dialogTransf?.unidadeId)
+                    .map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Quantidade</Label>
+              <Input type="number" min="1" inputMode="numeric" value={transfQtd} onChange={(e) => setTransfQtd(e.target.value)} className="h-10 text-base" />
+            </div>
+            {transferenciasDoDialog.length > 0 && (
+              <div className="space-y-1 rounded-lg border p-2">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">Já registradas hoje</p>
+                {transferenciasDoDialog.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between text-sm">
+                    <span>{t.quantidade} → {nomeLoja(t.unidade_destino_id)}</span>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => excluirTransferencia(t.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogTransf(null)}>Fechar</Button>
+            <Button onClick={registrarTransferencia} disabled={isSaving}>Registrar transferência</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }
