@@ -1005,21 +1005,105 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
           )}
         </div>
 
-        <section className="space-y-4 border-y border-border py-5">
-          <h2 className="text-lg font-bold text-foreground">Entrada</h2>
-          <p className="text-sm text-muted-foreground">Registre o que aconteceu em {formatarDataBR(dataContagem)}. {mesmoDia ? "Entra na venda deste dia." : `Soma no estoque de ${formatarDataBR(dataContagem)}, não na venda de ${formatarDataBR(dataConferencia)}.`}</p>
-          <div className="grid grid-cols-1 gap-3 min-[385px]:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-2"><Label>Loja de origem</Label><Select value={movLoja} onValueChange={(id) => { setMovLoja(id); setEntradaQtd(String(entMov[id]?.[movGrupo] || 0)); }}><SelectTrigger aria-label="Loja do movimento"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="nenhum">Escolha a loja</SelectItem>{lojasVisiveis.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label>Produto</Label><Select value={movGrupo} onValueChange={(g) => { setMovGrupo(g as GrupoProduto); setEntradaQtd(String(entMov[movLoja]?.[g as GrupoProduto] || 0)); }}><SelectTrigger aria-label="Produto do movimento"><SelectValue /></SelectTrigger><SelectContent>{grupos.map((g) => <SelectItem key={g.key} value={g.key}>{g.key === "Agua" ? "Água" : g.label}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label htmlFor="entrada-dia">Entrada de {formatarDataBR(dataContagem)}</Label><Input id="entrada-dia" aria-label="Entrada manual do dia" type="number" min="0" inputMode="numeric" value={entradaQtd} onChange={(e) => setEntradaQtd(e.target.value)} className="text-base" /></div>
-            <Button className="self-end" disabled={isSaving || isLoading} onClick={() => void registrarEntrada()}>Registrar entrada</Button>
+        <section aria-label="Entrada" className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-foreground">Entrada em {formatarDataBR(dataContagem)}</h2>
+              <p className="text-xs text-muted-foreground">Digite os cheios recebidos. O vazio sai automaticamente na mesma quantidade.</p>
+            </div>
+            <Button disabled={isSaving || isLoading} onClick={() => void salvarEntradasLote()}><Save className="mr-2 h-4 w-4" />Salvar entradas</Button>
           </div>
-          {movLoja !== "nenhum" && <div className="space-y-1 text-sm text-muted-foreground"><p>Entrada registrada em {formatarDataBR(dataContagem)}: {entMov[movLoja]?.[movGrupo] || 0} {movGrupo}</p>{trsMov.filter((t) => t.unidade_destino_id === movLoja && t.produto_grupo === movGrupo).map((t) => <p key={t.id}>+{t.quantidade} {movGrupo} recebido de {nomeLoja(t.unidade_id)}</p>)}</div>}
-          <div className="space-y-3 border-t border-border pt-4">
-            <h2 className="text-lg font-bold text-foreground">Transferência para filial</h2>
-            <Button variant="outline" disabled={movLoja === "nenhum" || isSaving || isLoading} onClick={() => abrirTransferencia(movLoja, movGrupo)}>Transferir {movGrupo}</Button>
-            {movLoja !== "nenhum" && <p className="text-sm text-muted-foreground">Transferências em {formatarDataBR(dataContagem)}: {trsMov.filter((t) => t.unidade_id === movLoja && t.produto_grupo === movGrupo).reduce((a, t) => a + Number(t.quantidade || 0), 0)} {movGrupo}</p>}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] border-collapse text-sm">
+              <thead>
+                <tr className="bg-muted/50">
+                  <th rowSpan={2} className="sticky left-0 z-20 border border-border bg-muted px-3 py-2 text-left">Loja</th>
+                  {grupos.map((g) => <th key={g.key} colSpan={3} className="border border-border px-2 py-1.5 text-center font-bold">{g.key === "Agua" ? "Água" : g.key}</th>)}
+                </tr>
+                <tr className="bg-muted/30 text-xs">
+                  {grupos.map((g) => ["Cheio", "Vazio", "Total"].map((c) => <th key={g.key + c} className="border border-border px-2 py-1 text-center">{c}</th>))}
+                </tr>
+              </thead>
+              <tbody>
+                {lojasVisiveis.map((u) => (
+                  <tr key={u.id}>
+                    <th scope="row" className="sticky left-0 z-10 border border-border bg-card px-3 py-2 text-left font-semibold">{u.nome}</th>
+                    {grupos.map((g) => {
+                      const digitado = entDraft[u.id]?.[g.key] ?? String(entMov[u.id]?.[g.key] || 0);
+                      const recebido = trsMov.filter((t) => t.unidade_destino_id === u.id && t.produto_grupo === g.key).reduce((a, t) => a + Number(t.quantidade || 0), 0);
+                      const cheio = (Number(digitado) || 0) + recebido;
+                      return (
+                        <Fragment key={g.key}>
+                          <td className="border border-border p-1">
+                            <Input aria-label={`Entrada ${u.nome} ${g.key} cheio`} type="number" min="0" inputMode="numeric" value={digitado}
+                              onChange={(e) => setEntDraft((p) => ({ ...p, [u.id]: { ...(p[u.id] || {}), [g.key]: e.target.value } }))} className="h-9 text-center text-base" />
+                            {recebido > 0 && <p className="mt-0.5 text-center text-[10px] text-emerald-700">+{recebido} recebido</p>}
+                          </td>
+                          <td className="border border-border px-2 text-center text-muted-foreground">{cheio ? -cheio : 0}</td>
+                          <td className="border border-border px-2 text-center font-semibold">0</td>
+                        </Fragment>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+        </section>
+
+        <section aria-label="Transferência" className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border px-4 py-3">
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-foreground">Transferência em {formatarDataBR(dataContagem)}</h2>
+              <p className="text-xs text-muted-foreground">Na linha da filial que recebeu, digite os cheios enviados. Ela recebe a entrada e devolve o mesmo número de vazios.</p>
+            </div>
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Loja de origem</Label>
+                <Select value={origemTransf} onValueChange={(v) => { setOrigemTransf(v); setTrDraft({}); }}>
+                  <SelectTrigger aria-label="Loja de origem" className="h-10 w-[200px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>{unidades.length > 1 && <SelectItem value="nenhum">Escolha a loja</SelectItem>}{unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <Button disabled={origemTransf === "nenhum" || isSaving || isLoading} onClick={() => void salvarTransferenciasLote()}><Save className="mr-2 h-4 w-4" />Salvar transferências</Button>
+            </div>
+          </div>
+          {origemTransf === "nenhum" ? (
+            <p className="p-4 text-sm text-muted-foreground">Escolha a loja que enviou o gás.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] border-collapse text-sm">
+                <thead>
+                  <tr className="bg-muted/50">
+                    <th rowSpan={2} className="sticky left-0 z-20 border border-border bg-muted px-3 py-2 text-left">Loja destino</th>
+                    {grupos.map((g) => <th key={g.key} colSpan={2} className="border border-border px-2 py-1.5 text-center font-bold">{g.key === "Agua" ? "Água" : g.key}</th>)}
+                  </tr>
+                  <tr className="bg-muted/30 text-xs">
+                    {grupos.map((g) => ["Cheio", "Vazio"].map((c) => <th key={g.key + c} className="border border-border px-2 py-1 text-center">{c}</th>))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {todasLojas.filter((d) => d.id !== origemTransf).map((d) => (
+                    <tr key={d.id}>
+                      <th scope="row" className="sticky left-0 z-10 border border-border bg-card px-3 py-2 text-left font-semibold">{d.nome}</th>
+                      {grupos.map((g) => {
+                        const v = trDraft[d.id]?.[g.key] ?? String(totalTransf(origemTransf, d.id, g.key));
+                        return (
+                          <Fragment key={g.key}>
+                            <td className="border border-border p-1">
+                              <Input aria-label={`Transferência ${d.nome} ${g.key} cheio`} type="number" min="0" inputMode="numeric" value={v}
+                                onChange={(e) => setTrDraft((p) => ({ ...p, [d.id]: { ...(p[d.id] || {}), [g.key]: e.target.value } }))} className="h-9 text-center text-base" />
+                            </td>
+                            <td className="border border-border px-2 text-center text-muted-foreground">{Number(v) || 0}</td>
+                          </Fragment>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
         <section aria-label="Fluxo do dia de venda" className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
