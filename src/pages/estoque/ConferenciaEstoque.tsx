@@ -717,6 +717,10 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Conferencia");
     XLSX.writeFile(wb, `conferencia-estoque-${dataConferencia}-${nomeArquivoSeguro(escopoLabel)}.xlsx`);
+    } catch (error) {
+      console.error("Erro ao exportar Excel:", error);
+      toast({ title: "Não foi possível gerar o Excel", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" });
+    }
   };
 
   const exportarPDF = () => {
@@ -725,6 +729,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
       return;
     }
 
+    try {
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     doc.setFontSize(15);
     doc.text("Conferencia de Estoque", 14, 16);
