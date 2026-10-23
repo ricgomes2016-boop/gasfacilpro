@@ -58,7 +58,7 @@ export function ConferenciaPortal() {
       {user ? <Button variant="outline" onClick={() => void logout()} className="w-full gap-2"><LogOut className="h-4 w-4" />Sair</Button> : <form onSubmit={login} className="space-y-4">
         <div className="space-y-2"><Label htmlFor="yard-email">E-mail</Label><Input id="yard-email" type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Digite seu email" className="h-12 text-base" /></div>
         <div className="space-y-2"><Label htmlFor="yard-password">Senha</Label><Input id="yard-password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Digite sua senha" className="h-12 text-base" /></div>
-        <Button type="submit" disabled={busy} className="h-12 w-full gap-2">{busy && <Loader2 className="h-4 w-4 animate-spin" />}Entrar</Button>
+        <Button type="submit" disabled={busy} className="h-12 w-full gap-2 !text-primary-foreground">{busy && <Loader2 className="h-4 w-4 animate-spin" />}Entrar</Button>
       </form>}
     </div>
   </main>;

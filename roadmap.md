@@ -1,5 +1,6 @@
 # Portal de conferência
-- [ ] Criar permissões isoladas e cadastro de conferentes pelo Master.
-- [ ] Adicionar login exclusivo no link solicitado, preservando acesso pelo menu.
-- [ ] Reutilizar conferência somente nas lojas autorizadas, sem edição Master.
-- [ ] Testar permissões, acesso e salvamento; verificar compilação.
+- [x] Criar permissões isoladas e cadastro de conferentes pelo Master.
+- [x] Adicionar login exclusivo no link solicitado, preservando acesso pelo menu.
+- [x] Reutilizar conferência somente nas lojas autorizadas, sem edição Master.
+- [x] Testar regras de permissão, login em celular/computador e compilação.
+- [ ] Validar criação, login e salvamento de conferente real: aguarda conta Master vinculada à empresa; as contas conhecidas com acesso à Forte Gás não são Master.
