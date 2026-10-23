@@ -3,7 +3,7 @@ import { conferenciaApi } from "@/lib/estoque/conferenciaPortal";
 import { ConferentesAccessDialog } from "@/components/estoque/ConferentesAccessDialog";
 import { format, parseISO, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Archive, CalendarDays, Download, FileSpreadsheet, Loader2, Package, PackageOpen, Pencil, RefreshCw, Save, Store, Trash2, TrendingUp } from "lucide-react";
+import { Archive, CalendarDays, Download, FileSpreadsheet, Loader2, MessageCircle, Package, PackageOpen, Pencil, RefreshCw, Save, Store, Trash2, TrendingUp } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { calcularFluxoDia, calcularEstoqueAtual, calcularFluxoConferencia, resolverSaldoInicial, SaldoCheioVazio, datasApuracao, combinarContagens, MomentoContagem, saldoComEntradas, colunasDeContagem } from "@/lib/estoque/conferenciaFluxo";
@@ -694,6 +694,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
       return;
     }
 
+    try {
     const aoa = [
       [`Conferencia de Estoque - ${formatarDataBR(dataConferencia)}`],
       [`Contagem: ${formatarDataBR(dataContagem)} (${momento === "inicio" ? "início" : "fim"}) | Vendas: ${formatarDataBR(dataConferencia)} | Escopo: ${escopoLabel}`],
@@ -716,6 +717,10 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Conferencia");
     XLSX.writeFile(wb, `conferencia-estoque-${dataConferencia}-${nomeArquivoSeguro(escopoLabel)}.xlsx`);
+    } catch (error) {
+      console.error("Erro ao exportar Excel:", error);
+      toast({ title: "Não foi possível gerar o Excel", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" });
+    }
   };
 
   const exportarPDF = () => {
@@ -724,6 +729,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
       return;
     }
 
+    try {
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     doc.setFontSize(15);
     doc.text("Conferencia de Estoque", 14, 16);
@@ -756,6 +762,49 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
     });
 
     doc.save(`conferencia-estoque-${dataConferencia}-${nomeArquivoSeguro(escopoLabel)}.pdf`);
+    } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
+      toast({ title: "Não foi possível gerar o PDF", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" });
+    }
+  };
+
+  const copiarWhatsApp = async () => {
+    if (linhas.length === 0) {
+      toast({ title: "Nenhum dado para copiar", variant: "destructive" });
+      return;
+    }
+
+    const blocos = linhas.map((linha) => {
+      const partes = grupos.map((g) => {
+        const t = linha.totais[g.key];
+        return `${g.label}: ${t.cheio} cheio / ${t.vazio} vazio (total ${t.cheio + t.vazio})`;
+      });
+      return `*${linha.unidade.nome}*\n${partes.join("\n")}`;
+    });
+
+    const texto = [
+      "*Conferência de Estoque*",
+      `Contagem: ${formatarDataBR(dataContagem)} (${momento === "inicio" ? "início do dia" : "fim do dia"})`,
+      `Vendas apuradas: ${formatarDataBR(dataConferencia)}`,
+      `Escopo: ${escopoLabel}`,
+      "",
+      blocos.join("\n\n"),
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(texto);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = texto;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    toast({ title: "Resumo copiado", description: "Abra o WhatsApp e cole a mensagem na conversa." });
   };
 
   return (
@@ -786,6 +835,10 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
               <Button variant="outline" size="sm" className="h-10 gap-2" onClick={exportarExcel}>
                 <FileSpreadsheet className="h-4 w-4" />
                 Excel
+              </Button>
+              <Button size="sm" className="h-10 gap-2 bg-[#25D366] text-white hover:bg-[#1da851]" onClick={copiarWhatsApp}>
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp
               </Button>
             </>
           }
