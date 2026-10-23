@@ -2,6 +2,14 @@ export function isMaster(roles: string[]) {
   return roles.some((role) => role === 'admin' || role === 'super_admin');
 }
 
+export function validCountDate(salesDate: string, countDate: unknown, moment: unknown) {
+  if (typeof countDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(countDate) || !['inicio', 'fim'].includes(String(moment))) return false;
+  const date = new Date(`${countDate}T12:00:00Z`);
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== countDate) return false;
+  if (moment === 'inicio') date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10) === salesDate;
+}
+
 export function validateCounts(records: unknown, ids: string[]) {
   if (!Array.isArray(records) || records.length === 0 || records.length > ids.length * 8) return false;
   const keys = new Set<string>();
