@@ -50,6 +50,13 @@
       "when": 1792767107944,
       "tag": "0006_conferencia_datas_apuracao",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792767132353,
+      "tag": "0007_conferencia_salvar_fechamento_portal",
+      "breakpoints": true
     }
   ]
 }

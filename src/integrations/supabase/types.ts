@@ -13416,6 +13416,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      salvar_fechamento_conferencia_portal: {
+        Args: {
+          _data: string
+          _data_contagem: string
+          _empresa_id: string
+          _momento: string
+          _registros: Json
+          _user_id: string
+        }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       unaccent: { Args: { "": string }; Returns: string }
