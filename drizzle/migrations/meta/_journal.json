@@ -22,6 +22,13 @@
       "when": 1789686057734,
       "tag": "0002_role_check_despesas_plano_contas",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792757621485,
+      "tag": "0003_estoque_conferencia_movimentos",
+      "breakpoints": true
     }
   ]
 }

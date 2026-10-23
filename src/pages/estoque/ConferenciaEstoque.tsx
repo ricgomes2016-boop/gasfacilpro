@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, Download, FileSpreadsheet, Loader2, RefreshCw, Save, Store } from "lucide-react";
+import { CalendarDays, Download, FileSpreadsheet, Loader2, RefreshCw, Save, Store, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { calcularFluxoConferencia } from "@/lib/estoque/conferenciaFluxo";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -41,6 +43,24 @@ interface LinhaConferencia {
   totais: Record<GrupoProduto, Record<TipoEstoque, number>>;
   totalGeral: number;
 }
+
+interface MovTransferencia {
+  id: string;
+  unidade_id: string;
+  unidade_destino_id: string | null;
+  produto_grupo: GrupoProduto;
+  quantidade: number;
+}
+
+const colunasFluxo = [
+  { key: "ini", label: "Inicial", bg: "bg-slate-100" },
+  { key: "ent", label: "Entrada", bg: "bg-emerald-100" },
+  { key: "tra", label: "Transf.", bg: "bg-purple-100" },
+  { key: "che", label: "Cheio", bg: "bg-amber-100" },
+  { key: "vaz", label: "Vazio", bg: "bg-slate-200" },
+  { key: "tot", label: "Total", bg: "bg-slate-300" },
+  { key: "ven", label: "Venda", bg: "bg-emerald-200" },
+];
 
 const grupos: { key: GrupoProduto; label: string; tone: string; mobileTone: string }[] = [
   { key: "P13", label: "P13", tone: "bg-[#e66f2f] text-white", mobileTone: "border-[#e66f2f]/30 bg-[#fff4ed]" },
@@ -83,6 +103,19 @@ export default function ConferenciaEstoque() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [modoPersistencia, setModoPersistencia] = useState<ModoPersistencia>("banco");
+  const [saldoAnterior, setSaldoAnterior] = useState<Record<string, Partial<Record<GrupoProduto, number>>>>({});
+  const [entradas, setEntradas] = useState<Record<string, Partial<Record<GrupoProduto, number>>>>({});
+  const [transferencias, setTransferencias] = useState<MovTransferencia[]>([]);
+  const [dialogTransf, setDialogTransf] = useState<{ unidadeId: string; grupo: GrupoProduto } | null>(null);
+  const [transfDestino, setTransfDestino] = useState("nenhum");
+  const [transfQtd, setTransfQtd] = useState("");
+  const todasLojas = unidades;
+  const dataAnterior = format(subDays(parseISO(`${dataConferencia}T12:00:00`), 1), "yyyy-MM-dd");
+
+  const atualizarEntrada = (unidadeId: string, grupo: GrupoProduto, value: string) => {
+    const q = Math.max(0, Math.floor(Number(value || 0)));
+    setEntradas((prev) => ({ ...prev, [unidadeId]: { ...(prev[unidadeId] || {}), [grupo]: Number.isFinite(q) ? q : 0 } }));
+  };
 
   const lojasVisiveis = useMemo(() => {
     if (lojaFiltro === "todas") return unidades;
@@ -137,6 +170,38 @@ export default function ConferenciaEstoque() {
 
       setValores(base);
       setModoPersistencia("banco");
+
+      const ids = unidades.map((u) => u.id);
+      const [{ data: prev }, { data: movs }] = await Promise.all([
+        (supabase as any)
+          .from("estoque_conferencias")
+          .select("unidade_id, produto_grupo, quantidade")
+          .eq("data_conferencia", dataAnterior)
+          .eq("tipo_estoque", "cheio")
+          .in("unidade_id", ids),
+        (supabase as any)
+          .from("estoque_conferencia_movimentos")
+          .select("id, unidade_id, unidade_destino_id, produto_grupo, quantidade, tipo")
+          .eq("data_conferencia", dataConferencia),
+      ]);
+      const saldo: Record<string, Partial<Record<GrupoProduto, number>>> = {};
+      (prev || []).forEach((r: any) => {
+        saldo[r.unidade_id] = saldo[r.unidade_id] || {};
+        saldo[r.unidade_id][r.produto_grupo as GrupoProduto] = Number(r.quantidade || 0);
+      });
+      const ent: Record<string, Partial<Record<GrupoProduto, number>>> = {};
+      const trs: MovTransferencia[] = [];
+      (movs || []).forEach((m: any) => {
+        if (m.tipo === "entrada_manual") {
+          ent[m.unidade_id] = ent[m.unidade_id] || {};
+          ent[m.unidade_id][m.produto_grupo as GrupoProduto] = Number(m.quantidade || 0);
+        } else {
+          trs.push(m);
+        }
+      });
+      setSaldoAnterior(saldo);
+      setEntradas(ent);
+      setTransferencias(trs);
     } catch (error) {
       console.error("Erro ao carregar conferencia manual:", error);
       setModoPersistencia("local");
@@ -179,21 +244,104 @@ export default function ConferenciaEstoque() {
     });
   }, [lojasVisiveis, valores]);
 
+  const entradaRecebida = (unidadeId: string, grupo: GrupoProduto) =>
+    transferencias
+      .filter((t) => t.unidade_destino_id === unidadeId && t.produto_grupo === grupo)
+      .reduce((acc, t) => acc + Number(t.quantidade || 0), 0);
+
+  const fluxo = (unidadeId: string, grupo: GrupoProduto) =>
+    calcularFluxoConferencia({
+      saldoInicial: saldoAnterior[unidadeId]?.[grupo] || 0,
+      entrada: (entradas[unidadeId]?.[grupo] || 0) + entradaRecebida(unidadeId, grupo),
+      transferencia: transferencias
+        .filter((t) => t.unidade_id === unidadeId && t.produto_grupo === grupo)
+        .reduce((acc, t) => acc + Number(t.quantidade || 0), 0),
+      cheio: valores[unidadeId]?.[grupo]?.cheio || 0,
+    });
+
   const resumo = useMemo(() => {
-    return linhas.reduce(
-      (acc, linha) => {
-        grupos.forEach((grupo) => {
-          acc.cheios += linha.totais[grupo.key].cheio;
-          acc.vazios += linha.totais[grupo.key].vazio;
-          acc.porGrupo[grupo.key].cheio += linha.totais[grupo.key].cheio;
-          acc.porGrupo[grupo.key].vazio += linha.totais[grupo.key].vazio;
-        });
-        acc.total += linha.totalGeral;
-        return acc;
-      },
-      { cheios: 0, vazios: 0, total: 0, porGrupo: criarTotaisZerados() }
-    );
-  }, [linhas]);
+    const porGrupo = grupos.reduce((acc, g) => {
+      acc[g.key] = { inicial: 0, entrada: 0, transf: 0, cheio: 0, vazio: 0, venda: 0 };
+      return acc;
+    }, {} as Record<GrupoProduto, { inicial: number; entrada: number; transf: number; cheio: number; vazio: number; venda: number }>);
+    const acc = { inicial: 0, cheios: 0, vazios: 0, total: 0, venda: 0, porGrupo };
+    linhas.forEach((linha) => {
+      grupos.forEach((grupo) => {
+        const f = fluxo(linha.unidade.id, grupo.key);
+        const pg = porGrupo[grupo.key];
+        pg.inicial += f.saldoInicial;
+        pg.entrada += f.entrada;
+        pg.transf += f.transferencia;
+        pg.cheio += linha.totais[grupo.key].cheio;
+        pg.vazio += linha.totais[grupo.key].vazio;
+        pg.venda += f.vendaEsperada;
+        acc.inicial += f.saldoInicial;
+        acc.cheios += linha.totais[grupo.key].cheio;
+        acc.vazios += linha.totais[grupo.key].vazio;
+        acc.venda += f.vendaEsperada;
+      });
+      acc.total += linha.totalGeral;
+    });
+    return acc;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linhas, saldoAnterior, entradas, transferencias]);
+
+  const nomeLoja = (id: string | null) => todasLojas.find((u) => u.id === id)?.nome || "Loja";
+
+  const transferenciasDoDialog = useMemo(
+    () =>
+      dialogTransf
+        ? transferencias.filter((t) => t.unidade_id === dialogTransf.unidadeId && t.produto_grupo === dialogTransf.grupo)
+        : [],
+    [dialogTransf, transferencias]
+  );
+
+  const abrirTransferencia = (unidadeId: string, grupo: GrupoProduto) => {
+    setTransfDestino("nenhum");
+    setTransfQtd("");
+    setDialogTransf({ unidadeId, grupo });
+  };
+
+  const registrarTransferencia = async () => {
+    if (!dialogTransf) return;
+    const qtd = Math.floor(Number(transfQtd || 0));
+    if (transfDestino === "nenhum" || qtd <= 0) {
+      toast({ title: "Escolha a loja e a quantidade", variant: "destructive" });
+      return;
+    }
+    setIsSaving(true);
+    const { data, error } = await (supabase as any)
+      .from("estoque_conferencia_movimentos")
+      .insert({
+        data_conferencia: dataConferencia,
+        unidade_id: dialogTransf.unidadeId,
+        produto_grupo: dialogTransf.grupo,
+        tipo: "transferencia",
+        quantidade: qtd,
+        unidade_destino_id: transfDestino,
+        criado_por: user?.id || null,
+      })
+      .select("id, unidade_id, unidade_destino_id, produto_grupo, quantidade")
+      .single();
+    setIsSaving(false);
+    if (error) {
+      console.error(error);
+      toast({ title: "Não foi possível registrar a transferência", variant: "destructive" });
+      return;
+    }
+    setTransferencias((prev) => [...prev, data]);
+    toast({ title: "Transferência registrada", description: `${qtd} ${dialogTransf.grupo} para ${nomeLoja(transfDestino)}` });
+    setDialogTransf(null);
+  };
+
+  const excluirTransferencia = async (id: string) => {
+    const { error } = await (supabase as any).from("estoque_conferencia_movimentos").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Não foi possível excluir", variant: "destructive" });
+      return;
+    }
+    setTransferencias((prev) => prev.filter((t) => t.id !== id));
+  };
 
   const montarLinhasExportacao = () =>
     linhas.map((linha) => [
@@ -253,6 +401,31 @@ export default function ConferenciaEstoque() {
         });
 
       if (error) throw error;
+
+      const lojaIds = linhas.map((l) => l.unidade.id);
+      const { error: delErr } = await (supabase as any)
+        .from("estoque_conferencia_movimentos")
+        .delete()
+        .eq("data_conferencia", dataConferencia)
+        .eq("tipo", "entrada_manual")
+        .in("unidade_id", lojaIds);
+      if (delErr) throw delErr;
+      const entradasRegistros = lojaIds.flatMap((uid) =>
+        grupos
+          .filter((g) => (entradas[uid]?.[g.key] || 0) > 0)
+          .map((g) => ({
+            data_conferencia: dataConferencia,
+            unidade_id: uid,
+            produto_grupo: g.key,
+            tipo: "entrada_manual",
+            quantidade: entradas[uid][g.key],
+            criado_por: user?.id || null,
+          }))
+      );
+      if (entradasRegistros.length > 0) {
+        const { error: insErr } = await (supabase as any).from("estoque_conferencia_movimentos").insert(entradasRegistros);
+        if (insErr) throw insErr;
+      }
       toast({ title: "Conferência salva", description: `${escopoLabel} - ${formatarDataBR(dataConferencia)}` });
     } catch (error) {
       console.error("Erro ao salvar conferencia manual:", error);
@@ -402,13 +575,14 @@ export default function ConferenciaEstoque() {
 
               <div className="space-y-1">
                 <p className="text-[11px] font-semibold uppercase text-slate-500">
-                  Saldo inicial do dia {formatarDataBR(dataConferencia)}
+                  Conferência do dia {formatarDataBR(dataConferencia)} · saldo inicial de {formatarDataBR(dataAnterior)}
                 </p>
-                <div className="grid grid-cols-1 gap-2 xs:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 lg:grid-cols-4">
                   {([
-                    { label: "Cheios", total: resumo.cheios, valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio },
+                    { label: "Saldo inicial", total: resumo.inicial, valor: (k: GrupoProduto) => resumo.porGrupo[k].inicial },
+                    { label: "Cheios (contagem)", total: resumo.cheios, valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio },
                     { label: "Vazios", total: resumo.vazios, valor: (k: GrupoProduto) => resumo.porGrupo[k].vazio },
-                    { label: "Total", total: resumo.total, valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio + resumo.porGrupo[k].vazio },
+                    { label: "Venda esperada", total: resumo.venda, valor: (k: GrupoProduto) => resumo.porGrupo[k].venda },
                   ]).map((card) => (
                     <div key={card.label} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                       <p className="text-[11px] font-semibold uppercase text-slate-500">{card.label}</p>
@@ -432,84 +606,88 @@ export default function ConferenciaEstoque() {
         <Card className="hidden overflow-hidden border-slate-300 shadow-[0_14px_40px_rgba(15,23,42,0.08)] md:block">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] border-collapse bg-white text-sm">
+              <table className="w-full min-w-[1600px] border-collapse bg-white text-sm">
                 <thead>
                   <tr>
-                    <th colSpan={13} className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
-                      Saldo inicial do dia {formatarDataBR(dataConferencia)}
+                    <th colSpan={29} className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
+                      Conferência do dia {formatarDataBR(dataConferencia)} — saldo inicial = contagem de {formatarDataBR(dataAnterior)}
                     </th>
                   </tr>
                   <tr>
-                    <th rowSpan={2} className="sticky left-0 z-20 min-w-[210px] border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black text-white">
+                    <th rowSpan={2} className="sticky left-0 z-20 min-w-[180px] border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black text-white">
                       Lojas
                     </th>
                     {grupos.map((grupo) => (
-                      <th key={grupo.key} colSpan={3} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${grupo.tone}`}>
+                      <th key={grupo.key} colSpan={7} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${grupo.tone}`}>
                         {grupo.label}
                       </th>
                     ))}
                   </tr>
                   <tr>
-                    {grupos.flatMap((grupo) => [
-                      <th key={`${grupo.key}-cheio`} className="border border-slate-900 bg-slate-200 px-3 py-1.5 font-black text-slate-950">
-                        Cheio
-                      </th>,
-                      <th key={`${grupo.key}-vazio`} className="border border-slate-900 bg-slate-200 px-3 py-1.5 font-black text-slate-950">
-                        Vazio
-                      </th>,
-                      <th key={`${grupo.key}-total`} className="border border-slate-900 bg-slate-300 px-3 py-1.5 font-black text-slate-950">
-                        Total
-                      </th>,
-                    ])}
+                    {grupos.flatMap((grupo) =>
+                      colunasFluxo.map((col) => (
+                        <th key={`${grupo.key}-${col.key}`} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 ${col.bg}`}>
+                          {col.label}
+                        </th>
+                      ))
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading || unidadesLoading ? (
                     <tr>
-                      <td colSpan={13} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
+                      <td colSpan={29} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
                         Carregando conferência...
                       </td>
                     </tr>
                   ) : linhas.length === 0 ? (
                     <tr>
-                      <td colSpan={13} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
+                      <td colSpan={29} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
                         Nenhuma loja encontrada para o filtro selecionado.
                       </td>
                     </tr>
                   ) : (
                     linhas.map((linha) => (
                       <tr key={linha.unidade.id} className="hover:bg-blue-50/40">
-                        <th scope="row" className="sticky left-0 z-10 min-w-[210px] max-w-[210px] break-words border border-slate-900 bg-slate-100 px-2 py-1.5 text-left font-black text-slate-950">
+                        <th scope="row" className="sticky left-0 z-10 min-w-[180px] max-w-[180px] break-words border border-slate-900 bg-slate-100 px-2 py-1.5 text-left font-black text-slate-950">
                           <span className="block text-[10px] font-semibold uppercase text-slate-600">
                             {linha.unidade.tipo === "matriz" ? "Matriz" : "Filial"}
                           </span>
                           {linha.unidade.nome}
                         </th>
-                        {grupos.flatMap((grupo) => [
-                          <td key={`${linha.unidade.id}-${grupo.key}-cheio`} className="border border-slate-900 p-0">
-                            <Input
-                              type="number"
-                              min="0"
-                              inputMode="numeric"
-                              value={linha.totais[grupo.key].cheio || ""}
-                              onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "cheio", event.target.value)}
-                              className="h-10 rounded-none border-0 text-center text-base font-black text-blue-700 shadow-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                            />
-                          </td>,
-                          <td key={`${linha.unidade.id}-${grupo.key}-vazio`} className="border border-slate-900 p-0">
-                            <Input
-                              type="number"
-                              min="0"
-                              inputMode="numeric"
-                              value={linha.totais[grupo.key].vazio || ""}
-                              onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "vazio", event.target.value)}
-                              className="h-10 rounded-none border-0 text-center text-base font-black text-blue-700 shadow-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                            />
-                          </td>,
-                          <td key={`${linha.unidade.id}-${grupo.key}-total`} className="border border-slate-900 bg-slate-100 px-2 text-center text-base font-black text-slate-950">
-                            {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}
-                          </td>,
-                        ])}
+                        {grupos.flatMap((grupo) => {
+                          const f = fluxo(linha.unidade.id, grupo.key);
+                          const id = `${linha.unidade.id}-${grupo.key}`;
+                          const inputCls = "h-10 w-16 rounded-none border-0 text-center text-base font-black shadow-none focus-visible:ring-2 focus-visible:ring-blue-500";
+                          return [
+                            <td key={`${id}-ini`} className="border border-slate-900 bg-slate-50 px-1 text-center font-bold">{f.saldoInicial}</td>,
+                            <td key={`${id}-ent`} className="border border-slate-900 p-0" title={entradaRecebida(linha.unidade.id, grupo.key) ? `+${entradaRecebida(linha.unidade.id, grupo.key)} recebido de lojas` : undefined}>
+                              <Input type="number" min="0" inputMode="numeric" value={entradas[linha.unidade.id]?.[grupo.key] || ""}
+                                onChange={(e) => atualizarEntrada(linha.unidade.id, grupo.key, e.target.value)} className={`${inputCls} text-emerald-700`} />
+                              {entradaRecebida(linha.unidade.id, grupo.key) > 0 && (
+                                <span className="block text-center text-[10px] font-bold text-emerald-700">+{entradaRecebida(linha.unidade.id, grupo.key)} transf.</span>
+                              )}
+                            </td>,
+                            <td key={`${id}-tra`} className="border border-slate-900 p-0">
+                              <button type="button" onClick={() => abrirTransferencia(linha.unidade.id, grupo.key)}
+                                className="h-10 w-full px-1 text-center font-black text-purple-700 underline-offset-2 hover:underline">
+                                -{f.transferencia}
+                              </button>
+                            </td>,
+                            <td key={`${id}-che`} className="border border-slate-900 p-0">
+                              <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].cheio || ""}
+                                onChange={(e) => atualizarValor(linha.unidade.id, grupo.key, "cheio", e.target.value)} className={`${inputCls} text-blue-700`} />
+                            </td>,
+                            <td key={`${id}-vaz`} className="border border-slate-900 p-0">
+                              <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].vazio || ""}
+                                onChange={(e) => atualizarValor(linha.unidade.id, grupo.key, "vazio", e.target.value)} className={`${inputCls} text-blue-700`} />
+                            </td>,
+                            <td key={`${id}-tot`} className="border border-slate-900 bg-slate-100 px-1 text-center font-black">
+                              {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}
+                            </td>,
+                            <td key={`${id}-ven`} className="border border-slate-900 bg-emerald-50 px-1 text-center font-black text-emerald-700">{f.vendaEsperada}</td>,
+                          ];
+                        })}
                       </tr>
                     ))
                   )}
@@ -520,11 +698,12 @@ export default function ConferenciaEstoque() {
                       <th scope="row" className="sticky left-0 z-10 border border-slate-900 bg-slate-800 px-2 py-1.5 text-left font-black text-white">
                         Total geral
                       </th>
-                      {grupos.flatMap((grupo) => [
-                        <td key={`tot-${grupo.key}-c`} className="border border-slate-900 bg-slate-200 text-center font-black">{resumo.porGrupo[grupo.key].cheio}</td>,
-                        <td key={`tot-${grupo.key}-v`} className="border border-slate-900 bg-slate-200 text-center font-black">{resumo.porGrupo[grupo.key].vazio}</td>,
-                        <td key={`tot-${grupo.key}-t`} className="border border-slate-900 bg-slate-300 text-center font-black">{resumo.porGrupo[grupo.key].cheio + resumo.porGrupo[grupo.key].vazio}</td>,
-                      ])}
+                      {grupos.flatMap((grupo) => {
+                        const g = resumo.porGrupo[grupo.key];
+                        return [g.inicial, g.entrada, -g.transf, g.cheio, g.vazio, g.cheio + g.vazio, g.venda].map((v, i) => (
+                          <td key={`tot-${grupo.key}-${i}`} className={`border border-slate-900 text-center font-black ${colunasFluxo[i].bg}`}>{v}</td>
+                        ));
+                      })}
                     </tr>
                   </tfoot>
                 )}
@@ -563,42 +742,80 @@ export default function ConferenciaEstoque() {
                   <div className="border-b border-border bg-foreground px-4 py-3 text-background">
                     <p className="break-words text-base font-black">{linha.unidade.nome}</p>
                   </div>
-                  <div className="grid grid-cols-1 gap-2 p-3 xs:grid-cols-2">
-                    {grupos.map((grupo) => (
-                      <div key={grupo.key} className={`rounded-lg border p-3 ${grupo.mobileTone}`}>
-                        <p className="mb-2 text-sm font-black text-slate-950">{grupo.label}</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-1 rounded-md bg-white px-2 py-2 shadow-sm">
-                            <Label className="text-[11px] font-semibold uppercase text-slate-500">Cheio</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              inputMode="numeric"
-                              value={linha.totais[grupo.key].cheio || ""}
-                              onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "cheio", event.target.value)}
-                              className="h-9 rounded-md text-center text-lg font-black text-blue-700"
-                            />
+                  <div className="grid grid-cols-1 gap-3 p-3">
+                    {grupos.map((grupo) => {
+                      const f = fluxo(linha.unidade.id, grupo.key);
+                      const recebida = entradaRecebida(linha.unidade.id, grupo.key);
+                      return (
+                        <div key={grupo.key} className={`rounded-xl border p-3 ${grupo.mobileTone}`}>
+                          <p className="mb-2 text-base font-black text-slate-950">{grupo.label}</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="rounded-lg border border-slate-200 bg-white p-2">
+                              <p className="text-[11px] font-bold uppercase text-slate-500">1. Saldo inicial</p>
+                              <p className="text-right text-2xl font-black text-slate-950">{f.saldoInicial}</p>
+                              <p className="text-[11px] text-slate-500">Contagem de {formatarDataBR(dataAnterior)}</p>
+                            </div>
+                            <div className="rounded-lg border border-emerald-200 bg-white p-2">
+                              <p className="text-[11px] font-bold uppercase text-emerald-700">2. Entrada (+)</p>
+                              <Input
+                                type="number"
+                                min="0"
+                                inputMode="numeric"
+                                value={entradas[linha.unidade.id]?.[grupo.key] || ""}
+                                onChange={(event) => atualizarEntrada(linha.unidade.id, grupo.key, event.target.value)}
+                                className="h-9 text-right text-lg font-black text-emerald-700"
+                              />
+                              {recebida > 0 && <p className="text-[11px] text-emerald-700">+{recebida} recebido de lojas</p>}
+                            </div>
+                            <div className="rounded-lg border border-blue-200 bg-white p-2">
+                              <p className="text-[11px] font-bold uppercase text-blue-700">3. Total inicial (=)</p>
+                              <p className="text-right text-2xl font-black text-blue-900">{f.totalInicial}</p>
+                              <p className="text-[11px] text-blue-700">Inicial + entrada</p>
+                            </div>
+                            <div className="rounded-lg border border-amber-200 bg-white p-2">
+                              <p className="text-[11px] font-bold uppercase text-amber-700">4. Cheios (-)</p>
+                              <Input
+                                type="number"
+                                min="0"
+                                inputMode="numeric"
+                                value={linha.totais[grupo.key].cheio || ""}
+                                onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "cheio", event.target.value)}
+                                className="h-9 text-right text-lg font-black text-amber-800"
+                              />
+                              <p className="text-[11px] text-amber-700">Contagem atual</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => abrirTransferencia(linha.unidade.id, grupo.key)}
+                              className="rounded-lg border border-purple-200 bg-white p-2 text-left"
+                            >
+                              <p className="flex justify-between text-[11px] font-bold uppercase text-purple-700">
+                                5. Transf. (-) <span className="underline">Editar</span>
+                              </p>
+                              <p className="text-right text-2xl font-black text-purple-700">-{f.transferencia}</p>
+                              <p className="text-[11px] text-purple-600">Para outras lojas</p>
+                            </button>
+                            <div className="rounded-lg border border-slate-200 bg-white p-2">
+                              <p className="text-[11px] font-bold uppercase text-slate-500">Vazio</p>
+                              <Input
+                                type="number"
+                                min="0"
+                                inputMode="numeric"
+                                value={linha.totais[grupo.key].vazio || ""}
+                                onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "vazio", event.target.value)}
+                                className="h-9 text-right text-lg font-black text-slate-800"
+                              />
+                              <p className="text-[11px] text-slate-500">Vasilhames: {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}</p>
+                            </div>
                           </div>
-                          <div className="space-y-1 rounded-md bg-white px-2 py-2 shadow-sm">
-                            <Label className="text-[11px] font-semibold uppercase text-slate-500">Vazio</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              inputMode="numeric"
-                              value={linha.totais[grupo.key].vazio || ""}
-                              onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "vazio", event.target.value)}
-                              className="h-9 rounded-md text-center text-lg font-black text-blue-700"
-                            />
+                          <div className="mt-2 rounded-xl bg-emerald-600 p-3 text-white">
+                            <p className="text-xs font-bold uppercase">6. Venda esperada</p>
+                            <p className="text-right text-3xl font-black">{f.vendaEsperada}</p>
+                            <p className="text-[11px] opacity-90">Inicial + entrada − transf. − cheios</p>
                           </div>
                         </div>
-                        <div className="mt-2 flex items-center justify-between rounded-md bg-white px-3 py-1.5 shadow-sm">
-                          <span className="text-[11px] font-semibold uppercase text-slate-500">Total</span>
-                          <span className="text-lg font-black text-slate-950">
-                            {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -606,6 +823,53 @@ export default function ConferenciaEstoque() {
           )}
         </div>
       </div>
+
+      <Dialog open={!!dialogTransf} onOpenChange={(open) => !open && setDialogTransf(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Transferência {dialogTransf?.grupo} — {unidades.find((u) => u.id === dialogTransf?.unidadeId)?.nome}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Loja de destino</Label>
+              <Select value={transfDestino} onValueChange={setTransfDestino}>
+                <SelectTrigger className="h-10"><SelectValue placeholder="Escolha a loja" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhum">Escolha a loja</SelectItem>
+                  {todasLojas
+                    .filter((u) => u.id !== dialogTransf?.unidadeId)
+                    .map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Quantidade</Label>
+              <Input type="number" min="1" inputMode="numeric" value={transfQtd} onChange={(e) => setTransfQtd(e.target.value)} className="h-10 text-base" />
+            </div>
+            {transferenciasDoDialog.length > 0 && (
+              <div className="space-y-1 rounded-lg border p-2">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">Já registradas hoje</p>
+                {transferenciasDoDialog.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between text-sm">
+                    <span>{t.quantidade} → {nomeLoja(t.unidade_destino_id)}</span>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => excluirTransferencia(t.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogTransf(null)}>Fechar</Button>
+            <Button onClick={registrarTransferencia} disabled={isSaving}>Registrar transferência</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }
