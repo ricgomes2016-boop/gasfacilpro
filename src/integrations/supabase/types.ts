@@ -5195,6 +5195,42 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_conferencia_saldo_ajustes: {
+        Row: {
+          cheio: number
+          created_at: string
+          data_conferencia: string
+          editado_por: string | null
+          id: string
+          produto_grupo: string
+          unidade_id: string
+          updated_at: string
+          vazio: number
+        }
+        Insert: {
+          cheio?: number
+          created_at?: string
+          data_conferencia: string
+          editado_por?: string | null
+          id?: string
+          produto_grupo: string
+          unidade_id: string
+          updated_at?: string
+          vazio?: number
+        }
+        Update: {
+          cheio?: number
+          created_at?: string
+          data_conferencia?: string
+          editado_por?: string | null
+          id?: string
+          produto_grupo?: string
+          unidade_id?: string
+          updated_at?: string
+          vazio?: number
+        }
+        Relationships: []
+      }
       estoque_conferencias: {
         Row: {
           conferido_por: string | null
