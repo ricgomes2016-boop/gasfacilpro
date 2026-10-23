@@ -8,4 +8,5 @@
 - [x] Login real de conferente confirmado pelo usuário.
 - [x] Pedir momento antes da digitação; separar entradas e transferências e ajustar saldo cheio/vazio.
 - [x] Validar regras: 18 testes aprovados e compilação sem erros.
-- [ ] Validar fluxo visual autenticado: a página de teste ainda exibe a versão anterior, mesmo após nova navegação.
+- [ ] Validar fluxo visual autenticado da conferência e transferência de 36 P13 de Usagas para Sertaneja.
+- [ ] Corrigir ausência de empresa_id nos registros de movimentos, preservando histórico e compatibilidade.
