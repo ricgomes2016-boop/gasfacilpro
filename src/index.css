@@ -965,10 +965,16 @@
     stroke: hsl(var(--muted-foreground)) !important;
   }
 
-  /* Coluna "Lojas" das tabelas de conferência: o override acima deixaria o
-     rótulo cinza sobre o fundo escuro da coluna, então o branco é preservado. */
-  .system-surface .conferencia-lojas-head {
+  /* Tabelas de conferência: os overrides globais (o mapeamento de .text-white
+     e o cinza dos cabeçalhos) repintariam estes rótulos de cinza sobre fundo
+     escuro. As cores originais de cada célula são preservadas aqui. */
+  .system-surface .conferencia-table .conferencia-lojas-head,
+  .system-surface .conferencia-table .conferencia-band-head,
+  .system-surface .conferencia-table .conferencia-total-row {
     color: hsl(0 0% 100%) !important;
+  }
+  .system-surface .conferencia-table .conferencia-ink-head {
+    color: hsl(224 71% 4%) !important;
   }
 
   .saas-table tbody tr {
