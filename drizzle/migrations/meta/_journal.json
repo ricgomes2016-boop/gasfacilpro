@@ -43,6 +43,13 @@
       "when": 1792763379845,
       "tag": "0005_portal_conferentes_isolado",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792767107944,
+      "tag": "0006_conferencia_datas_apuracao",
+      "breakpoints": true
     }
   ]
 }
