@@ -6,7 +6,7 @@ import { ptBR } from "date-fns/locale";
 import { Archive, CalendarDays, Download, FileSpreadsheet, Loader2, Package, PackageOpen, Pencil, RefreshCw, Save, Store, Trash2, TrendingUp } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { calcularFluxoConferencia, resolverSaldoInicial, SaldoCheioVazio, datasApuracao, combinarContagens, MomentoContagem, saldoComEntradas } from "@/lib/estoque/conferenciaFluxo";
+import { calcularFluxoDia, calcularEstoqueAtual, calcularFluxoConferencia, resolverSaldoInicial, SaldoCheioVazio, datasApuracao, combinarContagens, MomentoContagem, saldoComEntradas } from "@/lib/estoque/conferenciaFluxo";
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogDescription, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -142,6 +142,8 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
   const [transfHoje, setTransfHoje] = useState<MovTransferencia[]>([]);
   /** Entradas e transferências pertencem ao dia em que aconteceram (data da contagem física). */
   const mesmoDia = dataContagem === dataConferencia;
+  const entMov = mesmoDia ? entradas : entradasHoje;
+  const trsMov = mesmoDia ? transferencias : transfHoje;
   const movDatePortal = { date: dataContagem, count_date: dataContagem, moment: "fim" as MomentoContagem };
   const todasLojas = portal?.destinos ?? unidades;
   const [momentoConfirmado, setMomentoConfirmado] = useState(false);
@@ -420,15 +422,16 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
 
   const resumo = useMemo(() => {
     const porGrupo = grupos.reduce((acc, g) => {
-      acc[g.key] = { inicial: 0, inicialVazio: 0, entrada: 0, transf: 0, cheio: 0, vazio: 0, venda: 0 };
+      acc[g.key] = { inicialBase: 0, inicial: 0, inicialVazio: 0, entrada: 0, transf: 0, cheio: 0, vazio: 0, venda: 0 };
       return acc;
-    }, {} as Record<GrupoProduto, { inicial: number; inicialVazio: number; entrada: number; transf: number; cheio: number; vazio: number; venda: number }>);
+    }, {} as Record<GrupoProduto, { inicialBase: number; inicial: number; inicialVazio: number; entrada: number; transf: number; cheio: number; vazio: number; venda: number }>);
     const acc = { inicial: 0, cheios: 0, vazios: 0, total: 0, venda: 0, porGrupo };
     linhas.forEach((linha) => {
       grupos.forEach((grupo) => {
         const f = fluxo(linha.unidade.id, grupo.key);
         const pg = porGrupo[grupo.key];
         const saldo = saldoComEntradas(saldoInicialDe(linha.unidade.id, grupo.key), f.entrada);
+        pg.inicialBase += f.saldoInicial;
         pg.inicial += saldo.cheio;
         pg.inicialVazio += saldo.vazio;
         pg.entrada += f.entrada;
@@ -452,9 +455,9 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
   const transferenciasDoDialog = useMemo(
     () =>
       dialogTransf
-        ? transferencias.filter((t) => t.unidade_id === dialogTransf.unidadeId && t.produto_grupo === dialogTransf.grupo)
+        ? (mesmoDia ? transferencias : transfHoje).filter((t) => t.unidade_id === dialogTransf.unidadeId && t.produto_grupo === dialogTransf.grupo)
         : [],
-    [dialogTransf, transferencias]
+    [dialogTransf, transferencias, transfHoje, mesmoDia]
   );
 
   const abrirTransferencia = (unidadeId: string, grupo: GrupoProduto) => {
@@ -746,62 +749,77 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {([
-            {
-              label: "Saldo inicial",
-              hint: `Inicial + entradas · ${formatarDataBR(dataConferencia)}`,
-              icon: Archive,
-              iconCls: "bg-muted text-foreground",
-              cardCls: "border-border bg-card",
-              valor: (k: GrupoProduto) => (
-                <span>
-                  {resumo.porGrupo[k].inicial} <span className="text-xs font-medium text-muted-foreground">cheio</span>
-                  {" / "}
-                  {resumo.porGrupo[k].inicialVazio} <span className="text-xs font-medium text-muted-foreground">vazio</span>
-                </span>
-              ),
-            },
-            { label: "Cheios", hint: `Contagem de ${formatarDataBR(dataContagem)}`, icon: Package, iconCls: "bg-warning/15 text-warning", cardCls: "border-border bg-card", valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio },
-            { label: "Vazios", hint: `Contagem de ${formatarDataBR(dataContagem)}`, icon: PackageOpen, iconCls: "bg-info/15 text-info", cardCls: "border-border bg-card", valor: (k: GrupoProduto) => resumo.porGrupo[k].vazio },
-            { label: "Venda esperada", hint: `Vendas de ${formatarDataBR(dataConferencia)} · cheios`, icon: TrendingUp, iconCls: "bg-success/15 text-success", cardCls: "border-success/40 bg-success/5", valor: (k: GrupoProduto) => resumo.porGrupo[k].venda },
-          ]).map((card) => (
-            <div key={card.label} className={`rounded-xl border p-4 shadow-sm ${card.cardCls}`}>
-              <div className="mb-3 flex items-center gap-3">
-                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${card.iconCls}`}>
-                  <card.icon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold uppercase tracking-wide text-foreground">{card.label}</p>
-                  <p className="break-words text-xs text-muted-foreground">{card.hint}</p>
-                </div>
-              </div>
-              <div className="divide-y divide-border/60">
-                {grupos.map((g) => (
-                  <div key={g.key} className="flex items-center justify-between py-1.5">
-                    <span className="text-sm font-semibold text-muted-foreground">{g.key === "Agua" ? "Água" : g.label}</span>
-                    <span className="text-lg font-bold tabular-nums text-foreground">{card.valor(g.key)}</span>
+        <section aria-label="Fluxo do dia de venda" className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
+            <div>
+              <h2 className="text-lg font-bold text-foreground">Venda de {formatarDataBR(dataConferencia)}</h2>
+              <p className="text-xs text-muted-foreground">Fechamento pela contagem {momento === "inicio" ? "do início" : "do final"} de {formatarDataBR(dataContagem)} · {escopoLabel}</p>
+            </div>
+            <span className={`rounded-full px-3 py-1 text-xs font-bold ${resumo.porGrupo.P13.cheio + resumo.porGrupo.P20.cheio + resumo.porGrupo.P45.cheio + resumo.porGrupo.Agua.cheio > 0 ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+              {resumo.porGrupo.P13.cheio + resumo.porGrupo.P20.cheio + resumo.porGrupo.P45.cheio + resumo.porGrupo.Agua.cheio > 0 ? "Dia fechado" : "Aguardando contagem"}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
+            {grupos.map((g) => {
+              const f = calcularFluxoDia({ inicial: resumo.porGrupo[g.key].inicialBase, entradas: resumo.porGrupo[g.key].entrada, transferencias: resumo.porGrupo[g.key].transf, fechamento: resumo.porGrupo[g.key].cheio });
+              const passos: [string, string, number, boolean?][] = [
+                ["Inicial", `abertura de ${formatarDataBR(dataConferencia)}`, f.inicial],
+                ["+ Entradas", `durante ${formatarDataBR(dataConferencia)}`, f.entradas],
+                ["= Total", "inicial + entradas", f.total, true],
+                ["− Transferências", "para filiais", f.transferencias],
+                ["= Disponível", "total − transferências", f.disponivel, true],
+                ["− Fechamento", `cheios contados em ${formatarDataBR(dataContagem)}`, f.fechamento],
+              ];
+              return (
+                <div key={g.key} className="p-4">
+                  <p className="mb-2 text-sm font-black uppercase tracking-wide text-foreground">{g.key === "Agua" ? "Água" : g.label}</p>
+                  <dl className="space-y-1">
+                    {passos.map(([label, hint, v, strong]) => (
+                      <div key={label} className={`flex items-baseline justify-between gap-2 ${strong ? "border-t border-border pt-1" : ""}`}>
+                        <dt className="min-w-0"><span className={`text-sm ${strong ? "font-bold text-foreground" : "font-medium text-muted-foreground"}`}>{label}</span><span className="block text-[11px] text-muted-foreground">{hint}</span></dt>
+                        <dd className={`tabular-nums ${strong ? "text-base font-bold" : "text-sm font-semibold"} text-foreground`}>{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <div className="mt-3 flex items-center justify-between rounded-lg bg-success/10 px-3 py-2">
+                    <span className="text-sm font-bold text-success">= Venda {formatarDataBR(dataConferencia)}</span>
+                    <span className="text-2xl font-black tabular-nums text-success">{f.venda}</span>
                   </div>
-                ))}
+                  <p className="mt-1 text-[11px] text-muted-foreground">Vazios contados: {resumo.porGrupo[g.key].vazio}</p>
+                </div>
+              );
+            })}
+          </div>
+          {!mesmoDia && (
+            <div className="border-t border-border bg-muted/40 px-4 py-3">
+              <p className="text-sm font-bold text-foreground">Estoque atual de {formatarDataBR(dataContagem)} <span className="font-normal text-muted-foreground">· contagem de abertura + entradas − transferências de hoje</span></p>
+              <div className="mt-2 grid grid-cols-2 gap-2 lg:grid-cols-4">
+                {grupos.map((g) => {
+                  const ids = linhas.map((l) => l.unidade.id);
+                  const ent = ids.reduce((a, id) => a + (entradasHoje[id]?.[g.key] || 0), 0) + transfHoje.filter((t) => ids.includes(t.unidade_destino_id || "") && t.produto_grupo === g.key).reduce((a, t) => a + Number(t.quantidade || 0), 0);
+                  const tr = transfHoje.filter((t) => ids.includes(t.unidade_id) && t.produto_grupo === g.key).reduce((a, t) => a + Number(t.quantidade || 0), 0);
+                  const atual = calcularEstoqueAtual({ abertura: resumo.porGrupo[g.key].cheio, entradas: ent, transferencias: tr });
+                  return <div key={g.key} className="rounded-lg border border-border bg-card px-3 py-2"><p className="text-xs font-semibold text-muted-foreground">{g.key === "Agua" ? "Água" : g.label}</p><p className="text-lg font-bold tabular-nums text-foreground">{atual}</p><p className="text-[11px] text-muted-foreground">{resumo.porGrupo[g.key].cheio} + {ent}{tr ? ` − ${tr}` : ""}</p></div>;
+                })}
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        </section>
 
         <section className="space-y-4 border-y border-border py-5">
           <h2 className="text-lg font-bold text-foreground">Entrada</h2>
-          <p className="text-sm text-muted-foreground">Movimentos de {formatarDataBR(dataConferencia)}</p>
+          <p className="text-sm text-muted-foreground">Registre o que aconteceu em {formatarDataBR(dataContagem)}. {mesmoDia ? "Entra na venda deste dia." : `Soma no estoque de ${formatarDataBR(dataContagem)}, não na venda de ${formatarDataBR(dataConferencia)}.`}</p>
           <div className="grid grid-cols-1 gap-3 min-[385px]:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-2"><Label>Loja de origem</Label><Select value={movLoja} onValueChange={(id) => { setMovLoja(id); setEntradaQtd(String(entradas[id]?.[movGrupo] || 0)); }}><SelectTrigger aria-label="Loja do movimento"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="nenhum">Escolha a loja</SelectItem>{lojasVisiveis.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label>Produto</Label><Select value={movGrupo} onValueChange={(g) => { setMovGrupo(g as GrupoProduto); setEntradaQtd(String(entradas[movLoja]?.[g as GrupoProduto] || 0)); }}><SelectTrigger aria-label="Produto do movimento"><SelectValue /></SelectTrigger><SelectContent>{grupos.map((g) => <SelectItem key={g.key} value={g.key}>{g.key === "Agua" ? "Água" : g.label}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label htmlFor="entrada-dia">Entrada manual do dia</Label><Input id="entrada-dia" aria-label="Entrada manual do dia" type="number" min="0" inputMode="numeric" value={entradaQtd} onFocus={pedirMomento} onChange={(e) => setEntradaQtd(e.target.value)} className="text-base" /></div>
+            <div className="space-y-2"><Label>Loja de origem</Label><Select value={movLoja} onValueChange={(id) => { setMovLoja(id); setEntradaQtd(String(entMov[id]?.[movGrupo] || 0)); }}><SelectTrigger aria-label="Loja do movimento"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="nenhum">Escolha a loja</SelectItem>{lojasVisiveis.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>Produto</Label><Select value={movGrupo} onValueChange={(g) => { setMovGrupo(g as GrupoProduto); setEntradaQtd(String(entMov[movLoja]?.[g as GrupoProduto] || 0)); }}><SelectTrigger aria-label="Produto do movimento"><SelectValue /></SelectTrigger><SelectContent>{grupos.map((g) => <SelectItem key={g.key} value={g.key}>{g.key === "Agua" ? "Água" : g.label}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label htmlFor="entrada-dia">Entrada de {formatarDataBR(dataContagem)}</Label><Input id="entrada-dia" aria-label="Entrada manual do dia" type="number" min="0" inputMode="numeric" value={entradaQtd} onFocus={pedirMomento} onChange={(e) => setEntradaQtd(e.target.value)} className="text-base" /></div>
             <Button className="self-end" disabled={isSaving || isLoading} onClick={() => void registrarEntrada()}>Registrar entrada</Button>
           </div>
-          {movLoja !== "nenhum" && <div className="space-y-1 text-sm text-muted-foreground"><p>Entrada manual registrada: {entradas[movLoja]?.[movGrupo] || 0} {movGrupo}</p>{transferencias.filter((t) => t.unidade_destino_id === movLoja && t.produto_grupo === movGrupo).map((t) => <p key={t.id}>+{t.quantidade} {movGrupo} recebido de {nomeLoja(t.unidade_id)}</p>)}</div>}
+          {movLoja !== "nenhum" && <div className="space-y-1 text-sm text-muted-foreground"><p>Entrada registrada em {formatarDataBR(dataContagem)}: {entMov[movLoja]?.[movGrupo] || 0} {movGrupo}</p>{trsMov.filter((t) => t.unidade_destino_id === movLoja && t.produto_grupo === movGrupo).map((t) => <p key={t.id}>+{t.quantidade} {movGrupo} recebido de {nomeLoja(t.unidade_id)}</p>)}</div>}
           <div className="space-y-3 border-t border-border pt-4">
             <h2 className="text-lg font-bold text-foreground">Transferência para filial</h2>
             <Button variant="outline" disabled={movLoja === "nenhum" || isSaving || isLoading} onClick={() => { if (!momentoConfirmado) { setPerguntarMomento(true); return; } abrirTransferencia(movLoja, movGrupo); }}>Transferir {movGrupo}</Button>
-            {movLoja !== "nenhum" && <p className="text-sm text-muted-foreground">Transferências registradas: {fluxo(movLoja, movGrupo).transferencia} {movGrupo}</p>}
+            {movLoja !== "nenhum" && <p className="text-sm text-muted-foreground">Transferências em {formatarDataBR(dataContagem)}: {trsMov.filter((t) => t.unidade_id === movLoja && t.produto_grupo === movGrupo).reduce((a, t) => a + Number(t.quantidade || 0), 0)} {movGrupo}</p>}
           </div>
         </section>
 
