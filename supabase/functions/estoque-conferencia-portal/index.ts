@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     if (authError || !user) return fail('Sessão inválida. Entre novamente.');
     const body = await req.json();
     const { action } = body;
-    const check = (result: { error: unknown }) => { if (result.error) throw new Error('Não foi possível concluir a operação.'); };
+    const check = (result: { error: unknown }) => { if (result.error) { console.error('db', JSON.stringify(result.error)); } if (result.error) throw new Error('Não foi possível concluir a operação.'); };
 
     if (['list', 'create', 'update_access'].includes(action)) {
       const { data: roles, error } = await db.from('user_roles').select('role').eq('user_id', user.id);
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       if (units.error || units.data?.length !== ids.length) return fail('Uma das lojas não está autorizada.');
       // Never reuse an existing account or replace its ERP privileges.
       const created = await db.auth.admin.createUser({ email: body.email.trim().toLowerCase(), password: body.password, email_confirm: true, user_metadata: { full_name: body.full_name.trim() } });
-      if (created.error || !created.data.user) return fail('Não foi possível criar o acesso. Confira o e-mail e a senha; use um e-mail sem cadastro existente.');
+      if (created.error || !created.data.user) { console.error('create_user', created.error?.message); return fail('Não foi possível criar o acesso. Confira o e-mail e a senha; use um e-mail sem cadastro existente.'); }
       const newId = created.data.user.id;
       try {
         // Native lifecycle creates a profile and cliente role. Dedicated accounts keep no ERP role or tenant membership.
@@ -61,7 +61,8 @@ Deno.serve(async (req) => {
         check(await db.from('profiles').update({ empresa_id: null }).eq('user_id', newId));
         check(await db.from('estoque_conferente_acessos').insert({ user_id: newId, empresa_id: empresaId, criado_por: user.id, role: 'conferente' }));
         check(await db.from('estoque_conferente_unidades').insert(ids.map((id) => ({ user_id: newId, empresa_id: empresaId, unidade_id: id }))));
-      } catch {
+      } catch (e) {
+        console.error('grant_units', e);
         await db.from('estoque_conferente_acessos').delete().eq('user_id', newId);
         await db.auth.admin.deleteUser(newId);
         return fail('Não foi possível liberar as lojas. O acesso não foi criado.');
@@ -131,7 +132,8 @@ Deno.serve(async (req) => {
     ]);
     [current, prev, movements, adjustments].forEach(check);
     return reply({ ok: true, current: current.data, prev: prev.data, movs: movements.data, ajs: adjustments.data });
-  } catch {
+  } catch (e) {
+    console.error('fatal', e);
     return fail('Não foi possível concluir a operação. Tente novamente.');
   }
 });
