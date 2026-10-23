@@ -14,3 +14,13 @@ describe("calcularFluxoConferencia", () => {
     expect(calcularFluxoConferencia({ saldoInicial: 250, entrada: 100, transferencia: 0, cheio: 214 }).vendaEsperada).toBe(136);
   });
 });
+
+import { resolverSaldoInicial } from "./conferenciaFluxo";
+describe("resolverSaldoInicial", () => {
+  it("usa o ajuste do Master no lugar da contagem anterior", () => {
+    expect(resolverSaldoInicial({ cheio: 200, vazio: 300 }, { cheio: 500, vazio: 10 })).toEqual({ cheio: 200, vazio: 300 });
+  });
+  it("sem ajuste, usa a contagem do dia anterior", () => {
+    expect(resolverSaldoInicial(null, { cheio: 500, vazio: 10 })).toEqual({ cheio: 500, vazio: 10 });
+  });
+});
