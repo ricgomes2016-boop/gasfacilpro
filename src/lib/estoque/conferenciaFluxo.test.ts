@@ -76,3 +76,21 @@ describe("efeitoMovimentos", () => {
     expect(efeitoMov({ entrada: 100, enviada: 0, recebida: 0 })).toEqual({ cheio: 100, vazio: -100 });
   });
 });
+
+describe("colunas da tabela de contagem", () => {
+  const todas = [
+    { key: "ini" }, { key: "ent" }, { key: "tra" }, { key: "che" },
+    { key: "vaz" }, { key: "tot" }, { key: "ven" },
+  ];
+  it("Master vê exatamente as mesmas colunas do conferente: Cheio, Vazio e Total", () => {
+    expect(colunasDeContagem(todas, true).map((c) => c.key)).toEqual(["che", "vaz", "tot"]);
+    expect(colunasDeContagem(todas, false).map((c) => c.key)).toEqual(["che", "vaz", "tot"]);
+  });
+  it("não expõe Inicial, Entrada, Transferência ou Venda dentro da contagem", () => {
+    const keys = colunasDeContagem(todas, true).map((c) => c.key);
+    expect(keys).not.toContain("ini");
+    expect(keys).not.toContain("ent");
+    expect(keys).not.toContain("tra");
+    expect(keys).not.toContain("ven");
+  });
+});
