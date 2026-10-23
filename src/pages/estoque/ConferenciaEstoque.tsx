@@ -573,28 +573,6 @@ export default function ConferenciaEstoque() {
                 </Select>
               </div>
 
-              <div className="space-y-1">
-                <p className="text-[11px] font-semibold uppercase text-slate-500">
-                  Conferência do dia {formatarDataBR(dataConferencia)} · saldo inicial de {formatarDataBR(dataAnterior)}
-                </p>
-                <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 lg:grid-cols-4">
-                  {([
-                    { label: "Saldo inicial", total: resumo.inicial, valor: (k: GrupoProduto) => resumo.porGrupo[k].inicial },
-                    { label: "Cheios (contagem)", total: resumo.cheios, valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio },
-                    { label: "Vazios", total: resumo.vazios, valor: (k: GrupoProduto) => resumo.porGrupo[k].vazio },
-                    { label: "Venda esperada", total: resumo.venda, valor: (k: GrupoProduto) => resumo.porGrupo[k].venda },
-                  ]).map((card) => (
-                    <div key={card.label} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                      <p className="text-[11px] font-semibold uppercase text-slate-500">{card.label}</p>
-                      <p className="text-xl font-bold text-slate-950">{card.total}</p>
-                      <p className="text-xs font-semibold text-slate-600">
-                        {grupos.map((g) => `${card.valor(g.key)} ${g.label}`).join(" · ")}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               <div className="hidden items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 md:flex">
                 <Store className="h-4 w-4" />
                 {modoPersistencia === "local" ? "Modo local" : escopoLabel}
@@ -602,6 +580,48 @@ export default function ConferenciaEstoque() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {([
+            {
+              label: "Saldo inicial",
+              hint: `Contagem de ${formatarDataBR(dataAnterior)}`,
+              icon: Archive,
+              iconCls: "bg-muted text-foreground",
+              cardCls: "border-border bg-card",
+              valor: (k: GrupoProduto) => (
+                <span>
+                  {resumo.porGrupo[k].inicial} <span className="text-xs font-medium text-muted-foreground">cheio</span>
+                  {" / "}
+                  {resumo.porGrupo[k].inicialVazio} <span className="text-xs font-medium text-muted-foreground">vazio</span>
+                </span>
+              ),
+            },
+            { label: "Cheios", hint: "Contagem atual", icon: Package, iconCls: "bg-warning/15 text-warning", cardCls: "border-border bg-card", valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio },
+            { label: "Vazios", hint: "Contagem atual", icon: PackageOpen, iconCls: "bg-info/15 text-info", cardCls: "border-border bg-card", valor: (k: GrupoProduto) => resumo.porGrupo[k].vazio },
+            { label: "Venda esperada", hint: "Em cheios — confira com o vendido", icon: TrendingUp, iconCls: "bg-success/15 text-success", cardCls: "border-success/40 bg-success/5", valor: (k: GrupoProduto) => resumo.porGrupo[k].venda },
+          ]).map((card) => (
+            <div key={card.label} className={`rounded-xl border p-4 shadow-sm ${card.cardCls}`}>
+              <div className="mb-3 flex items-center gap-3">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${card.iconCls}`}>
+                  <card.icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold uppercase tracking-wide text-foreground">{card.label}</p>
+                  <p className="truncate text-xs text-muted-foreground">{card.hint}</p>
+                </div>
+              </div>
+              <div className="divide-y divide-border/60">
+                {grupos.map((g) => (
+                  <div key={g.key} className="flex items-center justify-between py-1.5">
+                    <span className="text-sm font-semibold text-muted-foreground">{g.key === "Agua" ? "Água" : g.label}</span>
+                    <span className="text-lg font-bold tabular-nums text-foreground">{card.valor(g.key)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
 
         <Card className="hidden overflow-hidden border-slate-300 shadow-[0_14px_40px_rgba(15,23,42,0.08)] md:block">
           <CardContent className="p-0">
