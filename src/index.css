@@ -1872,3 +1872,5 @@
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
 }
+
+.system-surface .venda-band-head { color: hsl(0 0% 100%) !important; }
