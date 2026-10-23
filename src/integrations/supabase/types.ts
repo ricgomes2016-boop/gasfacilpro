@@ -5275,6 +5275,81 @@ export type Database = {
           },
         ]
       }
+      estoque_conferente_acessos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          criado_por: string
+          empresa_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          criado_por: string
+          empresa_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          criado_por?: string
+          empresa_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_conferente_acessos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_conferente_unidades: {
+        Row: {
+          empresa_id: string
+          unidade_id: string
+          user_id: string
+        }
+        Insert: {
+          empresa_id: string
+          unidade_id: string
+          user_id: string
+        }
+        Update: {
+          empresa_id?: string
+          unidade_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_conferente_unidades_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_conferente_unidades_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_conferente_unidades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_conferente_acessos"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       estoque_saldos_iniciais: {
         Row: {
           created_at: string
@@ -13271,6 +13346,15 @@ export type Database = {
           empresa_nome: string
           unidade_id: string
         }[]
+      }
+      salvar_contagem_portal: {
+        Args: {
+          _data: string
+          _empresa_id: string
+          _registros: Json
+          _user_id: string
+        }
+        Returns: undefined
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
