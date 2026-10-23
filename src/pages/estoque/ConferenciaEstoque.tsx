@@ -1093,33 +1093,44 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
             <Button disabled={isSaving || isLoading} onClick={() => void salvarEntradasLote()}><Save className="mr-2 h-4 w-4" />Salvar entradas</Button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] border-collapse text-sm">
+            <table className="w-full min-w-[900px] border-collapse bg-white text-sm">
               <thead>
-                <tr className="bg-muted/50">
-                  <th rowSpan={2} className="sticky left-0 z-20 border border-border bg-muted px-3 py-2 text-left">Loja</th>
-                  {grupos.map((g) => <th key={g.key} colSpan={3} className="border border-border px-2 py-1.5 text-center font-bold">{g.key === "Agua" ? "Água" : g.key}</th>)}
+                <tr>
+                  <th rowSpan={2} className="sticky left-0 z-20 min-w-[180px] border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black text-white">
+                    Lojas
+                  </th>
+                  {grupos.map((g) => <th key={g.key} colSpan={3} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${g.tone}`}>{g.key === "Agua" ? "Água" : g.key}</th>)}
                 </tr>
-                <tr className="bg-muted/30 text-xs">
-                  {grupos.map((g) => ["Cheio", "Vazio", "Total"].map((c) => <th key={g.key + c} className="border border-border px-2 py-1 text-center">{c}</th>))}
+                <tr>
+                  {grupos.map((g) => [
+                    { c: "Cheio", bg: "bg-amber-100" },
+                    { c: "Vazio", bg: "bg-slate-200" },
+                    { c: "Total", bg: "bg-slate-300" },
+                  ].map(({ c, bg }) => <th key={g.key + c} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 ${bg}`}>{c}</th>))}
                 </tr>
               </thead>
               <tbody>
                 {lojasVisiveis.map((u) => (
-                  <tr key={u.id}>
-                    <th scope="row" className="sticky left-0 z-10 border border-border bg-card px-3 py-2 text-left font-semibold">{u.nome}</th>
+                  <tr key={u.id} className="hover:bg-blue-50/40">
+                    <th scope="row" className="sticky left-0 z-10 min-w-[180px] max-w-[180px] break-words border border-slate-900 bg-slate-100 px-2 py-1.5 text-left font-black text-slate-950">
+                      <span className="block text-[10px] font-semibold uppercase text-slate-600">
+                        {u.tipo === "matriz" ? "Matriz" : "Filial"}
+                      </span>
+                      {u.nome}
+                    </th>
                     {grupos.map((g) => {
                       const digitado = entDraft[u.id]?.[g.key] ?? String(entMov[u.id]?.[g.key] || 0);
                       const recebido = trsMov.filter((t) => t.unidade_destino_id === u.id && t.produto_grupo === g.key).reduce((a, t) => a + Number(t.quantidade || 0), 0);
                       const cheio = (Number(digitado) || 0) + recebido;
                       return (
                         <Fragment key={g.key}>
-                          <td className="border border-border p-1">
+                          <td className="border border-slate-900 p-0">
                             <Input aria-label={`Entrada ${u.nome} ${g.key} cheio`} type="number" min="0" inputMode="numeric" value={digitado}
-                              onChange={(e) => setEntDraft((p) => ({ ...p, [u.id]: { ...(p[u.id] || {}), [g.key]: e.target.value } }))} className="h-9 text-center text-base" />
-                            {recebido > 0 && <p className="mt-0.5 text-center text-[10px] text-emerald-700">+{recebido} recebido</p>}
+                              onChange={(e) => setEntDraft((p) => ({ ...p, [u.id]: { ...(p[u.id] || {}), [g.key]: e.target.value } }))} className="h-10 w-16 rounded-none border-0 text-center text-base font-black text-emerald-700 shadow-none focus-visible:ring-2 focus-visible:ring-blue-500" />
+                            {recebido > 0 && <p className="text-center text-[10px] font-bold text-emerald-700">+{recebido} recebido</p>}
                           </td>
-                          <td className="border border-border px-2 text-center text-muted-foreground">{cheio ? -cheio : 0}</td>
-                          <td className="border border-border px-2 text-center font-semibold">0</td>
+                          <td className="border border-slate-900 bg-slate-100 px-1 text-center font-black text-slate-950">{cheio ? -cheio : 0}</td>
+                          <td className="border border-slate-900 bg-slate-200 px-1 text-center font-black text-slate-950">0</td>
                         </Fragment>
                       );
                     })}
@@ -1151,29 +1162,39 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
             <p className="p-4 text-sm text-muted-foreground">Escolha a loja que enviou o gás.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] border-collapse text-sm">
+              <table className="w-full min-w-[900px] border-collapse bg-white text-sm">
                 <thead>
-                  <tr className="bg-muted/50">
-                    <th rowSpan={2} className="sticky left-0 z-20 border border-border bg-muted px-3 py-2 text-left">Loja destino</th>
-                    {grupos.map((g) => <th key={g.key} colSpan={2} className="border border-border px-2 py-1.5 text-center font-bold">{g.key === "Agua" ? "Água" : g.key}</th>)}
+                  <tr>
+                    <th rowSpan={2} className="sticky left-0 z-20 min-w-[180px] border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black text-white">
+                      Loja destino
+                    </th>
+                    {grupos.map((g) => <th key={g.key} colSpan={2} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${g.tone}`}>{g.key === "Agua" ? "Água" : g.key}</th>)}
                   </tr>
-                  <tr className="bg-muted/30 text-xs">
-                    {grupos.map((g) => ["Cheio", "Vazio"].map((c) => <th key={g.key + c} className="border border-border px-2 py-1 text-center">{c}</th>))}
+                  <tr>
+                    {grupos.map((g) => [
+                      { c: "Cheio", bg: "bg-amber-100" },
+                      { c: "Vazio", bg: "bg-slate-200" },
+                    ].map(({ c, bg }) => <th key={g.key + c} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 ${bg}`}>{c}</th>))}
                   </tr>
                 </thead>
                 <tbody>
                   {todasLojas.filter((d) => d.id !== origemTransf).map((d) => (
-                    <tr key={d.id}>
-                      <th scope="row" className="sticky left-0 z-10 border border-border bg-card px-3 py-2 text-left font-semibold">{d.nome}</th>
+                    <tr key={d.id} className="hover:bg-blue-50/40">
+                      <th scope="row" className="sticky left-0 z-10 min-w-[180px] max-w-[180px] break-words border border-slate-900 bg-slate-100 px-2 py-1.5 text-left font-black text-slate-950">
+                        <span className="block text-[10px] font-semibold uppercase text-slate-600">
+                          {d.tipo === "matriz" ? "Matriz" : "Filial"}
+                        </span>
+                        {d.nome}
+                      </th>
                       {grupos.map((g) => {
                         const v = trDraft[d.id]?.[g.key] ?? String(totalTransf(origemTransf, d.id, g.key));
                         return (
                           <Fragment key={g.key}>
-                            <td className="border border-border p-1">
+                            <td className="border border-slate-900 p-0">
                               <Input aria-label={`Transferência ${d.nome} ${g.key} cheio`} type="number" min="0" inputMode="numeric" value={v}
-                                onChange={(e) => setTrDraft((p) => ({ ...p, [d.id]: { ...(p[d.id] || {}), [g.key]: e.target.value } }))} className="h-9 text-center text-base" />
+                                onChange={(e) => setTrDraft((p) => ({ ...p, [d.id]: { ...(p[d.id] || {}), [g.key]: e.target.value } }))} className="h-10 w-16 rounded-none border-0 text-center text-base font-black text-purple-700 shadow-none focus-visible:ring-2 focus-visible:ring-blue-500" />
                             </td>
-                            <td className="border border-border px-2 text-center text-muted-foreground">{Number(v) || 0}</td>
+                            <td className="border border-slate-900 bg-slate-100 px-1 text-center font-black text-slate-950">{Number(v) || 0}</td>
                           </Fragment>
                         );
                       })}
