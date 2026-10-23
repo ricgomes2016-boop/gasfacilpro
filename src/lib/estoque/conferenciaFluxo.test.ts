@@ -64,3 +64,14 @@ describe("fluxo do dia de venda", () => {
     expect(calcularEstoqueAtual({ abertura: 1099, entradas: 187, transferencias: 0 })).toBe(1286);
   });
 });
+
+import { efeitoMovimentos as efeitoMov } from "./conferenciaFluxo";
+describe("efeitoMovimentos", () => {
+  it("Usagas transfere 62 P13 para Ibaiti: origem -62 cheio/+62 vazio, destino o inverso", () => {
+    expect(efeitoMov({ entrada: 0, enviada: 62, recebida: 0 })).toEqual({ cheio: -62, vazio: 62 });
+    expect(efeitoMov({ entrada: 0, enviada: 0, recebida: 62 })).toEqual({ cheio: 62, vazio: -62 });
+  });
+  it("entrada de 100 cheios tira 100 vazios", () => {
+    expect(efeitoMov({ entrada: 100, enviada: 0, recebida: 0 })).toEqual({ cheio: 100, vazio: -100 });
+  });
+});

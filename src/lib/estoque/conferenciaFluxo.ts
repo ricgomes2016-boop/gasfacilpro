@@ -79,3 +79,12 @@ export function calcularFluxoDia(input: { inicial: number; entradas: number; tra
 export function calcularEstoqueAtual(input: { abertura: number; entradas: number; transferencias: number }) {
   return (Number(input.abertura) || 0) + (Number(input.entradas) || 0) - (Number(input.transferencias) || 0);
 }
+
+/**
+ * Efeito em cheio/vazio dos movimentos de uma loja: entrada troca vazio por cheio;
+ * transferência enviada sai cheio e volta vazio; recebida entra cheio e sai vazio.
+ */
+export function efeitoMovimentos(input: { entrada: number; enviada: number; recebida: number }): SaldoCheioVazio {
+  const e = Number(input.entrada) || 0, s = Number(input.enviada) || 0, r = Number(input.recebida) || 0;
+  return { cheio: e - s + r, vazio: -e + s - r };
+}
