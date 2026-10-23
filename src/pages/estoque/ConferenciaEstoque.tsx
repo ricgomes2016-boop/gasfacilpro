@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { conferenciaApi } from "@/lib/estoque/conferenciaPortal";
+import { ConferentesAccessDialog } from "@/components/estoque/ConferentesAccessDialog";
 import { format, parseISO, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Archive, CalendarDays, Download, FileSpreadsheet, Loader2, Package, PackageOpen, Pencil, RefreshCw, Save, Store, Trash2, TrendingUp } from "lucide-react";
@@ -94,13 +96,25 @@ const criarValoresVazios = (lojas: Unidade[]): ValoresConferencia =>
     return acc;
   }, {} as ValoresConferencia);
 
-export default function ConferenciaEstoque() {
+interface PortalConferenciaProps {
+  unidades: Unidade[];
+  userId: string;
+  name: string;
+  onSignOut: () => Promise<void>;
+}
+
+export default function ConferenciaEstoque({ portal }: { portal?: PortalConferenciaProps } = {}) {
   const { toast } = useToast();
-  const { user, hasAnyRole } = useAuth();
-  const isMaster = hasAnyRole(["admin", "super_admin"]);
+  const { user: erpUser, hasAnyRole } = useAuth();
+  const user = portal ? { id: portal.userId } : erpUser;
+  const isMaster = !portal && hasAnyRole(["admin", "super_admin"]);
   const colunas = isMaster ? colunasFluxo : colunasFluxo.filter((c) => ["che", "vaz", "tot"].includes(c.key));
   const totalCols = 1 + grupos.length * colunas.length;
-  const { unidades, unidadeAtual, loading: unidadesLoading } = useUnidade();
+  const erpUnidades = useUnidade();
+  const unidades = portal?.unidades ?? erpUnidades.unidades;
+  const unidadeAtual = portal ? portal.unidades[0] : erpUnidades.unidadeAtual;
+  const unidadesLoading = portal ? false : erpUnidades.loading;
+  const Layout = portal ? Fragment : MainLayout;
   const [dataConferencia, setDataConferencia] = useState(format(new Date(), "yyyy-MM-dd"));
   const [lojaFiltro, setLojaFiltro] = useState("todas");
   const [valores, setValores] = useState<ValoresConferencia>({});
@@ -158,6 +172,7 @@ export default function ConferenciaEstoque() {
     setIsLoading(true);
 
     try {
+      const portalData = portal ? await conferenciaApi({ action: "load", date: dataConferencia }) : null;
       let query = (supabase as any)
         .from("estoque_conferencias")
         .select("unidade_id, produto_grupo, tipo_estoque, quantidade")
@@ -169,7 +184,7 @@ export default function ConferenciaEstoque() {
         query = query.in("unidade_id", unidades.map((unidade) => unidade.id));
       }
 
-      const { data, error } = await query;
+      const { data, error } = portalData ? { data: portalData.current, error: null } : await query;
       if (error) throw error;
 
       (data || []).forEach((registro: RegistroConferencia) => {
@@ -181,7 +196,9 @@ export default function ConferenciaEstoque() {
       setModoPersistencia("banco");
 
       const ids = unidades.map((u) => u.id);
-      const [{ data: prev }, { data: movs }, { data: ajs }] = await Promise.all([
+      const [{ data: prev }, { data: movs }, { data: ajs }] = portalData
+        ? [{ data: portalData.prev }, { data: portalData.movs }, { data: portalData.ajs }]
+        : await Promise.all([
         (supabase as any)
           .from("estoque_conferencias")
           .select("unidade_id, produto_grupo, tipo_estoque, quantidade")
@@ -226,6 +243,11 @@ export default function ConferenciaEstoque() {
       setTransferencias(trs);
     } catch (error) {
       console.error("Erro ao carregar conferencia manual:", error);
+      if (portal) {
+        setValores(base);
+        toast({ title: "Não foi possível carregar a conferência", description: "Tente atualizar novamente.", variant: "destructive" });
+        return;
+      }
       setModoPersistencia("local");
       setValores(carregarConferenciaLocal(base));
     } finally {
@@ -447,6 +469,11 @@ export default function ConferenciaEstoque() {
 
     setIsSaving(true);
     try {
+      if (portal) {
+        await conferenciaApi({ action: "save", date: dataConferencia, records: registros.map(({ unidade_id, produto_grupo, tipo_estoque, quantidade }) => ({ unidade_id, produto_grupo, tipo_estoque, quantidade })) });
+        toast({ title: "Conferência salva", description: `${escopoLabel} - ${formatarDataBR(dataConferencia)}` });
+        return;
+      }
       if (modoPersistencia === "local") {
         salvarConferenciaLocal(valores);
         toast({
@@ -491,6 +518,10 @@ export default function ConferenciaEstoque() {
       toast({ title: "Conferência salva", description: `${escopoLabel} - ${formatarDataBR(dataConferencia)}` });
     } catch (error) {
       console.error("Erro ao salvar conferencia manual:", error);
+      if (portal) {
+        toast({ title: "A conferência não foi salva", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" });
+        return;
+      }
       setModoPersistencia("local");
       salvarConferenciaLocal(valores);
       toast({
@@ -573,19 +604,23 @@ export default function ConferenciaEstoque() {
   };
 
   return (
-    <MainLayout>
-      <Header title="Conferência de Estoque" subtitle="Gestão de Estoque" />
+    <Layout>
+      {portal ? <header className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 text-foreground">
+        <div className="min-w-0"><h1 className="text-lg font-bold">Conferência de Estoque</h1><p className="break-words text-sm text-muted-foreground">{portal.name}</p></div>
+        <Button variant="outline" onClick={() => void portal.onSignOut()}>Sair</Button>
+      </header> : <Header title="Conferência de Estoque" subtitle="Gestão de Estoque" />}
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5 p-3 sm:p-6">
         <EstoquePageHeader
           title="Conferência diária manual"
           description="Digite os valores conferidos fisicamente por loja. A exportação usa exatamente os números informados."
           actions={
             <>
+              {isMaster && <ConferentesAccessDialog />}
               <Button variant="outline" size="sm" className="h-10 gap-2" onClick={carregarConferencia} disabled={isLoading}>
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Atualizar
               </Button>
-              <Button size="sm" className="h-10 gap-2 bg-emerald-600 hover:bg-emerald-700" onClick={salvarConferencia} disabled={isSaving}>
+              <Button size="sm" className="h-10 gap-2 bg-emerald-600 hover:bg-emerald-700" onClick={salvarConferencia} disabled={isSaving || isLoading}>
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Salvar
               </Button>
@@ -1028,6 +1063,6 @@ export default function ConferenciaEstoque() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </MainLayout>
+    </Layout>
   );
 }

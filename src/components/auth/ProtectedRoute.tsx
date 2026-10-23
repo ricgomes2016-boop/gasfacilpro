@@ -6,6 +6,7 @@ import { detectSubdomainApp, getSubdomainDefaultRoute } from "@/lib/subdomain";
 import { Loader2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
+import { ConferenciaPortal } from "@/components/estoque/ConferenciaPortal";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -24,6 +25,12 @@ export function ProtectedRoute({
   const { user, roles, loading } = useAuth();
   const { needsOnboarding, loading: empresaLoading } = useEmpresa();
   const location = useLocation();
+
+  // The existing route keeps its ERP guard, while yard sessions remain isolated.
+  if (!loading && location.pathname === "/estoque/conferencia"
+    && (!user || !roles.some((role) => ["admin", "super_admin", "gestor", "operacional"].includes(role)))) {
+    return <ConferenciaPortal />;
+  }
 
   if (loading || empresaLoading) {
     return (
