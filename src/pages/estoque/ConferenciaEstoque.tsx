@@ -6,7 +6,8 @@ import { ptBR } from "date-fns/locale";
 import { Archive, CalendarDays, Download, FileSpreadsheet, Loader2, Package, PackageOpen, Pencil, RefreshCw, Save, Store, Trash2, TrendingUp } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { calcularFluxoConferencia, resolverSaldoInicial, SaldoCheioVazio, datasApuracao, combinarContagens, MomentoContagem } from "@/lib/estoque/conferenciaFluxo";
+import { calcularFluxoConferencia, resolverSaldoInicial, SaldoCheioVazio, datasApuracao, combinarContagens, MomentoContagem, saldoComEntradas } from "@/lib/estoque/conferenciaFluxo";
+import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogDescription, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -98,6 +99,7 @@ const criarValoresVazios = (lojas: Unidade[]): ValoresConferencia =>
 
 interface PortalConferenciaProps {
   unidades: Unidade[];
+  destinos?: Unidade[];
   userId: string;
   name: string;
   onSignOut: () => Promise<void>;
@@ -136,7 +138,46 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
   const [dialogTransf, setDialogTransf] = useState<{ unidadeId: string; grupo: GrupoProduto } | null>(null);
   const [transfDestino, setTransfDestino] = useState("nenhum");
   const [transfQtd, setTransfQtd] = useState("");
-  const todasLojas = unidades;
+  const todasLojas = portal?.destinos ?? unidades;
+  const [momentoConfirmado, setMomentoConfirmado] = useState(false);
+  const [perguntarMomento, setPerguntarMomento] = useState(false);
+  const [movLoja, setMovLoja] = useState("nenhum");
+  const [movGrupo, setMovGrupo] = useState<GrupoProduto>("P13");
+  const [entradaQtd, setEntradaQtd] = useState("");
+  const pedirMomento = () => { if (!momentoConfirmado) setPerguntarMomento(true); };
+  const camposContagem = (id: string) => ({
+    "aria-label": id,
+    readOnly: !momentoConfirmado || isLoading,
+    onFocus: pedirMomento,
+    onClick: pedirMomento,
+  });
+  const escolherMomento = (value: MomentoContagem) => {
+    setMomento(value);
+    setMomentoConfirmado(true);
+    setPerguntarMomento(false);
+  };
+  const registrarEntrada = async () => {
+    if (!momentoConfirmado) { setPerguntarMomento(true); return; }
+    const quantidade = Number(entradaQtd);
+    const unidade = unidades.find((u) => u.id === movLoja);
+    if (!unidade || entradaQtd === "" || !Number.isSafeInteger(quantidade) || quantidade < 0) {
+      toast({ title: "Escolha a loja e informe a quantidade", variant: "destructive" }); return;
+    }
+    setIsSaving(true);
+    try {
+      if (portal) await conferenciaApi({ action: "entry", date: dataConferencia, count_date: dataContagem, moment: momento, unidade_id: movLoja, produto_grupo: movGrupo, quantidade });
+      else {
+        const existing = await (supabase as any).from("estoque_conferencia_movimentos").select("id").eq("data_conferencia", dataConferencia).eq("unidade_id", movLoja).eq("produto_grupo", movGrupo).eq("tipo", "entrada_manual").maybeSingle();
+        if (existing.error) throw existing.error;
+        const payload = { empresa_id: unidade.empresa_id, unidade_id: movLoja, data_conferencia: dataConferencia, produto_grupo: movGrupo, quantidade, criado_por: user?.id };
+        const result = existing.data ? await (supabase as any).from("estoque_conferencia_movimentos").update(payload).eq("id", existing.data.id) : await (supabase as any).from("estoque_conferencia_movimentos").insert({ ...payload, tipo: "entrada_manual" });
+        if (result.error) throw result.error;
+      }
+      atualizarEntrada(movLoja, movGrupo, entradaQtd);
+      toast({ title: "Entrada registrada" });
+    } catch (error) { toast({ title: "Entrada não foi salva", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" }); }
+    finally { setIsSaving(false); }
+  };
 
 
   const atualizarEntrada = (unidadeId: string, grupo: GrupoProduto, value: string) => {
@@ -367,8 +408,9 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
       grupos.forEach((grupo) => {
         const f = fluxo(linha.unidade.id, grupo.key);
         const pg = porGrupo[grupo.key];
-        pg.inicial += f.saldoInicial;
-        pg.inicialVazio += saldoInicialDe(linha.unidade.id, grupo.key).vazio;
+        const saldo = saldoComEntradas(saldoInicialDe(linha.unidade.id, grupo.key), f.entrada);
+        pg.inicial += saldo.cheio;
+        pg.inicialVazio += saldo.vazio;
         pg.entrada += f.entrada;
         pg.transf += f.transferencia;
         pg.cheio += linha.totais[grupo.key].cheio;
@@ -408,38 +450,36 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
       toast({ title: "Escolha a loja e a quantidade", variant: "destructive" });
       return;
     }
+    if (!momentoConfirmado) { setPerguntarMomento(true); return; }
+    const origem = unidades.find((u) => u.id === dialogTransf.unidadeId);
+    if (!origem || !Number.isSafeInteger(qtd) || transfDestino === origem.id) return;
     setIsSaving(true);
-    const { data, error } = await (supabase as any)
-      .from("estoque_conferencia_movimentos")
-      .insert({
-        data_conferencia: dataConferencia,
-        unidade_id: dialogTransf.unidadeId,
-        produto_grupo: dialogTransf.grupo,
-        tipo: "transferencia",
-        quantidade: qtd,
-        unidade_destino_id: transfDestino,
-        criado_por: user?.id || null,
-      })
-      .select("id, unidade_id, unidade_destino_id, produto_grupo, quantidade")
-      .single();
-    setIsSaving(false);
-    if (error) {
-      console.error(error);
-      toast({ title: "Não foi possível registrar a transferência", variant: "destructive" });
-      return;
-    }
-    setTransferencias((prev) => [...prev, data]);
-    toast({ title: "Transferência registrada", description: `${qtd} ${dialogTransf.grupo} para ${nomeLoja(transfDestino)}` });
-    setDialogTransf(null);
+    try {
+      let data: MovTransferencia;
+      if (portal) {
+        const result = await conferenciaApi({ action: "transfer", date: dataConferencia, count_date: dataContagem, moment: momento, unidade_id: origem.id, unidade_destino_id: transfDestino, produto_grupo: dialogTransf.grupo, quantidade: qtd });
+        data = result.movement;
+      } else {
+        const result = await (supabase as any).from("estoque_conferencia_movimentos").insert({ data_conferencia: dataConferencia, empresa_id: origem.empresa_id, unidade_id: origem.id, produto_grupo: dialogTransf.grupo, tipo: "transferencia", quantidade: qtd, unidade_destino_id: transfDestino, criado_por: user?.id }).select("id, unidade_id, unidade_destino_id, produto_grupo, quantidade").single();
+        if (result.error) throw result.error;
+        data = result.data;
+      }
+      setTransferencias((prev) => [...prev, data]);
+      toast({ title: "Transferência registrada", description: `${qtd} ${dialogTransf.grupo} para ${nomeLoja(transfDestino)}` });
+      setDialogTransf(null);
+    } catch (error) { toast({ title: "Não foi possível registrar a transferência", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" }); }
+    finally { setIsSaving(false); }
   };
 
   const excluirTransferencia = async (id: string) => {
-    const { error } = await (supabase as any).from("estoque_conferencia_movimentos").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Não foi possível excluir", variant: "destructive" });
-      return;
-    }
-    setTransferencias((prev) => prev.filter((t) => t.id !== id));
+    try {
+      if (portal) await conferenciaApi({ action: "delete_transfer", date: dataConferencia, count_date: dataContagem, moment: momento, id });
+      else {
+        const { error } = await (supabase as any).from("estoque_conferencia_movimentos").delete().eq("id", id);
+        if (error) throw error;
+      }
+      setTransferencias((prev) => prev.filter((t) => t.id !== id));
+    } catch { toast({ title: "Não foi possível excluir", variant: "destructive" }); }
   };
 
   const montarLinhasExportacao = () =>
@@ -456,6 +496,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
     ]);
 
   const salvarConferencia = async () => {
+    if (!momentoConfirmado) { setPerguntarMomento(true); return; }
     if (linhas.length === 0) {
       toast({ title: "Nenhuma loja para salvar", variant: "destructive" });
       return;
@@ -526,6 +567,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
           .map((g) => ({
             data_conferencia: dataConferencia,
             unidade_id: uid,
+            empresa_id: unidades.find((u) => u.id === uid)?.empresa_id,
             produto_grupo: g.key,
             tipo: "entrada_manual",
             quantidade: entradas[uid][g.key],
@@ -668,14 +710,14 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                   type="date"
                   aria-label="Data da contagem"
                   value={dataContagem}
-                  onChange={(event) => { if (event.target.value) setDataContagem(event.target.value); }}
+                  onChange={(event) => { if (event.target.value) { setDataContagem(event.target.value); setMomentoConfirmado(false); } }}
                   className="h-10 rounded-lg"
                 />
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold uppercase text-muted-foreground">Momento da contagem</Label>
-                <Select value={momento} onValueChange={(value) => { if (value === "inicio" || value === "fim") setMomento(value); }}>
+                <Select value={momento} onValueChange={(value) => { if (value === "inicio" || value === "fim") escolherMomento(value); }}>
                   <SelectTrigger aria-label="Momento da contagem" className="h-10"><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="inicio">Início do dia</SelectItem><SelectItem value="fim">Fim do dia</SelectItem></SelectContent>
                 </Select>
@@ -711,7 +753,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
           {([
             {
               label: "Saldo inicial",
-              hint: `Abertura de ${formatarDataBR(dataConferencia)}`,
+              hint: `Inicial + entradas · ${formatarDataBR(dataConferencia)}`,
               icon: Archive,
               iconCls: "bg-muted text-foreground",
               cardCls: "border-border bg-card",
@@ -748,6 +790,23 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
             </div>
           ))}
         </div>
+
+        <section className="space-y-4 border-y border-border py-5">
+          <h2 className="text-lg font-bold text-foreground">Entrada</h2>
+          <p className="text-sm text-muted-foreground">Movimentos de {formatarDataBR(dataConferencia)}</p>
+          <div className="grid grid-cols-1 gap-3 min-[385px]:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-2"><Label>Loja de origem</Label><Select value={movLoja} onValueChange={(id) => { setMovLoja(id); setEntradaQtd(String(entradas[id]?.[movGrupo] || 0)); }}><SelectTrigger aria-label="Loja do movimento"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="nenhum">Escolha a loja</SelectItem>{lojasVisiveis.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>Produto</Label><Select value={movGrupo} onValueChange={(g) => { setMovGrupo(g as GrupoProduto); setEntradaQtd(String(entradas[movLoja]?.[g as GrupoProduto] || 0)); }}><SelectTrigger aria-label="Produto do movimento"><SelectValue /></SelectTrigger><SelectContent>{grupos.map((g) => <SelectItem key={g.key} value={g.key}>{g.key === "Agua" ? "Água" : g.label}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label htmlFor="entrada-dia">Entrada manual do dia</Label><Input id="entrada-dia" aria-label="Entrada manual do dia" type="number" min="0" inputMode="numeric" value={entradaQtd} onFocus={pedirMomento} onChange={(e) => setEntradaQtd(e.target.value)} className="text-base" /></div>
+            <Button className="self-end" disabled={isSaving || isLoading} onClick={() => void registrarEntrada()}>Registrar entrada</Button>
+          </div>
+          {movLoja !== "nenhum" && <div className="space-y-1 text-sm text-muted-foreground"><p>Entrada manual registrada: {entradas[movLoja]?.[movGrupo] || 0} {movGrupo}</p>{transferencias.filter((t) => t.unidade_destino_id === movLoja && t.produto_grupo === movGrupo).map((t) => <p key={t.id}>+{t.quantidade} {movGrupo} recebido de {nomeLoja(t.unidade_id)}</p>)}</div>}
+          <div className="space-y-3 border-t border-border pt-4">
+            <h2 className="text-lg font-bold text-foreground">Transferência para filial</h2>
+            <Button variant="outline" disabled={movLoja === "nenhum" || isSaving || isLoading} onClick={() => { if (!momentoConfirmado) { setPerguntarMomento(true); return; } abrirTransferencia(movLoja, movGrupo); }}>Transferir {movGrupo}</Button>
+            {movLoja !== "nenhum" && <p className="text-sm text-muted-foreground">Transferências registradas: {fluxo(movLoja, movGrupo).transferencia} {movGrupo}</p>}
+          </div>
+        </section>
 
         <Card className="hidden overflow-hidden border-slate-300 shadow-[0_14px_40px_rgba(15,23,42,0.08)] md:block">
           <CardContent className="p-0">
@@ -832,13 +891,13 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                             ),
                             che: (
                               <td key={`${id}-che`} className="border border-slate-900 p-0">
-                                <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].cheio || ""}
+                                <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].cheio || ""} {...camposContagem(`${linha.unidade.nome} ${grupo.key} cheio`)}
                                   onChange={(e) => atualizarValor(linha.unidade.id, grupo.key, "cheio", e.target.value)} className={`${inputCls} text-blue-700`} />
                               </td>
                             ),
                             vaz: (
                               <td key={`${id}-vaz`} className="border border-slate-900 p-0">
-                                <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].vazio || ""}
+                                <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].vazio || ""} {...camposContagem(`${linha.unidade.nome} ${grupo.key} vazio`)}
                                   onChange={(e) => atualizarValor(linha.unidade.id, grupo.key, "vazio", e.target.value)} className={`${inputCls} text-blue-700`} />
                               </td>
                             ),
@@ -918,7 +977,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                               {(["cheio", "vazio"] as TipoEstoque[]).map((tipo) => (
                                 <div key={tipo} className="rounded-lg border border-slate-200 bg-white p-2">
                                   <p className="text-[11px] font-bold uppercase text-slate-500">{tipo === "cheio" ? "Cheio" : "Vazio"}</p>
-                                  <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key][tipo] || ""}
+                                  <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key][tipo] || ""} {...camposContagem(`${linha.unidade.nome} ${grupo.key} ${tipo}`)}
                                     onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, tipo, event.target.value)}
                                     className="h-9 text-right text-lg font-black text-slate-900" />
                                 </div>
@@ -959,7 +1018,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                                 type="number"
                                 min="0"
                                 inputMode="numeric"
-                                value={linha.totais[grupo.key].cheio || ""}
+                                value={linha.totais[grupo.key].cheio || ""} {...camposContagem(`${linha.unidade.nome} ${grupo.key} cheio`)}
                                 onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "cheio", event.target.value)}
                                 className="h-9 text-right text-lg font-black text-amber-800"
                               />
@@ -982,7 +1041,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                                 type="number"
                                 min="0"
                                 inputMode="numeric"
-                                value={linha.totais[grupo.key].vazio || ""}
+                                value={linha.totais[grupo.key].vazio || ""} {...camposContagem(`${linha.unidade.nome} ${grupo.key} vazio`)}
                                 onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "vazio", event.target.value)}
                                 className="h-9 text-right text-lg font-black text-slate-800"
                               />
@@ -1007,13 +1066,26 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
         </div>
       </div>
 
-      <Dialog open={!!dialogTransf} onOpenChange={(open) => !open && setDialogTransf(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
+      <ResponsiveDialog open={perguntarMomento} onOpenChange={setPerguntarMomento}>
+        <ResponsiveDialogContent className="max-w-md pb-12 md:pb-0">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>Contagem é do início ou final do dia?</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>Data da contagem: {formatarDataBR(dataContagem)}</ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <div className="grid gap-3 py-4">
+            <Button className="h-auto flex-col gap-1 py-3" onClick={() => escolherMomento("inicio")}><span>Início do dia</span><span className="text-xs">Vendas de {formatarDataBR(datasApuracao(dataContagem, "inicio").dataVenda)}</span></Button>
+            <Button variant="outline" className="h-auto flex-col gap-1 py-3" onClick={() => escolherMomento("fim")}><span>Final do dia</span><span className="text-xs">Vendas de {formatarDataBR(dataContagem)}</span></Button>
+          </div>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog open={!!dialogTransf} onOpenChange={(open) => !open && setDialogTransf(null)}>
+        <ResponsiveDialogContent className="max-w-md pb-12 md:pb-0">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>
               Transferência {dialogTransf?.grupo} — {unidades.find((u) => u.id === dialogTransf?.unidadeId)?.nome}
-            </DialogTitle>
-          </DialogHeader>
+            </ResponsiveDialogTitle>
+          </ResponsiveDialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label>Loja de destino</Label>
@@ -1047,12 +1119,12 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
               </div>
             )}
           </div>
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button variant="outline" onClick={() => setDialogTransf(null)}>Fechar</Button>
             <Button onClick={registrarTransferencia} disabled={isSaving}>Registrar transferência</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       <AlertDialog open={!!confirmEdit} onOpenChange={(open) => !open && setConfirmEdit(null)}>
         <AlertDialogContent>
