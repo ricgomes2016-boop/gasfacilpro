@@ -2,6 +2,13 @@ export function isMaster(roles: string[]) {
   return roles.some((role) => role === 'admin' || role === 'super_admin');
 }
 
+export function validMovement(body: Record<string, unknown>, origins: string[], destinations: string[]) {
+  return origins.includes(String(body.unidade_id)) && ['P13', 'P20', 'P45', 'Agua'].includes(String(body.produto_grupo))
+    && Number.isSafeInteger(body.quantidade) && Number(body.quantidade) >= (body.action === 'entry' ? 0 : 1)
+    && Number(body.quantidade) <= 2147483647
+    && (body.action === 'entry' || (body.action === 'transfer' && destinations.includes(String(body.unidade_destino_id)) && body.unidade_id !== body.unidade_destino_id));
+}
+
 export function validCountDate(salesDate: string, countDate: unknown, moment: unknown) {
   if (typeof countDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(countDate) || !['inicio', 'fim'].includes(String(moment))) return false;
   const date = new Date(`${countDate}T12:00:00Z`);

@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { isMaster, validateCounts, validCountDate } from './security.ts';
+import { isMaster, validateCounts, validCountDate, validMovement } from './security.ts';
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info', 'Content-Type': 'application/json' };
 const reply = (body: unknown) => new Response(JSON.stringify(body), { headers });
@@ -84,9 +84,33 @@ Deno.serve(async (req) => {
     if (action === 'session') {
       const p = await db.from('profiles').select('full_name').eq('user_id', user.id).single();
       check(p);
-      return reply({ ok: true, unidades: units.data, name: p.data?.full_name, user_id: user.id });
+      const destinations = await db.from('unidades').select('id, nome, tipo, ativo').eq('empresa_id', empresaId).eq('ativo', true);
+      check(destinations);
+      return reply({ ok: true, unidades: units.data, destinos: destinations.data, name: p.data?.full_name, user_id: user.id });
     }
     if (typeof body.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.date) || !Number.isFinite(Date.parse(`${body.date}T12:00:00Z`))) return fail('Data inválida.');
+    if (['entry', 'transfer', 'delete_transfer'].includes(action)) {
+      if (!validCountDate(body.date, body.count_date, body.moment)) return fail('Datas inválidas.');
+      if (action === 'delete_transfer') {
+        const result = await db.from('estoque_conferencia_movimentos').delete().eq('id', body.id).eq('empresa_id', empresaId).eq('data_conferencia', body.date).eq('tipo', 'transferencia').in('unidade_id', activeIds).select('id').single();
+        check(result);
+        return reply({ ok: true });
+      }
+      const destinations = action === 'transfer' ? await db.from('unidades').select('id').eq('empresa_id', empresaId).eq('ativo', true).eq('id', body.unidade_destino_id) : { data: [], error: null };
+      check(destinations);
+      if (!validMovement(body, activeIds, (destinations.data || []).map((u) => u.id))) return fail('Movimento inválido ou loja não autorizada.');
+      const payload = { empresa_id: empresaId, unidade_id: body.unidade_id, produto_grupo: body.produto_grupo, quantidade: body.quantidade, data_conferencia: body.date, criado_por: user.id };
+      if (action === 'entry') {
+        // Partial unique index: replace the day's manual entry without touching received transfers.
+        const existing = await db.from('estoque_conferencia_movimentos').select('id').eq('empresa_id', empresaId).eq('unidade_id', body.unidade_id).eq('produto_grupo', body.produto_grupo).eq('data_conferencia', body.date).eq('tipo', 'entrada_manual').maybeSingle();
+        check(existing);
+        check(existing.data ? await db.from('estoque_conferencia_movimentos').update(payload).eq('id', existing.data.id) : await db.from('estoque_conferencia_movimentos').insert({ ...payload, tipo: 'entrada_manual' }));
+        return reply({ ok: true });
+      }
+      const result = await db.from('estoque_conferencia_movimentos').insert({ ...payload, tipo: 'transferencia', unidade_destino_id: body.unidade_destino_id }).select('id, unidade_id, unidade_destino_id, produto_grupo, quantidade').single();
+      check(result);
+      return reply({ ok: true, movement: result.data });
+    }
     if (action === 'save') {
       if (!validateCounts(body.records, activeIds)) return fail('Contagem inválida ou loja não autorizada.');
       if (body.count_date === undefined && body.moment === undefined) {
