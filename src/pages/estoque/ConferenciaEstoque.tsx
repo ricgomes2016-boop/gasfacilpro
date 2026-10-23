@@ -762,6 +762,49 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
     });
 
     doc.save(`conferencia-estoque-${dataConferencia}-${nomeArquivoSeguro(escopoLabel)}.pdf`);
+    } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
+      toast({ title: "Não foi possível gerar o PDF", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" });
+    }
+  };
+
+  const copiarWhatsApp = async () => {
+    if (linhas.length === 0) {
+      toast({ title: "Nenhum dado para copiar", variant: "destructive" });
+      return;
+    }
+
+    const blocos = linhas.map((linha) => {
+      const partes = grupos.map((g) => {
+        const t = linha.totais[g.key];
+        return `${g.label}: ${t.cheio} cheio / ${t.vazio} vazio (total ${t.cheio + t.vazio})`;
+      });
+      return `*${linha.unidade.nome}*\n${partes.join("\n")}`;
+    });
+
+    const texto = [
+      "*Conferência de Estoque*",
+      `Contagem: ${formatarDataBR(dataContagem)} (${momento === "inicio" ? "início do dia" : "fim do dia"})`,
+      `Vendas apuradas: ${formatarDataBR(dataConferencia)}`,
+      `Escopo: ${escopoLabel}`,
+      "",
+      blocos.join("\n\n"),
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(texto);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = texto;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    toast({ title: "Resumo copiado", description: "Abra o WhatsApp e cole a mensagem na conversa." });
   };
 
   return (
