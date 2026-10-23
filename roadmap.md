@@ -5,4 +5,6 @@
 - [x] Adicionar login exclusivo no link solicitado, preservando acesso pelo menu.
 - [x] Reutilizar conferência somente nas lojas autorizadas, sem edição Master.
 - [x] Testar regras de permissão, login em celular/computador e compilação.
-- [ ] Validar criação e login de conferente real: aguarda nome, e-mail e lojas autorizadas do conferente; salvamento pelo ERP validado com a sessão atual.
+- [x] Login real de conferente confirmado pelo usuário.
+- [ ] Pedir momento antes da digitação; separar entradas e transferências e ajustar saldo cheio/vazio.
+- [ ] Validar regras e fluxo de conferência com sessão real.
