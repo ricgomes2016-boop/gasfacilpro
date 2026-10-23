@@ -69,6 +69,11 @@ const colunasFluxo = [
 /** Largura fixa e idêntica da coluna "Lojas" nas três tabelas (contagem, entrada, transferência). */
 const COL_LOJAS = "w-[220px] min-w-[220px] max-w-[220px]";
 
+/** Campo numérico das tabelas de conferência: largo o bastante para 4-5 dígitos
+    e sem as setinhas do navegador, que cobriam o último número digitado. */
+const CLS_INPUT_NUM =
+  "h-10 w-24 rounded-none border-0 px-1 text-center text-base font-black shadow-none md:text-base [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none focus-visible:ring-2 focus-visible:ring-blue-500";
+
 const grupos: { key: GrupoProduto; label: string; tone: string; mobileTone: string }[] = [
   { key: "P13", label: "P13", tone: "bg-[#e66f2f] text-white", mobileTone: "border-[#e66f2f]/30 bg-[#fff4ed]" },
   { key: "P20", label: "P20", tone: "bg-[#e66f2f] text-white", mobileTone: "border-[#e66f2f]/30 bg-[#fff4ed]" },
@@ -885,7 +890,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                         {grupos.flatMap((grupo) => {
                           const f = fluxo(linha.unidade.id, grupo.key);
                           const id = `${linha.unidade.id}-${grupo.key}`;
-                          const inputCls = "h-10 w-16 rounded-none border-0 text-center text-base font-black shadow-none focus-visible:ring-2 focus-visible:ring-blue-500";
+                          const inputCls = CLS_INPUT_NUM;
                           const recebida = entradaRecebida(linha.unidade.id, grupo.key);
                           const celulas: Record<string, JSX.Element> = {
                             ini: (
@@ -1129,7 +1134,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                         <Fragment key={g.key}>
                           <td className="border border-slate-900 p-0">
                             <Input aria-label={`Entrada ${u.nome} ${g.key} cheio`} type="number" min="0" inputMode="numeric" value={digitado}
-                              onChange={(e) => setEntDraft((p) => ({ ...p, [u.id]: { ...(p[u.id] || {}), [g.key]: e.target.value } }))} className="h-10 w-16 rounded-none border-0 text-center text-base font-black text-emerald-700 shadow-none focus-visible:ring-2 focus-visible:ring-blue-500" />
+                              onChange={(e) => setEntDraft((p) => ({ ...p, [u.id]: { ...(p[u.id] || {}), [g.key]: e.target.value } }))} className={`${CLS_INPUT_NUM} text-emerald-700`} />
                             {recebido > 0 && <p className="text-center text-[10px] font-bold text-emerald-700">+{recebido} recebido</p>}
                           </td>
                           <td className="border border-slate-900 bg-slate-100 px-1 text-center font-black text-slate-950">{cheio ? -cheio : 0}</td>
@@ -1195,7 +1200,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                           <Fragment key={g.key}>
                             <td className="border border-slate-900 p-0">
                               <Input aria-label={`Transferência ${d.nome} ${g.key} cheio`} type="number" min="0" inputMode="numeric" value={v}
-                                onChange={(e) => setTrDraft((p) => ({ ...p, [d.id]: { ...(p[d.id] || {}), [g.key]: e.target.value } }))} className="h-10 w-16 rounded-none border-0 text-center text-base font-black text-purple-700 shadow-none focus-visible:ring-2 focus-visible:ring-blue-500" />
+                                onChange={(e) => setTrDraft((p) => ({ ...p, [d.id]: { ...(p[d.id] || {}), [g.key]: e.target.value } }))} className={`${CLS_INPUT_NUM} text-purple-700`} />
                             </td>
                             <td className="border border-slate-900 bg-slate-100 px-1 text-center font-black text-slate-950">{Number(v) || 0}</td>
                           </Fragment>
