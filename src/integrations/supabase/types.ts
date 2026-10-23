@@ -5156,6 +5156,66 @@ export type Database = {
           },
         ]
       }
+      estoque_conferencia_fechamentos: {
+        Row: {
+          conferido_por: string | null
+          created_at: string
+          data_conferencia: string
+          data_contagem: string
+          empresa_id: string
+          id: string
+          momento: string
+          produto_grupo: string
+          quantidade: number
+          tipo_estoque: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          conferido_por?: string | null
+          created_at?: string
+          data_conferencia: string
+          data_contagem: string
+          empresa_id: string
+          id?: string
+          momento: string
+          produto_grupo: string
+          quantidade: number
+          tipo_estoque: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          conferido_por?: string | null
+          created_at?: string
+          data_conferencia?: string
+          data_contagem?: string
+          empresa_id?: string
+          id?: string
+          momento?: string
+          produto_grupo?: string
+          quantidade?: number
+          tipo_estoque?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_conferencia_fechamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_conferencia_fechamentos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque_conferencia_movimentos: {
         Row: {
           created_at: string
@@ -13351,6 +13411,17 @@ export type Database = {
         Args: {
           _data: string
           _empresa_id: string
+          _registros: Json
+          _user_id: string
+        }
+        Returns: undefined
+      }
+      salvar_fechamento_conferencia_portal: {
+        Args: {
+          _data: string
+          _data_contagem: string
+          _empresa_id: string
+          _momento: string
           _registros: Json
           _user_id: string
         }

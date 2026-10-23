@@ -6,7 +6,7 @@ import { ptBR } from "date-fns/locale";
 import { Archive, CalendarDays, Download, FileSpreadsheet, Loader2, Package, PackageOpen, Pencil, RefreshCw, Save, Store, Trash2, TrendingUp } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { calcularFluxoConferencia, resolverSaldoInicial, SaldoCheioVazio } from "@/lib/estoque/conferenciaFluxo";
+import { calcularFluxoConferencia, resolverSaldoInicial, SaldoCheioVazio, datasApuracao, combinarContagens, MomentoContagem } from "@/lib/estoque/conferenciaFluxo";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -115,7 +115,11 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
   const unidadeAtual = portal ? portal.unidades[0] : erpUnidades.unidadeAtual;
   const unidadesLoading = portal ? false : erpUnidades.loading;
   const Layout = portal ? Fragment : MainLayout;
-  const [dataConferencia, setDataConferencia] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [dataContagem, setDataContagem] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [momento, setMomento] = useState<MomentoContagem>("inicio");
+  const { dataVenda: dataConferencia, dataSaldo: dataAnterior } = datasApuracao(dataContagem, momento);
+  const dataLegadoAtual = format(subDays(parseISO(`${dataConferencia}T12:00:00`), -1), "yyyy-MM-dd");
+  const dataLegadoAnterior = dataConferencia;
   const [lojaFiltro, setLojaFiltro] = useState("todas");
   const [valores, setValores] = useState<ValoresConferencia>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -133,7 +137,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
   const [transfDestino, setTransfDestino] = useState("nenhum");
   const [transfQtd, setTransfQtd] = useState("");
   const todasLojas = unidades;
-  const dataAnterior = format(subDays(parseISO(`${dataConferencia}T12:00:00`), 1), "yyyy-MM-dd");
+
 
   const atualizarEntrada = (unidadeId: string, grupo: GrupoProduto, value: string) => {
     const q = Math.max(0, Math.floor(Number(value || 0)));
@@ -172,11 +176,11 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
     setIsLoading(true);
 
     try {
-      const portalData = portal ? await conferenciaApi({ action: "load", date: dataConferencia }) : null;
+      const portalData = portal ? await conferenciaApi({ action: "load", date: dataConferencia, count_date: dataContagem, moment: momento }) : null;
       let query = (supabase as any)
         .from("estoque_conferencias")
         .select("unidade_id, produto_grupo, tipo_estoque, quantidade")
-        .eq("data_conferencia", dataConferencia);
+        .eq("data_conferencia", dataLegadoAtual);
 
       if (lojaFiltro !== "todas") {
         query = query.eq("unidade_id", lojaFiltro);
@@ -184,8 +188,12 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
         query = query.in("unidade_id", unidades.map((unidade) => unidade.id));
       }
 
-      const { data, error } = portalData ? { data: portalData.current, error: null } : await query;
-      if (error) throw error;
+      const legacy = portalData ? { data: [], error: null } : await query;
+      const closing = portalData ? { data: portalData.current, error: null } : await (supabase as any)
+        .from("estoque_conferencia_fechamentos").select("unidade_id, produto_grupo, tipo_estoque, quantidade")
+        .eq("data_conferencia", dataConferencia).in("unidade_id", unidades.map((u) => u.id));
+      if (legacy.error || closing.error) throw legacy.error || closing.error;
+      const data = combinarContagens<RegistroConferencia>(legacy.data || [], closing.data || []);
 
       (data || []).forEach((registro: RegistroConferencia) => {
         if (!base[registro.unidade_id]) base[registro.unidade_id] = criarTotaisZerados();
@@ -196,14 +204,17 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
       setModoPersistencia("banco");
 
       const ids = unidades.map((u) => u.id);
-      const [{ data: prev }, { data: movs }, { data: ajs }] = portalData
-        ? [{ data: portalData.prev }, { data: portalData.movs }, { data: portalData.ajs }]
+      const [legacyPrev, previousClosing, movements, adjustments] = portalData
+        ? [{ data: [], error: null }, { data: portalData.prev, error: null }, { data: portalData.movs, error: null }, { data: portalData.ajs, error: null }]
         : await Promise.all([
         (supabase as any)
           .from("estoque_conferencias")
           .select("unidade_id, produto_grupo, tipo_estoque, quantidade")
-          .eq("data_conferencia", dataAnterior)
+          .eq("data_conferencia", dataLegadoAnterior)
           .in("unidade_id", ids),
+        (supabase as any).from("estoque_conferencia_fechamentos")
+          .select("unidade_id, produto_grupo, tipo_estoque, quantidade")
+          .eq("data_conferencia", dataAnterior).in("unidade_id", ids),
         (supabase as any)
           .from("estoque_conferencia_movimentos")
           .select("id, unidade_id, unidade_destino_id, produto_grupo, quantidade, tipo")
@@ -214,6 +225,10 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
           .eq("data_conferencia", dataConferencia)
           .in("unidade_id", ids),
       ]);
+      for (const result of [legacyPrev, previousClosing, movements, adjustments]) if (result.error) throw result.error;
+      const prev = combinarContagens<RegistroConferencia>(legacyPrev.data || [], previousClosing.data || []);
+      const movs = movements.data;
+      const ajs = adjustments.data;
       const saldo: Record<string, Partial<Record<GrupoProduto, SaldoCheioVazio>>> = {};
       (prev || []).forEach((r: any) => {
         saldo[r.unidade_id] = saldo[r.unidade_id] || {};
@@ -257,7 +272,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
 
   useEffect(() => {
     carregarConferencia();
-  }, [dataConferencia, lojaFiltro, unidadesLoading, unidades.length]);
+  }, [dataConferencia, dataContagem, momento, lojaFiltro, unidadesLoading, unidades.length]);
 
   const atualizarValor = (unidadeId: string, grupo: GrupoProduto, tipo: TipoEstoque, value: string) => {
     const quantidade = Math.max(0, Number(value || 0));
@@ -450,6 +465,9 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
       grupos.flatMap((grupo) => [
         {
           data_conferencia: dataConferencia,
+          data_contagem: dataContagem,
+          momento,
+          empresa_id: linha.unidade.empresa_id,
           unidade_id: linha.unidade.id,
           produto_grupo: grupo.key,
           tipo_estoque: "cheio",
@@ -458,6 +476,9 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
         },
         {
           data_conferencia: dataConferencia,
+          data_contagem: dataContagem,
+          momento,
+          empresa_id: linha.unidade.empresa_id,
           unidade_id: linha.unidade.id,
           produto_grupo: grupo.key,
           tipo_estoque: "vazio",
@@ -470,8 +491,8 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
     setIsSaving(true);
     try {
       if (portal) {
-        await conferenciaApi({ action: "save", date: dataConferencia, records: registros.map(({ unidade_id, produto_grupo, tipo_estoque, quantidade }) => ({ unidade_id, produto_grupo, tipo_estoque, quantidade })) });
-        toast({ title: "Conferência salva", description: `${escopoLabel} - ${formatarDataBR(dataConferencia)}` });
+        await conferenciaApi({ action: "save", date: dataConferencia, count_date: dataContagem, moment: momento, records: registros.map(({ unidade_id, produto_grupo, tipo_estoque, quantidade }) => ({ unidade_id, produto_grupo, tipo_estoque, quantidade })) });
+        toast({ title: "Conferência salva", description: `${escopoLabel} — contagem ${formatarDataBR(dataContagem)} · venda ${formatarDataBR(dataConferencia)}` });
         return;
       }
       if (modoPersistencia === "local") {
@@ -484,7 +505,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
       }
 
       const { error } = await (supabase as any)
-        .from("estoque_conferencias")
+        .from("estoque_conferencia_fechamentos")
         .upsert(registros, {
           onConflict: "data_conferencia,unidade_id,produto_grupo,tipo_estoque",
         });
@@ -515,7 +536,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
         const { error: insErr } = await (supabase as any).from("estoque_conferencia_movimentos").insert(entradasRegistros);
         if (insErr) throw insErr;
       }
-      toast({ title: "Conferência salva", description: `${escopoLabel} - ${formatarDataBR(dataConferencia)}` });
+      toast({ title: "Conferência salva", description: `${escopoLabel} — contagem ${formatarDataBR(dataContagem)} · venda ${formatarDataBR(dataConferencia)}` });
     } catch (error) {
       console.error("Erro ao salvar conferencia manual:", error);
       if (portal) {
@@ -541,7 +562,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
 
     const aoa = [
       [`Conferencia de Estoque - ${formatarDataBR(dataConferencia)}`],
-      [`Escopo: ${escopoLabel}`],
+      [`Contagem: ${formatarDataBR(dataContagem)} (${momento === "inicio" ? "início" : "fim"}) | Vendas: ${formatarDataBR(dataConferencia)} | Escopo: ${escopoLabel}`],
       ["Lojas", "P13", "", "P20", "", "P45", "", "Agua", ""],
       ["", "Cheio", "Vazio", "Cheio", "Vazio", "Cheio", "Vazio", "Cheio", "Vazio"],
       ...montarLinhasExportacao(),
@@ -573,7 +594,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
     doc.setFontSize(15);
     doc.text("Conferencia de Estoque", 14, 16);
     doc.setFontSize(10);
-    doc.text(`Data: ${formatarDataBR(dataConferencia)} | Escopo: ${escopoLabel}`, 14, 23);
+    doc.text(`Contagem: ${formatarDataBR(dataContagem)} | Vendas: ${formatarDataBR(dataConferencia)} | Escopo: ${escopoLabel}`, 14, 23);
 
     autoTable(doc, {
       startY: 30,
@@ -612,7 +633,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5 p-3 sm:p-6">
         <EstoquePageHeader
           title="Conferência diária manual"
-          description="Digite os valores conferidos fisicamente por loja. A exportação usa exatamente os números informados."
+          description={`Contagem de ${formatarDataBR(dataContagem)} · Vendas de ${formatarDataBR(dataConferencia)}`}
           actions={
             <>
               {isMaster && <ConferentesAccessDialog />}
@@ -638,19 +659,27 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
 
         <Card className="border-border/70 shadow-[0_12px_36px_rgba(15,23,42,0.07)]">
           <CardContent className="p-4">
-            <div className="grid gap-3 md:grid-cols-[180px_1fr_auto] md:items-end">
+            <div className="grid gap-3 md:grid-cols-[180px_180px_1fr] md:items-end">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Data da conferência
+                  Data da contagem
                 </Label>
                 <Input
                   type="date"
-                  value={dataConferencia}
-                  onChange={(event) => setDataConferencia(event.target.value)}
+                  aria-label="Data da contagem"
+                  value={dataContagem}
+                  onChange={(event) => { if (event.target.value) setDataContagem(event.target.value); }}
                   className="h-10 rounded-lg"
                 />
               </div>
 
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold uppercase text-muted-foreground">Momento da contagem</Label>
+                <Select value={momento} onValueChange={(value) => { if (value === "inicio" || value === "fim") setMomento(value); }}>
+                  <SelectTrigger aria-label="Momento da contagem" className="h-10"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="inicio">Início do dia</SelectItem><SelectItem value="fim">Fim do dia</SelectItem></SelectContent>
+                </Select>
+              </div>
               <div className="space-y-1.5 md:max-w-[320px]">
                 <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Loja
@@ -670,9 +699,9 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                 </Select>
               </div>
 
-              <div className="hidden items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 md:flex">
+              <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3 text-sm font-semibold text-foreground md:col-span-3">
                 <Store className="h-4 w-4" />
-                {modoPersistencia === "local" ? "Modo local" : escopoLabel}
+                {modoPersistencia === "local" ? "Modo local · " : ""}Venda apurada: {formatarDataBR(dataConferencia)}
               </div>
             </div>
           </CardContent>
@@ -682,7 +711,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
           {([
             {
               label: "Saldo inicial",
-              hint: `Contagem de ${formatarDataBR(dataAnterior)}`,
+              hint: `Abertura de ${formatarDataBR(dataConferencia)}`,
               icon: Archive,
               iconCls: "bg-muted text-foreground",
               cardCls: "border-border bg-card",
@@ -694,9 +723,9 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                 </span>
               ),
             },
-            { label: "Cheios", hint: "Contagem atual", icon: Package, iconCls: "bg-warning/15 text-warning", cardCls: "border-border bg-card", valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio },
-            { label: "Vazios", hint: "Contagem atual", icon: PackageOpen, iconCls: "bg-info/15 text-info", cardCls: "border-border bg-card", valor: (k: GrupoProduto) => resumo.porGrupo[k].vazio },
-            { label: "Venda esperada", hint: "Em cheios — confira com o vendido", icon: TrendingUp, iconCls: "bg-success/15 text-success", cardCls: "border-success/40 bg-success/5", valor: (k: GrupoProduto) => resumo.porGrupo[k].venda },
+            { label: "Cheios", hint: `Contagem de ${formatarDataBR(dataContagem)}`, icon: Package, iconCls: "bg-warning/15 text-warning", cardCls: "border-border bg-card", valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio },
+            { label: "Vazios", hint: `Contagem de ${formatarDataBR(dataContagem)}`, icon: PackageOpen, iconCls: "bg-info/15 text-info", cardCls: "border-border bg-card", valor: (k: GrupoProduto) => resumo.porGrupo[k].vazio },
+            { label: "Venda esperada", hint: `Vendas de ${formatarDataBR(dataConferencia)} · cheios`, icon: TrendingUp, iconCls: "bg-success/15 text-success", cardCls: "border-success/40 bg-success/5", valor: (k: GrupoProduto) => resumo.porGrupo[k].venda },
           ]).map((card) => (
             <div key={card.label} className={`rounded-xl border p-4 shadow-sm ${card.cardCls}`}>
               <div className="mb-3 flex items-center gap-3">
@@ -705,7 +734,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-bold uppercase tracking-wide text-foreground">{card.label}</p>
-                  <p className="truncate text-xs text-muted-foreground">{card.hint}</p>
+                  <p className="break-words text-xs text-muted-foreground">{card.hint}</p>
                 </div>
               </div>
               <div className="divide-y divide-border/60">
@@ -727,9 +756,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                 <thead>
                   <tr>
                     <th colSpan={totalCols} className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
-                      {isMaster
-                        ? `Conferência do dia ${formatarDataBR(dataConferencia)} — saldo inicial = contagem de ${formatarDataBR(dataAnterior)}`
-                        : `Conferência do dia ${formatarDataBR(dataConferencia)}`}
+                      {`Contagem de ${formatarDataBR(dataContagem)} — vendas de ${formatarDataBR(dataConferencia)}`}
                     </th>
                   </tr>
                   <tr>
@@ -853,7 +880,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
           <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {formatarDataBR(dataConferencia)}
+                Contagem {formatarDataBR(dataContagem)} · Venda {formatarDataBR(dataConferencia)}
               </p>
               <p className="text-base font-bold text-slate-950">{escopoLabel}</p>
             </div>
@@ -907,7 +934,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                             <button type="button" onClick={() => pedirEdicaoSaldo(linha.unidade.id, grupo.key)} className="rounded-lg border border-slate-200 bg-white p-2 text-left">
                               <p className="flex justify-between text-[11px] font-bold uppercase text-slate-500">1. Saldo inicial <Pencil className="h-3 w-3" /></p>
                               <p className="text-right text-2xl font-black text-slate-950">{f.saldoInicial}</p>
-                              <p className="text-[11px] text-slate-500">{ajustes[linha.unidade.id]?.[grupo.key] ? "Editado pelo Master" : `Contagem de ${formatarDataBR(dataAnterior)}`}</p>
+                              <p className="text-[11px] text-slate-500">{ajustes[linha.unidade.id]?.[grupo.key] ? "Editado pelo Master" : `Abertura de ${formatarDataBR(dataConferencia)}`}</p>
                             </button>
                             <div className="rounded-lg border border-emerald-200 bg-white p-2">
                               <p className="text-[11px] font-bold uppercase text-emerald-700">2. Entrada (+)</p>

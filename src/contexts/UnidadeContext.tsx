@@ -5,6 +5,7 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 
 export interface Unidade {
   id: string;
+  empresa_id?: string | null;
   nome: string;
   tipo: "matriz" | "filial";
   cnpj: string | null;

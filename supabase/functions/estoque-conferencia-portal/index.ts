@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { isMaster, validateCounts } from './security.ts';
+import { isMaster, validateCounts, validCountDate } from './security.ts';
 
 const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info', 'Content-Type': 'application/json' };
 const reply = (body: unknown) => new Response(JSON.stringify(body), { headers });
@@ -88,10 +88,39 @@ Deno.serve(async (req) => {
     if (typeof body.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.date) || !Number.isFinite(Date.parse(`${body.date}T12:00:00Z`))) return fail('Data inválida.');
     if (action === 'save') {
       if (!validateCounts(body.records, activeIds)) return fail('Contagem inválida ou loja não autorizada.');
-      check(await db.rpc('salvar_contagem_portal', { _user_id: user.id, _empresa_id: empresaId, _data: body.date, _registros: body.records }));
+      if (body.count_date === undefined && body.moment === undefined) {
+        // Compatibility for the previously published frontend; legacy rows stay untouched.
+        check(await db.rpc('salvar_contagem_portal', { _user_id: user.id, _empresa_id: empresaId, _data: body.date, _registros: body.records }));
+      } else {
+        if (!validCountDate(body.date, body.count_date, body.moment)) return fail('Data da contagem não corresponde ao dia da venda.');
+        check(await db.rpc('salvar_fechamento_conferencia_portal', { _user_id: user.id, _empresa_id: empresaId, _data: body.date, _data_contagem: body.count_date, _momento: body.moment, _registros: body.records }));
+      }
       return reply({ ok: true });
     }
     if (action !== 'load') return fail('Operação não permitida.');
+    if (body.count_date !== undefined || body.moment !== undefined) {
+      if (!validCountDate(body.date, body.count_date, body.moment)) return fail('Datas inválidas.');
+      const previous = new Date(`${body.date}T12:00:00Z`);
+      previous.setUTCDate(previous.getUTCDate() - 1);
+      const next = new Date(`${body.date}T12:00:00Z`);
+      next.setUTCDate(next.getUTCDate() + 1);
+      const columns = 'unidade_id, produto_grupo, tipo_estoque, quantidade';
+      const [legacyCurrent, legacyPrev, current, prev, movements, adjustments] = await Promise.all([
+        db.from('estoque_conferencias').select(columns).eq('data_conferencia', next.toISOString().slice(0, 10)).in('unidade_id', activeIds),
+        db.from('estoque_conferencias').select(columns).eq('data_conferencia', body.date).in('unidade_id', activeIds),
+        db.from('estoque_conferencia_fechamentos').select(columns).eq('empresa_id', empresaId).eq('data_conferencia', body.date).in('unidade_id', activeIds),
+        db.from('estoque_conferencia_fechamentos').select(columns).eq('empresa_id', empresaId).eq('data_conferencia', previous.toISOString().slice(0, 10)).in('unidade_id', activeIds),
+        db.from('estoque_conferencia_movimentos').select('id, unidade_id, unidade_destino_id, produto_grupo, quantidade, tipo').eq('data_conferencia', body.date).or(`unidade_id.in.(${activeIds.join(',')}),unidade_destino_id.in.(${activeIds.join(',')})`),
+        db.from('estoque_conferencia_saldo_ajustes').select('unidade_id, produto_grupo, cheio, vazio').eq('data_conferencia', body.date).in('unidade_id', activeIds),
+      ]);
+      [legacyCurrent, legacyPrev, current, prev, movements, adjustments].forEach(check);
+      const combine = (oldRows: any[], newRows: any[]) => {
+        const rows = new Map();
+        for (const row of [...oldRows, ...newRows]) rows.set(`${row.unidade_id}:${row.produto_grupo}:${row.tipo_estoque}`, row);
+        return [...rows.values()];
+      };
+      return reply({ ok: true, current: combine(legacyCurrent.data || [], current.data || []), prev: combine(legacyPrev.data || [], prev.data || []), movs: movements.data, ajs: adjustments.data });
+    }
     const previous = new Date(`${body.date}T12:00:00Z`);
     previous.setUTCDate(previous.getUTCDate() - 1);
     const [current, prev, movements, adjustments] = await Promise.all([
