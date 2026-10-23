@@ -6,5 +6,6 @@
 - [x] Reutilizar conferência somente nas lojas autorizadas, sem edição Master.
 - [x] Testar regras de permissão, login em celular/computador e compilação.
 - [x] Login real de conferente confirmado pelo usuário.
-- [ ] Pedir momento antes da digitação; separar entradas e transferências e ajustar saldo cheio/vazio.
-- [ ] Validar regras e fluxo de conferência com sessão real.
+- [x] Pedir momento antes da digitação; separar entradas e transferências e ajustar saldo cheio/vazio.
+- [x] Validar regras: 18 testes aprovados e compilação sem erros.
+- [ ] Validar fluxo visual autenticado: a página de teste ainda exibe a versão anterior, mesmo após nova navegação.
