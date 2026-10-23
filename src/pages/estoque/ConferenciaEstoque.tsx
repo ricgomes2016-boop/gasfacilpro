@@ -694,6 +694,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
       return;
     }
 
+    try {
     const aoa = [
       [`Conferencia de Estoque - ${formatarDataBR(dataConferencia)}`],
       [`Contagem: ${formatarDataBR(dataContagem)} (${momento === "inicio" ? "início" : "fim"}) | Vendas: ${formatarDataBR(dataConferencia)} | Escopo: ${escopoLabel}`],
