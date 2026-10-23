@@ -88,3 +88,11 @@ export function efeitoMovimentos(input: { entrada: number; enviada: number; rece
   const e = Number(input.entrada) || 0, s = Number(input.enviada) || 0, r = Number(input.recebida) || 0;
   return { cheio: e - s + r, vazio: -e + s - r };
 }
+
+/** Colunas da tabela de contagem: Cheio, Vazio e Total, na ordem.
+    Vale para Master e conferentes — entradas e transferências têm tabelas próprias. */
+export const COLUNAS_CONTAGEM = ["che", "vaz", "tot"] as const;
+
+export function colunasDeContagem<T extends { key: string }>(colunas: T[], _isMaster = false): T[] {
+  return COLUNAS_CONTAGEM.map((key) => colunas.find((c) => c.key === key)).filter(Boolean) as T[];
+}

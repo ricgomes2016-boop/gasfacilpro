@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { colunasDeContagem } from "./conferenciaFluxo";
 import { calcularFluxoConferencia } from "./conferenciaFluxo";
 import { datasApuracao, combinarContagens } from './conferenciaFluxo';
 import { saldoComEntradas } from './conferenciaFluxo';
