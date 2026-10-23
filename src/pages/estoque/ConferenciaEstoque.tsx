@@ -606,11 +606,13 @@ export default function ConferenciaEstoque() {
         <Card className="hidden overflow-hidden border-slate-300 shadow-[0_14px_40px_rgba(15,23,42,0.08)] md:block">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1600px] border-collapse bg-white text-sm">
+              <table className={`w-full border-collapse bg-white text-sm ${isMaster ? "min-w-[1600px]" : "min-w-[900px]"}`}>
                 <thead>
                   <tr>
-                    <th colSpan={29} className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
-                      Conferência do dia {formatarDataBR(dataConferencia)} — saldo inicial = contagem de {formatarDataBR(dataAnterior)}
+                    <th colSpan={totalCols} className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
+                      {isMaster
+                        ? `Conferência do dia ${formatarDataBR(dataConferencia)} — saldo inicial = contagem de ${formatarDataBR(dataAnterior)}`
+                        : `Conferência do dia ${formatarDataBR(dataConferencia)}`}
                     </th>
                   </tr>
                   <tr>
@@ -618,14 +620,14 @@ export default function ConferenciaEstoque() {
                       Lojas
                     </th>
                     {grupos.map((grupo) => (
-                      <th key={grupo.key} colSpan={7} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${grupo.tone}`}>
+                      <th key={grupo.key} colSpan={colunas.length} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${grupo.tone}`}>
                         {grupo.label}
                       </th>
                     ))}
                   </tr>
                   <tr>
                     {grupos.flatMap((grupo) =>
-                      colunasFluxo.map((col) => (
+                      colunas.map((col) => (
                         <th key={`${grupo.key}-${col.key}`} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 ${col.bg}`}>
                           {col.label}
                         </th>
@@ -636,13 +638,13 @@ export default function ConferenciaEstoque() {
                 <tbody>
                   {isLoading || unidadesLoading ? (
                     <tr>
-                      <td colSpan={29} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
+                      <td colSpan={totalCols} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
                         Carregando conferência...
                       </td>
                     </tr>
                   ) : linhas.length === 0 ? (
                     <tr>
-                      <td colSpan={29} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
+                      <td colSpan={totalCols} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
                         Nenhuma loja encontrada para o filtro selecionado.
                       </td>
                     </tr>
@@ -659,34 +661,51 @@ export default function ConferenciaEstoque() {
                           const f = fluxo(linha.unidade.id, grupo.key);
                           const id = `${linha.unidade.id}-${grupo.key}`;
                           const inputCls = "h-10 w-16 rounded-none border-0 text-center text-base font-black shadow-none focus-visible:ring-2 focus-visible:ring-blue-500";
-                          return [
-                            <td key={`${id}-ini`} className="border border-slate-900 bg-slate-50 px-1 text-center font-bold">{f.saldoInicial}</td>,
-                            <td key={`${id}-ent`} className="border border-slate-900 p-0" title={entradaRecebida(linha.unidade.id, grupo.key) ? `+${entradaRecebida(linha.unidade.id, grupo.key)} recebido de lojas` : undefined}>
-                              <Input type="number" min="0" inputMode="numeric" value={entradas[linha.unidade.id]?.[grupo.key] || ""}
-                                onChange={(e) => atualizarEntrada(linha.unidade.id, grupo.key, e.target.value)} className={`${inputCls} text-emerald-700`} />
-                              {entradaRecebida(linha.unidade.id, grupo.key) > 0 && (
-                                <span className="block text-center text-[10px] font-bold text-emerald-700">+{entradaRecebida(linha.unidade.id, grupo.key)} transf.</span>
-                              )}
-                            </td>,
-                            <td key={`${id}-tra`} className="border border-slate-900 p-0">
-                              <button type="button" onClick={() => abrirTransferencia(linha.unidade.id, grupo.key)}
-                                className="h-10 w-full px-1 text-center font-black text-purple-700 underline-offset-2 hover:underline">
-                                -{f.transferencia}
-                              </button>
-                            </td>,
-                            <td key={`${id}-che`} className="border border-slate-900 p-0">
-                              <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].cheio || ""}
-                                onChange={(e) => atualizarValor(linha.unidade.id, grupo.key, "cheio", e.target.value)} className={`${inputCls} text-blue-700`} />
-                            </td>,
-                            <td key={`${id}-vaz`} className="border border-slate-900 p-0">
-                              <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].vazio || ""}
-                                onChange={(e) => atualizarValor(linha.unidade.id, grupo.key, "vazio", e.target.value)} className={`${inputCls} text-blue-700`} />
-                            </td>,
-                            <td key={`${id}-tot`} className="border border-slate-900 bg-slate-100 px-1 text-center font-black">
-                              {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}
-                            </td>,
-                            <td key={`${id}-ven`} className="border border-slate-900 bg-emerald-50 px-1 text-center font-black text-emerald-700">{f.vendaEsperada}</td>,
-                          ];
+                          const recebida = entradaRecebida(linha.unidade.id, grupo.key);
+                          const celulas: Record<string, JSX.Element> = {
+                            ini: (
+                              <td key={`${id}-ini`} className="border border-slate-900 bg-slate-50 p-0">
+                                <button type="button" onClick={() => pedirEdicaoSaldo(linha.unidade.id, grupo.key)} title="Editar saldo inicial"
+                                  className="h-10 w-full px-1 text-center font-bold hover:bg-slate-200">
+                                  {f.saldoInicial}{ajustes[linha.unidade.id]?.[grupo.key] ? "*" : ""}
+                                </button>
+                              </td>
+                            ),
+                            ent: (
+                              <td key={`${id}-ent`} className="border border-slate-900 p-0">
+                                <Input type="number" min="0" inputMode="numeric" value={entradas[linha.unidade.id]?.[grupo.key] || ""}
+                                  onChange={(e) => atualizarEntrada(linha.unidade.id, grupo.key, e.target.value)} className={`${inputCls} text-emerald-700`} />
+                                {recebida > 0 && <span className="block text-center text-[10px] font-bold text-emerald-700">+{recebida} transf.</span>}
+                              </td>
+                            ),
+                            tra: (
+                              <td key={`${id}-tra`} className="border border-slate-900 p-0">
+                                <button type="button" onClick={() => abrirTransferencia(linha.unidade.id, grupo.key)}
+                                  className="h-10 w-full px-1 text-center font-black text-purple-700 underline-offset-2 hover:underline">
+                                  -{f.transferencia}
+                                </button>
+                              </td>
+                            ),
+                            che: (
+                              <td key={`${id}-che`} className="border border-slate-900 p-0">
+                                <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].cheio || ""}
+                                  onChange={(e) => atualizarValor(linha.unidade.id, grupo.key, "cheio", e.target.value)} className={`${inputCls} text-blue-700`} />
+                              </td>
+                            ),
+                            vaz: (
+                              <td key={`${id}-vaz`} className="border border-slate-900 p-0">
+                                <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].vazio || ""}
+                                  onChange={(e) => atualizarValor(linha.unidade.id, grupo.key, "vazio", e.target.value)} className={`${inputCls} text-blue-700`} />
+                              </td>
+                            ),
+                            tot: (
+                              <td key={`${id}-tot`} className="border border-slate-900 bg-slate-100 px-1 text-center font-black">
+                                {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}
+                              </td>
+                            ),
+                            ven: <td key={`${id}-ven`} className="border border-slate-900 bg-emerald-50 px-1 text-center font-black text-emerald-700">{f.vendaEsperada}</td>,
+                          };
+                          return colunas.map((col) => celulas[col.key]);
                         })}
                       </tr>
                     ))
@@ -700,8 +719,9 @@ export default function ConferenciaEstoque() {
                       </th>
                       {grupos.flatMap((grupo) => {
                         const g = resumo.porGrupo[grupo.key];
-                        return [g.inicial, g.entrada, -g.transf, g.cheio, g.vazio, g.cheio + g.vazio, g.venda].map((v, i) => (
-                          <td key={`tot-${grupo.key}-${i}`} className={`border border-slate-900 text-center font-black ${colunasFluxo[i].bg}`}>{v}</td>
+                        const vals: Record<string, number> = { ini: g.inicial, ent: g.entrada, tra: -g.transf, che: g.cheio, vaz: g.vazio, tot: g.cheio + g.vazio, ven: g.venda };
+                        return colunas.map((col) => (
+                          <td key={`tot-${grupo.key}-${col.key}`} className={`border border-slate-900 text-center font-black ${col.bg}`}>{vals[col.key]}</td>
                         ));
                       })}
                     </tr>
