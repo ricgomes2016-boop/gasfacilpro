@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, Download, FileSpreadsheet, Loader2, RefreshCw, Save, Store } from "lucide-react";
+import { CalendarDays, Download, FileSpreadsheet, Loader2, RefreshCw, Save, Store, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { calcularFluxoConferencia } from "@/lib/estoque/conferenciaFluxo";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -41,6 +43,24 @@ interface LinhaConferencia {
   totais: Record<GrupoProduto, Record<TipoEstoque, number>>;
   totalGeral: number;
 }
+
+interface MovTransferencia {
+  id: string;
+  unidade_id: string;
+  unidade_destino_id: string | null;
+  produto_grupo: GrupoProduto;
+  quantidade: number;
+}
+
+const colunasFluxo = [
+  { key: "ini", label: "Inicial", bg: "bg-slate-100" },
+  { key: "ent", label: "Entrada", bg: "bg-emerald-100" },
+  { key: "tra", label: "Transf.", bg: "bg-purple-100" },
+  { key: "che", label: "Cheio", bg: "bg-amber-100" },
+  { key: "vaz", label: "Vazio", bg: "bg-slate-200" },
+  { key: "tot", label: "Total", bg: "bg-slate-300" },
+  { key: "ven", label: "Venda", bg: "bg-emerald-200" },
+];
 
 const grupos: { key: GrupoProduto; label: string; tone: string; mobileTone: string }[] = [
   { key: "P13", label: "P13", tone: "bg-[#e66f2f] text-white", mobileTone: "border-[#e66f2f]/30 bg-[#fff4ed]" },
@@ -83,6 +103,19 @@ export default function ConferenciaEstoque() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [modoPersistencia, setModoPersistencia] = useState<ModoPersistencia>("banco");
+  const [saldoAnterior, setSaldoAnterior] = useState<Record<string, Partial<Record<GrupoProduto, number>>>>({});
+  const [entradas, setEntradas] = useState<Record<string, Partial<Record<GrupoProduto, number>>>>({});
+  const [transferencias, setTransferencias] = useState<MovTransferencia[]>([]);
+  const [dialogTransf, setDialogTransf] = useState<{ unidadeId: string; grupo: GrupoProduto } | null>(null);
+  const [transfDestino, setTransfDestino] = useState("nenhum");
+  const [transfQtd, setTransfQtd] = useState("");
+  const todasLojas = unidades;
+  const dataAnterior = format(subDays(parseISO(`${dataConferencia}T12:00:00`), 1), "yyyy-MM-dd");
+
+  const atualizarEntrada = (unidadeId: string, grupo: GrupoProduto, value: string) => {
+    const q = Math.max(0, Math.floor(Number(value || 0)));
+    setEntradas((prev) => ({ ...prev, [unidadeId]: { ...(prev[unidadeId] || {}), [grupo]: Number.isFinite(q) ? q : 0 } }));
+  };
 
   const lojasVisiveis = useMemo(() => {
     if (lojaFiltro === "todas") return unidades;
@@ -137,6 +170,38 @@ export default function ConferenciaEstoque() {
 
       setValores(base);
       setModoPersistencia("banco");
+
+      const ids = unidades.map((u) => u.id);
+      const [{ data: prev }, { data: movs }] = await Promise.all([
+        (supabase as any)
+          .from("estoque_conferencias")
+          .select("unidade_id, produto_grupo, quantidade")
+          .eq("data_conferencia", dataAnterior)
+          .eq("tipo_estoque", "cheio")
+          .in("unidade_id", ids),
+        (supabase as any)
+          .from("estoque_conferencia_movimentos")
+          .select("id, unidade_id, unidade_destino_id, produto_grupo, quantidade, tipo")
+          .eq("data_conferencia", dataConferencia),
+      ]);
+      const saldo: Record<string, Partial<Record<GrupoProduto, number>>> = {};
+      (prev || []).forEach((r: any) => {
+        saldo[r.unidade_id] = saldo[r.unidade_id] || {};
+        saldo[r.unidade_id][r.produto_grupo as GrupoProduto] = Number(r.quantidade || 0);
+      });
+      const ent: Record<string, Partial<Record<GrupoProduto, number>>> = {};
+      const trs: MovTransferencia[] = [];
+      (movs || []).forEach((m: any) => {
+        if (m.tipo === "entrada_manual") {
+          ent[m.unidade_id] = ent[m.unidade_id] || {};
+          ent[m.unidade_id][m.produto_grupo as GrupoProduto] = Number(m.quantidade || 0);
+        } else {
+          trs.push(m);
+        }
+      });
+      setSaldoAnterior(saldo);
+      setEntradas(ent);
+      setTransferencias(trs);
     } catch (error) {
       console.error("Erro ao carregar conferencia manual:", error);
       setModoPersistencia("local");
@@ -179,21 +244,104 @@ export default function ConferenciaEstoque() {
     });
   }, [lojasVisiveis, valores]);
 
+  const entradaRecebida = (unidadeId: string, grupo: GrupoProduto) =>
+    transferencias
+      .filter((t) => t.unidade_destino_id === unidadeId && t.produto_grupo === grupo)
+      .reduce((acc, t) => acc + Number(t.quantidade || 0), 0);
+
+  const fluxo = (unidadeId: string, grupo: GrupoProduto) =>
+    calcularFluxoConferencia({
+      saldoInicial: saldoAnterior[unidadeId]?.[grupo] || 0,
+      entrada: (entradas[unidadeId]?.[grupo] || 0) + entradaRecebida(unidadeId, grupo),
+      transferencia: transferencias
+        .filter((t) => t.unidade_id === unidadeId && t.produto_grupo === grupo)
+        .reduce((acc, t) => acc + Number(t.quantidade || 0), 0),
+      cheio: valores[unidadeId]?.[grupo]?.cheio || 0,
+    });
+
   const resumo = useMemo(() => {
-    return linhas.reduce(
-      (acc, linha) => {
-        grupos.forEach((grupo) => {
-          acc.cheios += linha.totais[grupo.key].cheio;
-          acc.vazios += linha.totais[grupo.key].vazio;
-          acc.porGrupo[grupo.key].cheio += linha.totais[grupo.key].cheio;
-          acc.porGrupo[grupo.key].vazio += linha.totais[grupo.key].vazio;
-        });
-        acc.total += linha.totalGeral;
-        return acc;
-      },
-      { cheios: 0, vazios: 0, total: 0, porGrupo: criarTotaisZerados() }
-    );
-  }, [linhas]);
+    const porGrupo = grupos.reduce((acc, g) => {
+      acc[g.key] = { inicial: 0, entrada: 0, transf: 0, cheio: 0, vazio: 0, venda: 0 };
+      return acc;
+    }, {} as Record<GrupoProduto, { inicial: number; entrada: number; transf: number; cheio: number; vazio: number; venda: number }>);
+    const acc = { inicial: 0, cheios: 0, vazios: 0, total: 0, venda: 0, porGrupo };
+    linhas.forEach((linha) => {
+      grupos.forEach((grupo) => {
+        const f = fluxo(linha.unidade.id, grupo.key);
+        const pg = porGrupo[grupo.key];
+        pg.inicial += f.saldoInicial;
+        pg.entrada += f.entrada;
+        pg.transf += f.transferencia;
+        pg.cheio += linha.totais[grupo.key].cheio;
+        pg.vazio += linha.totais[grupo.key].vazio;
+        pg.venda += f.vendaEsperada;
+        acc.inicial += f.saldoInicial;
+        acc.cheios += linha.totais[grupo.key].cheio;
+        acc.vazios += linha.totais[grupo.key].vazio;
+        acc.venda += f.vendaEsperada;
+      });
+      acc.total += linha.totalGeral;
+    });
+    return acc;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linhas, saldoAnterior, entradas, transferencias]);
+
+  const nomeLoja = (id: string | null) => todasLojas.find((u) => u.id === id)?.nome || "Loja";
+
+  const transferenciasDoDialog = useMemo(
+    () =>
+      dialogTransf
+        ? transferencias.filter((t) => t.unidade_id === dialogTransf.unidadeId && t.produto_grupo === dialogTransf.grupo)
+        : [],
+    [dialogTransf, transferencias]
+  );
+
+  const abrirTransferencia = (unidadeId: string, grupo: GrupoProduto) => {
+    setTransfDestino("nenhum");
+    setTransfQtd("");
+    setDialogTransf({ unidadeId, grupo });
+  };
+
+  const registrarTransferencia = async () => {
+    if (!dialogTransf) return;
+    const qtd = Math.floor(Number(transfQtd || 0));
+    if (transfDestino === "nenhum" || qtd <= 0) {
+      toast({ title: "Escolha a loja e a quantidade", variant: "destructive" });
+      return;
+    }
+    setIsSaving(true);
+    const { data, error } = await (supabase as any)
+      .from("estoque_conferencia_movimentos")
+      .insert({
+        data_conferencia: dataConferencia,
+        unidade_id: dialogTransf.unidadeId,
+        produto_grupo: dialogTransf.grupo,
+        tipo: "transferencia",
+        quantidade: qtd,
+        unidade_destino_id: transfDestino,
+        criado_por: user?.id || null,
+      })
+      .select("id, unidade_id, unidade_destino_id, produto_grupo, quantidade")
+      .single();
+    setIsSaving(false);
+    if (error) {
+      console.error(error);
+      toast({ title: "Não foi possível registrar a transferência", variant: "destructive" });
+      return;
+    }
+    setTransferencias((prev) => [...prev, data]);
+    toast({ title: "Transferência registrada", description: `${qtd} ${dialogTransf.grupo} para ${nomeLoja(transfDestino)}` });
+    setDialogTransf(null);
+  };
+
+  const excluirTransferencia = async (id: string) => {
+    const { error } = await (supabase as any).from("estoque_conferencia_movimentos").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Não foi possível excluir", variant: "destructive" });
+      return;
+    }
+    setTransferencias((prev) => prev.filter((t) => t.id !== id));
+  };
 
   const montarLinhasExportacao = () =>
     linhas.map((linha) => [
@@ -253,6 +401,31 @@ export default function ConferenciaEstoque() {
         });
 
       if (error) throw error;
+
+      const lojaIds = linhas.map((l) => l.unidade.id);
+      const { error: delErr } = await (supabase as any)
+        .from("estoque_conferencia_movimentos")
+        .delete()
+        .eq("data_conferencia", dataConferencia)
+        .eq("tipo", "entrada_manual")
+        .in("unidade_id", lojaIds);
+      if (delErr) throw delErr;
+      const entradasRegistros = lojaIds.flatMap((uid) =>
+        grupos
+          .filter((g) => (entradas[uid]?.[g.key] || 0) > 0)
+          .map((g) => ({
+            data_conferencia: dataConferencia,
+            unidade_id: uid,
+            produto_grupo: g.key,
+            tipo: "entrada_manual",
+            quantidade: entradas[uid][g.key],
+            criado_por: user?.id || null,
+          }))
+      );
+      if (entradasRegistros.length > 0) {
+        const { error: insErr } = await (supabase as any).from("estoque_conferencia_movimentos").insert(entradasRegistros);
+        if (insErr) throw insErr;
+      }
       toast({ title: "Conferência salva", description: `${escopoLabel} - ${formatarDataBR(dataConferencia)}` });
     } catch (error) {
       console.error("Erro ao salvar conferencia manual:", error);
