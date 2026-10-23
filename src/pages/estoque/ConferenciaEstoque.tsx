@@ -6,7 +6,7 @@ import { ptBR } from "date-fns/locale";
 import { Archive, CalendarDays, Download, FileSpreadsheet, Loader2, Package, PackageOpen, Pencil, RefreshCw, Save, Store, Trash2, TrendingUp } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { calcularFluxoDia, calcularEstoqueAtual, calcularFluxoConferencia, resolverSaldoInicial, SaldoCheioVazio, datasApuracao, combinarContagens, MomentoContagem, saldoComEntradas } from "@/lib/estoque/conferenciaFluxo";
+import { calcularFluxoDia, calcularEstoqueAtual, calcularFluxoConferencia, resolverSaldoInicial, SaldoCheioVazio, datasApuracao, combinarContagens, MomentoContagem, saldoComEntradas, colunasDeContagem } from "@/lib/estoque/conferenciaFluxo";
 import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle, ResponsiveDialogDescription, ResponsiveDialogFooter } from "@/components/ui/responsive-dialog";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -118,7 +118,9 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
   const { user: erpUser, hasAnyRole } = useAuth();
   const user = portal ? { id: portal.userId } : erpUser;
   const isMaster = !portal && hasAnyRole(["admin", "super_admin"]);
-  const colunas = isMaster ? colunasFluxo : colunasFluxo.filter((c) => ["che", "vaz", "tot"].includes(c.key));
+  /** Tabela de contagem igual para todos (Master e conferentes): Cheio, Vazio e Total.
+      Entradas e transferências já têm tabelas próprias logo abaixo. */
+  const colunas = colunasDeContagem(colunasFluxo, isMaster);
   const totalCols = 1 + grupos.length * colunas.length;
   const erpUnidades = useUnidade();
   const unidades = portal?.unidades ?? erpUnidades.unidades;
@@ -159,6 +161,10 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
   const [movLoja, setMovLoja] = useState("nenhum");
   const [movGrupo, setMovGrupo] = useState<GrupoProduto>("P13");
   const [entradaQtd, setEntradaQtd] = useState("");
+  /** Loja/produto usados pelo Master para corrigir o saldo inicial (a tabela de contagem não mostra mais o saldo). */
+  const [saldoLoja, setSaldoLoja] = useState("nenhum");
+  const [saldoGrupo, setSaldoGrupo] = useState<GrupoProduto>("P13");
+  useEffect(() => { if (unidades.length > 0 && saldoLoja === "nenhum") setSaldoLoja(unidades[0].id); }, [unidades, saldoLoja]);
   const pedirMomento = () => { if (!momentoConfirmado) setPerguntarMomento(true); };
   const camposContagem = (id: string) => {
     const cheio = id.endsWith("cheio");
@@ -1125,6 +1131,31 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
               );
             })}
           </div>
+          {isMaster && (
+            <div className="flex flex-wrap items-end gap-3 border-t border-border bg-muted/40 px-4 py-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Loja</Label>
+                <Select value={saldoLoja} onValueChange={setSaldoLoja}>
+                  <SelectTrigger aria-label="Loja do saldo inicial" className="h-10 w-[220px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>{unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Produto</Label>
+                <Select value={saldoGrupo} onValueChange={(v) => setSaldoGrupo(v as GrupoProduto)}>
+                  <SelectTrigger aria-label="Produto do saldo inicial" className="h-10 w-[130px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>{grupos.map((g) => <SelectItem key={g.key} value={g.key}>{g.key === "Agua" ? "Água" : g.key}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs font-semibold text-muted-foreground">
+                Saldo em {formatarDataBR(dataConferencia)}: {saldoInicialDe(saldoLoja, saldoGrupo).cheio} cheios / {saldoInicialDe(saldoLoja, saldoGrupo).vazio} vazios
+                {ajustes[saldoLoja]?.[saldoGrupo] ? " · editado manualmente" : ""}
+              </p>
+              <Button variant="outline" disabled={saldoLoja === "nenhum"} onClick={() => pedirEdicaoSaldo(saldoLoja, saldoGrupo)}>
+                <Pencil className="mr-2 h-4 w-4" />Editar saldo inicial
+              </Button>
+            </div>
+          )}
           {!mesmoDia && (
             <div className="border-t border-border bg-muted/40 px-4 py-3">
               <p className="text-sm font-bold text-foreground">Estoque atual de {formatarDataBR(dataContagem)} <span className="font-normal text-muted-foreground">· contagem de abertura + entradas − transferências de hoje</span></p>
