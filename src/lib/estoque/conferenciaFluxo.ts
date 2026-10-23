@@ -5,6 +5,25 @@ export interface FluxoConferenciaInput {
   cheio: number;
 }
 
+export type MomentoContagem = 'inicio' | 'fim';
+
+/** Opening counts close yesterday; closing counts close the physical counting day. */
+export function datasApuracao(dataContagem: string, momento: MomentoContagem) {
+  const day = new Date(`${dataContagem}T12:00:00Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dataContagem) || !Number.isFinite(day.getTime()) || day.toISOString().slice(0, 10) !== dataContagem) throw new Error('Data inválida');
+  if (momento === 'inicio') day.setUTCDate(day.getUTCDate() - 1);
+  const dataVenda = day.toISOString().slice(0, 10);
+  day.setUTCDate(day.getUTCDate() - 1);
+  return { dataVenda, dataSaldo: day.toISOString().slice(0, 10) };
+}
+
+/** New sales-day records override legacy opening counts, preserving untouched history. */
+export function combinarContagens<T extends { unidade_id: string; produto_grupo: string; tipo_estoque: string }>(legacy: T[], current: T[]): T[] {
+  const rows = new Map<string, T>();
+  for (const row of [...legacy, ...current]) rows.set(`${row.unidade_id}:${row.produto_grupo}:${row.tipo_estoque}`, row);
+  return [...rows.values()];
+}
+
 export interface FluxoConferencia extends FluxoConferenciaInput {
   totalInicial: number;
   vendaEsperada: number;

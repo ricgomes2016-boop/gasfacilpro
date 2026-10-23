@@ -1,5 +1,24 @@
 import { describe, it, expect } from "vitest";
 import { calcularFluxoConferencia } from "./conferenciaFluxo";
+import { datasApuracao, combinarContagens } from './conferenciaFluxo';
+
+describe('datas da contagem', () => {
+  it('início de 23/10 apura vendas de 22/10', () => {
+    expect(datasApuracao('2026-10-23', 'inicio')).toEqual({ dataVenda: '2026-10-22', dataSaldo: '2026-10-21' });
+  });
+  it('fim de 22/10 apura o próprio dia', () => {
+    expect(datasApuracao('2026-10-22', 'fim')).toEqual({ dataVenda: '2026-10-22', dataSaldo: '2026-10-21' });
+  });
+  it('Ibaiti: 559 anteriores e 546 cheios apuram 13 vendas; 55 vazios não são vendas', () => {
+    const contagem = { cheio: 546, vazio: 55 };
+    expect(calcularFluxoConferencia({ saldoInicial: 559, entrada: 0, transferencia: 0, cheio: contagem.cheio }).vendaEsperada).toBe(13);
+    expect(contagem.cheio + contagem.vazio).toBe(601);
+  });
+  it('novo fechamento substitui a leitura antiga sem somar as duas contagens', () => {
+    const key = { unidade_id: 'ibaiti', produto_grupo: 'P13', tipo_estoque: 'cheio' };
+    expect(combinarContagens([{ ...key, quantidade: 559 }], [{ ...key, quantidade: 546 }])).toEqual([{ ...key, quantidade: 546 }]);
+  });
+});
 
 describe("calcularFluxoConferencia", () => {
   it("exemplo do cliente: 500 + 200 - 100 - 400 = 200", () => {
