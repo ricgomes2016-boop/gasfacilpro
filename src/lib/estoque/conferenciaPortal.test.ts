@@ -3,6 +3,10 @@ import { isMaster, validateCounts, validCountDate, validMovement } from '../../.
 
 describe('movimentos dos conferentes', () => {
   const transfer = { action: 'transfer', unidade_id: 'origem', unidade_destino_id: 'filial', produto_grupo: 'P13', quantidade: 100 };
+  it('aceita 36 P13 da Usagas para Sertaneja quando as lojas estão autorizadas', () => {
+    expect(validMovement({ ...transfer, unidade_id: 'usagas', unidade_destino_id: 'sertaneja', quantidade: 36 }, ['usagas'], ['sertaneja'])).toBe(true);
+    expect(validMovement({ ...transfer, unidade_id: 'usagas', unidade_destino_id: 'sertaneja', quantidade: 36 }, ['usagas'], ['outra-empresa'])).toBe(false);
+  });
   it('permite transferência de 100 somente com origem autorizada e filial válida', () => {
     expect(validMovement(transfer, ['origem'], ['filial'])).toBe(true);
     expect(validMovement(transfer, ['outra'], ['filial'])).toBe(false);
