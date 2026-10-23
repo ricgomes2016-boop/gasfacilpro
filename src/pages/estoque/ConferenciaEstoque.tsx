@@ -67,7 +67,7 @@ const colunasFluxo = [
 ];
 
 /** Largura fixa e idêntica da coluna "Lojas" nas três tabelas (contagem, entrada, transferência). */
-const COL_LOJAS = "w-[220px] min-w-[220px] max-w-[220px]";
+const COL_LOJAS = "w-[96px] min-w-[96px] max-w-[96px] sm:w-[220px] sm:min-w-[220px] sm:max-w-[220px]";
 
 /** Campo numérico das tabelas de conferência: largo o bastante para 4-5 dígitos
     e sem as setinhas do navegador, que cobriam o último número digitado. */
@@ -846,7 +846,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                     </th>
                   </tr>
                   <tr>
-                    <th rowSpan={2} className={`${COL_LOJAS} conferencia-lojas-head sticky left-0 z-20 border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black`}>
+                    <th rowSpan={2} className={`${COL_LOJAS} conferencia-lojas-head sticky left-0 z-20 border border-slate-900 bg-slate-800 px-1.5 sm:px-3 py-3 text-center text-xs sm:text-base font-black`}>
                       Lojas
                     </th>
                     {grupos.map((grupo) => (
@@ -881,7 +881,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                   ) : (
                     linhas.map((linha) => (
                       <tr key={linha.unidade.id} className="hover:bg-blue-50/40">
-                        <th scope="row" className={`${COL_LOJAS} break-words sticky left-0 z-10 border border-slate-900 bg-slate-100 px-2 py-1.5 text-left font-black text-slate-950`}>
+                        <th scope="row" className={`${COL_LOJAS} break-words leading-tight sticky left-0 z-10 border border-slate-900 bg-slate-100 px-1.5 sm:px-2 py-1.5 text-xs sm:text-sm text-left font-black text-slate-950`}>
                           <span className="block text-[10px] font-bold uppercase text-slate-800">
                             {linha.unidade.tipo === "matriz" ? "Matriz" : "Filial"}
                           </span>
@@ -944,7 +944,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                 {linhas.length > 0 && !isLoading && !unidadesLoading && (
                   <tfoot>
                     <tr>
-                      <th scope="row" className={`${COL_LOJAS} sticky left-0 z-10 border border-slate-900 bg-slate-800 px-2 py-1.5 text-left font-black text-white conferencia-total-row`}>
+                      <th scope="row" className={`${COL_LOJAS} sticky left-0 z-10 border border-slate-900 bg-slate-800 px-1.5 sm:px-2 py-1.5 text-xs sm:text-sm text-left font-black text-white conferencia-total-row`}>
                         Total geral
                       </th>
                       {grupos.flatMap((grupo) => {
@@ -1104,7 +1104,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
             <table className="conferencia-table w-full min-w-[900px] border-collapse bg-white text-sm">
               <thead>
                 <tr>
-                  <th rowSpan={2} className={`${COL_LOJAS} conferencia-lojas-head sticky left-0 z-20 border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black`}>
+                  <th rowSpan={2} className={`${COL_LOJAS} conferencia-lojas-head sticky left-0 z-20 border border-slate-900 bg-slate-800 px-1.5 sm:px-3 py-3 text-center text-xs sm:text-base font-black`}>
                     Lojas
                   </th>
                   {grupos.map((g) => <th key={g.key} colSpan={3} className={`border border-slate-900 px-3 py-1.5 text-base font-black conferencia-band-head ${g.tone}`}>{g.key === "Agua" ? "Água" : g.key}</th>)}
@@ -1120,7 +1120,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
               <tbody>
                 {lojasVisiveis.map((u) => (
                   <tr key={u.id} className="hover:bg-blue-50/40">
-                    <th scope="row" className={`${COL_LOJAS} break-words sticky left-0 z-10 border border-slate-900 bg-slate-100 px-2 py-1.5 text-left font-black text-slate-950`}>
+                    <th scope="row" className={`${COL_LOJAS} break-words leading-tight sticky left-0 z-10 border border-slate-900 bg-slate-100 px-1.5 sm:px-2 py-1.5 text-xs sm:text-sm text-left font-black text-slate-950`}>
                       <span className="block text-[10px] font-bold uppercase text-slate-800">
                         {u.tipo === "matriz" ? "Matriz" : "Filial"}
                       </span>
@@ -1173,7 +1173,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
               <table className="conferencia-table w-full min-w-[900px] border-collapse bg-white text-sm">
                 <thead>
                   <tr>
-                    <th rowSpan={2} className={`${COL_LOJAS} conferencia-lojas-head sticky left-0 z-20 border border-slate-900 bg-slate-800 px-3 py-3 text-center text-base font-black`}>
+                    <th rowSpan={2} className={`${COL_LOJAS} conferencia-lojas-head sticky left-0 z-20 border border-slate-900 bg-slate-800 px-1.5 sm:px-3 py-3 text-center text-xs sm:text-base font-black`}>
                       Loja destino
                     </th>
                     {grupos.map((g) => <th key={g.key} colSpan={2} className={`border border-slate-900 px-3 py-1.5 text-base font-black conferencia-band-head ${g.tone}`}>{g.key === "Agua" ? "Água" : g.key}</th>)}
@@ -1188,7 +1188,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
                 <tbody>
                   {todasLojas.filter((d) => d.id !== origemTransf).map((d) => (
                     <tr key={d.id} className="hover:bg-blue-50/40">
-                      <th scope="row" className={`${COL_LOJAS} break-words sticky left-0 z-10 border border-slate-900 bg-slate-100 px-2 py-1.5 text-left font-black text-slate-950`}>
+                      <th scope="row" className={`${COL_LOJAS} break-words leading-tight sticky left-0 z-10 border border-slate-900 bg-slate-100 px-1.5 sm:px-2 py-1.5 text-xs sm:text-sm text-left font-black text-slate-950`}>
                         <span className="block text-[10px] font-bold uppercase text-slate-800">
                           {d.tipo === "matriz" ? "Matriz" : "Filial"}
                         </span>
