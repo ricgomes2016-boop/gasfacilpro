@@ -20,3 +20,14 @@ export function calcularFluxoConferencia(input: FluxoConferenciaInput): FluxoCon
   const totalInicial = saldoInicial + entrada;
   return { saldoInicial, entrada, transferencia, cheio, totalInicial, vendaEsperada: totalInicial - transferencia - cheio };
 }
+
+export interface SaldoCheioVazio {
+  cheio: number;
+  vazio: number;
+}
+
+/** Saldo inicial = ajuste manual do Master quando existir; senão, a contagem do dia anterior. */
+export function resolverSaldoInicial(ajuste: SaldoCheioVazio | null | undefined, anterior: SaldoCheioVazio | null | undefined): SaldoCheioVazio {
+  if (ajuste) return { cheio: Number(ajuste.cheio) || 0, vazio: Number(ajuste.vazio) || 0 };
+  return { cheio: Number(anterior?.cheio) || 0, vazio: Number(anterior?.vazio) || 0 };
+}

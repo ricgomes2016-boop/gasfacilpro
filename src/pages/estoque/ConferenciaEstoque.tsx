@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, Download, FileSpreadsheet, Loader2, RefreshCw, Save, Store, Trash2 } from "lucide-react";
+import { Archive, CalendarDays, Download, FileSpreadsheet, Loader2, Package, PackageOpen, Pencil, RefreshCw, Save, Store, Trash2, TrendingUp } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { calcularFluxoConferencia } from "@/lib/estoque/conferenciaFluxo";
+import { calcularFluxoConferencia, resolverSaldoInicial, SaldoCheioVazio } from "@/lib/estoque/conferenciaFluxo";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -95,7 +96,10 @@ const criarValoresVazios = (lojas: Unidade[]): ValoresConferencia =>
 
 export default function ConferenciaEstoque() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, hasAnyRole } = useAuth();
+  const isMaster = hasAnyRole(["admin", "super_admin"]);
+  const colunas = isMaster ? colunasFluxo : colunasFluxo.filter((c) => ["che", "vaz", "tot"].includes(c.key));
+  const totalCols = 1 + grupos.length * colunas.length;
   const { unidades, unidadeAtual, loading: unidadesLoading } = useUnidade();
   const [dataConferencia, setDataConferencia] = useState(format(new Date(), "yyyy-MM-dd"));
   const [lojaFiltro, setLojaFiltro] = useState("todas");
@@ -103,7 +107,12 @@ export default function ConferenciaEstoque() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [modoPersistencia, setModoPersistencia] = useState<ModoPersistencia>("banco");
-  const [saldoAnterior, setSaldoAnterior] = useState<Record<string, Partial<Record<GrupoProduto, number>>>>({});
+  const [saldoAnterior, setSaldoAnterior] = useState<Record<string, Partial<Record<GrupoProduto, SaldoCheioVazio>>>>({});
+  const [ajustes, setAjustes] = useState<Record<string, Partial<Record<GrupoProduto, SaldoCheioVazio>>>>({});
+  const [confirmEdit, setConfirmEdit] = useState<{ unidadeId: string; grupo: GrupoProduto } | null>(null);
+  const [editSaldo, setEditSaldo] = useState<{ unidadeId: string; grupo: GrupoProduto } | null>(null);
+  const [editCheio, setEditCheio] = useState("");
+  const [editVazio, setEditVazio] = useState("");
   const [entradas, setEntradas] = useState<Record<string, Partial<Record<GrupoProduto, number>>>>({});
   const [transferencias, setTransferencias] = useState<MovTransferencia[]>([]);
   const [dialogTransf, setDialogTransf] = useState<{ unidadeId: string; grupo: GrupoProduto } | null>(null);
@@ -172,23 +181,36 @@ export default function ConferenciaEstoque() {
       setModoPersistencia("banco");
 
       const ids = unidades.map((u) => u.id);
-      const [{ data: prev }, { data: movs }] = await Promise.all([
+      const [{ data: prev }, { data: movs }, { data: ajs }] = await Promise.all([
         (supabase as any)
           .from("estoque_conferencias")
-          .select("unidade_id, produto_grupo, quantidade")
+          .select("unidade_id, produto_grupo, tipo_estoque, quantidade")
           .eq("data_conferencia", dataAnterior)
-          .eq("tipo_estoque", "cheio")
           .in("unidade_id", ids),
         (supabase as any)
           .from("estoque_conferencia_movimentos")
           .select("id, unidade_id, unidade_destino_id, produto_grupo, quantidade, tipo")
           .eq("data_conferencia", dataConferencia),
+        (supabase as any)
+          .from("estoque_conferencia_saldo_ajustes")
+          .select("unidade_id, produto_grupo, cheio, vazio")
+          .eq("data_conferencia", dataConferencia)
+          .in("unidade_id", ids),
       ]);
-      const saldo: Record<string, Partial<Record<GrupoProduto, number>>> = {};
+      const saldo: Record<string, Partial<Record<GrupoProduto, SaldoCheioVazio>>> = {};
       (prev || []).forEach((r: any) => {
         saldo[r.unidade_id] = saldo[r.unidade_id] || {};
-        saldo[r.unidade_id][r.produto_grupo as GrupoProduto] = Number(r.quantidade || 0);
+        const g = r.produto_grupo as GrupoProduto;
+        const atual = saldo[r.unidade_id][g] || { cheio: 0, vazio: 0 };
+        atual[r.tipo_estoque as TipoEstoque] = Number(r.quantidade || 0);
+        saldo[r.unidade_id][g] = atual;
       });
+      const aj: Record<string, Partial<Record<GrupoProduto, SaldoCheioVazio>>> = {};
+      (ajs || []).forEach((r: any) => {
+        aj[r.unidade_id] = aj[r.unidade_id] || {};
+        aj[r.unidade_id][r.produto_grupo as GrupoProduto] = { cheio: Number(r.cheio || 0), vazio: Number(r.vazio || 0) };
+      });
+      setAjustes(aj);
       const ent: Record<string, Partial<Record<GrupoProduto, number>>> = {};
       const trs: MovTransferencia[] = [];
       (movs || []).forEach((m: any) => {
@@ -249,9 +271,48 @@ export default function ConferenciaEstoque() {
       .filter((t) => t.unidade_destino_id === unidadeId && t.produto_grupo === grupo)
       .reduce((acc, t) => acc + Number(t.quantidade || 0), 0);
 
+  const saldoInicialDe = (unidadeId: string, grupo: GrupoProduto) =>
+    resolverSaldoInicial(ajustes[unidadeId]?.[grupo], saldoAnterior[unidadeId]?.[grupo]);
+
+  const pedirEdicaoSaldo = (unidadeId: string, grupo: GrupoProduto) => {
+    if (!isMaster) return;
+    setConfirmEdit({ unidadeId, grupo });
+  };
+
+  const confirmarEdicaoSaldo = () => {
+    if (!confirmEdit) return;
+    const s = saldoInicialDe(confirmEdit.unidadeId, confirmEdit.grupo);
+    setEditCheio(String(s.cheio));
+    setEditVazio(String(s.vazio));
+    setEditSaldo(confirmEdit);
+    setConfirmEdit(null);
+  };
+
+  const salvarSaldoInicial = async () => {
+    if (!editSaldo || !isMaster) return;
+    const cheio = Math.max(0, Math.floor(Number(editCheio || 0)));
+    const vazio = Math.max(0, Math.floor(Number(editVazio || 0)));
+    setIsSaving(true);
+    const { error } = await (supabase as any)
+      .from("estoque_conferencia_saldo_ajustes")
+      .upsert(
+        { data_conferencia: dataConferencia, unidade_id: editSaldo.unidadeId, produto_grupo: editSaldo.grupo, cheio, vazio, editado_por: user?.id || null, updated_at: new Date().toISOString() },
+        { onConflict: "data_conferencia,unidade_id,produto_grupo" }
+      );
+    setIsSaving(false);
+    if (error) {
+      console.error(error);
+      toast({ title: "Não foi possível salvar o saldo inicial", description: "Somente usuário Master pode editar.", variant: "destructive" });
+      return;
+    }
+    setAjustes((prev) => ({ ...prev, [editSaldo.unidadeId]: { ...(prev[editSaldo.unidadeId] || {}), [editSaldo.grupo]: { cheio, vazio } } }));
+    toast({ title: "Saldo inicial atualizado" });
+    setEditSaldo(null);
+  };
+
   const fluxo = (unidadeId: string, grupo: GrupoProduto) =>
     calcularFluxoConferencia({
-      saldoInicial: saldoAnterior[unidadeId]?.[grupo] || 0,
+      saldoInicial: saldoInicialDe(unidadeId, grupo).cheio,
       entrada: (entradas[unidadeId]?.[grupo] || 0) + entradaRecebida(unidadeId, grupo),
       transferencia: transferencias
         .filter((t) => t.unidade_id === unidadeId && t.produto_grupo === grupo)
@@ -261,15 +322,16 @@ export default function ConferenciaEstoque() {
 
   const resumo = useMemo(() => {
     const porGrupo = grupos.reduce((acc, g) => {
-      acc[g.key] = { inicial: 0, entrada: 0, transf: 0, cheio: 0, vazio: 0, venda: 0 };
+      acc[g.key] = { inicial: 0, inicialVazio: 0, entrada: 0, transf: 0, cheio: 0, vazio: 0, venda: 0 };
       return acc;
-    }, {} as Record<GrupoProduto, { inicial: number; entrada: number; transf: number; cheio: number; vazio: number; venda: number }>);
+    }, {} as Record<GrupoProduto, { inicial: number; inicialVazio: number; entrada: number; transf: number; cheio: number; vazio: number; venda: number }>);
     const acc = { inicial: 0, cheios: 0, vazios: 0, total: 0, venda: 0, porGrupo };
     linhas.forEach((linha) => {
       grupos.forEach((grupo) => {
         const f = fluxo(linha.unidade.id, grupo.key);
         const pg = porGrupo[grupo.key];
         pg.inicial += f.saldoInicial;
+        pg.inicialVazio += saldoInicialDe(linha.unidade.id, grupo.key).vazio;
         pg.entrada += f.entrada;
         pg.transf += f.transferencia;
         pg.cheio += linha.totais[grupo.key].cheio;
@@ -284,7 +346,7 @@ export default function ConferenciaEstoque() {
     });
     return acc;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linhas, saldoAnterior, entradas, transferencias]);
+  }, [linhas, saldoAnterior, ajustes, entradas, transferencias]);
 
   const nomeLoja = (id: string | null) => todasLojas.find((u) => u.id === id)?.nome || "Loja";
 
@@ -541,7 +603,7 @@ export default function ConferenciaEstoque() {
 
         <Card className="border-border/70 shadow-[0_12px_36px_rgba(15,23,42,0.07)]">
           <CardContent className="p-4">
-            <div className="grid gap-3 md:grid-cols-[180px_1fr_1fr_auto] md:items-end">
+            <div className="grid gap-3 md:grid-cols-[180px_1fr_auto] md:items-end">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Data da conferência
@@ -573,28 +635,6 @@ export default function ConferenciaEstoque() {
                 </Select>
               </div>
 
-              <div className="space-y-1">
-                <p className="text-[11px] font-semibold uppercase text-slate-500">
-                  Conferência do dia {formatarDataBR(dataConferencia)} · saldo inicial de {formatarDataBR(dataAnterior)}
-                </p>
-                <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 lg:grid-cols-4">
-                  {([
-                    { label: "Saldo inicial", total: resumo.inicial, valor: (k: GrupoProduto) => resumo.porGrupo[k].inicial },
-                    { label: "Cheios (contagem)", total: resumo.cheios, valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio },
-                    { label: "Vazios", total: resumo.vazios, valor: (k: GrupoProduto) => resumo.porGrupo[k].vazio },
-                    { label: "Venda esperada", total: resumo.venda, valor: (k: GrupoProduto) => resumo.porGrupo[k].venda },
-                  ]).map((card) => (
-                    <div key={card.label} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                      <p className="text-[11px] font-semibold uppercase text-slate-500">{card.label}</p>
-                      <p className="text-xl font-bold text-slate-950">{card.total}</p>
-                      <p className="text-xs font-semibold text-slate-600">
-                        {grupos.map((g) => `${card.valor(g.key)} ${g.label}`).join(" · ")}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               <div className="hidden items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 md:flex">
                 <Store className="h-4 w-4" />
                 {modoPersistencia === "local" ? "Modo local" : escopoLabel}
@@ -603,14 +643,58 @@ export default function ConferenciaEstoque() {
           </CardContent>
         </Card>
 
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {([
+            {
+              label: "Saldo inicial",
+              hint: `Contagem de ${formatarDataBR(dataAnterior)}`,
+              icon: Archive,
+              iconCls: "bg-muted text-foreground",
+              cardCls: "border-border bg-card",
+              valor: (k: GrupoProduto) => (
+                <span>
+                  {resumo.porGrupo[k].inicial} <span className="text-xs font-medium text-muted-foreground">cheio</span>
+                  {" / "}
+                  {resumo.porGrupo[k].inicialVazio} <span className="text-xs font-medium text-muted-foreground">vazio</span>
+                </span>
+              ),
+            },
+            { label: "Cheios", hint: "Contagem atual", icon: Package, iconCls: "bg-warning/15 text-warning", cardCls: "border-border bg-card", valor: (k: GrupoProduto) => resumo.porGrupo[k].cheio },
+            { label: "Vazios", hint: "Contagem atual", icon: PackageOpen, iconCls: "bg-info/15 text-info", cardCls: "border-border bg-card", valor: (k: GrupoProduto) => resumo.porGrupo[k].vazio },
+            { label: "Venda esperada", hint: "Em cheios — confira com o vendido", icon: TrendingUp, iconCls: "bg-success/15 text-success", cardCls: "border-success/40 bg-success/5", valor: (k: GrupoProduto) => resumo.porGrupo[k].venda },
+          ]).map((card) => (
+            <div key={card.label} className={`rounded-xl border p-4 shadow-sm ${card.cardCls}`}>
+              <div className="mb-3 flex items-center gap-3">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${card.iconCls}`}>
+                  <card.icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold uppercase tracking-wide text-foreground">{card.label}</p>
+                  <p className="truncate text-xs text-muted-foreground">{card.hint}</p>
+                </div>
+              </div>
+              <div className="divide-y divide-border/60">
+                {grupos.map((g) => (
+                  <div key={g.key} className="flex items-center justify-between py-1.5">
+                    <span className="text-sm font-semibold text-muted-foreground">{g.key === "Agua" ? "Água" : g.label}</span>
+                    <span className="text-lg font-bold tabular-nums text-foreground">{card.valor(g.key)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
         <Card className="hidden overflow-hidden border-slate-300 shadow-[0_14px_40px_rgba(15,23,42,0.08)] md:block">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1600px] border-collapse bg-white text-sm">
+              <table className={`w-full border-collapse bg-white text-sm ${isMaster ? "min-w-[1600px]" : "min-w-[900px]"}`}>
                 <thead>
                   <tr>
-                    <th colSpan={29} className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
-                      Conferência do dia {formatarDataBR(dataConferencia)} — saldo inicial = contagem de {formatarDataBR(dataAnterior)}
+                    <th colSpan={totalCols} className="border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
+                      {isMaster
+                        ? `Conferência do dia ${formatarDataBR(dataConferencia)} — saldo inicial = contagem de ${formatarDataBR(dataAnterior)}`
+                        : `Conferência do dia ${formatarDataBR(dataConferencia)}`}
                     </th>
                   </tr>
                   <tr>
@@ -618,14 +702,14 @@ export default function ConferenciaEstoque() {
                       Lojas
                     </th>
                     {grupos.map((grupo) => (
-                      <th key={grupo.key} colSpan={7} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${grupo.tone}`}>
+                      <th key={grupo.key} colSpan={colunas.length} className={`border border-slate-900 px-3 py-1.5 text-base font-black ${grupo.tone}`}>
                         {grupo.label}
                       </th>
                     ))}
                   </tr>
                   <tr>
                     {grupos.flatMap((grupo) =>
-                      colunasFluxo.map((col) => (
+                      colunas.map((col) => (
                         <th key={`${grupo.key}-${col.key}`} className={`border border-slate-900 px-1.5 py-1.5 text-xs font-black text-slate-950 ${col.bg}`}>
                           {col.label}
                         </th>
@@ -636,13 +720,13 @@ export default function ConferenciaEstoque() {
                 <tbody>
                   {isLoading || unidadesLoading ? (
                     <tr>
-                      <td colSpan={29} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
+                      <td colSpan={totalCols} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
                         Carregando conferência...
                       </td>
                     </tr>
                   ) : linhas.length === 0 ? (
                     <tr>
-                      <td colSpan={29} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
+                      <td colSpan={totalCols} className="border border-slate-300 px-3 py-10 text-center text-muted-foreground">
                         Nenhuma loja encontrada para o filtro selecionado.
                       </td>
                     </tr>
@@ -659,34 +743,51 @@ export default function ConferenciaEstoque() {
                           const f = fluxo(linha.unidade.id, grupo.key);
                           const id = `${linha.unidade.id}-${grupo.key}`;
                           const inputCls = "h-10 w-16 rounded-none border-0 text-center text-base font-black shadow-none focus-visible:ring-2 focus-visible:ring-blue-500";
-                          return [
-                            <td key={`${id}-ini`} className="border border-slate-900 bg-slate-50 px-1 text-center font-bold">{f.saldoInicial}</td>,
-                            <td key={`${id}-ent`} className="border border-slate-900 p-0" title={entradaRecebida(linha.unidade.id, grupo.key) ? `+${entradaRecebida(linha.unidade.id, grupo.key)} recebido de lojas` : undefined}>
-                              <Input type="number" min="0" inputMode="numeric" value={entradas[linha.unidade.id]?.[grupo.key] || ""}
-                                onChange={(e) => atualizarEntrada(linha.unidade.id, grupo.key, e.target.value)} className={`${inputCls} text-emerald-700`} />
-                              {entradaRecebida(linha.unidade.id, grupo.key) > 0 && (
-                                <span className="block text-center text-[10px] font-bold text-emerald-700">+{entradaRecebida(linha.unidade.id, grupo.key)} transf.</span>
-                              )}
-                            </td>,
-                            <td key={`${id}-tra`} className="border border-slate-900 p-0">
-                              <button type="button" onClick={() => abrirTransferencia(linha.unidade.id, grupo.key)}
-                                className="h-10 w-full px-1 text-center font-black text-purple-700 underline-offset-2 hover:underline">
-                                -{f.transferencia}
-                              </button>
-                            </td>,
-                            <td key={`${id}-che`} className="border border-slate-900 p-0">
-                              <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].cheio || ""}
-                                onChange={(e) => atualizarValor(linha.unidade.id, grupo.key, "cheio", e.target.value)} className={`${inputCls} text-blue-700`} />
-                            </td>,
-                            <td key={`${id}-vaz`} className="border border-slate-900 p-0">
-                              <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].vazio || ""}
-                                onChange={(e) => atualizarValor(linha.unidade.id, grupo.key, "vazio", e.target.value)} className={`${inputCls} text-blue-700`} />
-                            </td>,
-                            <td key={`${id}-tot`} className="border border-slate-900 bg-slate-100 px-1 text-center font-black">
-                              {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}
-                            </td>,
-                            <td key={`${id}-ven`} className="border border-slate-900 bg-emerald-50 px-1 text-center font-black text-emerald-700">{f.vendaEsperada}</td>,
-                          ];
+                          const recebida = entradaRecebida(linha.unidade.id, grupo.key);
+                          const celulas: Record<string, JSX.Element> = {
+                            ini: (
+                              <td key={`${id}-ini`} className="border border-slate-900 bg-slate-50 p-0">
+                                <button type="button" onClick={() => pedirEdicaoSaldo(linha.unidade.id, grupo.key)} title="Editar saldo inicial"
+                                  className="h-10 w-full px-1 text-center font-bold hover:bg-slate-200">
+                                  {f.saldoInicial}{ajustes[linha.unidade.id]?.[grupo.key] ? "*" : ""}
+                                </button>
+                              </td>
+                            ),
+                            ent: (
+                              <td key={`${id}-ent`} className="border border-slate-900 p-0">
+                                <Input type="number" min="0" inputMode="numeric" value={entradas[linha.unidade.id]?.[grupo.key] || ""}
+                                  onChange={(e) => atualizarEntrada(linha.unidade.id, grupo.key, e.target.value)} className={`${inputCls} text-emerald-700`} />
+                                {recebida > 0 && <span className="block text-center text-[10px] font-bold text-emerald-700">+{recebida} transf.</span>}
+                              </td>
+                            ),
+                            tra: (
+                              <td key={`${id}-tra`} className="border border-slate-900 p-0">
+                                <button type="button" onClick={() => abrirTransferencia(linha.unidade.id, grupo.key)}
+                                  className="h-10 w-full px-1 text-center font-black text-purple-700 underline-offset-2 hover:underline">
+                                  -{f.transferencia}
+                                </button>
+                              </td>
+                            ),
+                            che: (
+                              <td key={`${id}-che`} className="border border-slate-900 p-0">
+                                <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].cheio || ""}
+                                  onChange={(e) => atualizarValor(linha.unidade.id, grupo.key, "cheio", e.target.value)} className={`${inputCls} text-blue-700`} />
+                              </td>
+                            ),
+                            vaz: (
+                              <td key={`${id}-vaz`} className="border border-slate-900 p-0">
+                                <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key].vazio || ""}
+                                  onChange={(e) => atualizarValor(linha.unidade.id, grupo.key, "vazio", e.target.value)} className={`${inputCls} text-blue-700`} />
+                              </td>
+                            ),
+                            tot: (
+                              <td key={`${id}-tot`} className="border border-slate-900 bg-slate-100 px-1 text-center font-black">
+                                {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}
+                              </td>
+                            ),
+                            ven: <td key={`${id}-ven`} className="border border-slate-900 bg-emerald-50 px-1 text-center font-black text-emerald-700">{f.vendaEsperada}</td>,
+                          };
+                          return colunas.map((col) => celulas[col.key]);
                         })}
                       </tr>
                     ))
@@ -700,8 +801,9 @@ export default function ConferenciaEstoque() {
                       </th>
                       {grupos.flatMap((grupo) => {
                         const g = resumo.porGrupo[grupo.key];
-                        return [g.inicial, g.entrada, -g.transf, g.cheio, g.vazio, g.cheio + g.vazio, g.venda].map((v, i) => (
-                          <td key={`tot-${grupo.key}-${i}`} className={`border border-slate-900 text-center font-black ${colunasFluxo[i].bg}`}>{v}</td>
+                        const vals: Record<string, number> = { ini: g.inicial, ent: g.entrada, tra: -g.transf, che: g.cheio, vaz: g.vazio, tot: g.cheio + g.vazio, ven: g.venda };
+                        return colunas.map((col) => (
+                          <td key={`tot-${grupo.key}-${col.key}`} className={`border border-slate-900 text-center font-black ${col.bg}`}>{vals[col.key]}</td>
                         ));
                       })}
                     </tr>
@@ -749,12 +851,29 @@ export default function ConferenciaEstoque() {
                       return (
                         <div key={grupo.key} className={`rounded-xl border p-3 ${grupo.mobileTone}`}>
                           <p className="mb-2 text-base font-black text-slate-950">{grupo.label}</p>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="rounded-lg border border-slate-200 bg-white p-2">
-                              <p className="text-[11px] font-bold uppercase text-slate-500">1. Saldo inicial</p>
-                              <p className="text-right text-2xl font-black text-slate-950">{f.saldoInicial}</p>
-                              <p className="text-[11px] text-slate-500">Contagem de {formatarDataBR(dataAnterior)}</p>
+                          {!isMaster ? (
+                            <div className="grid grid-cols-3 gap-2">
+                              {(["cheio", "vazio"] as TipoEstoque[]).map((tipo) => (
+                                <div key={tipo} className="rounded-lg border border-slate-200 bg-white p-2">
+                                  <p className="text-[11px] font-bold uppercase text-slate-500">{tipo === "cheio" ? "Cheio" : "Vazio"}</p>
+                                  <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key][tipo] || ""}
+                                    onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, tipo, event.target.value)}
+                                    className="h-9 text-right text-lg font-black text-slate-900" />
+                                </div>
+                              ))}
+                              <div className="rounded-lg border border-slate-200 bg-slate-100 p-2">
+                                <p className="text-[11px] font-bold uppercase text-slate-500">Total</p>
+                                <p className="pt-1 text-right text-2xl font-black text-slate-950">{linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}</p>
+                              </div>
                             </div>
+                          ) : (
+                          <>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button type="button" onClick={() => pedirEdicaoSaldo(linha.unidade.id, grupo.key)} className="rounded-lg border border-slate-200 bg-white p-2 text-left">
+                              <p className="flex justify-between text-[11px] font-bold uppercase text-slate-500">1. Saldo inicial <Pencil className="h-3 w-3" /></p>
+                              <p className="text-right text-2xl font-black text-slate-950">{f.saldoInicial}</p>
+                              <p className="text-[11px] text-slate-500">{ajustes[linha.unidade.id]?.[grupo.key] ? "Editado pelo Master" : `Contagem de ${formatarDataBR(dataAnterior)}`}</p>
+                            </button>
                             <div className="rounded-lg border border-emerald-200 bg-white p-2">
                               <p className="text-[11px] font-bold uppercase text-emerald-700">2. Entrada (+)</p>
                               <Input
@@ -813,6 +932,8 @@ export default function ConferenciaEstoque() {
                             <p className="text-right text-3xl font-black">{f.vendaEsperada}</p>
                             <p className="text-[11px] opacity-90">Inicial + entrada − transf. − cheios</p>
                           </div>
+                          </>
+                          )}
                         </div>
                       );
                     })}
@@ -867,6 +988,43 @@ export default function ConferenciaEstoque() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogTransf(null)}>Fechar</Button>
             <Button onClick={registrarTransferencia} disabled={isSaving}>Registrar transferência</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!confirmEdit} onOpenChange={(open) => !open && setConfirmEdit(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza que deseja editar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você vai alterar o saldo inicial de {confirmEdit?.grupo} em {nomeLoja(confirmEdit?.unidadeId || null)} no dia {formatarDataBR(dataConferencia)}. Isso muda a venda esperada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarEdicaoSaldo}>Sim, editar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={!!editSaldo} onOpenChange={(open) => !open && setEditSaldo(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Saldo inicial {editSaldo?.grupo} — {nomeLoja(editSaldo?.unidadeId || null)}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Cheio</Label>
+              <Input type="number" min="0" inputMode="numeric" value={editCheio} onChange={(e) => setEditCheio(e.target.value)} className="h-10 text-base" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Vazio</Label>
+              <Input type="number" min="0" inputMode="numeric" value={editVazio} onChange={(e) => setEditVazio(e.target.value)} className="h-10 text-base" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditSaldo(null)}>Cancelar</Button>
+            <Button onClick={salvarSaldoInicial} disabled={isSaving}>Salvar saldo inicial</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

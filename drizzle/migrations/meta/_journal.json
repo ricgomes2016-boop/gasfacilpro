@@ -29,6 +29,13 @@
       "when": 1792757621485,
       "tag": "0003_estoque_conferencia_movimentos",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792758740363,
+      "tag": "0004_estoque_conferencia_saldo_ajustes",
+      "breakpoints": true
     }
   ]
 }
