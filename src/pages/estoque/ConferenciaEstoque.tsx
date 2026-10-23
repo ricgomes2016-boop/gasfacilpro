@@ -835,10 +835,10 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
           </CardContent>
         </Card>
 
-        <Card className="hidden overflow-hidden border-slate-300 shadow-[0_14px_40px_rgba(15,23,42,0.08)] md:block">
+        <Card className="overflow-hidden border-slate-300 shadow-[0_14px_40px_rgba(15,23,42,0.08)]">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className={`conferencia-table w-full border-collapse bg-white text-sm ${isMaster ? "min-w-[1600px]" : "min-w-[900px]"}`}>
+              <table className="conferencia-table w-full min-w-[900px] border-collapse bg-white text-sm">
                 <thead>
                   <tr>
                     <th colSpan={totalCols} className="conferencia-ink-head border border-slate-900 bg-white px-3 py-1.5 text-center text-lg font-black text-slate-950">
@@ -961,136 +961,6 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
             </div>
           </CardContent>
         </Card>
-
-        <div className="grid gap-3 md:hidden">
-          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Contagem {formatarDataBR(dataContagem)} · Venda {formatarDataBR(dataConferencia)}
-              </p>
-              <p className="text-base font-bold text-slate-950">{escopoLabel}</p>
-            </div>
-            <CalendarDays className="h-5 w-5 text-blue-600" />
-          </div>
-
-          {isLoading || unidadesLoading ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                Carregando conferência...
-              </CardContent>
-            </Card>
-          ) : linhas.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                Nenhuma loja encontrada para o filtro selecionado.
-              </CardContent>
-            </Card>
-          ) : (
-            linhas.map((linha) => (
-              <Card key={linha.unidade.id} className="overflow-hidden border-slate-200 shadow-sm">
-                <CardContent className="p-0">
-                  <div className="border-b border-border bg-foreground px-4 py-3 text-background">
-                    <p className="break-words text-base font-black">{linha.unidade.nome}</p>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 p-3">
-                    {grupos.map((grupo) => {
-                      const f = fluxo(linha.unidade.id, grupo.key);
-                      const recebida = entradaRecebida(linha.unidade.id, grupo.key);
-                      return (
-                        <div key={grupo.key} className={`rounded-xl border p-3 ${grupo.mobileTone}`}>
-                          <p className="mb-2 text-base font-black text-slate-950">{grupo.label}</p>
-                          {!isMaster ? (
-                            <div className="grid grid-cols-3 gap-2">
-                              {(["cheio", "vazio"] as TipoEstoque[]).map((tipo) => (
-                                <div key={tipo} className="rounded-lg border border-slate-200 bg-white p-2">
-                                  <p className="text-[11px] font-bold uppercase text-slate-500">{tipo === "cheio" ? "Cheio" : "Vazio"}</p>
-                                  <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key][tipo] || ""} {...camposContagem(`${linha.unidade.nome} ${grupo.key} ${tipo}`)}
-                                    onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, tipo, event.target.value)}
-                                    className="h-9 text-right text-lg font-black text-slate-900" />
-                                </div>
-                              ))}
-                              <div className="rounded-lg border border-slate-200 bg-slate-100 p-2">
-                                <p className="text-[11px] font-bold uppercase text-slate-500">Total</p>
-                                <p className="pt-1 text-right text-2xl font-black text-slate-950">{linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}</p>
-                              </div>
-                            </div>
-                          ) : (
-                          <>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button type="button" onClick={() => pedirEdicaoSaldo(linha.unidade.id, grupo.key)} className="rounded-lg border border-slate-200 bg-white p-2 text-left">
-                              <p className="flex justify-between text-[11px] font-bold uppercase text-slate-500">1. Saldo inicial <Pencil className="h-3 w-3" /></p>
-                              <p className="text-right text-2xl font-black text-slate-950">{f.saldoInicial}</p>
-                              <p className="text-[11px] text-slate-500">{ajustes[linha.unidade.id]?.[grupo.key] ? "Editado pelo Master" : `Abertura de ${formatarDataBR(dataConferencia)}`}</p>
-                            </button>
-                            <div className="rounded-lg border border-emerald-200 bg-white p-2">
-                              <p className="text-[11px] font-bold uppercase text-emerald-700">2. Entrada (+)</p>
-                              <Input
-                                type="number"
-                                min="0"
-                                inputMode="numeric"
-                                value={entradas[linha.unidade.id]?.[grupo.key] || ""}
-                                onChange={(event) => atualizarEntrada(linha.unidade.id, grupo.key, event.target.value)}
-                                className="h-9 text-right text-lg font-black text-emerald-700"
-                              />
-                              {recebida > 0 && <p className="text-[11px] text-emerald-700">+{recebida} recebido de lojas</p>}
-                            </div>
-                            <div className="rounded-lg border border-blue-200 bg-white p-2">
-                              <p className="text-[11px] font-bold uppercase text-blue-700">3. Total inicial (=)</p>
-                              <p className="text-right text-2xl font-black text-blue-900">{f.totalInicial}</p>
-                              <p className="text-[11px] text-blue-700">Inicial + entrada</p>
-                            </div>
-                            <div className="rounded-lg border border-amber-200 bg-white p-2">
-                              <p className="text-[11px] font-bold uppercase text-amber-700">4. Cheios (-)</p>
-                              <Input
-                                type="number"
-                                min="0"
-                                inputMode="numeric"
-                                value={linha.totais[grupo.key].cheio || ""} {...camposContagem(`${linha.unidade.nome} ${grupo.key} cheio`)}
-                                onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "cheio", event.target.value)}
-                                className="h-9 text-right text-lg font-black text-amber-800"
-                              />
-                              <p className="text-[11px] text-amber-700">Contagem atual</p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => abrirTransferencia(linha.unidade.id, grupo.key)}
-                              className="rounded-lg border border-purple-200 bg-white p-2 text-left"
-                            >
-                              <p className="flex justify-between text-[11px] font-bold uppercase text-purple-700">
-                                5. Transf. (-) <span className="underline">Editar</span>
-                              </p>
-                              <p className="text-right text-2xl font-black text-purple-700">-{f.transferencia}</p>
-                              <p className="text-[11px] text-purple-600">Para outras lojas</p>
-                            </button>
-                            <div className="rounded-lg border border-slate-200 bg-white p-2">
-                              <p className="text-[11px] font-bold uppercase text-slate-500">Vazio</p>
-                              <Input
-                                type="number"
-                                min="0"
-                                inputMode="numeric"
-                                value={linha.totais[grupo.key].vazio || ""} {...camposContagem(`${linha.unidade.nome} ${grupo.key} vazio`)}
-                                onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, "vazio", event.target.value)}
-                                className="h-9 text-right text-lg font-black text-slate-800"
-                              />
-                              <p className="text-[11px] text-slate-500">Vasilhames: {linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}</p>
-                            </div>
-                          </div>
-                          <div className="mt-2 rounded-xl bg-emerald-600 p-3 text-white">
-                            <p className="text-xs font-bold uppercase">6. Venda esperada</p>
-                            <p className="text-right text-3xl font-black">{f.vendaEsperada}</p>
-                            <p className="text-[11px] opacity-90">Inicial + entrada − transf. − cheios</p>
-                          </div>
-                          </>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
 
         <section aria-label="Entrada" className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
