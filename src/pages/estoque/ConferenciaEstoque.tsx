@@ -138,6 +138,11 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
   const [dialogTransf, setDialogTransf] = useState<{ unidadeId: string; grupo: GrupoProduto } | null>(null);
   const [transfDestino, setTransfDestino] = useState("nenhum");
   const [transfQtd, setTransfQtd] = useState("");
+  const [entradasHoje, setEntradasHoje] = useState<Record<string, Partial<Record<GrupoProduto, number>>>>({});
+  const [transfHoje, setTransfHoje] = useState<MovTransferencia[]>([]);
+  /** Entradas e transferências pertencem ao dia em que aconteceram (data da contagem física). */
+  const mesmoDia = dataContagem === dataConferencia;
+  const movDatePortal = { date: dataContagem, count_date: dataContagem, moment: "fim" as MomentoContagem };
   const todasLojas = portal?.destinos ?? unidades;
   const [momentoConfirmado, setMomentoConfirmado] = useState(false);
   const [perguntarMomento, setPerguntarMomento] = useState(false);
@@ -165,15 +170,16 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
     }
     setIsSaving(true);
     try {
-      if (portal) await conferenciaApi({ action: "entry", date: dataConferencia, count_date: dataContagem, moment: momento, unidade_id: movLoja, produto_grupo: movGrupo, quantidade });
+      if (portal) await conferenciaApi({ action: "entry", ...movDatePortal, unidade_id: movLoja, produto_grupo: movGrupo, quantidade });
       else {
-        const existing = await (supabase as any).from("estoque_conferencia_movimentos").select("id").eq("data_conferencia", dataConferencia).eq("unidade_id", movLoja).eq("produto_grupo", movGrupo).eq("tipo", "entrada_manual").maybeSingle();
+        const existing = await (supabase as any).from("estoque_conferencia_movimentos").select("id").eq("data_conferencia", dataContagem).eq("unidade_id", movLoja).eq("produto_grupo", movGrupo).eq("tipo", "entrada_manual").maybeSingle();
         if (existing.error) throw existing.error;
-        const payload = { empresa_id: unidade.empresa_id, unidade_id: movLoja, data_conferencia: dataConferencia, produto_grupo: movGrupo, quantidade, criado_por: user?.id };
+        const payload = { empresa_id: unidade.empresa_id, unidade_id: movLoja, data_conferencia: dataContagem, produto_grupo: movGrupo, quantidade, criado_por: user?.id };
         const result = existing.data ? await (supabase as any).from("estoque_conferencia_movimentos").update(payload).eq("id", existing.data.id) : await (supabase as any).from("estoque_conferencia_movimentos").insert({ ...payload, tipo: "entrada_manual" });
         if (result.error) throw result.error;
       }
-      atualizarEntrada(movLoja, movGrupo, entradaQtd);
+      if (mesmoDia) atualizarEntrada(movLoja, movGrupo, entradaQtd);
+      else setEntradasHoje((prev) => ({ ...prev, [movLoja]: { ...(prev[movLoja] || {}), [movGrupo]: quantidade } }));
       toast({ title: "Entrada registrada" });
     } catch (error) { toast({ title: "Entrada não foi salva", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" }); }
     finally { setIsSaving(false); }
@@ -297,6 +303,20 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
       setSaldoAnterior(saldo);
       setEntradas(ent);
       setTransferencias(trs);
+      const entH: Record<string, Partial<Record<GrupoProduto, number>>> = {};
+      const trsH: MovTransferencia[] = [];
+      if (dataContagem !== dataConferencia) {
+        const hoje = portal
+          ? { data: (await conferenciaApi({ action: "load", ...movDatePortal })).movs, error: null }
+          : await (supabase as any).from("estoque_conferencia_movimentos").select("id, unidade_id, unidade_destino_id, produto_grupo, quantidade, tipo").eq("data_conferencia", dataContagem);
+        if (hoje.error) throw hoje.error;
+        (hoje.data || []).forEach((m: any) => {
+          if (m.tipo === "entrada_manual") { entH[m.unidade_id] = entH[m.unidade_id] || {}; entH[m.unidade_id][m.produto_grupo as GrupoProduto] = Number(m.quantidade || 0); }
+          else trsH.push(m);
+        });
+      }
+      setEntradasHoje(entH);
+      setTransfHoje(trsH);
     } catch (error) {
       console.error("Erro ao carregar conferencia manual:", error);
       if (portal) {
@@ -458,14 +478,14 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
     try {
       let data: MovTransferencia;
       if (portal) {
-        const result = await conferenciaApi({ action: "transfer", date: dataConferencia, count_date: dataContagem, moment: momento, unidade_id: origem.id, unidade_destino_id: transfDestino, produto_grupo: dialogTransf.grupo, quantidade: qtd });
+        const result = await conferenciaApi({ action: "transfer", ...movDatePortal, unidade_id: origem.id, unidade_destino_id: transfDestino, produto_grupo: dialogTransf.grupo, quantidade: qtd });
         data = result.movement;
       } else {
-        const result = await (supabase as any).from("estoque_conferencia_movimentos").insert({ data_conferencia: dataConferencia, empresa_id: origem.empresa_id, unidade_id: origem.id, produto_grupo: dialogTransf.grupo, tipo: "transferencia", quantidade: qtd, unidade_destino_id: transfDestino, criado_por: user?.id }).select("id, unidade_id, unidade_destino_id, produto_grupo, quantidade").single();
+        const result = await (supabase as any).from("estoque_conferencia_movimentos").insert({ data_conferencia: dataContagem, empresa_id: origem.empresa_id, unidade_id: origem.id, produto_grupo: dialogTransf.grupo, tipo: "transferencia", quantidade: qtd, unidade_destino_id: transfDestino, criado_por: user?.id }).select("id, unidade_id, unidade_destino_id, produto_grupo, quantidade").single();
         if (result.error) throw result.error;
         data = result.data;
       }
-      setTransferencias((prev) => [...prev, data]);
+      if (mesmoDia) setTransferencias((prev) => [...prev, data]); else setTransfHoje((prev) => [...prev, data]);
       toast({ title: "Transferência registrada", description: `${qtd} ${dialogTransf.grupo} para ${nomeLoja(transfDestino)}` });
       setDialogTransf(null);
     } catch (error) { toast({ title: "Não foi possível registrar a transferência", description: error instanceof Error ? error.message : "Tente novamente.", variant: "destructive" }); }
@@ -474,12 +494,13 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
 
   const excluirTransferencia = async (id: string) => {
     try {
-      if (portal) await conferenciaApi({ action: "delete_transfer", date: dataConferencia, count_date: dataContagem, moment: momento, id });
+      if (portal) await conferenciaApi({ action: "delete_transfer", ...movDatePortal, id });
       else {
         const { error } = await (supabase as any).from("estoque_conferencia_movimentos").delete().eq("id", id);
         if (error) throw error;
       }
       setTransferencias((prev) => prev.filter((t) => t.id !== id));
+      setTransfHoje((prev) => prev.filter((t) => t.id !== id));
     } catch { toast({ title: "Não foi possível excluir", variant: "destructive" }); }
   };
 
@@ -554,31 +575,6 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
 
       if (error) throw error;
 
-      const lojaIds = linhas.map((l) => l.unidade.id);
-      const { error: delErr } = await (supabase as any)
-        .from("estoque_conferencia_movimentos")
-        .delete()
-        .eq("data_conferencia", dataConferencia)
-        .eq("tipo", "entrada_manual")
-        .in("unidade_id", lojaIds);
-      if (delErr) throw delErr;
-      const entradasRegistros = lojaIds.flatMap((uid) =>
-        grupos
-          .filter((g) => (entradas[uid]?.[g.key] || 0) > 0)
-          .map((g) => ({
-            data_conferencia: dataConferencia,
-            unidade_id: uid,
-            empresa_id: unidades.find((u) => u.id === uid)?.empresa_id,
-            produto_grupo: g.key,
-            tipo: "entrada_manual",
-            quantidade: entradas[uid][g.key],
-            criado_por: user?.id || null,
-          }))
-      );
-      if (entradasRegistros.length > 0) {
-        const { error: insErr } = await (supabase as any).from("estoque_conferencia_movimentos").insert(entradasRegistros);
-        if (insErr) throw insErr;
-      }
       toast({ title: "Conferência salva", description: `${escopoLabel} — contagem ${formatarDataBR(dataContagem)} · venda ${formatarDataBR(dataConferencia)}` });
     } catch (error) {
       console.error("Erro ao salvar conferencia manual:", error);
