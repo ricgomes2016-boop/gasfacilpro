@@ -749,12 +749,29 @@ export default function ConferenciaEstoque() {
                       return (
                         <div key={grupo.key} className={`rounded-xl border p-3 ${grupo.mobileTone}`}>
                           <p className="mb-2 text-base font-black text-slate-950">{grupo.label}</p>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="rounded-lg border border-slate-200 bg-white p-2">
-                              <p className="text-[11px] font-bold uppercase text-slate-500">1. Saldo inicial</p>
-                              <p className="text-right text-2xl font-black text-slate-950">{f.saldoInicial}</p>
-                              <p className="text-[11px] text-slate-500">Contagem de {formatarDataBR(dataAnterior)}</p>
+                          {!isMaster ? (
+                            <div className="grid grid-cols-3 gap-2">
+                              {(["cheio", "vazio"] as TipoEstoque[]).map((tipo) => (
+                                <div key={tipo} className="rounded-lg border border-slate-200 bg-white p-2">
+                                  <p className="text-[11px] font-bold uppercase text-slate-500">{tipo === "cheio" ? "Cheio" : "Vazio"}</p>
+                                  <Input type="number" min="0" inputMode="numeric" value={linha.totais[grupo.key][tipo] || ""}
+                                    onChange={(event) => atualizarValor(linha.unidade.id, grupo.key, tipo, event.target.value)}
+                                    className="h-9 text-right text-lg font-black text-slate-900" />
+                                </div>
+                              ))}
+                              <div className="rounded-lg border border-slate-200 bg-slate-100 p-2">
+                                <p className="text-[11px] font-bold uppercase text-slate-500">Total</p>
+                                <p className="pt-1 text-right text-2xl font-black text-slate-950">{linha.totais[grupo.key].cheio + linha.totais[grupo.key].vazio}</p>
+                              </div>
                             </div>
+                          ) : (
+                          <>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button type="button" onClick={() => pedirEdicaoSaldo(linha.unidade.id, grupo.key)} className="rounded-lg border border-slate-200 bg-white p-2 text-left">
+                              <p className="flex justify-between text-[11px] font-bold uppercase text-slate-500">1. Saldo inicial <Pencil className="h-3 w-3" /></p>
+                              <p className="text-right text-2xl font-black text-slate-950">{f.saldoInicial}</p>
+                              <p className="text-[11px] text-slate-500">{ajustes[linha.unidade.id]?.[grupo.key] ? "Editado pelo Master" : `Contagem de ${formatarDataBR(dataAnterior)}`}</p>
+                            </button>
                             <div className="rounded-lg border border-emerald-200 bg-white p-2">
                               <p className="text-[11px] font-bold uppercase text-emerald-700">2. Entrada (+)</p>
                               <Input
@@ -813,6 +830,8 @@ export default function ConferenciaEstoque() {
                             <p className="text-right text-3xl font-black">{f.vendaEsperada}</p>
                             <p className="text-[11px] opacity-90">Inicial + entrada − transf. − cheios</p>
                           </div>
+                          </>
+                          )}
                         </div>
                       );
                     })}
@@ -867,6 +886,43 @@ export default function ConferenciaEstoque() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogTransf(null)}>Fechar</Button>
             <Button onClick={registrarTransferencia} disabled={isSaving}>Registrar transferência</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!confirmEdit} onOpenChange={(open) => !open && setConfirmEdit(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza que deseja editar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você vai alterar o saldo inicial de {confirmEdit?.grupo} em {nomeLoja(confirmEdit?.unidadeId || null)} no dia {formatarDataBR(dataConferencia)}. Isso muda a venda esperada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarEdicaoSaldo}>Sim, editar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={!!editSaldo} onOpenChange={(open) => !open && setEditSaldo(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Saldo inicial {editSaldo?.grupo} — {nomeLoja(editSaldo?.unidadeId || null)}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Cheio</Label>
+              <Input type="number" min="0" inputMode="numeric" value={editCheio} onChange={(e) => setEditCheio(e.target.value)} className="h-10 text-base" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Vazio</Label>
+              <Input type="number" min="0" inputMode="numeric" value={editVazio} onChange={(e) => setEditVazio(e.target.value)} className="h-10 text-base" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditSaldo(null)}>Cancelar</Button>
+            <Button onClick={salvarSaldoInicial} disabled={isSaving}>Salvar saldo inicial</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
