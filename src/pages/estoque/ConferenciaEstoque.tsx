@@ -3,7 +3,7 @@ import { conferenciaApi } from "@/lib/estoque/conferenciaPortal";
 import { ConferentesAccessDialog } from "@/components/estoque/ConferentesAccessDialog";
 import { format, parseISO, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Archive, CalendarDays, Download, FileSpreadsheet, Loader2, Package, PackageOpen, Pencil, RefreshCw, Save, Store, Trash2, TrendingUp } from "lucide-react";
+import { Archive, CalendarDays, Download, FileSpreadsheet, Loader2, MessageCircle, Package, PackageOpen, Pencil, RefreshCw, Save, Store, Trash2, TrendingUp } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { calcularFluxoDia, calcularEstoqueAtual, calcularFluxoConferencia, resolverSaldoInicial, SaldoCheioVazio, datasApuracao, combinarContagens, MomentoContagem, saldoComEntradas, colunasDeContagem } from "@/lib/estoque/conferenciaFluxo";
