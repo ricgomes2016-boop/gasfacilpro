@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { InstalarConferenciaBanner } from "@/components/estoque/InstalarConferencia";
 import { conferenciaApi } from "@/lib/estoque/conferenciaPortal";
 import { ConferentesAccessDialog } from "@/components/estoque/ConferentesAccessDialog";
 import { format, parseISO, subDays } from "date-fns";
