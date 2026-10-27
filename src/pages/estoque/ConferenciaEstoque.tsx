@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { HistoricoConferenciasDialog } from "@/components/estoque/HistoricoConferenciasDialog";
 import { InstalarConferenciaBanner } from "@/components/estoque/InstalarConferencia";
 import { conferenciaApi } from "@/lib/estoque/conferenciaPortal";
 import { ConferentesAccessDialog } from "@/components/estoque/ConferentesAccessDialog";
@@ -822,6 +823,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
           actions={
             <>
               {isMaster && <ConferentesAccessDialog />}
+              <HistoricoConferenciasDialog portal={!!portal} unidades={todasLojas} onAbrir={(d, m) => { setDataContagem(d); setMomento(m); setMomentoConfirmado(true); }} />
               <Button variant="outline" size="sm" className="h-10 gap-2" onClick={carregarConferencia} disabled={isLoading}>
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Atualizar
