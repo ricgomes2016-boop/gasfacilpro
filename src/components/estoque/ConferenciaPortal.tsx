@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { conferenciaApi, conferenciaAuth } from '@/lib/estoque/conferenciaPortal';
 import { Unidade } from '@/contexts/UnidadeContext';
 import ConferenciaEstoque from '@/pages/estoque/ConferenciaEstoque';
+import { useConferenciaManifest } from '@/components/estoque/InstalarConferencia';
 
 export function ConferenciaPortal() {
   const [user, setUser] = useState<User | null>(null);
