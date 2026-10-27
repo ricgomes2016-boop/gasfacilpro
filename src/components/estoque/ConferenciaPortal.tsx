@@ -18,6 +18,7 @@ export function ConferenciaPortal() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  useConferenciaManifest();
 
   useEffect(() => {
     document.title = 'Conferência de Estoque | Gás Fácil Pro';
