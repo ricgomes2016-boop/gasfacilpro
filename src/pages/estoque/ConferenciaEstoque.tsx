@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { InstalarConferenciaBanner } from "@/components/estoque/InstalarConferencia";
 import { conferenciaApi } from "@/lib/estoque/conferenciaPortal";
 import { ConferentesAccessDialog } from "@/components/estoque/ConferentesAccessDialog";
 import { format, parseISO, subDays } from "date-fns";
@@ -814,6 +815,7 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
         <Button variant="outline" onClick={() => void portal.onSignOut()}>Sair</Button>
       </header> : <Header title="Conferência de Estoque" subtitle="Gestão de Estoque" />}
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5 p-3 sm:p-6">
+        {portal && <InstalarConferenciaBanner />}
         <EstoquePageHeader
           title="Conferência diária manual"
           description={`Contagem de ${formatarDataBR(dataContagem)} · Vendas de ${formatarDataBR(dataConferencia)}`}
