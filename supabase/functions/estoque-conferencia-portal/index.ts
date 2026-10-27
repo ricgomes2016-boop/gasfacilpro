@@ -88,6 +88,17 @@ Deno.serve(async (req) => {
       check(destinations);
       return reply({ ok: true, unidades: units.data, destinos: destinations.data, name: p.data?.full_name, user_id: user.id });
     }
+    if (action === 'history') {
+      const since = new Date();
+      since.setUTCDate(since.getUTCDate() - 120);
+      const from = since.toISOString().slice(0, 10);
+      const [closings, legacy] = await Promise.all([
+        db.from('estoque_conferencia_fechamentos').select('data_conferencia, data_contagem, momento, unidade_id, produto_grupo, tipo_estoque, quantidade, updated_at').eq('empresa_id', empresaId).in('unidade_id', activeIds).gte('data_contagem', from).order('data_contagem', { ascending: false }).limit(5000),
+        db.from('estoque_conferencias').select('data_conferencia, unidade_id, produto_grupo, tipo_estoque, quantidade').in('unidade_id', activeIds).gte('data_conferencia', from).limit(5000),
+      ]);
+      [closings, legacy].forEach(check);
+      return reply({ ok: true, closings: closings.data, legacy: legacy.data });
+    }
     if (typeof body.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.date) || !Number.isFinite(Date.parse(`${body.date}T12:00:00Z`))) return fail('Data inválida.');
     if (['entry', 'transfer', 'delete_transfer'].includes(action)) {
       if (!validCountDate(body.date, body.count_date, body.moment)) return fail('Datas inválidas.');
