@@ -11,10 +11,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { conferenciaApi } from "@/lib/estoque/conferenciaPortal";
 import { GRUPOS_REL, LinhaRel, nomeGrupo, relatorioEntradas, relatorioRecebidas, relatorioVendas, totaisPorGrupo } from "@/lib/estoque/conferenciaRelatorios";
 
-type Tipo = "entradas" | "vendas" | "recebidas";
-const TITULO: Record<Tipo, string> = { entradas: "Entradas", vendas: "Vendas", recebidas: "Transferências recebidas" };
+type Tipo = "contagens" | "entradas" | "vendas" | "recebidas";
+const TITULO: Record<Tipo, string> = { contagens: "Contagens", entradas: "Entradas", vendas: "Vendas", recebidas: "Transferências recebidas" };
 const br = (d: string) => d.split("-").reverse().join("/");
 const shift = (d: string, n: number) => format(addDays(new Date(`${d}T12:00:00`), n), "yyyy-MM-dd");
+
+interface ContRow { data: string; momento: string; unidadeId: string; q: Record<string, { cheio: number; vazio: number }> }
+function montarContagens(closings: any[], legacy: any[], lojas: string[], de: string, ate: string): ContRow[] {
+  const cells = new Map<string, any>();
+  const add = (r: any, data: string, mom: string) => cells.set(`${data}|${mom}|${r.unidade_id}|${r.produto_grupo}|${r.tipo_estoque}`, { data, mom, u: r.unidade_id, g: r.produto_grupo, t: r.tipo_estoque, q: Number(r.quantidade || 0) });
+  legacy.forEach((r) => add(r, r.data_conferencia, "inicio"));
+  closings.forEach((r) => add(r, r.data_contagem || r.data_conferencia, r.momento === "fim" ? "fim" : "inicio"));
+  const m = new Map<string, ContRow>();
+  for (const c of cells.values()) {
+    if (!lojas.includes(c.u) || c.data < de || c.data > ate || (c.t !== "cheio" && c.t !== "vazio")) continue;
+    const k = `${c.data}|${c.mom}|${c.u}`;
+    const r = m.get(k) || { data: c.data, momento: c.mom, unidadeId: c.u, q: Object.fromEntries(GRUPOS_REL.map((g) => [g, { cheio: 0, vazio: 0 }])) };
+    if (r.q[c.g]) r.q[c.g][c.t as "cheio" | "vazio"] += c.q;
+    m.set(k, r);
+  }
+  return [...m.values()].sort((a, b) => a.data.localeCompare(b.data) || a.momento.localeCompare(b.momento));
+}
 
 interface Props { portal: boolean; unidades: { id: string; nome: string }[] }
 
@@ -27,10 +44,11 @@ export function RelatoriosConferenciaDialog({ portal, unidades }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [linhas, setLinhas] = useState<LinhaRel[] | null>(null);
+  const [contagens, setContagens] = useState<ContRow[] | null>(null);
   const [nomes, setNomes] = useState<Map<string, string>>(new Map(unidades.map((u) => [u.id, u.nome])));
 
   const gerar = async () => {
-    setLoading(true); setError(""); setLinhas(null);
+    setLoading(true); setError(""); setLinhas(null); setContagens(null);
     try {
       if (de > ate) throw new Error("A data inicial deve ser antes da final.");
       const lojas = loja === "todas" ? unidades.map((u) => u.id) : [loja];
@@ -52,6 +70,7 @@ export function RelatoriosConferenciaDialog({ portal, unidades }: Props) {
       }
       if (d.names) setNomes(new Map([...unidades.map((u) => [u.id, u.nome] as [string, string]), ...d.names.map((u: any) => [u.id, u.nome] as [string, string])]));
       const movs = d.movements || [];
+      if (tipo === "contagens") { setContagens(montarContagens(d.closings || [], d.legacy || [], lojas, de, ate)); return; }
       setLinhas(tipo === "entradas" ? relatorioEntradas(movs, lojas, de, ate)
         : tipo === "recebidas" ? relatorioRecebidas(movs, lojas, de, ate)
         : relatorioVendas(d.closings || [], d.legacy || [], movs, d.adjustments || [], lojas, de, ate));
@@ -81,6 +100,16 @@ export function RelatoriosConferenciaDialog({ portal, unidades }: Props) {
   const cel = (v: number | null | undefined) => (v === null ? "sem fechamento" : v ?? 0);
 
   const baixar = () => {
+    if (tipo === "contagens") {
+      if (!contagens?.length) return;
+      const aoa: (string | number)[][] = [[`Relatório de Contagens — ${br(de)} a ${br(ate)}`], [],
+        ["Data", "Momento", "Loja", ...GRUPOS_REL.flatMap((g) => [`${nomeGrupo(g)} cheio`, `${nomeGrupo(g)} vazio`, `${nomeGrupo(g)} total`])],
+        ...contagens.map((r) => [br(r.data), r.momento === "fim" ? "Final do dia" : "Início do dia", nome(r.unidadeId), ...GRUPOS_REL.flatMap((g) => [r.q[g].cheio, r.q[g].vazio, r.q[g].cheio + r.q[g].vazio])])];
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = [{ wch: 12 }, { wch: 14 }, { wch: 22 }, ...Array.from({ length: 12 }, () => ({ wch: 10 }))];
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Contagens");
+      XLSX.writeFile(wb, `relatorio-contagens-${de}-a-${ate}.xlsx`); return;
+    }
     if (!linhas) return;
     const lojaCol = tipo === "recebidas" ? "Loja que recebeu" : "Loja";
     const head = [tipo === "vendas" ? "Data da venda" : "Data", lojaCol, ...(tipo === "recebidas" ? ["Loja de origem"] : []), ...GRUPOS_REL.map(nomeGrupo)];
@@ -106,12 +135,12 @@ export function RelatoriosConferenciaDialog({ portal, unidades }: Props) {
           <DialogHeader><DialogTitle>Relatórios da conferência</DialogTitle></DialogHeader>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1"><Label>Relatório</Label>
-              <Select value={tipo} onValueChange={(v) => { setTipo(v as Tipo); setLinhas(null); }}>
+              <Select value={tipo} onValueChange={(v) => { setTipo(v as Tipo); setLinhas(null); setContagens(null); }}>
                 <SelectTrigger className="h-10 text-base"><SelectValue /></SelectTrigger>
                 <SelectContent>{(Object.keys(TITULO) as Tipo[]).map((t) => <SelectItem key={t} value={t}>{TITULO[t]}</SelectItem>)}</SelectContent>
               </Select></div>
             <div className="space-y-1"><Label>Loja</Label>
-              <Select value={loja} onValueChange={(v) => { setLoja(v); setLinhas(null); }}>
+              <Select value={loja} onValueChange={(v) => { setLoja(v); setLinhas(null); setContagens(null); }}>
                 <SelectTrigger className="h-10 text-base"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="todas">Todas as lojas</SelectItem>{unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}</SelectContent>
               </Select></div>
@@ -120,9 +149,26 @@ export function RelatoriosConferenciaDialog({ portal, unidades }: Props) {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button onClick={gerar} disabled={loading} className="h-10">{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Gerar relatório</Button>
-            <Button variant="outline" onClick={baixar} disabled={!linhas?.length} className="h-10 gap-2"><FileSpreadsheet className="h-4 w-4" /> Baixar planilha (Excel)</Button>
+            <Button variant="outline" onClick={baixar} disabled={tipo === "contagens" ? !contagens?.length : !linhas?.length} className="h-10 gap-2"><FileSpreadsheet className="h-4 w-4" /> Baixar planilha (Excel)</Button>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
+          {contagens && (contagens.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma contagem no período.</p> : (
+            <div className="overflow-x-auto rounded-md border border-border">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead className="bg-muted">
+                  <tr><th rowSpan={2} className="p-2 text-left">Data</th><th rowSpan={2} className="p-2 text-left">Loja</th>
+                    {GRUPOS_REL.map((g) => <th key={g} colSpan={3} className="border-l border-border p-1 text-center">{nomeGrupo(g)}</th>)}</tr>
+                  <tr>{GRUPOS_REL.flatMap((g) => ["Cheio", "Vazio", "Total"].map((c) => <th key={g + c} className="p-1 text-right text-xs">{c}</th>))}</tr>
+                </thead>
+                <tbody>{contagens.map((r, i) => (
+                  <tr key={i} className="border-t border-border">
+                    <td className="p-2 whitespace-nowrap">{br(r.data)}<div className="text-xs text-muted-foreground">{r.momento === "fim" ? "Final" : "Início"}</div></td>
+                    <td className="p-2">{nome(r.unidadeId)}</td>
+                    {GRUPOS_REL.flatMap((g) => [r.q[g].cheio, r.q[g].vazio, r.q[g].cheio + r.q[g].vazio].map((v, k) => <td key={g + k} className={`p-1 text-right ${k === 2 ? "font-black" : "font-bold"}`}>{v}</td>))}
+                  </tr>))}</tbody>
+              </table>
+            </div>
+          ))}
           {linhas && (linhas.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Nada encontrado no período.</p> : (
             <>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
