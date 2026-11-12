@@ -602,18 +602,16 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
     finally { setIsSaving(false); }
   };
 
-  const montarLinhasExportacao = () =>
-    linhas.map((linha) => [
-      linha.unidade.nome,
-      linha.totais.P13.cheio,
-      linha.totais.P13.vazio,
-      linha.totais.P20.cheio,
-      linha.totais.P20.vazio,
-      linha.totais.P45.cheio,
-      linha.totais.P45.vazio,
-      linha.totais.Agua.cheio,
-      linha.totais.Agua.vazio,
-    ]);
+  const montarLinhasExportacao = () => {
+    const G = ["P13", "P20", "P45", "Agua"] as const;
+    const soma = { P13: [0, 0], P20: [0, 0], P45: [0, 0], Agua: [0, 0] } as Record<(typeof G)[number], number[]>;
+    const rows = linhas.map((linha) => [linha.unidade.nome, ...G.flatMap((g) => {
+      const t = linha.totais[g]; soma[g][0] += t.cheio; soma[g][1] += t.vazio;
+      return [t.cheio, t.vazio, t.cheio + t.vazio];
+    })]);
+    if (linhas.length > 1) rows.push(["Total geral", ...G.flatMap((g) => [soma[g][0], soma[g][1], soma[g][0] + soma[g][1]])]);
+    return rows;
+  };
 
   const salvarConferencia = async () => {
     if (!momentoConfirmado) { setPerguntarMomento(true); return; }
@@ -701,21 +699,18 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
     const aoa = [
       [`Conferencia de Estoque - ${formatarDataBR(dataConferencia)}`],
       [`Contagem: ${formatarDataBR(dataContagem)} (${momento === "inicio" ? "início" : "fim"}) | Vendas: ${formatarDataBR(dataConferencia)} | Escopo: ${escopoLabel}`],
-      ["Lojas", "P13", "", "P20", "", "P45", "", "Agua", ""],
-      ["", "Cheio", "Vazio", "Cheio", "Vazio", "Cheio", "Vazio", "Cheio", "Vazio"],
+      ["Lojas", "P13", "", "", "P20", "", "", "P45", "", "", "Agua", "", ""],
+      ["", "Cheio", "Vazio", "Total", "Cheio", "Vazio", "Total", "Cheio", "Vazio", "Total", "Cheio", "Vazio", "Total"],
       ...montarLinhasExportacao(),
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } },
-      { s: { r: 2, c: 1 }, e: { r: 2, c: 2 } },
-      { s: { r: 2, c: 3 }, e: { r: 2, c: 4 } },
-      { s: { r: 2, c: 5 }, e: { r: 2, c: 6 } },
-      { s: { r: 2, c: 7 }, e: { r: 2, c: 8 } },
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 12 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 12 } },
+      ...[1, 4, 7, 10].map((c) => ({ s: { r: 2, c }, e: { r: 2, c: c + 2 } })),
     ];
-    ws["!cols"] = [{ wch: 22 }, ...Array.from({ length: 8 }, () => ({ wch: 9 }))];
+    ws["!cols"] = [{ wch: 22 }, ...Array.from({ length: 12 }, () => ({ wch: 8 }))];
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Conferencia");
@@ -742,8 +737,8 @@ export default function ConferenciaEstoque({ portal }: { portal?: PortalConferen
     autoTable(doc, {
       startY: 30,
       head: [
-        ["Lojas", "P13", "", "P20", "", "P45", "", "Agua", ""],
-        ["", "Cheio", "Vazio", "Cheio", "Vazio", "Cheio", "Vazio", "Cheio", "Vazio"],
+        ["Lojas", "P13", "", "", "P20", "", "", "P45", "", "", "Agua", "", ""],
+        ["", "Cheio", "Vazio", "Total", "Cheio", "Vazio", "Total", "Cheio", "Vazio", "Total", "Cheio", "Vazio", "Total"],
       ],
       body: montarLinhasExportacao(),
       theme: "grid",
