@@ -62,18 +62,35 @@ export function RelatoriosConferenciaDialog({ portal, unidades }: Props) {
 
   const totais = useMemo(() => totaisPorGrupo(linhas || []), [linhas]);
   const nome = (id?: string) => (id ? nomes.get(id) || "Loja" : "");
+  type Q = Record<string, number | null>;
+  const pivot = useMemo(() => {
+    const m = new Map<string, { data: string; unidadeId: string; origemId?: string; q: Q }>();
+    (linhas || []).forEach((l) => {
+      const k = `${l.data}|${l.unidadeId}|${l.origemId || ""}`;
+      const r = m.get(k) || { data: l.data, unidadeId: l.unidadeId, origemId: l.origemId, q: {} };
+      r.q[l.grupo] = l.quantidade === null ? (r.q[l.grupo] ?? null) : ((r.q[l.grupo] as number) || 0) + l.quantidade;
+      m.set(k, r);
+    });
+    return [...m.values()];
+  }, [linhas]);
+  const resumo = useMemo(() => {
+    const m = new Map<string, Record<string, number>>();
+    (linhas || []).forEach((l) => { const r = m.get(l.unidadeId) || { P13: 0, P20: 0, P45: 0, Agua: 0 }; if (l.quantidade !== null) r[l.grupo] += l.quantidade; m.set(l.unidadeId, r); });
+    return [...m.entries()].map(([id, q]) => ({ id, q })).sort((a, b) => nome(a.id).localeCompare(nome(b.id)));
+  }, [linhas, nomes]);
+  const cel = (v: number | null | undefined) => (v === null ? "sem fechamento" : v ?? 0);
 
   const baixar = () => {
     if (!linhas) return;
-    const rows = linhas.map((l) => ({
-      [tipo === "vendas" ? "Data da venda" : "Data"]: br(l.data),
-      [tipo === "recebidas" ? "Loja que recebeu" : "Loja"]: nome(l.unidadeId),
-      ...(tipo === "recebidas" ? { "Loja de origem": nome(l.origemId) } : {}),
-      Produto: nomeGrupo(l.grupo),
-      Quantidade: l.quantidade === null ? "sem fechamento" : l.quantidade,
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.sheet_add_aoa(ws, [[], ["Total por produto"], ...GRUPOS_REL.map((g) => [nomeGrupo(g), totais[g]])], { origin: -1 });
+    const lojaCol = tipo === "recebidas" ? "Loja que recebeu" : "Loja";
+    const head = [tipo === "vendas" ? "Data da venda" : "Data", lojaCol, ...(tipo === "recebidas" ? ["Loja de origem"] : []), ...GRUPOS_REL.map(nomeGrupo)];
+    const aoa: (string | number)[][] = [[`Relatório de ${TITULO[tipo]} — ${br(de)} a ${br(ate)}`], [], head,
+      ...pivot.map((r) => [br(r.data), nome(r.unidadeId), ...(tipo === "recebidas" ? [nome(r.origemId)] : []), ...GRUPOS_REL.map((g) => cel(r.q[g]))]),
+      [], ["Resumo por loja"], ["Loja", ...GRUPOS_REL.map(nomeGrupo)],
+      ...resumo.map((r) => [nome(r.id), ...GRUPOS_REL.map((g) => r.q[g])]),
+      ["Total geral", ...GRUPOS_REL.map((g) => totais[g])]];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = head.map((_, k) => ({ wch: k < (tipo === "recebidas" ? 3 : 2) ? 22 : 10 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, TITULO[tipo].slice(0, 31));
     XLSX.writeFile(wb, `relatorio-${tipo}-${de}-a-${ate}.xlsx`);
@@ -121,15 +138,20 @@ export function RelatoriosConferenciaDialog({ portal, unidades }: Props) {
                   <thead className="bg-muted"><tr>
                     <th className="p-2 text-left">Data</th><th className="p-2 text-left">Loja</th>
                     {tipo === "recebidas" && <th className="p-2 text-left">Origem</th>}
-                    <th className="p-2 text-left">Produto</th><th className="p-2 text-right">Qtd.</th>
+                    {GRUPOS_REL.map((g) => <th key={g} className="p-2 text-right">{nomeGrupo(g)}</th>)}
                   </tr></thead>
-                  <tbody>{linhas.map((l, i) => (
+                  <tbody>{pivot.map((r, i) => (
                     <tr key={i} className="border-t border-border">
-                      <td className="p-2 whitespace-nowrap">{br(l.data)}</td><td className="p-2">{nome(l.unidadeId)}</td>
-                      {tipo === "recebidas" && <td className="p-2">{nome(l.origemId)}</td>}
-                      <td className="p-2">{nomeGrupo(l.grupo)}</td>
-                      <td className="p-2 text-right font-bold">{l.quantidade === null ? <span className="text-xs font-normal text-muted-foreground">sem fechamento</span> : l.quantidade}</td>
+                      <td className="p-2 whitespace-nowrap">{br(r.data)}</td><td className="p-2">{nome(r.unidadeId)}</td>
+                      {tipo === "recebidas" && <td className="p-2">{nome(r.origemId)}</td>}
+                      {GRUPOS_REL.map((g) => <td key={g} className="p-2 text-right font-bold">{r.q[g] === null ? <span className="text-xs font-normal text-muted-foreground">sem fech.</span> : r.q[g] ?? 0}</td>)}
                     </tr>))}</tbody>
+                  <tfoot className="bg-muted">
+                    <tr><th colSpan={tipo === "recebidas" ? 7 : 6} className="p-2 text-left">Resumo por loja</th></tr>
+                    {resumo.map((r) => (
+                      <tr key={r.id} className="border-t border-border"><td className="p-2 font-bold" colSpan={tipo === "recebidas" ? 3 : 2}>{nome(r.id)}</td>
+                        {GRUPOS_REL.map((g) => <td key={g} className="p-2 text-right font-bold">{r.q[g]}</td>)}</tr>))}
+                  </tfoot>
                 </table>
               </div>
             </>
