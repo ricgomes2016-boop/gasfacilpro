@@ -99,6 +99,24 @@ Deno.serve(async (req) => {
       [closings, legacy].forEach(check);
       return reply({ ok: true, closings: closings.data, legacy: legacy.data });
     }
+    if (action === 'report') {
+      const re = /^\d{4}-\d{2}-\d{2}$/;
+      if (typeof body.from !== 'string' || typeof body.to !== 'string' || !re.test(body.from) || !re.test(body.to) || body.from > body.to) return fail('Período inválido.');
+      const span = (Date.parse(`${body.to}T12:00:00Z`) - Date.parse(`${body.from}T12:00:00Z`)) / 86400000;
+      if (!Number.isFinite(span) || span > 186) return fail('Escolha um período de até 6 meses.');
+      const shift = (d: string, n: number) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+      const a = shift(body.from, -1), b = shift(body.to, 1);
+      const list = activeIds.join(',');
+      const [closings, legacy, movs, adj, names] = await Promise.all([
+        db.from('estoque_conferencia_fechamentos').select('data_conferencia, data_contagem, momento, unidade_id, produto_grupo, tipo_estoque, quantidade').eq('empresa_id', empresaId).in('unidade_id', activeIds).gte('data_contagem', a).lte('data_contagem', b).limit(20000),
+        db.from('estoque_conferencias').select('data_conferencia, unidade_id, produto_grupo, tipo_estoque, quantidade').in('unidade_id', activeIds).gte('data_conferencia', a).lte('data_conferencia', b).limit(20000),
+        db.from('estoque_conferencia_movimentos').select('tipo, unidade_id, unidade_destino_id, produto_grupo, quantidade, data_conferencia').eq('empresa_id', empresaId).or(`unidade_id.in.(${list}),unidade_destino_id.in.(${list})`).gte('data_conferencia', body.from).lte('data_conferencia', body.to).limit(20000),
+        db.from('estoque_conferencia_saldo_ajustes').select('data_conferencia, unidade_id, produto_grupo, cheio').in('unidade_id', activeIds).gte('data_conferencia', body.from).lte('data_conferencia', body.to),
+        db.from('unidades').select('id, nome').eq('empresa_id', empresaId),
+      ]);
+      [closings, legacy, movs, adj, names].forEach(check);
+      return reply({ ok: true, closings: closings.data, legacy: legacy.data, movements: movs.data, adjustments: adj.data, names: names.data });
+    }
     if (typeof body.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.date) || !Number.isFinite(Date.parse(`${body.date}T12:00:00Z`))) return fail('Data inválida.');
     if (['entry', 'transfer', 'delete_transfer'].includes(action)) {
       if (!validCountDate(body.date, body.count_date, body.moment)) return fail('Datas inválidas.');
