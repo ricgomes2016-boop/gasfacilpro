@@ -208,12 +208,23 @@ export default function ContasReceber() {
 
   const fetchContas = async () => {
     setLoading(true);
-    let query = supabase
-      .from("contas_receber")
-      .select("*, pedidos(cliente_id, created_at, endereco_entrega, clientes(nome, endereco, bairro)), vale_gas(numero, codigo), vale_gas_parceiros:vale_gas_parceiro_id(nome)")
-      .order("vencimento", { ascending: true });
-    if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
-    const { data, error } = await query;
+    // Paginate: the API caps each response at 1000 rows, which hid recent receivables.
+    const PAGE = 1000;
+    let data: any[] = [];
+    let error: any = null;
+    for (let from = 0; ; from += PAGE) {
+      let query = supabase
+        .from("contas_receber")
+        .select("*, pedidos(cliente_id, created_at, endereco_entrega, clientes(nome, endereco, bairro)), vale_gas(numero, codigo), vale_gas_parceiros:vale_gas_parceiro_id(nome)")
+        .order("vencimento", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      const res = await query;
+      if (res.error) { error = res.error; break; }
+      data = data.concat(res.data || []);
+      if (!res.data || res.data.length < PAGE) break;
+    }
     if (error) { toast.error("Erro ao carregar recebíveis"); console.error(error); }
     else {
       setContas((data || []).map((c: any) => ({
