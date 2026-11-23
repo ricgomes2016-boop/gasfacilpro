@@ -18,6 +18,7 @@ import { ProductSearch, ItemVenda } from "@/components/vendas/ProductSearch";
 import { DeliveryPersonSelect } from "@/components/vendas/DeliveryPersonSelect";
 import { PedidoStatus } from "@/types/pedido";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { geocodeAddress } from "@/lib/geocoding";
 import { MapPickerDialog } from "@/components/ui/map-picker-dialog";
 import { formatCEP } from "@/hooks/useInputMasks";
@@ -75,6 +76,7 @@ export default function EditarPedido() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -126,15 +128,16 @@ export default function EditarPedido() {
 
   const searchCliente = useCallback((term: string) => {
     if (debounceClienteRef.current) clearTimeout(debounceClienteRef.current);
-    if (term.length < 2) { setClienteResults([]); setShowClienteResults(false); return; }
+    const trimmed = term.trim();
+    if (trimmed.length < 2 || !empresa?.id) { setClienteResults([]); setShowClienteResults(false); return; }
     debounceClienteRef.current = setTimeout(async () => {
-      const empresaId = (unidadeAtual as any)?.empresa_id || null;
+      const empresaId = empresa.id;
       // Prioriza busca por endereço via RPC (busca por rua/número/bairro/nome/telefone)
       if (empresaId) {
         const { data, error } = await supabase.rpc("autocomplete_clientes_v2" as any, {
           _empresa_id: empresaId,
           _unidade_id: unidadeAtual?.id || null,
-          _termo: term.trim(),
+          _termo: trimmed,
           _limite: 10,
         });
         if (!error && data) {
@@ -153,17 +156,35 @@ export default function EditarPedido() {
           return;
         }
       }
-      // Fallback: busca direta incluindo endereço/bairro
-      const like = `%${term}%`;
-      const { data } = await supabase
-        .from("clientes")
-        .select("id, nome, telefone, endereco, numero, bairro, cidade, cep")
-        .eq("ativo", true)
-        .or(`endereco.ilike.${like},bairro.ilike.${like},nome.ilike.${like},telefone.ilike.${like}`)
-        .limit(10);
-      if (data) { setClienteResults(data); setShowClienteResults(data.length > 0); }
+      // Fallback seguro para matriz: continua isolado por empresa, sem filtro de unidade.
+      if (unidadeAtual?.id) {
+        const { data, error } = await supabase.rpc("autocomplete_clientes_v2" as any, {
+          _empresa_id: empresa.id,
+          _unidade_id: null,
+          _termo: trimmed,
+          _limite: 10,
+        });
+        if (!error && data && (data as any[]).length > 0) {
+          const mapped = (data as any[]).map((c) => ({
+            id: c.id,
+            nome: c.nome,
+            telefone: c.telefone ?? null,
+            endereco: c.endereco ?? null,
+            numero: c.numero ?? null,
+            bairro: c.bairro ?? null,
+            cidade: c.cidade ?? null,
+            cep: c.cep ?? null,
+          }));
+          setClienteResults(mapped);
+          setShowClienteResults(mapped.length > 0);
+          return;
+        }
+      }
+
+      setClienteResults([]);
+      setShowClienteResults(false);
     }, 300);
-  }, [unidadeAtual?.id]);
+  }, [empresa?.id, unidadeAtual?.id]);
 
   const selectCliente = (cliente: typeof clienteResults[0]) => {
     setPedido(prev => prev ? { ...prev, cliente_id: cliente.id, cliente_nome: cliente.nome } : prev);
