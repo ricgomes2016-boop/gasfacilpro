@@ -71,6 +71,13 @@
       "when": 1792790389072,
       "tag": "0009_fix_conference_movement_empresa",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795470711227,
+      "tag": "0010_revoke_client_execute_readonly_query",
+      "breakpoints": true
     }
   ]
 }
