@@ -4,7 +4,7 @@ import {
   createSupabase, resolveConfig, checkBusinessHours, normalizePhone,
   findCliente, getRecentOrders, getOrderStatus, getProducts,
   buildSystemPrompt, buildNegotiationHint,
-  getWhatsAppConversationId, formatBrazilianCurrencyInText,
+  generateUUIDFromString, formatBrazilianCurrencyInText,
   loadHistory, saveMessage, upsertConversation, isDuplicate,
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
@@ -169,14 +169,14 @@ serve(async (req) => {
     if (body.fromMe === true) {
       if (!messageText) return OK({ ok: true, skipped: "fromMe_empty" });
       const normalizedPhone = normalizePhone(phone);
-      const ownConversationId = await getWhatsAppConversationId(phone, "zapi_forte_gas");
+      const ownConversationId = await generateUUIDFromString(`whatsapp_${normalizePhone(phone)}`);
       const ownMessageId = String(body.messageId || `${normalizedPhone}_${body.momment || Date.now()}_from_me`);
       const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
       const { data: matchingOutbound } = await supabase.from("ai_mensagens")
         .select("id")
         .eq("conversa_id", ownConversationId)
-        .eq("role", "assistant")
-        .eq("content", formatBrazilianCurrencyInText(messageText))
+        .in("role", ["assistant", "human"])
+        .in("content", [messageText, formatBrazilianCurrencyInText(messageText)])
         .gte("created_at", twoMinutesAgo)
         .limit(1);
       if (matchingOutbound?.length) {
@@ -237,7 +237,7 @@ serve(async (req) => {
     }
 
     const normalized = normalizePhone(phone);
-    const conversationId = await getWhatsAppConversationId(phone, "zapi_forte_gas");
+    const conversationId = await generateUUIDFromString(`whatsapp_${normalizePhone(phone)}`);
     const messageKey = body.messageId ? String(body.messageId) : `${normalized}_${body.momment || ""}_${messageText.trim().toLowerCase()}`;
 
     // Dedup

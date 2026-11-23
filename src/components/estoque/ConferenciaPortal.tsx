@@ -24,8 +24,8 @@ export function ConferenciaPortal() {
   useEffect(() => {
     document.title = 'Conferência de Estoque | Gás Fácil Pro';
     let active = true;
-    const refresh = async () => {
-      setReady(false);
+    const refresh = async (showLoader = true) => {
+      if (showLoader) setReady(false);
       try {
         const { data: { user: validUser } } = await conferenciaAuth.auth.getUser();
         if (!active) return;
@@ -37,7 +37,10 @@ export function ConferenciaPortal() {
       } catch (e) { if (active) { setUnits([]); setError(e instanceof Error ? e.message : 'Acesso indisponível.'); } }
       finally { if (active) setReady(true); }
     };
-    const { data: { subscription } } = conferenciaAuth.auth.onAuthStateChange(() => { setTimeout(() => { if (active) void refresh(); }, 0); });
+    const { data: { subscription } } = conferenciaAuth.auth.onAuthStateChange((event) => {
+      if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT') return;
+      setTimeout(() => { if (active) void refresh(event === 'SIGNED_OUT'); }, 0);
+    });
     void refresh();
     return () => { active = false; subscription.unsubscribe(); };
   }, []);

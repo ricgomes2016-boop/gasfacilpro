@@ -453,9 +453,9 @@ export default function Comodatos() {
           title="Vasilhames em comodato"
           description="Empréstimos ativos, prazos e custo de reposição por cliente"
           actions={
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setAcrescimoOrigemId(null); }}>
+            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setAcrescimoOrigemId(null); setForm({ cliente_id: "", produto_id: "", quantidade: "1", deposito: "0", prazo_dias: "2", observacoes: "", modalidade: "rapido", responsavel_entrega: "", documento_referencia: "", local_entrega: "", finalidade: "" }); setClienteNome(""); } }}>
               <DialogTrigger asChild>
-                <Button size="sm" onClick={() => setAcrescimoOrigemId(null)}><Plus className="h-4 w-4 mr-2" />Novo Comodato</Button>
+                <Button size="sm" onClick={() => { setAcrescimoOrigemId(null); setForm({ cliente_id: "", produto_id: "", quantidade: "1", deposito: "0", prazo_dias: "2", observacoes: "", modalidade: "rapido", responsavel_entrega: "", documento_referencia: "", local_entrega: "", finalidade: "" }); setClienteNome(""); }}><Plus className="h-4 w-4 mr-2" />Novo Comodato</Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[92dvh] overflow-y-auto p-0">
                 <div className="border-b bg-gradient-to-r from-primary/10 to-background px-5 py-5 sm:px-7">

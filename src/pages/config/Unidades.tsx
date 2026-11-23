@@ -230,17 +230,17 @@ export default function UnidadesConfig() {
       if (credErr) throw credErr;
 
       if (certConfiguredOnSave(u)) {
-        const { data: certStatus, error: statusErr } = await supabase.rpc("get_unidade_certificado_status", { _unidade_id: u.id });
-        if (statusErr) throw statusErr;
-        if (!certStatus?.[0]?.certificado_a1_configurado) {
-          throw new Error("O arquivo e a senha do certificado não ficaram vinculados à unidade. Reabra a aba Fiscal e tente salvar novamente.");
-        }
-        const resultado = await diagnosticarCertificado(u.id);
-        if (!resultado.diagnostico || !resultado.metadata_synced) {
-          throw new Error(resultado.mensagem || "Não foi possível ler o certificado. Confira o arquivo e a senha.");
-        }
-        if (resultado.diagnostico.vencido) {
-          toast({ title: "Certificado vencido", description: "A validade foi lida do arquivo. Substitua o A1 antes de assinar documentos.", variant: "destructive" });
+        // Verificação informativa: os dados já foram salvos; nunca bloqueia o salvamento.
+        try {
+          const { data: certStatus } = await supabase.rpc("get_unidade_certificado_status", { _unidade_id: u.id });
+          const resultado = certStatus?.[0]?.certificado_a1_configurado ? await diagnosticarCertificado(u.id) : null;
+          if (!resultado?.diagnostico) {
+            toast({ title: "Dados salvos, mas o certificado não foi lido", description: resultado?.mensagem || "Confira o arquivo e a senha do certificado na aba Fiscal." });
+          } else if (resultado.diagnostico.vencido) {
+            toast({ title: "Certificado vencido", description: "A validade foi lida do arquivo. Substitua o A1 antes de assinar documentos.", variant: "destructive" });
+          }
+        } catch (certErr) {
+          console.warn("Verificação do certificado falhou:", certErr);
         }
       }
 
