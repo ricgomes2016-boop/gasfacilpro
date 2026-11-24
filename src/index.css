@@ -1977,3 +1977,37 @@
 .status-stripe[data-tone="red"]::before { background: hsl(var(--destructive)); }
 .status-stripe[data-tone="blue"]::before { background: hsl(var(--primary)); }
 .status-stripe[data-tone="gray"]::before { background: hsl(var(--muted-foreground) / 0.5); }
+
+/* Conferência de estoque — modern table skin (desktop + mobile) */
+div:has(> table.conferencia-table) {
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 2px hsl(var(--foreground) / 0.06), 0 8px 24px -16px hsl(var(--foreground) / 0.25);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+table.conferencia-table { border-collapse: separate !important; border-spacing: 0; font-variant-numeric: tabular-nums; }
+table.conferencia-table th,
+table.conferencia-table td {
+  border-width: 0 1px 1px 0 !important;
+  border-color: hsl(var(--border)) !important;
+}
+table.conferencia-table thead th { border-color: hsl(var(--foreground) / 0.12) !important; letter-spacing: 0.02em; }
+table.conferencia-table .conferencia-band-head { text-transform: uppercase; letter-spacing: 0.08em; }
+table.conferencia-table .conferencia-ink-head { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+table.conferencia-table tbody th[scope="row"],
+table.conferencia-table .conferencia-lojas-head,
+table.conferencia-table tfoot th[scope="row"] {
+  box-shadow: 4px 0 8px -4px hsl(var(--foreground) / 0.25);
+}
+table.conferencia-table tbody tr:nth-child(even) > td { background-image: linear-gradient(hsl(var(--foreground) / 0.025), hsl(var(--foreground) / 0.025)); }
+table.conferencia-table tbody tr:hover > td,
+table.conferencia-table tbody tr:hover > th { background-image: linear-gradient(hsl(var(--primary) / 0.08), hsl(var(--primary) / 0.08)); }
+table.conferencia-table td input { background: transparent; transition: background-color .15s; }
+table.conferencia-table td:focus-within { box-shadow: inset 0 0 0 2px hsl(var(--primary)); background-color: hsl(var(--primary) / 0.06); }
+table.conferencia-table tbody td, table.conferencia-table tbody th { height: 2.75rem; }
+table.conferencia-table tfoot th, table.conferencia-table tfoot td { border-top: 2px solid hsl(var(--foreground) / 0.35) !important; font-size: 0.95rem; }
+@media (max-width: 639px) {
+  div:has(> table.conferencia-table) { border-radius: 0.75rem; }
+  table.conferencia-table tbody td, table.conferencia-table tbody th { height: 3rem; }
+}
