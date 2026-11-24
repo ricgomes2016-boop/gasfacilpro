@@ -6,3 +6,4 @@
 - Conference movements store empresa_id validated against origin and destination units by a database trigger; derive it for older clients to preserve compatibility without weakening tenant isolation.
 - Send yard entry and transfer writes through the scoped conference function, validating origin authorization and same-company active destinations; never grant ERP access for movements.- Date conference entries/transfers by the physical day they happen; an opening count closes the previous sales day, so same-day movements belong to the next sale, never the one being closed.
 - Page summary/KPI rows use KpiTile/KpiTileGrid from src/components/ui/kpi-tile.tsx so stat cards share the Dashboard Acesso Rápido look.
+- Shared <Table> stacks rows into labeled cards on phones via data-label + CSS (opt out with mobileStack={false}); pages with their own mobile list hide the table there.
