@@ -969,7 +969,7 @@ export default function CaixaDia() {
                   <>
                   <div className="space-y-3 px-3 pb-3 md:hidden">
                     {movimentacoesExtrato.map(mov => (
-                      <div key={mov.id} className="rounded-xl border border-border/70 bg-card p-3 shadow-sm">
+                      <div key={mov.id} data-tone={mov.tipo === "entrada" ? "green" : "red"} className="status-stripe rounded-xl border border-border/70 bg-card p-3 shadow-sm">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="break-words text-sm font-semibold leading-snug">{mov.descricao}</p>

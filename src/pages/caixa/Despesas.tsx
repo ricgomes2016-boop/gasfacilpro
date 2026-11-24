@@ -325,7 +325,7 @@ export default function Despesas() {
                 {/* Mobile cards */}
                 <div className="space-y-3 sm:hidden px-3">
                   {despesas.map(d => (
-                    <div key={d.id} className={`border rounded-lg p-3 ${Number(d.valor) > LIMITE_SANGRIA && d.status === "pendente" ? "bg-warning/5" : ""}`}>
+                    <div key={d.id} data-tone={d.status === "aprovada" ? "green" : d.status === "rejeitada" ? "red" : "amber"} className={`status-stripe border rounded-lg p-3 ${Number(d.valor) > LIMITE_SANGRIA && d.status === "pendente" ? "bg-warning/5" : ""}`}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">

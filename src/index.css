@@ -1967,3 +1967,13 @@
   table.saas-table.mobile-stack tbody td[colspan] { justify-content: center; text-align: center; border-top: 0 !important; }
   table.mobile-stack tbody tr:has(> td[colspan]:only-child)::before { display: none; }
 }
+
+/* Listra lateral de status nos cartões do celular */
+.status-stripe { position: relative; overflow: hidden; }
+.status-stripe::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: hsl(var(--muted-foreground) / 0.4); }
+.status-stripe:not(.\!p-0) { padding-left: calc(0.75rem + 5px) !important; }
+.status-stripe[data-tone="green"]::before { background: hsl(var(--success)); }
+.status-stripe[data-tone="amber"]::before { background: hsl(var(--warning)); }
+.status-stripe[data-tone="red"]::before { background: hsl(var(--destructive)); }
+.status-stripe[data-tone="blue"]::before { background: hsl(var(--primary)); }
+.status-stripe[data-tone="gray"]::before { background: hsl(var(--muted-foreground) / 0.5); }

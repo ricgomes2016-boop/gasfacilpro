@@ -2055,7 +2055,8 @@ export default function Pedidos() {
                     return (
                       <div
                         key={pedido.id}
-                        className={`mobile-record-card overflow-hidden !rounded-xl !border-0 !p-0 shadow-[0_1px_3px_hsl(var(--foreground)/0.09)] transition-all ${pedido.status === "cancelado" ? "opacity-60" : ""} ${expandido ? "ring-1 ring-primary/20" : ""}`}
+                        data-tone={pedido.status === "entregue" || pedido.status === "concluido" || pedido.status === "finalizado" ? "green" : pedido.status === "em_rota" ? "blue" : pedido.status === "cancelado" ? "red" : "amber"}
+                        className={`status-stripe mobile-record-card overflow-hidden !rounded-xl !border-0 !p-0 shadow-[0_1px_3px_hsl(var(--foreground)/0.09)] transition-all ${pedido.status === "cancelado" ? "opacity-60" : ""} ${expandido ? "ring-1 ring-primary/20" : ""}`}
                       >
                         {/* Header do card */}
                         <div className="flex items-start gap-2.5 px-3 py-3">

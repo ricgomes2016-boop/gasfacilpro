@@ -776,7 +776,8 @@ export default function ContasReceber() {
               return (
                 <div
                   key={conta.id}
-                  className="mobile-record-card !rounded-xl !border-0 shadow-[0_1px_3px_hsl(var(--foreground)/0.09)] transition data-[state=selected]:bg-primary/5 data-[state=selected]:ring-1 data-[state=selected]:ring-primary/40"
+                  data-tone={vencida ? "red" : displayStatus === "Recebida" ? "green" : "amber"}
+                  className="status-stripe mobile-record-card !rounded-xl !border-0 shadow-[0_1px_3px_hsl(var(--foreground)/0.09)] transition data-[state=selected]:bg-primary/5 data-[state=selected]:ring-1 data-[state=selected]:ring-primary/40"
                   data-state={selectedIds.has(conta.id) ? "selected" : undefined}
                   onClick={() => setDetalheConta(conta)}
                 >

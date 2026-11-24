@@ -315,7 +315,7 @@ export function ComprasListaTableEstoque({ compras, unidadesMap, precoMedioMap, 
             const expanded = expandedIds.has(c.id);
             const itens = c.compra_itens || [];
             return (
-              <div key={c.id} className={`p-3 space-y-2 ${isDup ? "bg-warning/5" : ""} ${c.pago ? "opacity-70" : ""}`}>
+              <div key={c.id} data-tone={c.pago ? "green" : vencido ? "red" : "amber"} className={`status-stripe p-3 space-y-2 ${isDup ? "bg-warning/5" : ""} ${c.pago ? "opacity-70" : ""}`}>
                 <button
                   onClick={() => toggleExpanded(c.id)}
                   className="w-full flex items-start justify-between gap-2 text-left"
