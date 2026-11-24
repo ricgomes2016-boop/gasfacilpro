@@ -620,7 +620,7 @@ export default function ContasPagar() {
                         const st = statusDe(conta);
                         const meta = STATUS_META[st];
                         return (
-                          <div key={conta.id} className="rounded-xl bg-card p-3 shadow-[0_1px_3px_hsl(var(--foreground)/0.09)]">
+                          <div key={conta.id} data-tone={st === "vencida" ? "red" : isContaPaga(conta) ? "green" : "amber"} className="status-stripe rounded-xl bg-card p-3 shadow-[0_1px_3px_hsl(var(--foreground)/0.09)]">
                             <div className="flex items-start gap-2">
                               <Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={isContaPaga(conta)} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} className="mt-1 shrink-0" />
                               <div className="min-w-0 flex-1">
