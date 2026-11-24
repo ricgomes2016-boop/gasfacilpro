@@ -10,7 +10,7 @@ import {
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { AppPage } from "@/components/ui-kit/AppPage";
-import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
+import { SolidKpiCard as EstoqueKpiCard } from "@/components/ui/kpi-tile-adapters";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

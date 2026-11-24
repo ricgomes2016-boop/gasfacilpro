@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { getBrasiliaDate } from "@/lib/utils";
-import { PremiumKpiCard } from "@/components/dashboard/premium/PremiumKpiCard";
+import { SolidKpiCard as PremiumKpiCard } from "@/components/ui/kpi-tile-adapters";
 import { DashboardHero } from "@/components/dashboard/premium/DashboardHero";
 import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
 import { KpiGridSkeleton, ChartCardSkeleton } from "@/components/dashboard/premium/skeletons";

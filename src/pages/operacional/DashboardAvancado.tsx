@@ -8,7 +8,7 @@ import { TrendingUp, BarChart3, PieChart, Activity, LineChart } from "lucide-rea
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { DashboardHero } from "@/components/dashboard/premium/DashboardHero";
-import { PremiumKpiCard } from "@/components/dashboard/premium/PremiumKpiCard";
+import { SolidKpiCard as PremiumKpiCard } from "@/components/ui/kpi-tile-adapters";
 import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
 import { KpiCardSkeleton, ChartCardSkeleton } from "@/components/dashboard/premium/skeletons";
 import { chartGridProps, chartAxisTick, CHART_SEMANTIC, fmtBRL, fmtBRLcompact } from "@/components/dashboard/premium/chartTheme";

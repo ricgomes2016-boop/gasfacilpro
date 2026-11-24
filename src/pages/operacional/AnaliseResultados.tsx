@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageSectionLoader } from "@/components/ui/page-loader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DashboardHero } from "@/components/dashboard/premium/DashboardHero";
-import { PremiumKpiCard } from "@/components/dashboard/premium/PremiumKpiCard";
+import { SolidKpiCard as PremiumKpiCard } from "@/components/ui/kpi-tile-adapters";
 import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
 import {
   CHART_SEMANTIC,

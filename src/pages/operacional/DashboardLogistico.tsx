@@ -7,7 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { DashboardHero } from "@/components/dashboard/premium/DashboardHero";
-import { PremiumKpiCard } from "@/components/dashboard/premium/PremiumKpiCard";
+import { SolidKpiCard as PremiumKpiCard } from "@/components/ui/kpi-tile-adapters";
 import { ChartTooltip } from "@/components/dashboard/premium/ChartTooltip";
 import { KpiCardSkeleton, ChartCardSkeleton } from "@/components/dashboard/premium/skeletons";
 import { chartGridProps, chartAxisTick, CHART_SEMANTIC } from "@/components/dashboard/premium/chartTheme";

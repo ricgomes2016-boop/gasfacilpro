@@ -17,7 +17,7 @@ import { subDays, startOfDay } from "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
-import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
+import { SolidKpiCard as EstoqueKpiCard } from "@/components/ui/kpi-tile-adapters";
 import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 
 // Paleta usando tokens semânticos HSL do design system

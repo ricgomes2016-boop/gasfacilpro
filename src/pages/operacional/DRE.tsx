@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
-import { AppPage, KpiCard, KpiRow, SectionCard, EmptyState, KpiSkeletonRow, UiKitSkeleton } from "@/components/ui-kit";
+import { SolidKpiCard as KpiCard } from "@/components/ui/kpi-tile-adapters";
+import { AppPage, KpiRow, SectionCard, EmptyState, KpiSkeletonRow, UiKitSkeleton } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";

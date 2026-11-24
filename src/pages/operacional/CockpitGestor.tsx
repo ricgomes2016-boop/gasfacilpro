@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { getBrasiliaDate } from "@/lib/utils";
 import { DashboardHero } from "@/components/dashboard/premium/DashboardHero";
-import { PremiumKpiCard } from "@/components/dashboard/premium/PremiumKpiCard";
+import { SolidKpiCard as PremiumKpiCard } from "@/components/ui/kpi-tile-adapters";
 import { KpiCardSkeleton } from "@/components/dashboard/premium/skeletons";
 import { fmtBRL } from "@/components/dashboard/premium/chartTheme";
 

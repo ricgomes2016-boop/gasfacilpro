@@ -1,3 +1,4 @@
+import { SolidKpiCard } from "@/components/ui/kpi-tile-adapters";
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -83,42 +84,7 @@ function statusTone(status: string) {
   return "bg-primary/10 text-primary border-primary/25";
 }
 
-function MetricCard({
-  title,
-  value,
-  description,
-  icon: Icon,
-  tone = "primary",
-}: {
-  title: string;
-  value: string;
-  description: string;
-  icon: typeof Target;
-  tone?: "primary" | "success" | "warning" | "destructive" | "info";
-}) {
-  const toneClass = {
-    primary: "status-card-icon-primary",
-    success: "status-card-icon-success",
-    warning: "status-card-icon-warning",
-    destructive: "status-card-icon-destructive",
-    info: "status-card-icon-info",
-  }[tone];
-
-  return (
-    <Card className={`kpi-card kpi-card-${tone === "destructive" ? "destructive" : tone}`}>
-      <CardContent className="kpi-card-content">
-        <div className={`status-card-icon ${toneClass}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
-          <p className="kpi-value">{value}</p>
-          <p className="kpi-label text-muted-foreground">{description}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+const MetricCard = SolidKpiCard;
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (

@@ -21,7 +21,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
+import { SolidKpiCard as EstoqueKpiCard } from "@/components/ui/kpi-tile-adapters";
 import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 
 export default function HistoricoMovimentacoes() {
