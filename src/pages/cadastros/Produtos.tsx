@@ -1076,57 +1076,24 @@ export default function Produtos() {
           </Dialog>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
-          <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between border-muted/40 bg-muted pb-2 text-muted-foreground">
-              <CardTitle className="text-xs md:text-sm font-medium text-foreground">Total</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl md:text-2xl font-bold">{totalProdutos}</div>
-              <p className="text-xs text-muted-foreground hidden sm:block">No catálogo</p>
-            </CardContent>
-          </Card>
-          <Card className="modern-status-card">
-            <CardHeader className="section-header-stock flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-warning-foreground">Gás</CardTitle>
-              <Flame className="h-4 w-4 text-warning-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl md:text-2xl font-bold text-warning">{produtosGas}</div>
-              <p className="text-xs text-muted-foreground hidden sm:block">Produtos</p>
-            </CardContent>
-          </Card>
-          <Card className="modern-status-card">
-            <CardHeader className="section-header-catalog flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-info-foreground">Água</CardTitle>
-              <Droplets className="h-4 w-4 text-info-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl md:text-2xl font-bold text-info">{produtosAgua}</div>
-              <p className="text-xs text-muted-foreground hidden sm:block">Produtos</p>
-            </CardContent>
-          </Card>
-          <Card className="modern-status-card">
-            <CardHeader className="section-header-finance flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-success-foreground">Acessórios</CardTitle>
-              <Box className="h-4 w-4 text-success-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl md:text-2xl font-bold text-success">{produtosAcessorios}</div>
-              <p className="text-xs text-muted-foreground hidden sm:block">Produtos</p>
-            </CardContent>
-          </Card>
-          <Card className="modern-status-card">
-            <CardHeader className="section-header-critical flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-destructive-foreground">Baixo Est.</CardTitle>
-              <Package className="h-4 w-4 text-destructive-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl md:text-2xl font-bold text-destructive">{baixoEstoque}</div>
-              <p className="text-xs text-muted-foreground hidden sm:block">Repor</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {[
+            { label: "Total", value: totalProdutos, icon: Package, tone: "bg-[#4f68e8]", extra: "" },
+            { label: "Gás", value: produtosGas, icon: Flame, tone: "bg-[#e97832]", extra: "" },
+            { label: "Água", value: produtosAgua, icon: Droplets, tone: "bg-[#4f68e8]", extra: "" },
+            { label: "Acessórios", value: produtosAcessorios, icon: Box, tone: "bg-[#66bd67]", extra: "" },
+            { label: "Baixo Estoque", value: baixoEstoque, icon: Package, tone: "bg-[#c83c35]", extra: "col-span-2 md:col-span-1" },
+          ].map((k) => (
+            <div
+              key={k.label}
+              style={{ color: "#fff" }}
+              className={`quick-action-tile flex min-h-[96px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-3 py-4 !text-white shadow-[0_12px_22px_-16px_rgba(15,23,42,0.6)] ${k.tone} ${k.extra}`}
+            >
+              <k.icon className="h-6 w-6 shrink-0 !text-white" strokeWidth={2.25} />
+              <span className="text-2xl font-black leading-none !text-white">{k.value}</span>
+              <span className="w-full break-words text-center text-[12px] font-bold leading-tight !text-white">{k.label}</span>
+            </div>
+          ))}
         </div>
 
         <Card className="modern-panel">
