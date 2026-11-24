@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -1076,25 +1077,13 @@ export default function Produtos() {
           </Dialog>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {[
-            { label: "Total", value: totalProdutos, icon: Package, tone: "bg-[#4f68e8]", extra: "" },
-            { label: "Gás", value: produtosGas, icon: Flame, tone: "bg-[#e97832]", extra: "" },
-            { label: "Água", value: produtosAgua, icon: Droplets, tone: "bg-[#4f68e8]", extra: "" },
-            { label: "Acessórios", value: produtosAcessorios, icon: Box, tone: "bg-[#66bd67]", extra: "" },
-            { label: "Baixo Estoque", value: baixoEstoque, icon: Package, tone: "bg-[#c83c35]", extra: "col-span-2 md:col-span-1" },
-          ].map((k) => (
-            <div
-              key={k.label}
-              style={{ color: "#fff" }}
-              className={`quick-action-tile flex min-h-[96px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-3 py-4 !text-white shadow-[0_12px_22px_-16px_rgba(15,23,42,0.6)] ${k.tone} ${k.extra}`}
-            >
-              <k.icon className="h-6 w-6 shrink-0 !text-white" strokeWidth={2.25} />
-              <span className="text-2xl font-black leading-none !text-white">{k.value}</span>
-              <span className="w-full break-words text-center text-[12px] font-bold leading-tight !text-white">{k.label}</span>
-            </div>
-          ))}
-        </div>
+        <KpiTileGrid className="md:grid-cols-5">
+          <KpiTile label="Total" value={totalProdutos} icon={Package} tone="blue" />
+          <KpiTile label="Gás" value={produtosGas} icon={Flame} tone="orange" />
+          <KpiTile label="Água" value={produtosAgua} icon={Droplets} tone="blue" />
+          <KpiTile label="Acessórios" value={produtosAcessorios} icon={Box} tone="green" />
+          <KpiTile label="Baixo Estoque" value={baixoEstoque} icon={Package} tone="red" />
+        </KpiTileGrid>
 
         <Card className="modern-panel">
           <CardHeader className="section-header-catalog">
