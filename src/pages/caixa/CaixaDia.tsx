@@ -39,6 +39,7 @@ import * as XLSX from "xlsx";
 import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
 import { useFormaPagamentoLabel } from "@/hooks/useFormasPagamentoCustom";
 import { useNavigate } from "react-router-dom";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 interface Mov {
   id: string;
@@ -894,13 +895,13 @@ export default function CaixaDia() {
         )}
 
         {/* Cards de resumo */}
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-5">
-          <Card className="border-2 border-primary/30"><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-2.5 sm:gap-3"><div className="status-card-icon status-card-icon-primary shrink-0"><Banknote /></div><div className="min-w-0 flex-1"><p className={`text-[15px] leading-tight sm:text-2xl font-bold break-words ${saldoTotalCaixa >= 0 ? "text-success" : "text-destructive"}`}>R$ {saldoTotalCaixa.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-[11px] leading-snug text-muted-foreground">Total em Caixa</p></div></div></CardContent></Card>
-          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-2.5 sm:gap-3"><div className="status-card-icon status-card-icon-primary shrink-0"><ShoppingCart /></div><div className="min-w-0 flex-1"><p className="text-[15px] leading-tight sm:text-2xl font-bold break-words">R$ {totalVendas.toFixed(2)}</p><p className="text-[11px] leading-snug text-muted-foreground">{qtdPedidos} vendas</p></div></div></CardContent></Card>
-          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-2.5 sm:gap-3"><div className="status-card-icon status-card-icon-success shrink-0"><TrendingUp /></div><div className="min-w-0 flex-1"><p className="text-[15px] leading-tight sm:text-2xl font-bold text-success break-words">R$ {totalEntradas.toFixed(2)}</p><p className="text-[11px] leading-snug text-muted-foreground">Entradas Hoje</p></div></div></CardContent></Card>
-          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-2.5 sm:gap-3"><div className="status-card-icon status-card-icon-destructive shrink-0"><TrendingDown /></div><div className="min-w-0 flex-1"><p className="text-[15px] leading-tight sm:text-2xl font-bold text-destructive break-words">R$ {totalSaidas.toFixed(2)}</p><p className="text-[11px] leading-snug text-muted-foreground">Saídas Hoje</p></div></div></CardContent></Card>
-          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-2.5 sm:gap-3"><div className="status-card-icon status-card-icon-primary shrink-0"><DollarSign /></div><div className="min-w-0 flex-1"><p className="text-[15px] leading-tight sm:text-2xl font-bold break-words">R$ {saldo.toFixed(2)}</p><p className="text-[11px] leading-snug text-muted-foreground">Saldo do Dia</p></div></div></CardContent></Card>
-        </div>
+<KpiTileGrid className="md:grid-cols-5">
+  <KpiTile label="Total em Caixa" value={<>R$ {saldoTotalCaixa.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</>} icon={Banknote} tone={saldoTotalCaixa >= 0 ? "blue" : "red"} />
+  <KpiTile label={<>{qtdPedidos} vendas</>} value={<>R$ {totalVendas.toFixed(2)}</>} icon={ShoppingCart} tone="orange" />
+  <KpiTile label="Entradas Hoje" value={<>R$ {totalEntradas.toFixed(2)}</>} icon={TrendingUp} tone="green" />
+  <KpiTile label="Saídas Hoje" value={<>R$ {totalSaidas.toFixed(2)}</>} icon={TrendingDown} tone="red" />
+  <KpiTile label="Saldo do Dia" value={<>R$ {saldo.toFixed(2)}</>} icon={DollarSign} tone={saldo >= 0 ? "blue" : "red"} />
+</KpiTileGrid>
 
         {/* Dashboard em tempo real */}
         {(entregadoresPendentes.length > 0 || sangriasPendentes > 0) && (

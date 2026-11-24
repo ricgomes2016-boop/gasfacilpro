@@ -25,6 +25,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { getBrasiliaDateString } from "@/lib/utils";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 const emptyForm = {
   sacado: "", cpf_cnpj: "", endereco: "", valor: "", vencimento: "",
@@ -135,12 +136,12 @@ export default function EmissaoBoleto({ embedded }: { embedded?: boolean } = {})
   const content = (
     <div className="space-y-6 p-4 md:p-6">
         {/* Resumo */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card><CardContent className="pt-4 pb-4 px-4"><p className="text-xs text-muted-foreground">Total Emitidos</p><p className="text-2xl font-bold">{boletos.length}</p></CardContent></Card>
-          <Card><CardContent className="pt-4 pb-4 px-4"><p className="text-xs text-muted-foreground">Em Aberto</p><p className="text-2xl font-bold text-primary">R$ {totalAberto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></CardContent></Card>
-          <Card><CardContent className="pt-4 pb-4 px-4"><p className="text-xs text-muted-foreground">Vencidos</p><p className="text-2xl font-bold text-destructive">R$ {totalVencido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></CardContent></Card>
-          <Card><CardContent className="pt-4 pb-4 px-4"><p className="text-xs text-muted-foreground">Recebidos</p><p className="text-2xl font-bold text-success">R$ {totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></CardContent></Card>
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label="Total Emitidos" value={boletos.length} tone="blue" />
+  <KpiTile label="Em Aberto" value={<>R$ {totalAberto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</>} tone="amber" />
+  <KpiTile label="Vencidos" value={<>R$ {totalVencido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</>} tone="red" />
+  <KpiTile label="Recebidos" value={<>R$ {totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</>} tone="green" />
+</KpiTileGrid>
 
         {/* Tabs */}
         <div className="flex items-center gap-2">

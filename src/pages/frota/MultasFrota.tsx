@@ -23,6 +23,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 export default function MultasFrota() {
   const { unidadeAtual } = useUnidade();
@@ -160,24 +161,12 @@ export default function MultasFrota() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">Pendentes</CardTitle><FileWarning className="h-4 w-4 text-destructive" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-destructive">{pendentes.length}</div></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">Valor Pendente</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold">R$ {totalValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">Total Multas</CardTitle><AlertTriangle className="h-4 w-4 text-warning" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold">{multas.length}</div></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">Pontos Acumulados</CardTitle><AlertTriangle className="h-4 w-4 text-warning" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-warning">{totalPontos}</div></CardContent>
-          </Card>
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label="Pendentes" value={pendentes.length} icon={FileWarning} tone="amber" />
+  <KpiTile label="Valor Pendente" value={<>R$ {totalValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</>} icon={DollarSign} tone="orange" />
+  <KpiTile label="Total Multas" value={multas.length} icon={AlertTriangle} tone="blue" />
+  <KpiTile label="Pontos Acumulados" value={totalPontos} icon={AlertTriangle} tone="red" />
+</KpiTileGrid>
 
         <Card>
           <CardHeader>

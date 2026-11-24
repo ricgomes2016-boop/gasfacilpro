@@ -31,6 +31,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { format, startOfWeek, addDays, isSameDay, parseISO } from "date-fns";
 import { cn, getBrasiliaDate } from "@/lib/utils";
 import { ptBR } from "date-fns/locale";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 // ─── Escalas Tab ────────────────────────────────────────────────────────────
 
@@ -454,32 +455,12 @@ function EscalasTab() {
       </div>
 
       {/* Resumo */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card><CardContent className="p-3 sm:p-4">
-          <div className="text-xs text-muted-foreground">Total de escalas</div>
-          <div className="text-2xl font-bold">{totalEscalas}</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-3 sm:p-4">
-          <div className="text-xs text-muted-foreground">Entregadores</div>
-          <div className="text-2xl font-bold">{entregadoresEscalados}</div>
-        </CardContent></Card>
-        <Card><CardContent className="p-3 sm:p-4">
-          <div className="text-xs text-muted-foreground">Horas previstas (líquidas)</div>
-          <div className="text-2xl font-bold">{horasTotais.toFixed(1)}h</div>
-          {escalasComAlmocoEstimado > 0 && (
-            <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
-              <Info className="h-3 w-3" />
-              {escalasComAlmocoEstimado} com almoço estimado
-            </div>
-          )}
-        </CardContent></Card>
-        <Card><CardContent className="p-3 sm:p-4">
-          <div className="text-xs text-muted-foreground">Dias sem cobertura</div>
-          <div className={cn("text-2xl font-bold", diasSemCobertura > 0 ? "text-destructive" : "text-success")}>
-            {diasSemCobertura}
-          </div>
-        </CardContent></Card>
-      </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label="Total de escalas" value={totalEscalas} tone="blue" />
+  <KpiTile label="Entregadores" value={entregadoresEscalados} tone="orange" />
+  <KpiTile label="Horas previstas (líquidas)" value={<>{horasTotais.toFixed(1)}h</>} tone="amber" hint={escalasComAlmocoEstimado > 0 ? <span className="inline-flex items-center gap-1"><Info className="h-3 w-3" />{escalasComAlmocoEstimado} com almoço estimado</span> : undefined} />
+  <KpiTile label="Dias sem cobertura" value={diasSemCobertura} tone={diasSemCobertura > 0 ? "red" : "green"} />
+</KpiTileGrid>
 
       {/* Grade semanal */}
       <Card>
@@ -1167,38 +1148,12 @@ function CoberturaTab() {
       </div>
 
       {/* Cards resumo */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium">Entregadores</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{totalEntregadores}</div></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium">Horas-homem</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{horasHomem.toFixed(0)}h</div></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium">Pico médio</CardTitle>
-            <Flame className="h-4 w-4 text-warning" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{picoMedio}</div></CardContent>
-        </Card>
-        <Card className={buracos.length > 0 ? "border-destructive/40" : ""}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium">Buracos no pico</CardTitle>
-            <AlertTriangle className={cn("h-4 w-4", buracos.length > 0 ? "text-destructive" : "text-muted-foreground")} />
-          </CardHeader>
-          <CardContent>
-            <div className={cn("text-2xl font-bold", buracos.length > 0 ? "text-destructive" : "")}>{buracos.length}</div>
-          </CardContent>
-        </Card>
-      </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label="Entregadores" value={totalEntregadores} icon={Users} tone="blue" />
+  <KpiTile label="Horas-homem" value={<>{horasHomem.toFixed(0)}h</>} icon={Clock} tone="orange" />
+  <KpiTile label="Pico médio" value={picoMedio} icon={Flame} tone="amber" />
+  <KpiTile label="Buracos no pico" value={buracos.length} icon={AlertTriangle} tone={buracos.length > 0 ? "red" : "green"} />
+</KpiTileGrid>
 
       {/* Buracos no pico */}
       {buracos.length > 0 && (

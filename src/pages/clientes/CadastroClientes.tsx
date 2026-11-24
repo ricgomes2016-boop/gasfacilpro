@@ -46,6 +46,7 @@ import { useRegrasCadastro } from "@/hooks/useRegrasCadastro";
 import { MesclarClientesDialog } from "@/components/clientes/MesclarClientesDialog";
 import { ClienteUnidadesDialog } from "@/components/clientes/ClienteUnidadesDialog";
 import { FinancialHeroCard } from "@/components/ui/financial-hero-card";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 interface Cliente {
   id: string;
@@ -1148,13 +1149,13 @@ export default function CadastroClientesCad() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 lg:grid-cols-5">
-          <FinancialHeroCard title="Total" value={stats.total} subtitle="Clientes cadastrados" color="primary" icon={Users} />
-          <FinancialHeroCard title="Ativos" value={stats.ativos} subtitle={`${stats.total > 0 ? Math.round((stats.ativos / stats.total) * 100) : 0}% da base`} color="success" icon={Users} progress={stats.total > 0 ? Math.round((stats.ativos / stats.total) * 100) : 0} />
-          <div className="hidden sm:block"><FinancialHeroCard title="Residenciais" value={stats.residenciais} subtitle="Perfil doméstico" color="info" icon={Users} /></div>
-          <div className="hidden sm:block"><FinancialHeroCard title="Comerciais" value={stats.comerciais} subtitle="Perfil empresarial" color="warning" icon={Users} /></div>
-          <div className="hidden sm:block"><FinancialHeroCard title="Revendedores" value={stats.revendedores} subtitle="Parceiros" color="violet" icon={Store} /></div>
-        </div>
+        <KpiTileGrid className="md:grid-cols-5">
+          <KpiTile label="Total" value={stats.total} hint="Clientes cadastrados" icon={Users} tone="blue" />
+          <KpiTile label="Ativos" value={stats.ativos} hint={`${stats.total > 0 ? Math.round((stats.ativos / stats.total) * 100) : 0}% da base`} icon={Users} tone="green" />
+          <KpiTile label="Residenciais" value={stats.residenciais} hint="Perfil doméstico" icon={Users} tone="blue" />
+          <KpiTile label="Comerciais" value={stats.comerciais} hint="Perfil empresarial" icon={Users} tone="amber" />
+          <KpiTile label="Revendedores" value={stats.revendedores} hint="Parceiros" icon={Store} tone="orange" />
+        </KpiTileGrid>
 
 
         {/* Client List */}

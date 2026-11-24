@@ -17,6 +17,7 @@ import {
 } from "recharts";
 import { format, subDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 const platformColors: Record<string, string> = {
   instagram: "#E1306C",
@@ -225,19 +226,11 @@ export default function MarketingMetricas() {
           </Card>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {kpiList.map((k) => (
-                <Card key={k.label} className="border-border/50">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className={`p-2.5 rounded-xl ${k.bg}`}><k.icon className={`h-5 w-5 ${k.color}`} /></div>
-                    <div>
-                      <p className="text-2xl font-bold">{k.value.toLocaleString("pt-BR")}</p>
-                      <p className="text-xs text-muted-foreground">{k.label}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+<KpiTileGrid className="md:grid-cols-4">
+  {kpiList.map((k, i) => (
+    <KpiTile key={k.label} label={k.label} value={k.value.toLocaleString("pt-BR")} icon={k.icon} tone={(["blue", "orange", "green", "amber"] as const)[i % 4]} />
+  ))}
+</KpiTileGrid>
 
             <div className="grid md:grid-cols-3 gap-4">
               <Card className="border-border/50">

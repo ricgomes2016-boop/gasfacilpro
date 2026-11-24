@@ -37,6 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { PedidoFormatado, PedidoStatus } from "@/types/pedido";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 type ColKey = "novo" | "conf" | "rota" | "entg" | "canc";
 
@@ -261,17 +262,13 @@ export default function PedidosKanban() {
         </Card>
 
         {/* KPI strip */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <KpiTileGrid className="md:grid-cols-5">
           <KpiTile tone="amber" label="Novos" value={String(totais.novo)} />
-          <KpiTile
-            tone="blue"
-            label="Confirmados"
-            value={String(totais.conf)}
-          />
-          <KpiTile tone="violet" label="Em Rota" value={String(totais.rota)} />
+          <KpiTile tone="amber" label="Confirmados" value={String(totais.conf)} />
+          <KpiTile tone="orange" label="Em Rota" value={String(totais.rota)} />
           <KpiTile tone="green" label="Entregues" value={String(totais.entg)} />
-          <KpiTile tone="sky" label="Total do Dia" value={brl(totais.total)} />
-        </div>
+          <KpiTile tone="blue" label="Total do Dia" value={brl(totais.total)} />
+        </KpiTileGrid>
 
         {/* Board */}
         <div className="flex flex-col md:flex-row gap-3 md:overflow-x-auto pb-2 md:-mx-3 md:px-3">
@@ -322,26 +319,7 @@ export default function PedidosKanban() {
   );
 }
 
-function KpiTile({
-  tone,
-  label,
-  value,
-}: {
-  tone: "amber" | "blue" | "violet" | "green" | "sky";
-  label: string;
-  value: string;
-}) {
-  return (
-    <Card variant="kpi" tone={tone} className="px-4 py-3">
-      <div className="text-[11px] uppercase tracking-wider text-white/85 font-medium">
-        {label}
-      </div>
-      <div className="text-2xl font-extrabold text-white tabular-nums mt-0.5">
-        {value}
-      </div>
-    </Card>
-  );
-}
+
 
 function ColumnHeader({
   col,

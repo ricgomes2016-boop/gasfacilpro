@@ -19,6 +19,7 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 export default function WorkflowAprovacoes() {
   const { empresa } = useEmpresa();
@@ -91,12 +92,12 @@ export default function WorkflowAprovacoes() {
       <Header title="Workflow de Aprovações" subtitle="Fluxo multinível inspirado no SAP" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-warning">{pendentes}</p><p className="text-xs text-muted-foreground">Pendentes</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-success">{aprovacoes.filter((a: any) => a.status === "aprovado").length}</p><p className="text-xs text-muted-foreground">Aprovados</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-destructive">{aprovacoes.filter((a: any) => a.status === "rejeitado").length}</p><p className="text-xs text-muted-foreground">Rejeitados</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-primary">{alcadas.length}</p><p className="text-xs text-muted-foreground">Alçadas</p></CardContent></Card>
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label="Pendentes" value={pendentes} tone="amber" />
+  <KpiTile label="Aprovados" value={aprovacoes.filter((a: any) => a.status === "aprovado").length} tone="green" />
+  <KpiTile label="Rejeitados" value={aprovacoes.filter((a: any) => a.status === "rejeitado").length} tone="red" />
+  <KpiTile label="Alçadas" value={alcadas.length} tone="blue" />
+</KpiTileGrid>
 
         <Tabs value={tab} onValueChange={setTab}>
           <div className="flex items-center justify-between flex-wrap gap-2">

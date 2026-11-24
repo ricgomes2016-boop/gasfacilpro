@@ -32,6 +32,7 @@ import { imprimirOrcamentoPadrao } from "@/services/orcamentoPadraoPdfService";
 import { Switch } from "@/components/ui/switch";
 import { useAssinaturaDigital } from "@/hooks/useAssinaturaDigital";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   pendente: { label: "Pendente", color: "bg-warning/15 text-warning border-warning/30 dark:text-warning", icon: <Clock className="h-3 w-3" /> },
@@ -555,24 +556,12 @@ export default function Orcamentos() {
       <Header title="Orçamentos" subtitle="Gestão de propostas comerciais" />
       <div className="space-y-6 pb-8 p-3 md:p-6">
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card><CardContent className="p-4"><div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2"><ReceiptText className="h-5 w-5 text-primary" /></div>
-            <div><p className="text-2xl font-bold">{orcamentos.length}</p><p className="text-xs text-muted-foreground">Total Orçamentos</p></div>
-          </div></CardContent></Card>
-          <Card><CardContent className="p-4"><div className="flex items-center gap-3">
-            <div className="rounded-lg bg-warning/10 p-2"><Clock className="h-5 w-5 text-warning" /></div>
-            <div><p className="text-2xl font-bold">{pendentes.length}</p><p className="text-xs text-muted-foreground">Pendentes</p></div>
-          </div></CardContent></Card>
-          <Card><CardContent className="p-4"><div className="flex items-center gap-3">
-            <div className="rounded-lg bg-info/10 p-2"><DollarSign className="h-5 w-5 text-info" /></div>
-            <div><p className="text-2xl font-bold">R$ {valorPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-xs text-muted-foreground">Valor Pendente</p></div>
-          </div></CardContent></Card>
-          <Card><CardContent className="p-4"><div className="flex items-center gap-3">
-            <div className="rounded-lg bg-success/10 p-2"><CheckCircle2 className="h-5 w-5 text-success" /></div>
-            <div><p className="text-2xl font-bold">R$ {valorAprovado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-xs text-muted-foreground">Valor Aprovado</p></div>
-          </div></CardContent></Card>
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label="Total Orçamentos" value={orcamentos.length} icon={ReceiptText} tone="blue" />
+  <KpiTile label="Pendentes" value={pendentes.length} icon={Clock} tone="amber" />
+  <KpiTile label="Valor Pendente" value={<>R$ {valorPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</>} icon={DollarSign} tone="orange" />
+  <KpiTile label="Valor Aprovado" value={<>R$ {valorAprovado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</>} icon={CheckCircle2} tone="green" />
+</KpiTileGrid>
 
         {/* Tabs por tipo */}
         <Tabs value={tabTipo} onValueChange={(v) => setTabTipo(v as any)}>

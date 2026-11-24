@@ -19,6 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 interface Veiculo {
   id: string;
@@ -435,48 +436,12 @@ export default function Manutencao() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Gasto Total</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">R$ {gastoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
-              <p className="text-xs text-muted-foreground">Em manutenções</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Agendadas</CardTitle>
-              <Clock className="h-4 w-4 text-info" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-info">{agendadas}</div>
-              <p className="text-xs text-muted-foreground">Próximas manutenções</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
-              <Wrench className="h-4 w-4 text-warning" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-warning">{emAndamento}</div>
-              <p className="text-xs text-muted-foreground">Na oficina agora</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-success" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-success">{concluidas}</div>
-              <p className="text-xs text-muted-foreground">Aguardando acerto</p>
-            </CardContent>
-          </Card>
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label="Gasto Total" value={<>R$ {gastoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</>} icon={DollarSign} tone="blue" hint="Em manutenções" />
+  <KpiTile label="Agendadas" value={agendadas} icon={Clock} tone="amber" hint="Próximas manutenções" />
+  <KpiTile label="Em Andamento" value={emAndamento} icon={Wrench} tone="orange" hint="Na oficina agora" />
+  <KpiTile label="Concluídas" value={concluidas} icon={CheckCircle2} tone="green" hint="Aguardando acerto" />
+</KpiTileGrid>
 
         {/* Table */}
         <Card>

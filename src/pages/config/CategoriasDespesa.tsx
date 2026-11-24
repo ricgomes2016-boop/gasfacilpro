@@ -15,6 +15,7 @@ import { Plus, Pencil, Trash2, Loader2, Search, FolderTree, Sparkles } from "luc
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 interface Categoria {
   id: string;
@@ -367,45 +368,12 @@ export default function CategoriasDespesa() {
       <Header title="Categorias de Despesas" subtitle="Plano de contas de despesas" />
       <div className="p-3 md:p-6 space-y-6">
         {/* Summary cards */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <FolderTree className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{categorias.length}</p>
-                  <p className="text-xs text-muted-foreground">Total de Categorias</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div>
-                <p className="text-2xl font-bold">{categorias.filter(c => c.ativo).length}</p>
-                <p className="text-xs text-muted-foreground">Ativas</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div>
-                <p className="text-2xl font-bold">{categorias.filter(c => c.tipo === "fixo").length}</p>
-                <p className="text-xs text-muted-foreground">Custos Fixos</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div>
-                <p className="text-2xl font-bold">{categorias.filter(c => c.tipo === "variavel").length}</p>
-                <p className="text-xs text-muted-foreground">Custos Variáveis</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <KpiTileGrid className="md:grid-cols-4">
+          <KpiTile label="Total de Categorias" value={categorias.length} icon={FolderTree} tone="blue" />
+          <KpiTile label="Ativas" value={categorias.filter(c => c.ativo).length} icon={FolderTree} tone="green" />
+          <KpiTile label="Custos Fixos" value={categorias.filter(c => c.tipo === "fixo").length} icon={FolderTree} tone="amber" />
+          <KpiTile label="Custos Variáveis" value={categorias.filter(c => c.tipo === "variavel").length} icon={FolderTree} tone="orange" />
+        </KpiTileGrid>
 
         {/* Filters + Add button */}
         <div className="flex flex-wrap gap-3 items-center">

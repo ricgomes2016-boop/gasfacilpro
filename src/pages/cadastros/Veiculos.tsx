@@ -36,6 +36,7 @@ import { VeiculoDetalheDialog } from "@/components/frota/VeiculoDetalheDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { SignedImage } from "@/components/ui/signed-image";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 const PLACA_MERCOSUL_REGEX = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
 const PLACA_LEGADO_REGEX = /^[A-Z]{3}[0-9]{4}$/;
@@ -650,50 +651,14 @@ export default function Veiculos() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 gap-3 min-[384px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-              <CardTitle className="text-sm font-semibold truncate text-primary">Ativos</CardTitle>
-              <span className="status-card-icon-primary rounded-xl p-2"><Car className="h-4 w-4" /></span>
-            </CardHeader>
-            <CardContent><div className="text-2xl font-bold">{countByStatus("ativo")}</div></CardContent>
-          </Card>
-          <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-              <CardTitle className="text-sm font-semibold truncate text-info">Terceiros</CardTitle>
-              <span className="status-card-icon-info rounded-xl p-2"><ExternalLink className="h-4 w-4" /></span>
-            </CardHeader>
-            <CardContent><div className="text-2xl font-bold">{countByStatus("terceiro")}</div></CardContent>
-          </Card>
-          <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-              <CardTitle className="text-sm font-semibold truncate text-success">GPS Online</CardTitle>
-              <span className="status-card-icon-success rounded-xl p-2"><MapPin className="h-4 w-4" /></span>
-            </CardHeader>
-            <CardContent><div className="text-2xl font-bold">{gpsOnlineCount}</div></CardContent>
-          </Card>
-          <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-              <CardTitle className="text-sm font-semibold truncate text-warning">KM/L Médio</CardTitle>
-              <span className="status-card-icon-warning rounded-xl p-2"><Fuel className="h-4 w-4" /></span>
-            </CardHeader>
-            <CardContent><div className="text-2xl font-bold">{avgKmL > 0 ? avgKmL.toFixed(1) : "—"}</div></CardContent>
-          </Card>
-          <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-              <CardTitle className="text-sm font-semibold truncate text-muted-foreground">Com Entregador</CardTitle>
-              <span className="status-card-icon-muted rounded-xl p-2"><User className="h-4 w-4" /></span>
-            </CardHeader>
-            <CardContent><div className="text-2xl font-bold">{veiculos.filter(v => v.entregador_id && (v.status || "ativo") !== "excluido").length}</div></CardContent>
-          </Card>
-          <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-              <CardTitle className="text-sm font-semibold truncate text-accent-foreground">Valor FIPE</CardTitle>
-              <span className="status-card-icon-accent rounded-xl p-2"><Truck className="h-4 w-4" /></span>
-            </CardHeader>
-            <CardContent><div className="text-xl font-bold truncate">R$ {totalFipe.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div></CardContent>
-          </Card>
-        </div>
+        <KpiTileGrid className="md:grid-cols-3 xl:grid-cols-6">
+          <KpiTile label="Ativos" value={countByStatus("ativo")} icon={Car} tone="green" />
+          <KpiTile label="Terceiros" value={countByStatus("terceiro")} icon={ExternalLink} tone="blue" />
+          <KpiTile label="GPS Online" value={gpsOnlineCount} icon={MapPin} tone="green" />
+          <KpiTile label="KM/L Médio" value={avgKmL > 0 ? avgKmL.toFixed(1) : "—"} icon={Fuel} tone="orange" />
+          <KpiTile label="Com Entregador" value={veiculos.filter(v => v.entregador_id && (v.status || "ativo") !== "excluido").length} icon={User} tone="amber" />
+          <KpiTile label="Valor FIPE" value={<>R$ {totalFipe.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</>} icon={Truck} tone="blue" />
+        </KpiTileGrid>
 
         {/* Table */}
         <Card className="modern-panel overflow-hidden">

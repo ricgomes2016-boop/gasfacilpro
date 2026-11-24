@@ -16,6 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 interface Veiculo {
   id: string;
@@ -416,33 +417,12 @@ export default function Combustivel() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">{hasFiltro ? "Gasto Filtrado" : "Gasto Mensal"}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold">R$ {(hasFiltro ? totalValorFiltrado : gastoMensal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="text-xs text-muted-foreground">{hasFiltro ? `${filtered.length} registro(s)` : "Este mês"}</p></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Litros Consumidos</CardTitle><Fuel className="h-4 w-4 text-warning" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-warning">{(hasFiltro ? totalLitrosFiltrado : litrosMensal).toLocaleString("pt-BR", { minimumFractionDigits: 1 })} L</div><p className="text-xs text-muted-foreground">{hasFiltro ? `Média R$/L: R$ ${mediaPorLitro.toFixed(2)}` : "Este mês"}</p></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Pendentes Acerto</CardTitle><Receipt className="h-4 w-4 text-warning" /></CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-warning">{pendentes.length}</div>
-              <p className="text-xs text-muted-foreground">R$ {pendentes.reduce((s, a) => s + Number(a.valor), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">{filtroVeiculo !== "todos" && kmPorLitro != null ? "Km/L Estimado" : "Veículos Ativos"}</CardTitle><Truck className="h-4 w-4 text-info" /></CardHeader>
-            <CardContent>
-              {filtroVeiculo !== "todos" && kmPorLitro != null ? (
-                <><div className="text-2xl font-bold text-info">{kmPorLitro.toFixed(2)}</div><p className="text-xs text-muted-foreground">km por litro</p></>
-              ) : (
-                <><div className="text-2xl font-bold text-info">{veiculosAtivos}</div><p className="text-xs text-muted-foreground">Na frota</p></>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label={hasFiltro ? "Gasto Filtrado" : "Gasto Mensal"} value={<>R$ {(hasFiltro ? totalValorFiltrado : gastoMensal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</>} icon={DollarSign} tone="blue" hint={hasFiltro ? `${filtered.length} registro(s)` : "Este mês"} />
+  <KpiTile label="Litros Consumidos" value={<>{(hasFiltro ? totalLitrosFiltrado : litrosMensal).toLocaleString("pt-BR", { minimumFractionDigits: 1 })} L</>} icon={Fuel} tone="orange" hint={hasFiltro ? `Média R$/L: R$ ${mediaPorLitro.toFixed(2)}` : "Este mês"} />
+  <KpiTile label="Pendentes Acerto" value={pendentes.length} icon={Receipt} tone="amber" hint={<>R$ {pendentes.reduce((s, a) => s + Number(a.valor), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</>} />
+  <KpiTile label={filtroVeiculo !== "todos" && kmPorLitro != null ? "Km/L Estimado" : "Veículos Ativos"} value={filtroVeiculo !== "todos" && kmPorLitro != null ? kmPorLitro.toFixed(2) : veiculosAtivos} icon={Truck} tone="green" hint={filtroVeiculo !== "todos" && kmPorLitro != null ? "km por litro" : "Na frota"} />
+</KpiTileGrid>
 
         {/* Filtros: Veículo / Motorista / Tipo */}
         <Card>

@@ -34,6 +34,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Header } from "@/components/layout/Header";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 interface VendedorMeta {
   funcionario_id: string;
@@ -247,41 +248,12 @@ function VendedoresInner() {
 
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Users className="h-3 w-3" /> Vendedores ativos
-            </p>
-            <p className="text-2xl font-bold">{kpis.ativos}<span className="text-sm text-muted-foreground"> / {vendedores.length}</span></p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" /> Vendas no período
-            </p>
-            <p className="text-2xl font-bold">{formatBRL(kpis.totalVendas)}</p>
-            <p className="text-[10px] text-muted-foreground">{kpis.qtdTotal} pedidos</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <DollarSign className="h-3 w-3" /> Ticket médio
-            </p>
-            <p className="text-2xl font-bold">{formatBRL(kpis.ticket)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Award className="h-3 w-3" /> Comissão estimada
-            </p>
-            <p className="text-2xl font-bold text-success">{formatBRL(kpis.comissao)}</p>
-          </CardContent>
-        </Card>
-      </div>
+      <KpiTileGrid className="md:grid-cols-4">
+        <KpiTile label="Vendedores ativos" value={kpis.ativos} hint={`de ${vendedores.length}`} icon={Users} tone="green" />
+        <KpiTile label="Vendas no período" value={formatBRL(kpis.totalVendas)} hint={`${kpis.qtdTotal} pedidos`} icon={TrendingUp} tone="blue" />
+        <KpiTile label="Ticket médio" value={formatBRL(kpis.ticket)} icon={DollarSign} tone="amber" />
+        <KpiTile label="Comissão estimada" value={formatBRL(kpis.comissao)} icon={Award} tone="orange" />
+      </KpiTileGrid>
 
       {/* Ranking / pódio */}
       {top5.length > 0 && (

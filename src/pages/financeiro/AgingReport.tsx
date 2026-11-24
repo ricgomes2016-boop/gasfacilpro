@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { differenceInDays, format } from "date-fns";
 import * as XLSX from "xlsx";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 interface AgingItem {
   id: string;
@@ -99,46 +100,12 @@ export default function AgingReport({ embedded }: { embedded?: boolean } = {}) {
   const content = (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">Total Inadimplente</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg sm:text-2xl font-bold text-destructive">{fmt(totalInadimplente)}</div>
-              <p className="text-xs text-muted-foreground">{items.length} título(s) vencido(s)</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">Ticket Médio</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg sm:text-2xl font-bold">{fmt(ticketMedio)}</div>
-              <p className="text-xs text-muted-foreground">Por título vencido</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">Maior Atraso</CardTitle>
-              <Clock className="h-4 w-4 text-warning" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg sm:text-2xl font-bold text-warning">{maiorAtraso} dias</div>
-              <p className="text-xs text-muted-foreground">{items.length > 0 ? items[0].cliente : "—"}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium">Faixa Crítica</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg sm:text-2xl font-bold">{totaisFaixa[3].quantidade}</div>
-              <p className="text-xs text-muted-foreground">90+ dias — {fmt(totaisFaixa[3].valor)}</p>
-            </CardContent>
-          </Card>
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label="Total Inadimplente" value={fmt(totalInadimplente)} icon={AlertTriangle} tone="red" hint={<>{items.length} título(s) vencido(s)</>} />
+  <KpiTile label="Ticket Médio" value={fmt(ticketMedio)} tone="blue" hint="Por título vencido" />
+  <KpiTile label="Maior Atraso" value={<>{maiorAtraso} dias</>} icon={Clock} tone="orange" hint={items.length > 0 ? items[0].cliente : "—"} />
+  <KpiTile label="Faixa Crítica" value={totaisFaixa[3].quantidade} icon={AlertTriangle} tone="red" hint={<>90+ dias — {fmt(totaisFaixa[3].valor)}</>} />
+</KpiTileGrid>
 
         {/* Gráfico */}
         <Card>

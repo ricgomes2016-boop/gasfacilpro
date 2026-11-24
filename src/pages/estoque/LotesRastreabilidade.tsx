@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
 import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
 import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 export default function LotesRastreabilidade() {
   const { empresa } = useEmpresa();
@@ -97,12 +98,12 @@ export default function LotesRastreabilidade() {
           }
         />
 
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
-          <EstoqueKpiCard icon={Package} label="Lotes Ativos" value={lotes.filter((l: any) => l.status === "ativo").length} tone="primary" />
-          <EstoqueKpiCard icon={Calendar} label="Vencendo (30d)" value={vencendo.length} tone={vencendo.length > 0 ? "warning" : "secondary"} />
-          <EstoqueKpiCard icon={AlertTriangle} label="Vencidos" value={vencidos.length} tone={vencidos.length > 0 ? "destructive" : "secondary"} />
-          <EstoqueKpiCard icon={RotateCcw} label="Recalls" value={recalls.length} tone={recalls.length > 0 ? "destructive" : "secondary"} />
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile icon={Package} label="Lotes Ativos" value={lotes.filter((l: any) => l.status === "ativo").length} tone="blue" />
+  <KpiTile icon={Calendar} label="Vencendo (30d)" value={vencendo.length} tone={vencendo.length > 0 ? "amber" : "green"} />
+  <KpiTile icon={AlertTriangle} label="Vencidos" value={vencidos.length} tone={vencidos.length > 0 ? "red" : "green"} />
+  <KpiTile icon={RotateCcw} label="Recalls" value={recalls.length} tone={recalls.length > 0 ? "red" : "green"} />
+</KpiTileGrid>
 
         {(vencidos.length > 0 || recalls.length > 0) && (
           <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 flex items-center gap-2">

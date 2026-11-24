@@ -15,6 +15,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { toast } from "sonner";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 export default function GestaoCredito() {
   const { empresa } = useEmpresa();
@@ -70,12 +71,12 @@ export default function GestaoCredito() {
     <MainLayout>
       <Header title="Gestão de Crédito" subtitle="Limites, scores e bloqueios — SAP SD Credit Management" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card className="kpi-card kpi-card-destructive"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-destructive"><DollarSign /></div><div><p className="kpi-value text-destructive">R$ {totalDevedor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="kpi-label">Saldo Devedor</p></div></CardContent></Card>
-          <Card className="kpi-card kpi-card-warning"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-warning"><Lock /></div><div><p className="kpi-value text-warning">{bloqueados.length}</p><p className="kpi-label">Bloqueados</p></div></CardContent></Card>
-          <Card className="kpi-card kpi-card-destructive"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-destructive"><AlertTriangle /></div><div><p className="kpi-value text-destructive">{riscoAlto.length}</p><p className="kpi-label">Risco Alto</p></div></CardContent></Card>
-          <Card className="kpi-card kpi-card-success"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-success"><TrendingDown /></div><div><p className="kpi-value text-success">{riscoBaixo.length}</p><p className="kpi-label">Risco Baixo</p></div></CardContent></Card>
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label="Saldo Devedor" value={<>R$ {totalDevedor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</>} icon={DollarSign} tone="red" />
+  <KpiTile label="Bloqueados" value={bloqueados.length} icon={Lock} tone="amber" />
+  <KpiTile label="Risco Alto" value={riscoAlto.length} icon={AlertTriangle} tone="orange" />
+  <KpiTile label="Risco Baixo" value={riscoBaixo.length} icon={TrendingDown} tone="green" />
+</KpiTileGrid>
 
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">

@@ -5,3 +5,4 @@
 - Store new conference counts by sales day with physical count date and opening/closing moment separately; read legacy counts as opening counts without rewriting them, so historical stock is preserved.
 - Conference movements store empresa_id validated against origin and destination units by a database trigger; derive it for older clients to preserve compatibility without weakening tenant isolation.
 - Send yard entry and transfer writes through the scoped conference function, validating origin authorization and same-company active destinations; never grant ERP access for movements.- Date conference entries/transfers by the physical day they happen; an opening count closes the previous sales day, so same-day movements belong to the next sale, never the one being closed.
+- Page summary/KPI rows use KpiTile/KpiTileGrid from src/components/ui/kpi-tile.tsx so stat cards share the Dashboard Acesso Rápido look.

@@ -42,6 +42,7 @@ import { VendaSectionHeader } from "@/components/vendas/VendaSectionHeader";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line } from "recharts";
 import { Package, CreditCard, CalendarDays, Trophy, PackageSearch, Check } from "lucide-react";
 import { ProdutosVendidosTab } from "./ProdutosVendidosTab";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 const formaPagamentoLabels: Record<string, string> = {
   dinheiro: "Dinheiro",
@@ -975,44 +976,12 @@ export default function RelatorioVendas() {
         </Card>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card className="hover:border-primary/40 transition-colors">
-            <CardContent className="p-4 flex items-start gap-3">
-              <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><DollarSign className="h-5 w-5" /></div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-muted-foreground">Faturamento Total</p>
-                <p className="text-lg sm:text-2xl font-bold mt-0.5 truncate">{fmtBRL(kpisUI.faturamento)}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="hover:border-primary/40 transition-colors">
-            <CardContent className="p-4 flex items-start gap-3">
-              <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><Package className="h-5 w-5" /></div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-muted-foreground">Itens Vendidos</p>
-                <p className="text-lg sm:text-2xl font-bold mt-0.5">{fmtInt(kpisUI.itens)}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="hover:border-primary/40 transition-colors">
-            <CardContent className="p-4 flex items-start gap-3">
-              <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><TrendingUp className="h-5 w-5" /></div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-muted-foreground">Preço Médio</p>
-                <p className="text-lg sm:text-2xl font-bold mt-0.5 truncate">{fmtBRL(kpisUI.precoMedio)}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="hover:border-primary/40 transition-colors">
-            <CardContent className="p-4 flex items-start gap-3">
-              <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><ShoppingCart className="h-5 w-5" /></div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-muted-foreground">Total de Pedidos</p>
-                <p className="text-lg sm:text-2xl font-bold mt-0.5">{fmtInt(kpisUI.pedidos)}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <KpiTileGrid className="md:grid-cols-4">
+          <KpiTile label="Faturamento Total" value={fmtBRL(kpisUI.faturamento)} icon={DollarSign} tone="green" />
+          <KpiTile label="Itens Vendidos" value={fmtInt(kpisUI.itens)} icon={Package} tone="orange" />
+          <KpiTile label="Preço Médio" value={fmtBRL(kpisUI.precoMedio)} icon={TrendingUp} tone="amber" />
+          <KpiTile label="Total de Pedidos" value={fmtInt(kpisUI.pedidos)} icon={ShoppingCart} tone="blue" />
+        </KpiTileGrid>
 
         {/* Abas */}
         <Tabs value={abaUI} onValueChange={(v) => setAbaUI(v as any)} className="space-y-3">

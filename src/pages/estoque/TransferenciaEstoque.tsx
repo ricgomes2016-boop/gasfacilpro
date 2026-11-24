@@ -24,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
 import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 interface Produto {
   id: string;
@@ -514,12 +515,12 @@ export default function TransferenciaEstoque() {
         />
 
         {/* KPIs */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
-          <EstoqueKpiCard icon={ArrowRightLeft} label="Total" value={transferencias.length} tone="primary" />
-          <EstoqueKpiCard icon={Truck} label="Pendentes" value={transferencias.filter(t => t.status === "pendente").length} tone="warning" />
-          <EstoqueKpiCard icon={Truck} label="Em Trânsito" value={transferencias.filter(t => t.status === "em_transito").length} tone="info" />
-          <EstoqueKpiCard icon={Check} label="Recebidos" value={transferencias.filter(t => t.status === "recebido").length} tone="success" />
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile icon={ArrowRightLeft} label="Total" value={transferencias.length} tone="blue" />
+  <KpiTile icon={Truck} label="Pendentes" value={transferencias.filter(t => t.status === "pendente").length} tone="amber" />
+  <KpiTile icon={Truck} label="Em Trânsito" value={transferencias.filter(t => t.status === "em_transito").length} tone="orange" />
+  <KpiTile icon={Check} label="Recebidos" value={transferencias.filter(t => t.status === "recebido").length} tone="green" />
+</KpiTileGrid>
 
 
 

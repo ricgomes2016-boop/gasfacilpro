@@ -31,6 +31,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { resolveCategoriaDespesaNome, useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 interface Despesa {
   id: string;
@@ -273,12 +274,12 @@ export default function Despesas() {
         </div>
 
         {/* Cards resumo */}
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-3"><div className="status-card-icon status-card-icon-destructive"><TrendingDown /></div><div className="min-w-0"><p className="text-lg sm:text-2xl font-bold text-destructive truncate">R$ {totalDespesas.toFixed(2)}</p><p className="text-xs text-muted-foreground">Total Despesas</p></div></div></CardContent></Card>
-          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-3"><div className="status-card-icon status-card-icon-success"><Wallet /></div><div className="min-w-0"><p className="text-lg sm:text-2xl font-bold text-success truncate">R$ {totalAprovadas.toFixed(2)}</p><p className="text-xs text-muted-foreground">Aprovadas</p></div></div></CardContent></Card>
-          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-3"><div className="status-card-icon status-card-icon-warning"><DollarSign /></div><div className="min-w-0"><p className="text-lg sm:text-2xl font-bold truncate">R$ {totalPendentes.toFixed(2)}</p><p className="text-xs text-muted-foreground">Pendentes</p></div></div></CardContent></Card>
-          <Card><CardContent className="p-3 sm:pt-6 sm:p-6"><div className="flex items-center gap-3"><div className="status-card-icon status-card-icon-primary"><Receipt /></div><div className="min-w-0"><p className="text-lg sm:text-2xl font-bold">{despesas.length}</p><p className="text-xs text-muted-foreground">Registros</p></div></div></CardContent></Card>
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label="Total Despesas" value={<>R$ {totalDespesas.toFixed(2)}</>} icon={TrendingDown} tone="blue" />
+  <KpiTile label="Aprovadas" value={<>R$ {totalAprovadas.toFixed(2)}</>} icon={Wallet} tone="green" />
+  <KpiTile label="Pendentes" value={<>R$ {totalPendentes.toFixed(2)}</>} icon={DollarSign} tone="amber" />
+  <KpiTile label="Registros" value={despesas.length} icon={Receipt} tone="orange" />
+</KpiTileGrid>
 
         {/* Resumo por categoria */}
         {categorias.length > 0 && (

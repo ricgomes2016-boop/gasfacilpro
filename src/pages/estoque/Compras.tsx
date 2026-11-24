@@ -43,6 +43,7 @@ import { parseDfeDocumento } from "@/lib/fiscal/dfeXml";
 import { agenteConsultaChave, verificarAgente } from "@/lib/fiscal/agenteLocal";
 
 import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 interface Compra {
   id: string;
@@ -2182,36 +2183,12 @@ export default function Compras() {
 
 
         {/* KPI Cards */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
-          <EstoqueKpiCard
-            icon={DollarSign}
-            label="Compras no Mês"
-            value={`R$ ${(totalMesAtual / 1000).toFixed(1)}k`}
-            tone="primary"
-            hint={`${variacaoMes >= 0 ? "+" : ""}${variacaoMes.toFixed(1)}% vs mês anterior`}
-          />
-          <EstoqueKpiCard
-            icon={BarChart3}
-            label="Ticket Médio"
-            value={`R$ ${ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
-            tone="info"
-            hint={`${comprasMesAtual.length} compras no mês`}
-          />
-          <EstoqueKpiCard
-            icon={Truck}
-            label="Frete no Mês"
-            value={`R$ ${totalFreteMes.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
-            tone="warning"
-            hint={`${percentualFrete.toFixed(1)}% do total`}
-          />
-          <EstoqueKpiCard
-            icon={CalendarDays}
-            label="Pendentes/Trânsito"
-            value={comprasPendentes.length}
-            tone={comprasPendentes.length > 0 ? "destructive" : "secondary"}
-            hint={`R$ ${valorPendente.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
-          />
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile icon={DollarSign} label="Compras no Mês" value={`R$ ${(totalMesAtual / 1000).toFixed(1)}k`} tone="blue" hint={`${variacaoMes >= 0 ? "+" : ""}${variacaoMes.toFixed(1)}% vs mês anterior`} />
+  <KpiTile icon={BarChart3} label="Ticket Médio" value={`R$ ${ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} tone="green" hint={`${comprasMesAtual.length} compras no mês`} />
+  <KpiTile icon={Truck} label="Frete no Mês" value={`R$ ${totalFreteMes.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} tone="orange" hint={`${percentualFrete.toFixed(1)}% do total`} />
+  <KpiTile icon={CalendarDays} label="Pendentes/Trânsito" value={comprasPendentes.length} tone="amber" hint={`R$ ${valorPendente.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} />
+</KpiTileGrid>
 
 
         {/* Top Suppliers */}

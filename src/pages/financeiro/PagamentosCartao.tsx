@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { CreditCard, DollarSign, TrendingUp, Clock, CheckCircle } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 export default function PagamentosCartaoRelatorio() {
   const { unidadeAtual } = useUnidade();
@@ -120,38 +121,13 @@ export default function PagamentosCartaoRelatorio() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="text-sm text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" />Total Bruto</div>
-            <div className="text-xl font-bold">{fmtBRL(totalBruto)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="text-sm text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" />Total Taxa</div>
-            <div className="text-xl font-bold text-destructive">{fmtBRL(totalTaxa)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="text-sm text-muted-foreground">Total Líquido</div>
-            <div className="text-xl font-bold">{fmtBRL(totalLiquido)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="text-sm text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />A Receber</div>
-            <div className="text-xl font-bold text-warning dark:text-warning">{fmtBRL(totalAReceber)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="text-sm text-muted-foreground flex items-center gap-1"><CheckCircle className="h-3 w-3" />Liquidado</div>
-            <div className="text-xl font-bold text-success dark:text-success">{fmtBRL(totalLiquidado)}</div>
-          </CardContent>
-        </Card>
-      </div>
+<KpiTileGrid className="md:grid-cols-5">
+  <KpiTile label="Total Bruto" value={fmtBRL(totalBruto)} icon={DollarSign} tone="blue" />
+  <KpiTile label="Total Taxa" value={fmtBRL(totalTaxa)} icon={TrendingUp} tone="red" />
+  <KpiTile label="Total Líquido" value={fmtBRL(totalLiquido)} icon={DollarSign} tone="blue" />
+  <KpiTile label="A Receber" value={fmtBRL(totalAReceber)} icon={Clock} tone="amber" />
+  <KpiTile label="Liquidado" value={fmtBRL(totalLiquidado)} icon={CheckCircle} tone="green" />
+</KpiTileGrid>
 
       {/* Tabs de agrupamento */}
       <Tabs value={filtroAba} onValueChange={setFiltroAba}>

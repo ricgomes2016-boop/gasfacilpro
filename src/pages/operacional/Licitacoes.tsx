@@ -59,6 +59,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
 import { EmpenhosPanel } from "@/components/licitacoes/EmpenhosPanel";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Licitacao {
@@ -360,52 +361,12 @@ export default function Licitacoes() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-info flex items-center justify-center">
-                <FileText className="h-5 w-5 text-info" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-warning flex items-center justify-center">
-                <AlertCircle className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.participando}</p>
-                <p className="text-xs text-muted-foreground">Em Andamento</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-success flex items-center justify-center">
-                <Trophy className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.vencidas}</p>
-                <p className="text-xs text-muted-foreground">Vencidas</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-success flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-sm font-bold">{formatCurrency(stats.valorTotal)}</p>
-                <p className="text-xs text-muted-foreground">Em Execução</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label="Total" value={stats.total} icon={FileText} tone="blue" />
+  <KpiTile label="Em Andamento" value={stats.participando} icon={AlertCircle} tone="amber" />
+  <KpiTile label="Vencidas" value={stats.vencidas} icon={Trophy} tone="green" />
+  <KpiTile label="Em Execução" value={formatCurrency(stats.valorTotal)} icon={TrendingUp} tone="orange" />
+</KpiTileGrid>
 
         {/* Filtros */}
         <div className="flex flex-col sm:flex-row gap-3">

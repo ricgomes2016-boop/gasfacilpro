@@ -15,6 +15,7 @@ import { Download, Archive, Filter, Upload, FileUp, Loader2, CheckCircle, AlertT
 import { useToast } from "@/hooks/use-toast";
 import { listarNotas, criarNota, type NotaFiscal } from "@/services/focusNfeService";
 import { Progress } from "@/components/ui/progress";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 export default function GerarXML() {
   const { toast } = useToast();
@@ -200,14 +201,11 @@ export default function GerarXML() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {["nfe", "nfce", "cte", "mdfe"].map(t => (
-            <Card key={t} className="text-center p-4">
-              <p className="text-2xl font-bold">{contagem(t)}</p>
-              <p className="text-sm text-muted-foreground">{tipoLabel(t)}</p>
-            </Card>
-          ))}
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  {["nfe", "nfce", "cte", "mdfe"].map((t, i) => (
+    <KpiTile key={t} label={tipoLabel(t)} value={contagem(t)} tone={(["blue", "orange", "green", "amber"] as const)[i]} />
+  ))}
+</KpiTileGrid>
 
         <Card>
           <CardHeader>

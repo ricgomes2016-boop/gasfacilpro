@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Download, FileText, TrendingUp, CheckCircle2, XCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { obterEstatisticasFiscais } from "@/services/focusNfeService";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 export default function RelatoriosNotas() {
   const [stats, setStats] = useState<{ tipo: string; status: string; valor_total: number; data_emissao: string }[]>([]);
@@ -65,52 +66,12 @@ export default function RelatoriosNotas() {
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><FileText className="h-5 w-5 text-primary" /></div>
-                <div>
-                  <p className="text-2xl font-bold">{totalNotas}</p>
-                  <p className="text-sm text-muted-foreground">Total de Notas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><CheckCircle2 className="h-5 w-5 text-primary" /></div>
-                <div>
-                  <p className="text-2xl font-bold">{autorizadas}</p>
-                  <p className="text-sm text-muted-foreground">Autorizadas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center"><XCircle className="h-5 w-5 text-destructive" /></div>
-                <div>
-                  <p className="text-2xl font-bold">{canceladas}</p>
-                  <p className="text-sm text-muted-foreground">Canceladas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><TrendingUp className="h-5 w-5 text-primary" /></div>
-                <div>
-                  <p className="text-2xl font-bold">R$ {(valorTotal / 1000).toFixed(0)}k</p>
-                  <p className="text-sm text-muted-foreground">Valor Total</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label="Total de Notas" value={totalNotas} icon={FileText} tone="blue" />
+  <KpiTile label="Autorizadas" value={autorizadas} icon={CheckCircle2} tone="green" />
+  <KpiTile label="Canceladas" value={canceladas} icon={XCircle} tone="red" />
+  <KpiTile label="Valor Total" value={<>R$ {(valorTotal / 1000).toFixed(0)}k</>} icon={TrendingUp} tone="orange" />
+</KpiTileGrid>
 
         {/* Charts */}
         <div className="grid md:grid-cols-3 gap-6">

@@ -11,6 +11,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { obterEstatisticasFiscais } from "@/services/focusNfeService";
 import { useNavigate } from "react-router-dom";
 import { KpiCard, SectionCard } from "@/components/shared";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 export default function DashboardFiscal() {
   const navigate = useNavigate();
@@ -65,13 +66,13 @@ export default function DashboardFiscal() {
       <Header title="Dashboard Fiscal" subtitle="Gestão Fiscal" />
       <div className="p-4 md:p-6 space-y-6">
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <KpiCard icon={FileText} label="Total Emitidas" value={totalNotas} tone="primary" />
-          <KpiCard icon={CheckCircle2} label="Autorizadas" value={autorizadas} tone="success" />
-          <KpiCard icon={XCircle} label="Canceladas" value={canceladas} tone="destructive" />
-          <KpiCard icon={AlertTriangle} label="Rejeitadas" value={rejeitadas} tone="warning" />
-          <KpiCard icon={TrendingUp} label="Valor Autorizado" value={`R$ ${(valorTotal / 1000).toFixed(0)}k`} tone="info" />
-        </div>
+<KpiTileGrid className="md:grid-cols-5">
+  <KpiTile icon={FileText} label="Total Emitidas" value={totalNotas} tone="blue" />
+  <KpiTile icon={CheckCircle2} label="Autorizadas" value={autorizadas} tone="green" />
+  <KpiTile icon={XCircle} label="Canceladas" value={canceladas} tone="red" />
+  <KpiTile icon={AlertTriangle} label="Rejeitadas" value={rejeitadas} tone="orange" />
+  <KpiTile icon={TrendingUp} label="Valor Autorizado" value={`R$ ${(valorTotal / 1000).toFixed(0)}k`} tone="green" />
+</KpiTileGrid>
 
         {/* Atalhos rápidos */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

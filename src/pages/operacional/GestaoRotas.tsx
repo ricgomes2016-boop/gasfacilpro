@@ -42,6 +42,7 @@ import { useNavigate } from "react-router-dom";
 import { haversineDistance } from "@/lib/haversine";
 import { geocodeAddress } from "@/lib/geocoding";
 import { RotaAtacadoMapPicker } from "@/components/operacional/RotaAtacadoMapPicker";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 interface CidadeRota {
   nome: string;
@@ -623,79 +624,23 @@ export default function GestaoRotas() {
             </Card>
 
             {/* Resumo */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Total Saída</p>
-                  <p className="text-2xl font-bold text-primary">{resumo.totalSaida}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Transferido</p>
-                  <p className="text-2xl font-bold text-warning">{resumo.totalTransferido}</p>
-                </CardContent>
-              </Card>
-              <Card className="border-primary/30 bg-primary/5">
-                <CardContent className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground font-medium">Saldo Líquido</p>
-                  <p className="text-2xl font-bold text-primary">{resumo.totalSaida - resumo.totalTransferido}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Total Vendido</p>
-                  <p className="text-2xl font-bold text-success">{resumo.totalVendido}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Total Retorno</p>
-                  <p className="text-2xl font-bold text-warning">{resumo.totalRetorno}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Em Rota</p>
-                  <p className="text-2xl font-bold">{resumo.emRota}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Finalizados</p>
-                  <p className="text-2xl font-bold">{resumo.finalizados}</p>
-                </CardContent>
-              </Card>
-            </div>
+<KpiTileGrid className="md:grid-cols-4 lg:grid-cols-7">
+  <KpiTile label="Total Saída" value={resumo.totalSaida} tone="blue" />
+  <KpiTile label="Transferido" value={resumo.totalTransferido} tone="amber" />
+  <KpiTile label="Saldo Líquido" value={resumo.totalSaida - resumo.totalTransferido} tone={resumo.totalSaida - resumo.totalTransferido < 0 ? "red" : "blue"} />
+  <KpiTile label="Total Vendido" value={resumo.totalVendido} tone="green" />
+  <KpiTile label="Total Retorno" value={resumo.totalRetorno} tone="amber" />
+  <KpiTile label="Em Rota" value={resumo.emRota} tone="orange" />
+  <KpiTile label="Finalizados" value={resumo.finalizados} tone="green" />
+</KpiTileGrid>
 
             {/* Resumo Financeiro */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Receita</p>
-                  <p className="text-xl font-bold text-success">R$ {resumo.receita.toFixed(2)}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Custo Produto</p>
-                  <p className="text-xl font-bold text-warning">R$ {resumo.custo.toFixed(2)}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Despesas Rota</p>
-                  <p className="text-xl font-bold text-destructive">R$ {resumo.despesa.toFixed(2)}</p>
-                </CardContent>
-              </Card>
-              <Card className={`border-2 ${resumo.margem >= 0 ? "border-success bg-success dark:bg-success/20" : "border-destructive bg-destructive dark:bg-destructive/20"}`}>
-                <CardContent className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground font-medium">Margem Líquida</p>
-                  <p className={`text-xl font-bold ${resumo.margem >= 0 ? "text-success" : "text-destructive"}`}>R$ {resumo.margem.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">{margemPct.toFixed(1)}%</p>
-                </CardContent>
-              </Card>
-            </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label="Receita" value={<>R$ {resumo.receita.toFixed(2)}</>} tone="green" />
+  <KpiTile label="Custo Produto" value={<>R$ {resumo.custo.toFixed(2)}</>} tone="amber" />
+  <KpiTile label="Despesas Rota" value={<>R$ {resumo.despesa.toFixed(2)}</>} tone="red" />
+  <KpiTile label="Margem Líquida" value={<>R$ {resumo.margem.toFixed(2)}</>} tone={resumo.margem >= 0 ? "green" : "red"} hint={<>{margemPct.toFixed(1)}%</>} />
+</KpiTileGrid>
 
 
             {/* Lista de carregamentos */}

@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
 import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 const TEMPO_REPOSICAO_PADRAO = 3; // dias
 const MARGEM_SEGURANCA = 1.5;
@@ -140,13 +141,13 @@ export default function MCMM() {
         />
 
         {/* KPIs */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-5">
-          <EstoqueKpiCard icon={Package} label="Estoque Total" value={kpis.estoqueTotal} tone="primary" />
-          <EstoqueKpiCard icon={TrendingUp} label="Consumo/Dia" value={kpis.mediaConsumoTotal} tone="info" />
-          <EstoqueKpiCard icon={Clock} label="Cobertura" value={`${kpis.cobertura}d`} tone="secondary" />
-          <EstoqueKpiCard icon={AlertTriangle} label="Críticos" value={kpis.criticos} tone={kpis.criticos > 0 ? "destructive" : "secondary"} />
-          <EstoqueKpiCard icon={ShieldCheck} label="Alertas" value={kpis.alertas} tone={kpis.alertas > 0 ? "warning" : "secondary"} />
-        </div>
+<KpiTileGrid className="md:grid-cols-5">
+  <KpiTile icon={Package} label="Estoque Total" value={kpis.estoqueTotal} tone="blue" />
+  <KpiTile icon={TrendingUp} label="Consumo/Dia" value={kpis.mediaConsumoTotal} tone="orange" />
+  <KpiTile icon={Clock} label="Cobertura" value={`${kpis.cobertura}d`} tone="green" />
+  <KpiTile icon={AlertTriangle} label="Críticos" value={kpis.criticos} tone={kpis.criticos > 0 ? "red" : "blue"} />
+  <KpiTile icon={ShieldCheck} label="Alertas" value={kpis.alertas} tone={kpis.alertas > 0 ? "amber" : "blue"} />
+</KpiTileGrid>
 
 
         {/* Chart */}

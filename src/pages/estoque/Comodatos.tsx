@@ -31,6 +31,7 @@ import { ptBR } from "date-fns/locale";
 import { EstoqueKpiCard } from "@/components/estoque/EstoqueKpiCard";
 import { EstoquePageHeader } from "@/components/estoque/EstoquePageHeader";
 import { ClienteAutocompleteInput } from "@/components/clientes/ClienteAutocompleteInput";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 export default function Comodatos() {
   const { unidadeAtual } = useUnidade();
@@ -536,12 +537,12 @@ export default function Comodatos() {
         />
 
         {/* KPIs */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
-          <EstoqueKpiCard icon={Package} label="Vasilhames Emprestados" value={totalQtd} tone="primary" />
-          <EstoqueKpiCard icon={Users} label="Clientes" value={clientesUnicos} tone="info" />
-          <EstoqueKpiCard icon={AlertTriangle} label="Vencidos" value={vencidos} tone={vencidos > 0 ? "destructive" : "secondary"} />
-          <EstoqueKpiCard icon={CheckCircle} label="Reposição em aberto" value={`R$ ${custoReposicaoPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} tone="secondary" />
-        </div>
+        <KpiTileGrid className="md:grid-cols-4">
+          <KpiTile icon={Package} label="Vasilhames Emprestados" value={totalQtd} tone="blue" />
+          <KpiTile icon={Users} label="Clientes" value={clientesUnicos} tone="amber" />
+          <KpiTile icon={AlertTriangle} label="Vencidos" value={vencidos} tone={vencidos > 0 ? "red" : "green"} />
+          <KpiTile icon={CheckCircle} label="Reposição em aberto" value={`R$ ${custoReposicaoPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} tone="orange" />
+        </KpiTileGrid>
 
         {/* Filtros */}
         <div className="flex flex-col sm:flex-row gap-2">

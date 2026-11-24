@@ -18,6 +18,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
 import { format, subDays } from "date-fns";
 import { getBrasiliaDate, getBrasiliaStartOfDay, getBrasiliaEndOfDay } from "@/lib/utils";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 export default function SlaEntregas() {
   const { empresa } = useEmpresa();
@@ -90,12 +91,12 @@ export default function SlaEntregas() {
     <MainLayout>
       <Header title="SLA de Entregas" subtitle="Indicadores de performance e pontualidade" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-primary">{slaMinutos}min</p><p className="text-xs text-muted-foreground">SLA Contratual</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className={`text-2xl font-bold ${taxaPontualidade >= 80 ? "text-success" : taxaPontualidade >= 60 ? "text-warning" : "text-destructive"}`}>{taxaPontualidade}%</p><p className="text-xs text-muted-foreground">Pontualidade</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className={`text-2xl font-bold ${tempoMedio <= slaMinutos ? "text-success" : "text-destructive"}`}>{tempoMedio}min</p><p className="text-xs text-muted-foreground">Tempo Médio</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold">{totalEntregas}</p><p className="text-xs text-muted-foreground">Entregas (30d)</p></CardContent></Card>
-        </div>
+<KpiTileGrid className="md:grid-cols-4">
+  <KpiTile label="SLA Contratual" value={<>{slaMinutos}min</>} tone="blue" />
+  <KpiTile label="Pontualidade" value={<>{taxaPontualidade}%</>} tone={taxaPontualidade >= 80 ? "green" : taxaPontualidade >= 60 ? "amber" : "red"} />
+  <KpiTile label="Tempo Médio" value={<>{tempoMedio}min</>} tone={tempoMedio <= slaMinutos ? "green" : "red"} />
+  <KpiTile label="Entregas (30d)" value={totalEntregas} tone="orange" />
+</KpiTileGrid>
 
         {taxaPontualidade < 70 && totalEntregas > 5 && (
           <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 flex items-center gap-2">
