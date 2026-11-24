@@ -1,6 +1,7 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
-import { FinancialHeroCard, HeroColor } from "@/components/ui/financial-hero-card";
+import { HeroColor } from "@/components/ui/financial-hero-card";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -232,19 +233,19 @@ export default function ContasPagar() {
 
         <div className="space-y-4 md:space-y-6">
             {/* KPI Hero Cards */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <KpiTileGrid>
               {summaryCards.map(card => (
-                <FinancialHeroCard
+                <KpiTile
                   key={card.key}
-                  title={card.title}
+                  label={card.title}
                   value={`R$ ${card.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                  subtitle={`${card.contas.length} conta${card.contas.length === 1 ? "" : "s"} · ${card.subtitle}`}
+                  hint={`${card.contas.length} conta${card.contas.length === 1 ? "" : "s"} · ${card.subtitle}`}
                   icon={card.icon}
-                  color={card.color}
+                  tone={({ primary: "blue", warning: "amber", danger: "red", success: "green" } as const)[card.color as "primary"] ?? "blue"}
                   onClick={() => abrirVisaoCard(card.filtro)}
                 />
               ))}
-            </div>
+            </KpiTileGrid>
 
             {/* Action Toolbar */}
             <div className="rounded-xl border bg-card/90 p-3 shadow-sm">

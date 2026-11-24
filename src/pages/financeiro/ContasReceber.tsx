@@ -50,7 +50,7 @@ import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsa
 import { ClienteAutocompleteInput } from "@/components/clientes/ClienteAutocompleteInput";
 import { useFormasPagamentoCustom } from "@/hooks/useFormasPagamentoCustom";
 import { LiquidarRecebivelModal } from "@/components/financeiro/LiquidarRecebivelModal";
-import { FinancialHeroCard } from "@/components/ui/financial-hero-card";
+import { KpiTile, KpiTileGrid } from "@/components/ui/kpi-tile";
 
 interface ContaReceber {
   id: string;
@@ -999,36 +999,36 @@ export default function ContasReceber() {
       <Header title="Contas a Receber" subtitle="Recebíveis unificados por categoria" />
       <AppPage className="overflow-x-hidden">
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <FinancialHeroCard
-            title="A Receber (Total)"
+        <KpiTileGrid>
+          <KpiTile
+            label="A Receber (Total)"
             value={`R$ ${totalAberto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            subtitle={`${countAberto} título${countAberto === 1 ? "" : "s"} em aberto`}
+            hint={`${countAberto} título${countAberto === 1 ? "" : "s"} em aberto`}
             icon={Wallet}
-            color="primary"
+            tone="blue"
           />
-          <FinancialHeroCard
-            title="Vencidas"
+          <KpiTile
+            label="Vencidas"
             value={`R$ ${totalVencido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            subtitle={`${countVencido} exigem cobrança`}
+            hint={`${countVencido} exigem cobrança`}
             icon={AlertCircle}
-            color="danger"
+            tone="red"
           />
-          <FinancialHeroCard
-            title="A Vencer"
+          <KpiTile
+            label="A Vencer"
             value={`R$ ${totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            subtitle={`${countPendente} dentro do prazo`}
+            hint={`${countPendente} dentro do prazo`}
             icon={Clock}
-            color="success"
+            tone="amber"
           />
-          <FinancialHeroCard
-            title="Recebidos (Mês)"
+          <KpiTile
+            label="Recebidos (Mês)"
             value={`R$ ${totalRecebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            subtitle={`${countRecebido} liquidado no filtro`}
+            hint={`${countRecebido} liquidado no filtro`}
             icon={CheckCircle2}
-            color="info"
+            tone="green"
           />
-        </div>
+        </KpiTileGrid>
 
         {totalVencido > 0 && (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
